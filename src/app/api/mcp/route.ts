@@ -1,5 +1,12 @@
 import {createMcpHandler} from "mcp-handler";
+import {revalidatePath} from "next/cache";
 import {z} from "zod";
+import {getDb} from "@/lib/tessera/server";
+import {
+  createMcpActorResolver,
+  registerTesseraTools,
+  type McpActorResolver,
+} from "@/lib/tessera/tools/mcp";
 import {
   createNode,
   deleteNode,
@@ -16,7 +23,16 @@ const instructions = [
   "Search before you read. search_items returns titles and summaries; call get_item only for the page you need.",
   "Prefer edit_item_content when changing a sentence, so the rest of the page stays put.",
   "update_item replaces the whole body. create_item adds a page or a collection. move_item changes which collection a page is in.",
+  "Tessera tools (tessera_*) track projects and work items: start with tessera_list_projects, pass ids (fields ending in _id) rather than keys, call tessera_describe_filters before filtering lists, and pass confirm: true to destructive tools.",
 ].join(" ");
+
+let tesseraActorResolver: McpActorResolver | null = null;
+
+/** One resolver per process, so a reconnecting client only touches its mcp:<name> actor row. */
+function resolveTesseraActor(): McpActorResolver {
+  tesseraActorResolver ??= createMcpActorResolver(getDb());
+  return tesseraActorResolver;
+}
 
 function text(value: unknown) {
   return {
@@ -213,6 +229,13 @@ const handler = createMcpHandler(
         }
       },
     );
+
+    registerTesseraTools(server, {
+      handles: getDb(),
+      actorResolver: (clientInfo) => resolveTesseraActor()(clientInfo),
+      // Route handlers may revalidate; the open page re-renders on its next visit.
+      afterWrite: () => revalidatePath("/", "layout"),
+    });
   },
   {
     serverInfo: {name: "handbook", version: "1.0.0"},

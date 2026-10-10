@@ -54,14 +54,22 @@ When summarising, lead with what changed and what needs a decision; cite keys. K
 
 ## `describe_filters` payload
 
+Built in P1 (`src/lib/tessera/tools/describe-filters.ts`, tool `describe_filters` ★ / `tessera_describe_filters`); computed from the zod schemas once per process.
+
 ```ts
 {
-  enums: { state_group, priority, module_status, relation_type, intake_status, layout, palette_color },
-  filters: { <field>: { type: "ids" | "enum" | "date" | "text" | "boolean", of?: "state" | "label" | "actor" | "cycle" | "module" | "project", description } },
-  display: { layout, group_by: string[], sub_group_by: string[], order_by: string[], properties: string[] },
-  examples: [{ title: "Open high-priority items assigned to me", filters: {...}, display: {...} }, ...]
+  enums: { state_group, priority, module_status, relation_type, intake_status, layout, palette_color },   // string[] each
+  filters: { <every Filters key>: { type: "ids" | "enum" | "date" | "text" | "boolean", of?: "state" | "label" | "actor" | "cycle" | "module" | "project", description } },
+           // `parent` is an ids filter without `of` (work item ids)
+  display: { layout: Layout[], group_by: GroupBy[], sub_group_by: SubGroupBy[], order_by: OrderBy[], type: (null | "active" | "backlog")[],
+             show_empty_groups: boolean[], sub_items: boolean[], calendar: { layout: ("month" | "week")[], show_weekends: boolean[] }, properties: string[] },
+  default_display: Display,            // what a list shows when nothing is saved; a DisplayPatch merges over it
+  examples: [{ title: "Open high-priority items assigned to me", filters: Filters, display: DisplayPatch },
+             { title: "Overdue work on a board by state", ... }, { title: "Due in the next two weeks, grouped by assignee, top-level items only", ... }]
 }
 ```
+
+`tests/registry.test.ts` checks that it covers every `Filters` and `Display` key, lists the enum and display values the schemas accept and that the examples parse.
 
 ## View from prompt (`ai/view-from-prompt.ts`, P5)
 

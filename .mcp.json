@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "tessera": {
+      "command": "npx",
+      "args": ["tsx", "scripts/mcp-stdio.ts"],
+      "cwd": "/Users/valentindorgeloh/Documents/Github/tessera",
+      "env": {
+        "TESSERA_DB_PATH": "/Users/valentindorgeloh/Documents/Github/tessera/data/tessera.db"
+      }
+    }
+  }
+}
