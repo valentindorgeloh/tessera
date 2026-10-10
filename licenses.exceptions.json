@@ -1,0 +1,47 @@
+{
+  "$comment": "Reviewed exceptions for scripts/check-licenses.ts. An entry applies only while the installed licence string still equals `license`; bumping a package to a different licence re-fails the gate. Scopes: dev-only (never shipped), build-only (used while building, not in the output), runtime-unused (installed but no code path loads it), mislabelled-spdx (permissive licence with a non-SPDX string). Last review: 2026-10-10.",
+  "exceptions": [
+    {
+      "package": "@img/sharp-libvips-darwin-arm64",
+      "license": "LGPL-3.0-or-later",
+      "scope": "runtime-unused",
+      "reason": "Optional native libvips binary pulled by next -> sharp for next/image optimisation. Dynamically linked, unmodified, and Tessera does not use next/image optimisation. If image optimisation is ever enabled, set images.unoptimized or re-review."
+    },
+    {
+      "package": "@img/sharp-wasm32",
+      "license": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
+      "scope": "runtime-unused",
+      "reason": "Optional wasm fallback for sharp (see @img/sharp-libvips-darwin-arm64). Never loaded on this platform and image optimisation is not used."
+    },
+    {
+      "package": "axe-core",
+      "license": "MPL-2.0",
+      "scope": "dev-only",
+      "reason": "Dependency of eslint-plugin-jsx-a11y (eslint-config-next). Runs only during lint; nothing from it is shipped. MPL is file-level copyleft on its own files, which we do not modify."
+    },
+    {
+      "package": "lightningcss",
+      "license": "MPL-2.0",
+      "scope": "dev-only",
+      "reason": "CSS transformer bundled with vite for vitest. Used only while running tests; not part of the Next build output. Unmodified."
+    },
+    {
+      "package": "lightningcss-darwin-arm64",
+      "license": "MPL-2.0",
+      "scope": "dev-only",
+      "reason": "Native binary of lightningcss (see above). Dev-only, unmodified."
+    },
+    {
+      "package": "caniuse-lite",
+      "license": "CC-BY-4.0",
+      "scope": "build-only",
+      "reason": "Browser-support data consumed by browserslist inside next and babel while building. The data never reaches the product UI, so no attribution is shown in the app; the attribution requirement is met by this notice and THIRD_PARTY_NOTICES.md."
+    },
+    {
+      "package": "css-mediaquery",
+      "license": "BSD",
+      "scope": "mislabelled-spdx",
+      "reason": "LICENSE file is the BSD-3-Clause text (Copyright 2014 Yahoo! Inc.); package.json uses the non-SPDX string \"BSD\". Transitive via @astryxdesign/core -> @stylexjs/stylex."
+    }
+  ]
+}

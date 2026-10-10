@@ -44,3 +44,6 @@ next-env.d.ts
 # tessera (local database, backups, exports) and agent tooling
 /data/
 /.projectatlas/
+
+# keep the documented example even though .env* is ignored
+!.env.example

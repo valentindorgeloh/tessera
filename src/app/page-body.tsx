@@ -374,8 +374,7 @@ class SlashMenuView implements PluginView {
     });
     this.#content = content;
     api.setMenuHost(content);
-    let provider!: SlashProvider;
-    provider = new SlashProvider({
+    const provider: SlashProvider = new SlashProvider({
       content,
       debounce: 0,
       shouldShow: (nextView) => menuShouldShow(nextView, provider, api),
