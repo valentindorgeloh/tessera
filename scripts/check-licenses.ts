@@ -23,6 +23,7 @@ const EXCEPTIONS_FILE = path.join(ROOT, "licenses.exceptions.json");
 
 const ALLOW = new Set([
   "MIT",
+  "MIT-0",
   "ISC",
   "Apache-2.0",
   "BSD-2-Clause",
