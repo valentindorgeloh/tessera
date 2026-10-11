@@ -244,5 +244,40 @@ describe("catppuccin palette contrast", () => {
         expect(ratio(paint(text), paint(background, tint)), surface).toBeGreaterThanOrEqual(TEXT);
       }
     });
+
+    // Entity links in the editor are purple chips (editor.css); on hover the
+    // tint gives way to the hover overlay.
+    it("editor entity chips read on hover", () => {
+      const text = paint(CHIP_TOKENS["--color-text-purple"][mode]);
+      for (const [surface, background] of surfaces) {
+        expect(ratio(text, paint(background, SEMANTIC_TOKENS["--color-overlay-hover"][mode])), surface).toBeGreaterThanOrEqual(TEXT);
+      }
+    });
+
+    // Banner header (catppuccinTheme.ts banner overrides): secondary text reads
+    // as primary on the status tint, a ghost button's hover overlay stacks on
+    // the tint, a secondary button sits on the plain surface, and the status
+    // icon (warning and success take their text colour) stays visible. Banners
+    // render on content surfaces (the detail page, cards, dialogs), never on the
+    // shell wash or a muted well, where the Latte error tint under a hover
+    // overlay would fall to 4.4:1.
+    const bannerSurfaces = surfaces.filter(([name]) => name === "surface" || name === "card" || name === "popover");
+    it.each([
+      ["info", ACCENT_TOKENS["--color-accent-muted"], ACCENT_TOKENS["--color-accent"]],
+      ["warning", STATUS_TOKENS["--color-warning-muted"], CHIP_TOKENS["--color-text-yellow"]],
+      ["error", STATUS_TOKENS["--color-error-muted"], STATUS_TOKENS["--color-error"]],
+      ["success", STATUS_TOKENS["--color-success-muted"], CHIP_TOKENS["--color-text-green"]],
+    ] as const)("%s banners read on their tint", (_status, tint, icon) => {
+      const text = paint(SEMANTIC_TOKENS["--color-text-primary"][mode]);
+      const hover = SEMANTIC_TOKENS["--color-overlay-hover"][mode];
+      for (const [surface, background] of bannerSurfaces) {
+        const fill = paint(background, tint[mode]);
+        expect(ratio(text, fill), `${surface} text`).toBeGreaterThanOrEqual(TEXT);
+        expect(ratio(text, paint(background, tint[mode], hover)), `${surface} ghost button hover`).toBeGreaterThanOrEqual(TEXT);
+        expect(ratio(paint(icon[mode]), fill), `${surface} icon`).toBeGreaterThanOrEqual(ICON);
+      }
+      const button = SEMANTIC_TOKENS["--color-background-surface"][mode];
+      expect(ratio(text, paint(button, hover)), "secondary button hover").toBeGreaterThanOrEqual(TEXT);
+    });
   });
 });

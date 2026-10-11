@@ -1,14 +1,17 @@
 "use client";
 
-import { Suspense, createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { Suspense, createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@astryxdesign/core/AppShell";
 import { useHotkeys } from "@astryxdesign/core/hooks";
 import { HStack, Layout, LayoutContent, LayoutHeader } from "@astryxdesign/core/Layout";
 import { ToastViewport } from "@astryxdesign/core/Toast";
+import { CommandBar, type CommandBarHandle } from "./CommandBar";
 
 export type ShellContextValue = {
   isNavCollapsed: boolean;
   setNavCollapsed: (collapsed: boolean) => void;
+  /** Opens Power K (the sidebar's search item; `mod+k` does the same). */
+  openCommandBar: () => void;
 };
 
 const ShellContext = createContext<ShellContextValue | null>(null);
@@ -22,9 +25,10 @@ export function useShell(): ShellContextValue {
 
 /**
  * Tessera frame (docs/contracts/ui.md "Shell"): AppShell with the SideNav in
- * its side slot, the TabBar pinned above the scrolling content, and the
- * ToastViewport that `useToast()` in any screen renders into. `mod+b`
- * collapses the navigation. The sidebar and the tab bar arrive as
+ * its side slot, the TabBar pinned above the scrolling content, the
+ * ToastViewport that `useToast()` in any screen renders into, and the
+ * CommandBar (Power K, `mod+k`; the shortcut dispatcher lives inside it).
+ * `mod+b` collapses the navigation. The sidebar and the tab bar arrive as
  * server-rendered children (`sideNav`, `tabBar`), so this component never
  * touches the database and the tab bar already knows the project names on
  * its first client render. The TabBar reads `usePathname()`, which is
@@ -34,6 +38,7 @@ export function useShell(): ShellContextValue {
  */
 export function TesseraShell({ sideNav, tabBar, children }: { sideNav: ReactNode; tabBar: ReactNode; children: ReactNode }) {
   const [isNavCollapsed, setNavCollapsed] = useState(false);
+  const commandBar = useRef<CommandBarHandle>(null);
 
   useHotkeys([
     {
@@ -43,11 +48,15 @@ export function TesseraShell({ sideNav, tabBar, children }: { sideNav: ReactNode
     },
   ]);
 
-  const value = useMemo<ShellContextValue>(() => ({ isNavCollapsed, setNavCollapsed }), [isNavCollapsed]);
+  // CommandBar owns its open state and scope; the sidebar opens it through the same path as mod+k.
+  const openCommandBar = useCallback(() => commandBar.current?.open(), []);
+
+  const value = useMemo<ShellContextValue>(() => ({ isNavCollapsed, setNavCollapsed, openCommandBar }), [isNavCollapsed, openCommandBar]);
 
   return (
     <ShellContext.Provider value={value}>
       <ToastViewport position="bottomEnd">
+        <CommandBar ref={commandBar} />
         <AppShell height="fill" contentPadding={0} variant="elevated" sideNav={sideNav}>
           <Layout
             height="fill"

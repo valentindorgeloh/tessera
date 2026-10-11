@@ -72,6 +72,29 @@ import {
   Monitor,
   Moon,
   Sun,
+  // Lane D (detail): header actions, mode switcher and subscription glyphs.
+  ArrowsOutSimple,
+  Bell,
+  BellSlash,
+  Link,
+  PencilSimple,
+  SidebarSimple,
+  // Lane D4 (Power K): command bar sections, the help dialog and the Ask tab.
+  Keyboard,
+  Sparkle,
+  // Lane D1 (editor): drag handle, bubble menu marks and the source toggle.
+  Code,
+  DotsSixVertical,
+  FileCode,
+  LinkSimple,
+  TextB,
+  TextItalic,
+  TextStrikethrough,
+  // Editor table controls (full width only).
+  ColumnsPlusLeft,
+  ColumnsPlusRight,
+  RowsPlusBottom,
+  RowsPlusTop,
   type Icon as PhosphorIcon,
   type IconProps,
 } from "@phosphor-icons/react";
@@ -170,6 +193,35 @@ export const TargetIcon = duotoneIcon(Target);
 export const HashIcon = duotoneIcon(Hash);
 export const TrashIcon = duotoneIcon(Trash);
 export const CheckIcon = duotoneIcon(Check);
+
+// Tessera detail (lane D): header actions, mode switcher and subscription glyphs.
+export const ArrowSquareOutIcon = duotoneIcon(ArrowSquareOut);
+export const ArrowsOutIcon = duotoneIcon(ArrowsOutSimple);
+export const BellIcon = duotoneIcon(Bell);
+export const BellSlashIcon = duotoneIcon(BellSlash);
+export const CopyIcon = duotoneIcon(Copy);
+export const LinkIcon = duotoneIcon(Link);
+export const PencilIcon = duotoneIcon(PencilSimple);
+export const SidebarIcon = duotoneIcon(SidebarSimple);
+
+// Tessera Power K (lane D4): command bar sections, the help dialog and the Ask tab.
+export const GearIcon = duotoneIcon(Gear);
+export const KeyboardIcon = duotoneIcon(Keyboard);
+export const LightningIcon = duotoneIcon(Lightning);
+export const SparkleIcon = duotoneIcon(Sparkle);
+
+// Tessera editor (lane D1): drag handle, bubble menu marks and the source toggle.
+export const CodeIcon = duotoneIcon(Code);
+export const DragHandleIcon = duotoneIcon(DotsSixVertical);
+export const FileCodeIcon = duotoneIcon(FileCode);
+export const LinkSimpleIcon = duotoneIcon(LinkSimple);
+export const TextBoldIcon = duotoneIcon(TextB);
+export const TextItalicIcon = duotoneIcon(TextItalic);
+export const TextStrikethroughIcon = duotoneIcon(TextStrikethrough);
+export const ColumnAddLeftIcon = duotoneIcon(ColumnsPlusLeft);
+export const ColumnAddRightIcon = duotoneIcon(ColumnsPlusRight);
+export const RowAddAboveIcon = duotoneIcon(RowsPlusTop);
+export const RowAddBelowIcon = duotoneIcon(RowsPlusBottom);
 
 /**
  * Icons a project logo may use (`Logo.icon` holds the Phosphor name). The

@@ -93,7 +93,10 @@ Filter bar: Astryx `PowerSearch` tokens for state, priority, labels, assignees, 
   - Token text colour on `popover`, `context-menu` and `dialog`; the browser's default styles for `<dialog>` and `[popover]` set `color: CanvasText` (pure white or black), which glyphs without their own colour would inherit.
   - The off `switch` track takes `--color-border-emphasized` (the gray chip tint is too faint). Only the off state, so the checked track keeps Astryx's accent, hover tint and forced-colors colours. Trade-offs: the off track loses Astryx's 5% hover tint, and a disabled off track shows the outline colour at Astryx's half opacity.
   - Rounded-square `nav-icon`, `tab-scroll-button` and `calendar-day`.
+  - `banner` scopes two tokens: secondary text reads as primary on the status tint, and `--color-neutral` is the plain surface, so secondary buttons in a banner do not stack their fill and hover overlay on the tint (Astryx's own themes scope banner tokens the same way). `banner-icon` gives the warning and success glyphs their text colours, because Latte yellow and green stay under 3:1 on their tint.
   - `onDark`/`onLight`: the focus ring on inverted surfaces (toasts) uses the on-colour, as the accent does there.
+- Accepted trade-offs (not every pair can pass; these are recorded rather than tuned away): a ghost button's hover on a Latte error banner falls to 4.4:1 on the shell wash and 4.1:1 on a muted well, where banners do not render (the test covers content surfaces); the table cell-selection tint, the active peek mode button and active bubble-menu marks differ from their resting state by less than 3:1, as they did under paper.
+- Editor surfaces (`src/components/styles/editor.css`) follow the same rules: the frame is a control outline (`--color-border-emphasized`, accent while focused), entity links are purple chips (`--color-background-purple` / `--color-text-purple`), the placeholder is secondary text, and the bubble menu and suggestion popover are shaped like Astryx menus (12px around 8px rows at a 4px inset).
 - Code highlighting uses Astryx's default syntax mapping (`syntaxTokenDefaults`, declared in the theme so it resolves to the Catppuccin text tokens). Code colours therefore follow `--color-text-{accent,green,orange,blue,purple,cyan,red,teal,secondary,primary}`.
 - The root layout sets `<html data-theme="dark">`, the Astryx SSR hint for the Frappé default; the root `<Theme>` updates it after hydration. Until then `<html>` and `<body>` resolve Astryx's default tokens, because the root `<Theme>` copies `data-astryx-theme` onto `<html>` in an effect. So every page paints its own surface inside the Theme wrapper: the shell does, and the root not-found page uses `.tessera-root-frame` (`src/app/globals.css`).
 
@@ -154,6 +157,14 @@ as the P2a rule above says). Mismatches with docs/PLAN.md are collected at the e
   shell and `ProjectFrame` already nest `Layout`s, so nesting is proven). Modal →
   `children` plus the `Dialog`. `AppShell` has no right-panel slot (`dist/AppShell/AppShell.d.ts`:
   `topNav`, `sideNav`, `banner`, `children`), which is why the panel lives inside the page.
+- **One mount point (as built).** `WorkItemDetail` renders once, through
+  `createPortal`, into a DOM node `PeekHost` owns. The side panel and the modal
+  each hold a slot that adopts that node, so switching modes (from the header,
+  or when the stored mode loads after hydration) moves DOM and keeps all React
+  state: unsaved editor text, undo history, a save in flight, a title being
+  edited. Portals have no server render, so until hydration the slot shows a
+  `Skeleton`. Focus stays on the control that switched the mode. The list stays
+  in the same tree position whether or not the panel is open.
 - `peek` prop type: `{ id: string; data: WorkItemDetailData | null } | null` (null data = not found).
 - Open/close: `WorkItemsScreen.onOpen` changes (one additive edit by D3 in lane C's
   file, named in the hand-off) from `router.push(`/projects/${projectId}/work-items/${id}`)`
@@ -165,7 +176,14 @@ as the P2a rule above says). Mismatches with docs/PLAN.md are collected at the e
   `useHotkeys([{ keys: "escape", onPress: close, allowInInputs: true, isDisabled: !open }])`
   in `PeekHost` (`dist/hooks/useHotkeys.d.ts`); the editor's own Escape blurs first
   and stops propagation (editor.md), dialogs and menus stop theirs, so the second
-  Escape reaches the panel. Close = `router.replace(peekHref(…, null), { scroll: false })`.
+  Escape reaches the panel. Close = `router.replace(peekHref(…, null), { scroll: false })`,
+  except when the list pushed the entry being closed: `onOpen` records the push
+  in sessionStorage `tessera.peekPush.v1` (`src/components/detail/peek-history.ts`),
+  `PeekHost` stamps the history length once the URL changed and follows an
+  in-place item switch, and close calls `router.back()` when
+  `closesWithBack(push, current, target, history.length)` holds
+  (`peek-url.ts`). Opening and closing therefore leaves no duplicate history
+  entry. Without storage the close falls back to the replace.
   Mode switch to `page` = `router.push(`/projects/${projectId}/work-items/${id}`)`.
 - `/projects/[projectId]/work-items/[workItemId]` — full page, replaces
   `QuickDetail.tsx` (delete it). Same loader; renders `<WorkItemDetail host="page" …/>`

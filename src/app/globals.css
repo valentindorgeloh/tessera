@@ -4,6 +4,8 @@
 @import "../components/styles/work-items.css";
 @import "../components/styles/board.css";
 @import "../components/styles/table.css";
+@import "../components/styles/editor.css";
+@import "../components/styles/detail.css";
 
 html,
 body {

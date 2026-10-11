@@ -328,6 +328,20 @@ export const catppuccinTheme = {
         }
       }
     },
+    "banner": {
+      "base": {
+        "--color-text-secondary": "var(--color-text-primary)",
+        "--color-neutral": "var(--color-background-surface)"
+      }
+    },
+    "banner-icon": {
+      "status:warning": {
+        "color": "var(--color-text-yellow)"
+      },
+      "status:success": {
+        "color": "var(--color-text-green)"
+      }
+    },
     "nav-icon": {
       "base": {
         "borderRadius": "var(--radius-element)"

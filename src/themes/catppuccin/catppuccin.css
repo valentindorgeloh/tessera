@@ -466,6 +466,19 @@
     background-color: var(--color-border-emphasized);
   }
 
+  .astryx-banner {
+    --color-text-secondary: var(--color-text-primary);
+    --color-neutral: var(--color-background-surface);
+  }
+
+  .astryx-banner-icon[data-status="warning"] {
+    color: var(--color-text-yellow);
+  }
+
+  .astryx-banner-icon[data-status="success"] {
+    color: var(--color-text-green);
+  }
+
   .astryx-nav-icon {
     border-radius: var(--radius-element);
   }

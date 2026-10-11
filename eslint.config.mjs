@@ -87,6 +87,8 @@ const eslintConfig = defineConfig([
     "astryx/**",
     "drizzle/**",
     "data/**",
+    // Agent worktrees (other branches, their own .next builds) live here.
+    ".claude/**",
   ]),
 ]);
 

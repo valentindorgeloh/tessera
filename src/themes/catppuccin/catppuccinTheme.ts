@@ -87,6 +87,24 @@ export const catppuccinTheme = defineTheme({
     switch: {
       base: {':not([data-checked="checked"])': {backgroundColor: "var(--color-border-emphasized)"}},
     },
+    // A banner's status tint moves its backdrop towards the text colour, and a
+    // secondary button stacks the neutral fill and the hover overlay on top, so
+    // secondary text and button labels drop below 4.5:1 (Frappé warning and
+    // success, Latte error). Inside a banner, secondary text reads as primary
+    // and secondary buttons sit on the plain surface; Astryx's own themes
+    // scope banner tokens the same way.
+    banner: {
+      base: {
+        "--color-text-secondary": "var(--color-text-primary)",
+        "--color-neutral": "var(--color-background-surface)",
+      },
+    },
+    // Latte yellow and green glyphs stay under 3:1 on their tint, so the status
+    // icon takes the matching text colour, as FieldStatus messages do.
+    "banner-icon": {
+      "status:warning": {color: "var(--color-text-yellow)"},
+      "status:success": {color: "var(--color-text-green)"},
+    },
     // Balanced corners: only avatars and badges are round, so the SideNav
     // logo, the tab strip's scroll arrows and calendar days are rounded squares.
     "nav-icon": {base: {borderRadius: "var(--radius-element)"}},

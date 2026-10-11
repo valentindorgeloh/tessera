@@ -3,10 +3,12 @@ import { io } from "next/cache";
 import { notFound } from "next/navigation";
 import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { loadWorkItemDetail } from "@/app/(tessera)/work-items/load-detail";
+import { PeekHost, type PeekData } from "@/components/detail/PeekHost";
 import type { UrlState } from "@/components/work-items/types";
 import { decodeUrlState, mergeDisplay, mergeFilters } from "@/components/work-items/url-state";
 import { WorkItemsScreen } from "@/components/work-items/WorkItemsScreen";
-import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
+import { DEFAULT_DISPLAY, IdSchema } from "@/lib/tessera/schemas";
 import { getViewSettings, isTrackerError, listWorkItems, readTessera } from "@/lib/tessera/server";
 
 type Props = {
@@ -21,7 +23,9 @@ const LIMIT = 2000;
  * Work items of a project (docs/contracts/ui.md "Work items screen"). The
  * effective display and filters are defaults <- saved view settings <- the
  * URL's `q` state, so a link carries its view and a plain navigation keeps
- * the saved one.
+ * the saved one. `?peek=<id>` opens that item next to the list (P2b, the
+ * PeekHost): it is loaded in a second, separately guarded read so a stale or
+ * foreign id shows the panel's not-found state instead of 404ing the list.
  */
 export default function WorkItemsPage({ params, searchParams }: Props) {
   return (
@@ -35,6 +39,7 @@ async function WorkItemsData({ params, searchParams }: Props) {
   const [{ projectId }, query] = await Promise.all([params, searchParams]);
   const urlState = decodeUrlState(typeof query.q === "string" ? query.q : undefined);
   const createOnOpen = query.create === "1";
+  const peekId = typeof query.peek === "string" && query.peek !== "" ? query.peek : null;
   await io();
   let data: Awaited<ReturnType<typeof loadWorkItems>>;
   try {
@@ -44,16 +49,35 @@ async function WorkItemsData({ params, searchParams }: Props) {
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();
     throw err;
   }
+  const peek = peekId === null ? null : await loadPeek(projectId, peekId);
   return (
-    <WorkItemsScreen
-      projectId={projectId}
-      result={data.result}
-      display={data.display}
-      filters={data.filters}
-      settingsDisplay={data.settings.display}
-      createOnOpen={createOnOpen}
-    />
+    <PeekHost projectId={projectId} peek={peek}>
+      <WorkItemsScreen
+        projectId={projectId}
+        result={data.result}
+        display={data.display}
+        filters={data.filters}
+        settingsDisplay={data.settings.display}
+        createOnOpen={createOnOpen}
+      />
+    </PeekHost>
   );
+}
+
+/**
+ * The peeked item, guarded on its own: a malformed, unknown or deleted id,
+ * or an item of another project, yields `data: null` (the panel's not-found
+ * state) and never fails the list.
+ */
+async function loadPeek(projectId: string, peekId: string): Promise<PeekData> {
+  if (!IdSchema.safeParse(peekId).success) return { id: peekId, data: null };
+  try {
+    const data = await readTessera((ctx) => loadWorkItemDetail(ctx, peekId));
+    return { id: peekId, data: data.item.project_id === projectId ? data : null };
+  } catch (err) {
+    if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) return { id: peekId, data: null };
+    throw err;
+  }
 }
 
 function loadWorkItems(projectId: string, urlState: UrlState) {

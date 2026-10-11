@@ -10,6 +10,7 @@ import {
   addTab,
   closeOtherTabs,
   closeTab,
+  isTransientPath,
   isTypingTarget,
   labelTabs,
   lookupFromNames,
@@ -82,6 +83,22 @@ describe("resolveTab", () => {
     expect(resolveTab("/your-work/assigned", lookup)).toEqual({ label: "Your work", icon: "page" });
     expect(resolveTab("/", lookup)).toEqual({ label: "Home", icon: "home" });
   });
+
+  it("labels the global detail route with the registered work item label", () => {
+    expect(resolveTab(`/work-items/${ITEM}`, lookup)).toEqual({ label: "Work item", icon: "work-item" });
+    const withItems: TabLookup = { ...lookup, workItemLabel: (id) => (id === ITEM ? "WEB-1 Set up hosting" : undefined) };
+    expect(resolveTab(`/work-items/${ITEM}`, withItems)).toEqual({ label: "WEB-1 Set up hosting", icon: "work-item" });
+    expect(resolveTab(`/work-items/${ITEM}/`, withItems).label).toBe("WEB-1 Set up hosting");
+    // Without an id the route is not a detail; it keeps the generic first-segment label.
+    expect(resolveTab("/work-items", withItems)).toEqual({ label: "Work items", icon: "page" });
+  });
+
+  it("labels the browse route with the upper-cased key", () => {
+    expect(resolveTab("/browse/web-1", lookup)).toEqual({ label: "WEB-1", icon: "work-item" });
+    expect(resolveTab("/browse/WEB-12?x=1", lookup).label).toBe("WEB-12");
+    expect(resolveTab("/browse/web%2D7", lookup).label).toBe("WEB-7");
+    expect(resolveTab("/browse", lookup)).toEqual({ label: "Browse", icon: "page" });
+  });
 });
 
 describe("addTab", () => {
@@ -102,6 +119,21 @@ describe("addTab", () => {
     const base = state(["/home"]);
     expect(addTab(base, "/home/")).toBe(base);
     expect(addTab(base, "/projects?x=1").tabs.map((tab) => tab.path)).toEqual(["/home", "/projects"]);
+  });
+
+  it("gives a /browse tab's slot to the route that follows it (the redirect target)", () => {
+    const base = state(["/home", "/browse/WEB-1", "/projects"], "/browse/WEB-1");
+    const next = addTab(base, "/projects/p1/work-items/w1");
+    expect(next).toEqual(state(["/home", "/projects/p1/work-items/w1", "/projects"], "/projects/p1/work-items/w1"));
+  });
+
+  it("drops /browse tabs when the next route already has a tab or the alias is not active", () => {
+    const open = state(["/home", "/projects/p1/work-items/w1", "/browse/web-1"], "/browse/web-1");
+    expect(addTab(open, "/projects/p1/work-items/w1")).toEqual(state(["/home", "/projects/p1/work-items/w1"], "/projects/p1/work-items/w1"));
+    const restored = state(["/browse/NOPE-9", "/home"], "/home");
+    expect(addTab(restored, "/projects")).toEqual(state(["/home", "/projects"], "/projects"));
+    expect(isTransientPath("/browse/WEB-1/")).toBe(true);
+    expect(isTransientPath("/work-items/w1")).toBe(false);
   });
 });
 

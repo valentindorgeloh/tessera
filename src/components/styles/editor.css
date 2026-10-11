@@ -1,0 +1,413 @@
+/*
+ * Tessera description editor (lane D1): ProseMirror typography, entity chips,
+ * the suggestion popover, the bubble menu, the drag handle and the source
+ * textarea. Tokens only; min-heights and the popover width are the only raw px.
+ */
+
+/*
+ * The frame is a control outline (3:1, like Astryx inputs) and turns accent
+ * while focused. Its corner is concentric with the 8px Source toggle and
+ * Source textarea set 4px inside it.
+ */
+.tessera-editor {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  border: var(--border-width) solid var(--color-border-emphasized);
+  border-radius: calc(var(--radius-element) + var(--spacing-1));
+  background: var(--color-background-card);
+}
+
+.tessera-editor:focus-within {
+  border-color: var(--color-accent);
+}
+
+.tessera-editor-toolbar {
+  padding-inline: var(--spacing-1);
+  padding-block-start: var(--spacing-1);
+}
+
+/* Table controls (full width only): shown while the selection is in a table, set apart from the Source toggle. */
+.tessera-editor-table-controls {
+  padding-inline-end: var(--spacing-1);
+  border-inline-end: var(--border-width) solid var(--color-border);
+}
+
+.tessera-editor-surface {
+  min-width: 0;
+}
+
+/* Source mode hides the rich surface; the editor instance stays alive. */
+.tessera-editor--source .tessera-editor-surface,
+.tessera-editor--source .tessera-editor-drag {
+  display: none;
+}
+
+/* The class lands on the TextArea's own bordered box, so margin (not padding) sets it inside the frame. */
+.tessera-editor-source {
+  margin-inline: var(--spacing-1);
+  margin-block-end: var(--spacing-1);
+}
+
+.tessera-editor-source textarea {
+  font-family: var(--font-family-code);
+  font-size: var(--text-code-size);
+  line-height: var(--text-code-leading);
+}
+
+/* ProseMirror root. */
+.tessera-editor-content {
+  min-height: 240px;
+  outline: none;
+  padding-inline: var(--spacing-4);
+  padding-block: var(--spacing-2) var(--spacing-4);
+  font-family: var(--font-family-body);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.tessera-editor--compact .tessera-editor-content {
+  min-height: 120px;
+  padding-inline: var(--spacing-2);
+  padding-block: var(--spacing-1) var(--spacing-2);
+}
+
+.tessera-editor--readonly .tessera-editor-content {
+  color: var(--color-text-secondary);
+}
+
+.tessera-editor-content > * + * {
+  margin-block-start: var(--spacing-2);
+}
+
+.tessera-editor-content h1,
+.tessera-editor-content h2,
+.tessera-editor-content h3 {
+  font-family: var(--font-family-heading);
+  margin-block-start: var(--spacing-4);
+}
+
+.tessera-editor-content h1 {
+  font-size: var(--text-heading-2-size);
+  line-height: var(--text-heading-2-leading);
+  font-weight: var(--text-heading-2-weight);
+}
+
+.tessera-editor-content h2 {
+  font-size: var(--text-heading-3-size);
+  line-height: var(--text-heading-3-leading);
+  font-weight: var(--text-heading-3-weight);
+}
+
+.tessera-editor-content h3 {
+  font-size: var(--text-heading-4-size);
+  line-height: var(--text-heading-4-leading);
+  font-weight: var(--text-heading-4-weight);
+}
+
+.tessera-editor-content ul,
+.tessera-editor-content ol {
+  padding-inline-start: var(--spacing-5);
+}
+
+.tessera-editor-content ul {
+  list-style: disc;
+}
+
+.tessera-editor-content ol {
+  list-style: decimal;
+}
+
+.tessera-editor-content li + li {
+  margin-block-start: var(--spacing-0-5);
+}
+
+/* Task lists: checkbox + content side by side, nested lists indented under the text. */
+.tessera-editor-content ul[data-type="taskList"] {
+  list-style: none;
+  padding-inline-start: var(--spacing-1);
+}
+
+.tessera-editor-content ul[data-type="taskList"] > li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+}
+
+.tessera-editor-content ul[data-type="taskList"] > li > label {
+  flex: 0 0 auto;
+  margin-block-start: var(--spacing-0-5);
+  user-select: none;
+}
+
+.tessera-editor-content ul[data-type="taskList"] > li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tessera-editor-content ul[data-type="taskList"] > li[data-checked="true"] > div > p {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+
+.tessera-editor-content blockquote {
+  margin-inline: 0;
+  padding-inline-start: var(--spacing-3);
+  border-inline-start: var(--border-width) solid var(--color-border-emphasized);
+  color: var(--color-text-secondary);
+}
+
+.tessera-editor-content hr {
+  border: 0;
+  border-block-start: var(--border-width) solid var(--color-border);
+  margin-block: var(--spacing-4);
+}
+
+.tessera-editor-content code {
+  font-family: var(--font-family-code);
+  font-size: var(--text-code-size);
+  background: var(--color-background-muted);
+  border-radius: var(--radius-inner);
+  padding-inline: var(--spacing-1);
+}
+
+.tessera-editor-content pre {
+  font-family: var(--font-family-code);
+  font-size: var(--text-code-size);
+  line-height: var(--text-code-leading);
+  background: var(--color-syntax-background, var(--color-background-muted));
+  border-radius: var(--radius-element);
+  padding: var(--spacing-3);
+  overflow-x: auto;
+}
+
+.tessera-editor-content pre code {
+  background: none;
+  padding: 0;
+}
+
+/* lowlight classes, mapped to the theme's syntax tokens. */
+.tessera-editor-content .hljs-comment,
+.tessera-editor-content .hljs-quote {
+  color: var(--color-syntax-comment);
+}
+
+.tessera-editor-content .hljs-keyword,
+.tessera-editor-content .hljs-selector-tag,
+.tessera-editor-content .hljs-built_in {
+  color: var(--color-syntax-keyword);
+}
+
+.tessera-editor-content .hljs-string,
+.tessera-editor-content .hljs-regexp {
+  color: var(--color-syntax-string);
+}
+
+.tessera-editor-content .hljs-number,
+.tessera-editor-content .hljs-literal {
+  color: var(--color-syntax-number);
+}
+
+.tessera-editor-content .hljs-title,
+.tessera-editor-content .hljs-function {
+  color: var(--color-syntax-function);
+}
+
+.tessera-editor-content .hljs-attr,
+.tessera-editor-content .hljs-attribute {
+  color: var(--color-syntax-attribute);
+}
+
+.tessera-editor-content .hljs-type,
+.tessera-editor-content .hljs-class {
+  color: var(--color-syntax-type);
+}
+
+.tessera-editor-content .hljs-variable,
+.tessera-editor-content .hljs-template-variable {
+  color: var(--color-syntax-variable);
+}
+
+.tessera-editor-content .hljs-tag,
+.tessera-editor-content .hljs-name {
+  color: var(--color-syntax-tag);
+}
+
+/* Tables. */
+.tessera-editor-content .tableWrapper {
+  overflow-x: auto;
+}
+
+.tessera-editor-content table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.tessera-editor-content th,
+.tessera-editor-content td {
+  border: var(--border-width) solid var(--color-border);
+  padding: var(--spacing-1) var(--spacing-2);
+  vertical-align: top;
+  text-align: start;
+  min-width: 48px;
+}
+
+.tessera-editor-content th {
+  background: var(--color-background-muted);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tessera-editor-content .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--color-accent-muted);
+  pointer-events: none;
+}
+
+.tessera-editor-content td,
+.tessera-editor-content th {
+  position: relative;
+}
+
+/* Links; entity links are drawn as purple chips (the Token pair, 4.5:1 on every surface). */
+.tessera-editor-content a {
+  color: var(--color-text-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.tessera-editor-content a[href^="work:"],
+.tessera-editor-content a[href^="page:"],
+.tessera-editor-content a[href^="cycle:"],
+.tessera-editor-content a[href^="module:"] {
+  display: inline-block;
+  padding-inline: var(--spacing-1);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-purple);
+  color: var(--color-text-purple);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  line-height: var(--text-label-leading);
+}
+
+.tessera-editor-content a[href^="work:"]:hover,
+.tessera-editor-content a[href^="page:"]:hover,
+.tessera-editor-content a[href^="cycle:"]:hover,
+.tessera-editor-content a[href^="module:"]:hover {
+  background: var(--color-overlay-hover);
+}
+
+.tessera-editor-mention {
+  color: var(--color-text-accent);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Raw HTML stays visible as source so nothing renders that the author did not write. */
+.tessera-editor-raw,
+.tessera-editor-raw-block {
+  font-family: var(--font-family-code);
+  font-size: var(--text-code-size);
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+}
+
+.tessera-editor-raw-block {
+  display: block;
+  padding: var(--spacing-1) var(--spacing-2);
+  border: var(--border-width) dashed var(--color-border);
+  border-radius: var(--radius-inner);
+}
+
+.tessera-editor-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-inner);
+}
+
+.tessera-editor-content .ProseMirror-selectednode {
+  outline: var(--border-width) solid var(--color-accent);
+  outline-offset: var(--spacing-0-5);
+}
+
+/* Placeholder: the Placeholder extension writes data-placeholder on the empty block. */
+.tessera-editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: inline-start;
+  height: 0;
+  pointer-events: none;
+  color: var(--color-text-secondary);
+}
+
+/* Bubble menu (inline marks + link input). */
+.tessera-editor-bubble {
+  padding: var(--spacing-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: calc(var(--radius-element) + var(--spacing-1));
+  background: var(--color-background-popover);
+  box-shadow: var(--shadow-med);
+}
+
+.tessera-editor-link-input {
+  min-width: 280px;
+}
+
+/* Suggestion popover (mentions.tsx), positioned by the Suggestion plugin; shaped like an Astryx menu. */
+.tessera-editor-popover {
+  min-width: 240px;
+  max-width: 360px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--spacing-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-container);
+  background: var(--color-background-popover);
+  box-shadow: var(--shadow-med);
+}
+
+.tessera-editor-popover-empty {
+  padding: var(--spacing-1) var(--spacing-2);
+}
+
+/* One option of the listbox; the active one (keyboard or pointer) is highlighted. */
+.tessera-editor-option {
+  min-width: 0;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: calc(var(--radius-container) - var(--spacing-1));
+  cursor: pointer;
+}
+
+.tessera-editor-option--active {
+  background: var(--color-overlay-hover);
+}
+
+.tessera-editor-option-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Drag handle rendered beside the hovered block. */
+.tessera-editor-drag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-element-sm);
+  height: var(--size-element-sm);
+  border-radius: var(--radius-inner);
+  color: var(--color-icon-secondary);
+  cursor: grab;
+}
+
+.tessera-editor-drag:hover {
+  background: var(--color-overlay-hover);
+  color: var(--color-icon-primary);
+}
+
+.tessera-editor-drag:active {
+  cursor: grabbing;
+}

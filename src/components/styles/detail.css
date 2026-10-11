@@ -1,0 +1,208 @@
+/*
+ * Tessera work item detail (lane D2): header, two-column body, property
+ * rail, sub-items, links and activity beyond what Astryx props cover. Tokens
+ * only; the structural widths (rail, key column, breakpoint) are the only
+ * raw px.
+ */
+
+.tessera-detail {
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+  container-name: detail;
+}
+
+/* Peek: the slot in the side panel or the modal, and the mount node it adopts (PeekHost). */
+.tessera-peek-slot,
+.tessera-peek-node {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Full page: capped reading column like the list screens. */
+.tessera-detail--page {
+  max-width: 1200px;
+  margin-inline: auto;
+}
+
+.tessera-detail-header {
+  min-width: 0;
+  padding-inline: var(--spacing-4);
+  padding-block: var(--spacing-2);
+  border-block-end: var(--border-width) solid var(--color-border);
+  background: var(--color-background-surface);
+}
+
+.tessera-detail--peek .tessera-detail-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.tessera-detail-crumbs {
+  min-width: 0;
+  flex: 1;
+}
+
+.tessera-detail-mode-active {
+  background: var(--color-overlay-hover);
+}
+
+/*
+ * Body: three grid areas. One column (title, properties, main) in the peek and
+ * below 960px; page and modal hosts from 960px put the properties in a right
+ * column next to the title and the main column.
+ */
+.tessera-detail-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "title"
+    "rail"
+    "main";
+  column-gap: var(--spacing-8);
+  row-gap: var(--spacing-5);
+  padding: var(--spacing-5) var(--spacing-4) var(--spacing-10);
+  min-width: 0;
+}
+
+.tessera-detail-heading {
+  grid-area: title;
+  min-width: 0;
+}
+
+.tessera-detail-rail {
+  grid-area: rail;
+  min-width: 0;
+}
+
+.tessera-detail-main {
+  grid-area: main;
+  min-width: 0;
+}
+
+@container detail (min-width: 960px) {
+  .tessera-detail--page .tessera-detail-body,
+  .tessera-detail--modal .tessera-detail-body {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "title rail"
+      "main rail";
+    padding-inline: var(--spacing-6);
+  }
+
+  .tessera-detail--page .tessera-detail-rail,
+  .tessera-detail--modal .tessera-detail-rail {
+    align-self: start;
+    padding-inline-start: var(--spacing-5);
+    border-inline-start: var(--border-width) solid var(--color-border);
+  }
+}
+
+/* Title: a heading with an "Edit title" button until either is clicked, then a large text input in the same place. */
+.tessera-detail-title-row {
+  min-width: 0;
+}
+
+.tessera-detail-title {
+  flex: 1;
+  min-width: 0;
+  cursor: text;
+  border-radius: var(--radius-inner);
+  padding-inline: var(--spacing-1);
+  margin-inline: calc(-1 * var(--spacing-1));
+  overflow-wrap: anywhere;
+}
+
+.tessera-detail-title:hover {
+  background: var(--color-overlay-hover);
+}
+
+.tessera-detail-title--readonly {
+  cursor: default;
+}
+
+.tessera-detail-title--readonly:hover {
+  background: none;
+}
+
+.tessera-detail-title-edit {
+  flex-shrink: 0;
+  margin-block-start: var(--spacing-1);
+}
+
+.tessera-detail-title-input input {
+  height: auto;
+  font-family: var(--font-family-heading);
+  font-size: var(--text-heading-2-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-heading-2-leading);
+}
+
+/* Property rail: labels keep one width so the controls line up. */
+.tessera-detail-props {
+  width: 100%;
+  min-width: 0;
+}
+
+/*
+ * Sub-item and link rows: the key column has a fixed width, the name takes the
+ * rest. The hover fill is concentric with the 8px controls 4px inside it.
+ */
+.tessera-detail-row {
+  min-width: 0;
+  padding: var(--spacing-1);
+  border-radius: calc(var(--radius-element) + var(--spacing-1));
+}
+
+.tessera-detail-row:hover,
+.tessera-detail-row:focus-within {
+  background: var(--color-overlay-hover);
+}
+
+.tessera-detail-key {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+  min-width: 72px;
+  justify-content: flex-start;
+}
+
+.tessera-detail-row-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.tessera-detail-row-props {
+  flex: 0 0 auto;
+}
+
+.tessera-detail-link-host {
+  white-space: nowrap;
+}
+
+/* Description: label, optional Banner, the editor and its save status. */
+.tessera-detail-description {
+  min-width: 0;
+}
+
+/* Activity: one row per entry, the timestamp hugs the end. */
+.tessera-detail-activity-row {
+  min-width: 0;
+  padding-block: var(--spacing-1);
+}
+
+.tessera-detail-activity-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.tessera-detail-activity-time {
+  white-space: nowrap;
+}
+
+/* Parent picker menu: a search field above the hits. */
+.tessera-detail-parent-menu {
+  width: 320px;
+  max-width: 100%;
+}

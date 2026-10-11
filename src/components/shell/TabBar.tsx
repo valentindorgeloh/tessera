@@ -7,6 +7,7 @@ import { Icon, type IconType } from "@astryxdesign/core/Icon";
 import { HStack } from "@astryxdesign/core/Layout";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { FolderIcon, HouseIcon, KanbanIcon, ListBulletsIcon, PageIcon, XIcon } from "@/themes/catppuccin/icons";
+import { useEntityLabels } from "./entity-labels";
 import {
   EMPTY_TABS,
   TABS_STORAGE_KEY,
@@ -119,7 +120,9 @@ export function TabBar({ projectNames }: { projectNames: ProjectNameMap }) {
     commit(addTab(getSnapshot(), pathname));
   }, [pathname]);
 
-  const lookup = useMemo(() => lookupFromNames(projectNames), [projectNames]);
+  // Detail screens register "<KEY> <title>" for the item they show (./entity-labels.ts).
+  const labels = useEntityLabels();
+  const lookup = useMemo(() => ({ ...lookupFromNames(projectNames), workItemLabel: (id: string) => labels.get(id) }), [projectNames, labels]);
 
   const close = useCallback(
     (path: string) => {

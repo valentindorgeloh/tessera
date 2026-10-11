@@ -186,6 +186,13 @@ Configuration (verified option names):
   TaskItem `{ nested, onReadOnlyChecked, taskListTypeName, a11y }`).
 - `Table.configure({ resizable: false })`, `TableRow`, `TableHeader`, `TableCell`
   (`extension-table/dist/index.d.ts`; the package serialises tables itself via `renderTableToMarkdown`).
+  **Table controls (as built):** in the full-width editor (not `compact`, not
+  read-only, rich mode) a `role="toolbar"` labelled "Table" appears in the
+  editor toolbar while the selection is inside a table. Icon buttons insert a
+  row above or below and a column left or right; a "More table actions" menu
+  deletes the row, the column or the table. A mousedown guard keeps focus and
+  selection in the table. Known quirk: deleting the header row of a GFM table
+  leaves a table `@tiptap/markdown` cannot serialise with a header (follow-up).
 - `Placeholder.configure({ placeholder, showOnlyWhenEditable: true })`
   (`extensions/dist/index.d.ts`: `{ placeholder, emptyEditorClass, emptyNodeClass, showOnlyWhenEditable }`).
 - `Markdown` (no options) — adds `editor.getMarkdown()`, `contentType: "markdown"`
@@ -313,54 +320,61 @@ Rules (docs/PLAN.md §7):
   source". Banner status `info`, title "This description uses Markdown the editor
   would rewrite", `endContent`: "View source", "Edit anyway". Saves are blocked while
   `lossy !== null`.
-- `pagehide` listener (and `visibilitychange` → `hidden`): when status is `dirty`
-  or `saving` with newer text, send
-  `navigator.sendBeacon(`/api/work-items/${workItemId}/description`, new Blob([JSON.stringify({ description_md, expected_description_version: state.version })], { type: "application/json" }))`.
-  The Blob type makes the request `application/json`, so the route can call
-  `request.json()`. Nothing waits for the answer.
+- `pagehide` listener: when the latest text is unsaved and no Banner is open
+  (`lossy`, `conflict`, `theirs` all null), mark the hook `unloading` (no Server
+  Action may race the beacon) and send
+  `navigator.sendBeacon(`/api/work-items/${workItemId}/description`, new Blob([JSON.stringify(body)], { type: "application/json" }))`.
+  `body` comes from `beaconPayload({ latest, version, inFlight })`:
+  `{ description_md, expected_description_version: version }`, plus
+  `if_current_md: inFlight` when a save is still in flight (that save usually
+  lands first, one version later). After a queued beacon the hook writes a
+  sessionStorage marker `tessera.descriptionBeacon.v1`
+  (`{ workItemId, text, version, at }`, ignored after 10 s). The next mount
+  that renders an older version refreshes at 300 ms and 1500 ms until it holds
+  the beacon's text. `pageshow` with `persisted` (back/forward cache) clears
+  `unloading` and refreshes once.
+- `visibilitychange` → `hidden` calls `flush()` through the Server Action; a
+  hidden tab stays alive and learns the new version.
 - Unmount cleanup (peek closed, item switched, tab closed) calls `flush()`;
   the Server Action call outlives the component.
 
 ## Beacon route: `POST /api/work-items/[workItemId]/description`
 
-File `src/app/api/work-items/[workItemId]/description/route.ts` (lane D1).
-Body `{ description_md: string; expected_description_version: number }` read with
-`await request.json()` (`next/dist/docs/01-app/03-api-reference/03-file-conventions/route.md`
-"Request Body", line 483). The handler:
+File `src/app/api/work-items/[workItemId]/description/route.ts` (lane D1), guards in
+`src/app/api/request-guards.ts`. Body
+`{ description_md: string; expected_description_version: number; if_current_md?: string }`
+read with `await request.json()`
+(`next/dist/docs/01-app/03-api-reference/03-file-conventions/route.md` "Request Body").
+The handler, in order:
 
-```ts
-import { type NextRequest } from "next/server";
-import { createContext, fromSqliteError, getDb, getTool, isTrackerError, runToolWithContext, USER_ACTOR_ID, validateInput } from "@/lib/tessera/server";
-// every name above is re-exported by src/lib/tessera/index.ts (core/context, core/errors, actors, tools/registry) through server.ts
+1. **Same origin.** `isSameOriginRequest(headers)`: `Sec-Fetch-Site` must be
+   `same-origin` when present; otherwise the `Origin` host must equal `Host`
+   (or `X-Forwarded-Host`). Requests with neither header (curl, scripts) pass.
+   Failure → 403 `{ code: "FORBIDDEN" }`. Route handlers get no built-in Origin
+   check, unlike Server Actions.
+2. **JSON only.** `isJsonContentType(content-type)` (`application/json`, any
+   parameters, any case). Failure → 415 `{ code: "UNSUPPORTED_MEDIA_TYPE" }`. A
+   cross-site `<form enctype="text/plain">` can produce a body that parses as
+   JSON but never with this type.
+3. **Parse.** Invalid JSON → 400 `VALIDATION`. `if_current_md` is split off
+   (it is not part of the tool's strict input); a non-string → 400.
+4. **Run** `update_work_item_description` as the user with the path's
+   `work_item_id` (a body `work_item_id` never overrides it).
+5. **Own in-flight save.** On `CONFLICT` with `if_current_md` set: when the
+   stored text equals `if_current_md` and the stored version is exactly
+   `expected_description_version + 1`, the only change since `expected` was the
+   page's own save, so the route retries once with the stored version (still a
+   compare-and-set). Any other state stays `CONFLICT`.
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ workItemId: string }> }): Promise<Response> {
-  const { workItemId } = await params;
-  const headers = { "Cache-Control": "no-store" };
-  let body: unknown;
-  try { body = await request.json(); } catch { return Response.json({ ok: false, code: "VALIDATION", message: "JSON body required" }, { status: 400, headers }); }
-  try {
-    const def = getTool("update_work_item_description");
-    const data = validateInput(def.input, { work_item_id: workItemId, ...(body as object) });
-    const { db, sqlite } = getDb();
-    const ctx = createContext({ db, sqlite, actorId: USER_ACTOR_ID });
-    const run = await runToolWithContext(ctx, def.name, data);
-    return Response.json({ ok: true, description_version: run.data.description_version, cursor: run.cursor }, { headers });
-  } catch (err) {
-    const mapped = fromSqliteError(err);
-    if (isTrackerError(mapped)) return Response.json({ ok: false, code: mapped.code, message: mapped.message, ...(mapped.code === "CONFLICT" ? { current_version: (mapped.details as { current_version: number }).current_version } : {}) }, { status: STATUS[mapped.code] ?? 400, headers });
-    console.error("[tessera] description beacon failed", mapped);
-    return Response.json({ ok: false, code: "INTERNAL", message: "Unexpected error" }, { status: 500, headers });
-  }
-}
-```
-
-Status map: `VALIDATION` 400, `NOT_FOUND` 404, `CONFLICT` 409 (`{ current_version }`),
-`ARCHIVED` and `LOCKED` 423, `RULE` 422, `BUSY` 503, anything else 400. The handler
-never calls `refresh()` — Next allows it in Server Actions only
-(`next/dist/docs/01-app/03-api-reference/04-functions/refresh.md` line 13); the
-open page, if any, catches up through `ChangesPoller` on the next visit. Mirrors
-`src/app/actions/_run.ts` rather than importing it (`runTool` refreshes).
-`GET` is not implemented (405 by default).
+Success → 200 `{ ok: true, description_version, cursor }`. Failures
+`{ ok: false, code, message, current_version? }`. Status map: `VALIDATION` 400,
+`FORBIDDEN` 403, `NOT_FOUND` 404, `CONFLICT` 409 (`{ current_version }`),
+`UNSUPPORTED_MEDIA_TYPE` 415, `RULE` 422, `ARCHIVED` and `LOCKED` 423, `BUSY`
+503, unexpected 500 `INTERNAL`, any other tracker code 400. Every response is
+`Cache-Control: no-store`. The handler never calls `refresh()` — Next allows it
+in Server Actions only (`next/dist/docs/01-app/03-api-reference/04-functions/refresh.md`);
+an open page catches up through `ChangesPoller` and the beacon marker. `GET` is
+not implemented (405). Tests: `tests/editor/description-route.test.ts`.
 
 ## Vitest corpus: `tests/editor/markdown-roundtrip.test.ts`
 

@@ -6,6 +6,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { DropdownMenu, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@astryxdesign/core/DropdownMenu";
 import { Icon, type IconType } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
+import { Kbd } from "@astryxdesign/core/Kbd";
 import { NavIcon } from "@astryxdesign/core/NavIcon";
 import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
@@ -17,6 +18,7 @@ import {
   MonitorIcon,
   MoonIcon,
   PlusIcon,
+  SearchIcon,
   SquaresFourIcon,
   SunIcon,
 } from "@/themes/catppuccin/icons";
@@ -199,7 +201,7 @@ function ColorSchemeMenu() {
 export function Sidebar({ projects }: { projects: Project[] }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isNavCollapsed, setNavCollapsed } = useShell();
+  const { isNavCollapsed, setNavCollapsed, openCommandBar } = useShell();
   const { expanded, lastProjectId } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const activeProjectId = projectIdFromPath(pathname);
 
@@ -255,6 +257,7 @@ export function Sidebar({ projects }: { projects: Project[] }) {
       }
     >
       <SideNavSection title="Workspace" isHeaderHidden>
+        <SideNavItem label="Search" icon={SearchIcon} onClick={openCommandBar} endContent={isNavCollapsed ? undefined : <Kbd keys="mod+k" />} />
         <SideNavItem label="Home" icon={HouseIcon} href="/home" isSelected={pathname === "/home"} />
         <SideNavItem label="Projects" icon={FolderIcon} href="/projects" isSelected={pathname === "/projects"} />
       </SideNavSection>

@@ -45,23 +45,30 @@ export function ProjectFrame({ children }: { children: ReactNode }) {
   const { project } = bundle;
   const active = TABS.find((tab) => tab.segment === currentSegment(pathname, project.id)) ?? TABS[0];
   return (
-    <Layout height="fill">
-      <LayoutHeader hasDivider padding={0} label={project.name}>
-        <HStack gap={3} vAlign="center" paddingInline={5} paddingBlockStart={4} paddingBlockEnd={2}>
-          <ProjectToken project={project} />
-          <Heading level={1} maxLines={1}>
-            {project.name}
-          </Heading>
-        </HStack>
-        <TabList value={active.key} onChange={() => {}} size="sm" layout="hug" isFullBleed>
-          {TABS.map((tab) => (
-            <Tab key={tab.key} value={tab.key} label={tab.label} icon={tab.icon} href={`/projects/${project.id}/${tab.segment}`} />
-          ))}
-        </TabList>
-      </LayoutHeader>
-      <LayoutContent padding={0} isScrollable label={active.label}>
-        {children}
-      </LayoutContent>
-    </Layout>
+    // Header and content go in their slots: as children both landed in the content slot, so the 100%-high
+    // LayoutContent sat under the header and the shell scrolled by the header's height.
+    <Layout
+      height="fill"
+      header={
+        <LayoutHeader hasDivider padding={0} label={project.name}>
+          <HStack gap={3} vAlign="center" paddingInline={5} paddingBlockStart={4} paddingBlockEnd={2}>
+            <ProjectToken project={project} />
+            <Heading level={1} maxLines={1}>
+              {project.name}
+            </Heading>
+          </HStack>
+          <TabList value={active.key} onChange={() => {}} size="sm" layout="hug" isFullBleed>
+            {TABS.map((tab) => (
+              <Tab key={tab.key} value={tab.key} label={tab.label} icon={tab.icon} href={`/projects/${project.id}/${tab.segment}`} />
+            ))}
+          </TabList>
+        </LayoutHeader>
+      }
+      content={
+        <LayoutContent padding={0} isScrollable label={active.label}>
+          {children}
+        </LayoutContent>
+      }
+    />
   );
 }
