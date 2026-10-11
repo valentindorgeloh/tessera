@@ -5,11 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon, type IconType } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
+import { Kbd } from "@astryxdesign/core/Kbd";
 import { NavIcon } from "@astryxdesign/core/NavIcon";
 import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import type { Project } from "@/lib/tessera/types";
-import { FolderIcon, HouseIcon, KanbanIcon, PlusIcon, SquaresFourIcon } from "@/themes/paper/icons";
+import { FolderIcon, HouseIcon, KanbanIcon, PlusIcon, SearchIcon, SquaresFourIcon } from "@/themes/paper/icons";
 import { useShell } from "./TesseraShell";
 
 export const SIDEBAR_STORAGE_KEY = "tessera.sidebar.v1";
@@ -139,7 +140,7 @@ function rememberProject(projectId: string) {
 export function Sidebar({ projects }: { projects: Project[] }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isNavCollapsed, setNavCollapsed } = useShell();
+  const { isNavCollapsed, setNavCollapsed, openCommandBar } = useShell();
   const { expanded, lastProjectId } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const activeProjectId = projectIdFromPath(pathname);
 
@@ -194,6 +195,7 @@ export function Sidebar({ projects }: { projects: Project[] }) {
       }
     >
       <SideNavSection title="Workspace" isHeaderHidden>
+        <SideNavItem label="Search" icon={SearchIcon} onClick={openCommandBar} endContent={isNavCollapsed ? undefined : <Kbd keys="mod+k" />} />
         <SideNavItem label="Home" icon={HouseIcon} href="/home" isSelected={pathname === "/home"} />
         <SideNavItem label="Projects" icon={FolderIcon} href="/projects" isSelected={pathname === "/projects"} />
       </SideNavSection>

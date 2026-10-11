@@ -3,12 +3,13 @@ import { io } from "next/cache";
 import { notFound } from "next/navigation";
 import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { VStack } from "@astryxdesign/core/Stack";
-import { getWorkItem, isTrackerError, readTessera, type WorkItemDetail } from "@/lib/tessera/server";
-import { QuickDetail } from "./QuickDetail";
+import { DetailPage } from "@/app/(tessera)/work-items/DetailPage";
+import { loadWorkItemDetail } from "@/app/(tessera)/work-items/load-detail";
+import { isTrackerError, readTessera } from "@/lib/tessera/server";
 
 type Props = { params: Promise<{ projectId: string; workItemId: string }> };
 
-/** Minimal work item page (P2a); lane D replaces it with the full detail and peek panel in P2b. */
+/** Full work item page inside the project frame (docs/contracts/ui.md "Routes and modes"). */
 export default function WorkItemPage({ params }: Props) {
   return (
     <Suspense fallback={<DetailSkeleton />}>
@@ -20,17 +21,21 @@ export default function WorkItemPage({ params }: Props) {
 async function WorkItemData({ params }: Props) {
   const { projectId, workItemId } = await params;
   await io();
-  let item: WorkItemDetail;
+  let data: Awaited<ReturnType<typeof loadDetail>>;
   try {
-    item = await readTessera((ctx) => getWorkItem(ctx, workItemId));
+    data = await loadDetail(workItemId);
   } catch (err) {
     // The project's not-found boundary renders inside the frame.
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();
     throw err;
   }
   // An item of another project is not reachable under this project's URL.
-  if (item.project_id !== projectId) notFound();
-  return <QuickDetail item={item} />;
+  if (data.item.project_id !== projectId) notFound();
+  return <DetailPage data={data} scope="project" />;
+}
+
+function loadDetail(workItemId: string) {
+  return readTessera((ctx) => loadWorkItemDetail(ctx, workItemId));
 }
 
 function DetailSkeleton() {

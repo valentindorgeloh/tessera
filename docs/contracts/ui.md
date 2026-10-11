@@ -135,6 +135,14 @@ as the P2a rule above says). Mismatches with docs/PLAN.md are collected at the e
   shell and `ProjectFrame` already nest `Layout`s, so nesting is proven). Modal →
   `children` plus the `Dialog`. `AppShell` has no right-panel slot (`dist/AppShell/AppShell.d.ts`:
   `topNav`, `sideNav`, `banner`, `children`), which is why the panel lives inside the page.
+- **One mount point (as built).** `WorkItemDetail` renders once, through
+  `createPortal`, into a DOM node `PeekHost` owns. The side panel and the modal
+  each hold a slot that adopts that node, so switching modes (from the header,
+  or when the stored mode loads after hydration) moves DOM and keeps all React
+  state: unsaved editor text, undo history, a save in flight, a title being
+  edited. Portals have no server render, so until hydration the slot shows a
+  `Skeleton`. Focus stays on the control that switched the mode. The list stays
+  in the same tree position whether or not the panel is open.
 - `peek` prop type: `{ id: string; data: WorkItemDetailData | null } | null` (null data = not found).
 - Open/close: `WorkItemsScreen.onOpen` changes (one additive edit by D3 in lane C's
   file, named in the hand-off) from `router.push(`/projects/${projectId}/work-items/${id}`)`
@@ -146,7 +154,14 @@ as the P2a rule above says). Mismatches with docs/PLAN.md are collected at the e
   `useHotkeys([{ keys: "escape", onPress: close, allowInInputs: true, isDisabled: !open }])`
   in `PeekHost` (`dist/hooks/useHotkeys.d.ts`); the editor's own Escape blurs first
   and stops propagation (editor.md), dialogs and menus stop theirs, so the second
-  Escape reaches the panel. Close = `router.replace(peekHref(…, null), { scroll: false })`.
+  Escape reaches the panel. Close = `router.replace(peekHref(…, null), { scroll: false })`,
+  except when the list pushed the entry being closed: `onOpen` records the push
+  in sessionStorage `tessera.peekPush.v1` (`src/components/detail/peek-history.ts`),
+  `PeekHost` stamps the history length once the URL changed and follows an
+  in-place item switch, and close calls `router.back()` when
+  `closesWithBack(push, current, target, history.length)` holds
+  (`peek-url.ts`). Opening and closing therefore leaves no duplicate history
+  entry. Without storage the close falls back to the replace.
   Mode switch to `page` = `router.push(`/projects/${projectId}/work-items/${id}`)`.
 - `/projects/[projectId]/work-items/[workItemId]` — full page, replaces
   `QuickDetail.tsx` (delete it). Same loader; renders `<WorkItemDetail host="page" …/>`

@@ -9,7 +9,7 @@
  * engine merges nested objects one level deep.
  */
 import { startTransition, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import { CheckboxList, CheckboxListItem } from "@astryxdesign/core/CheckboxList";
 import { Popover } from "@astryxdesign/core/Popover";
@@ -20,6 +20,7 @@ import { Switch } from "@astryxdesign/core/Switch";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { resetViewSettingsAction, saveViewSettingsAction } from "@/app/actions/views";
+import { withSearchParam } from "@/components/detail/peek-url";
 import { GROUPABLE_FIELDS, ORDER_BY_VALUES, type OrderableField } from "@/lib/tessera/core/group";
 import { LayoutSchema, SubGroupBySchema } from "@/lib/tessera/schemas";
 import type { Display, DisplayProperties, GroupBy, Layout, OrderBy, SubGroupBy } from "@/lib/tessera/types";
@@ -114,6 +115,7 @@ function orderLabel(value: OrderBy): string {
 export function DisplayMenu({ projectId, display, urlState }: DisplayMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const { bundle } = useProject();
   const [isOpen, setOpen] = useState(false);
@@ -122,8 +124,8 @@ export function DisplayMenu({ projectId, display, urlState }: DisplayMenuProps) 
     const state: UrlState = {};
     if (urlState.filters) state.filters = urlState.filters;
     if (nextDisplay && Object.keys(nextDisplay).length > 0) state.display = nextDisplay;
-    const q = encodeUrlState(state);
-    router.replace(q ? `${pathname}?q=${q}` : pathname, { scroll: false });
+    // Only `q` changes: the other params (an open `peek`) stay.
+    router.replace(withSearchParam(pathname, searchParams, "q", encodeUrlState(state) || null), { scroll: false });
   };
 
   const apply = (patch: Partial<Display>) => {

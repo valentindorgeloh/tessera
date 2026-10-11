@@ -11,7 +11,7 @@
  * still carry (./filter-state.ts), so the saved filter cannot come back.
  */
 import { useMemo } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import {
   PowerSearch,
@@ -22,6 +22,7 @@ import {
   type PowerSearchFilter,
 } from "@astryxdesign/core/PowerSearch";
 import { HStack } from "@astryxdesign/core/Stack";
+import { withSearchParam } from "@/components/detail/peek-url";
 import type { DateFilter, Filters, Priority, StateGroup } from "@/lib/tessera/types";
 import { DATE_FIELDS, LIST_FIELDS, isDateField, isListField, withExplicitClears, type DateField, type ListField } from "./filter-state";
 import { useProject } from "./project-provider";
@@ -213,6 +214,7 @@ function dateField(key: DateField, label: string): PowerSearchField {
 export function FilterBar({ filters, urlState, resultCount }: FilterBarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { bundle } = useProject();
 
   const config = useMemo<PowerSearchConfig>(() => {
@@ -236,8 +238,8 @@ export function FilterBar({ filters, urlState, resultCount }: FilterBarProps) {
     const state: UrlState = {};
     if (urlState.display) state.display = urlState.display;
     if (Object.keys(next).length > 0) state.filters = next;
-    const q = encodeUrlState(state);
-    router.replace(q ? `${pathname}?q=${q}` : pathname, { scroll: false });
+    // Only `q` changes: the other params (an open `peek`) stay.
+    router.replace(withSearchParam(pathname, searchParams, "q", encodeUrlState(state) || null), { scroll: false });
   };
 
   return (

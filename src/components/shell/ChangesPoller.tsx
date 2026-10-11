@@ -2,12 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { refreshAction } from "@/app/actions/shell";
-import { startPollLoop } from "./poll-loop";
-
-/** Poll cadence while the tab is visible and the last request succeeded. */
-export const POLL_INTERVAL_MS = 5_000;
-/** Cadence after a failed request, until one succeeds again. */
-export const POLL_BACKOFF_MS = 30_000;
+import { POLL_BACKOFF_MS, POLL_INTERVAL_MS, startPollLoop } from "./poll-loop";
 
 type ChangesPayload = { changes: unknown[]; cursor: number };
 
@@ -22,12 +17,14 @@ function isChangesPayload(value: unknown): value is ChangesPayload {
 
 /**
  * Watches for writes by other actors (docs/contracts/ui.md "External writes").
- * Every 5 s while the document is visible it asks `/api/changes?since=<cursor>`
- * for activity the user did not cause; when some arrives it moves the cursor
- * and calls `refreshAction()` so the open screen re-renders. A failed request
- * backs the cadence off to 30 s until the next success. The loop itself lives
- * in ./poll-loop.ts: one timer and one request at a time, so a tab that is
- * hidden and shown while a request is awaiting never ends up polled twice.
+ * Every 4 s while the document is visible (fixed rate, so an external write
+ * shows within the contract's 5 s including the refresh; see
+ * `POLL_INTERVAL_MS`) it asks `/api/changes?since=<cursor>` for activity the
+ * user did not cause; when some arrives it moves the cursor and calls
+ * `refreshAction()` so the open screen re-renders. A failed request backs the
+ * cadence off to 30 s until the next success. The loop itself lives in
+ * ./poll-loop.ts: one timer and one request at a time, so a tab that is hidden
+ * and shown while a request is awaiting never ends up polled twice.
  * Renders nothing and only runs inside effects, never during server rendering.
  */
 export function ChangesPoller({ initialCursor }: { initialCursor: number }) {

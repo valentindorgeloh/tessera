@@ -17,6 +17,8 @@ import { useHotkeys } from "@astryxdesign/core/hooks";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { useToast } from "@astryxdesign/core/Toast";
 import { createWorkItemAction, moveWorkItemAction, updateWorkItemAction } from "@/app/actions/work-items";
+import { notePeekPush } from "@/components/detail/peek-history";
+import { currentHref, peekHref } from "@/components/detail/peek-url";
 import { isMultiValuedGroup } from "@/lib/tessera/core/group";
 import type { CreateWorkItemInputType, Display, Filters, Group, GroupBy, State, StateGroup, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 import { PlusIcon } from "@/themes/paper/icons";
@@ -392,7 +394,11 @@ export function WorkItemsScreen({ projectId, result, display, filters, createOnO
 
   const onOpen = (id: string) => {
     if (isOptimisticId(id)) return;
-    router.push(`/projects/${projectId}/work-items/${id}`);
+    // The peek: `?peek=<id>` next to the list, keeping `q` (docs/contracts/ui.md "Routes and modes"). The push is
+    // noted so closing the panel can go Back to this entry instead of stacking a copy of the list URL.
+    const href = peekHref(pathname, searchParams, id);
+    notePeekPush(currentHref(pathname, searchParams), href);
+    router.push(href, { scroll: false });
   };
 
   const layoutProps = { result: optimistic, display, bundle, onMove, onUpdate, onOpen, onQuickAdd };

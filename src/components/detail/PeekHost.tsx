@@ -1,0 +1,247 @@
+"use client";
+
+/**
+ * Peek host (docs/contracts/ui.md "Routes and modes"): wraps the work items
+ * screen and shows the item named by `?peek=<id>` next to it. `side` (the
+ * default) is a resizable end panel of a nested Layout, 360–720 px wide;
+ * `modal` is a Dialog over the list; both remember width and mode in
+ * localStorage (./peek-prefs.ts). Open and close only change the `peek`
+ * search param (./peek-url.ts keeps `q`), so a reload restores the panel.
+ * Escape closes the side panel; the Dialog closes itself on Escape. The
+ * list stays mounted in the same tree position whether or not the panel is
+ * open, so an open or close never resets its state or focus.
+ *
+ * One mount point: the detail renders once, through a portal, into a DOM node
+ * this host owns. The side panel and the modal each hold a slot that adopts
+ * that node, so switching between them (from the header, or when the stored
+ * mode loads after hydration) moves DOM and keeps every React state: the
+ * editor with its unsaved text and undo history, a save in flight, the title
+ * being edited. The portal starts after hydration (portals have no server
+ * render); until then the slot shows a skeleton. Focus stays on the control
+ * that switched the mode.
+ *
+ * Close goes Back when the list pushed the entry being closed (./peek-history.ts),
+ * so opening and closing the peek leaves no duplicate history entry.
+ */
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@astryxdesign/core/Button";
+import { Dialog } from "@astryxdesign/core/Dialog";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { useHotkeys } from "@astryxdesign/core/hooks";
+import { LayerDepthProvider } from "@astryxdesign/core/Layer";
+import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
+import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
+import { Skeleton } from "@astryxdesign/core/Skeleton";
+import { VStack } from "@astryxdesign/core/Stack";
+import { IdSchema } from "@/lib/tessera/schemas";
+import { WorkItemDetail } from "./WorkItemDetail";
+import type { DetailHost, WorkItemDetailData } from "./types";
+import { clearPeekPush, movePeekPush, readPeekPush, stampPeekPush } from "./peek-history";
+import { PEEK_MAX_WIDTH, PEEK_MIN_WIDTH, loadPeekPrefs, savePeekPrefs, usePeekPrefs } from "./peek-prefs";
+import { closesWithBack, currentHref, peekHref } from "./peek-url";
+
+/** The item the URL names; `data: null` when it is unknown, deleted or belongs to another project. */
+export type PeekData = { id: string; data: WorkItemDetailData | null };
+
+export type PeekHostProps = {
+  projectId: string;
+  /** null when the URL carries no `peek`. */
+  peek: PeekData | null;
+  children: ReactNode;
+};
+
+/**
+ * The panel for an id this project cannot show. An item of another project
+ * (a cross-project `work:` link opened from a description) still has a home:
+ * the global page `/work-items/<id>` loads it with its own project, or shows
+ * the not-found screen when the id is unknown.
+ */
+function PeekNotFound({ id, onClose }: { id: string; onClose: () => void }) {
+  const isWellFormed = IdSchema.safeParse(id).success;
+  return (
+    <VStack padding={6}>
+      <EmptyState
+        isCompact
+        title="Work item not found"
+        description="It is not in this project, it was deleted, or the link is wrong."
+        actions={
+          <>
+            {isWellFormed ? <Button label="Open full page" variant="secondary" size="sm" href={`/work-items/${id}`} /> : null}
+            <Button label="Close" variant={isWellFormed ? "ghost" : "secondary"} size="sm" onClick={onClose} />
+          </>
+        }
+      />
+    </VStack>
+  );
+}
+
+/**
+ * Where the detail shows: adopts the host's mount node as its only DOM child
+ * (React renders no children here, so it never touches the adopted node).
+ * Without a node yet (server render, hydration) it shows a skeleton.
+ */
+function PeekSlot({ node }: { node: HTMLElement | null }) {
+  const adopt = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (element !== null && node !== null && node.parentNode !== element) element.appendChild(node);
+    },
+    [node],
+  );
+  if (node === null) {
+    return (
+      <VStack gap={3} padding={4}>
+        <Skeleton width="40%" height={20} />
+        <Skeleton width="80%" height={32} index={1} />
+        <Skeleton width="100%" height={160} index={2} />
+      </VStack>
+    );
+  }
+  return <VStack ref={adopt} className="tessera-peek-slot" />;
+}
+
+const subscribeNothing = () => () => {};
+
+/** False during the server render and hydration, true afterwards. */
+function useIsClient(): boolean {
+  return useSyncExternalStore(
+    subscribeNothing,
+    () => true,
+    () => false,
+  );
+}
+
+export function PeekHost({ projectId, peek, children }: PeekHostProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const prefs = usePeekPrefs();
+  const isOpen = peek !== null;
+  const isModal = prefs.mode === "modal";
+  const isClient = useIsClient();
+  // The detail's mount node: a plain DOM container (not layout), created once on the client and moved between slots.
+  const [mountNode] = useState<HTMLElement | null>(() => {
+    if (typeof document === "undefined") return null;
+    const node = document.createElement("div");
+    node.className = "tessera-peek-node";
+    return node;
+  });
+  const slotNode = isClient ? mountNode : null;
+  const here = currentHref(pathname, searchParams);
+
+  useEffect(() => {
+    loadPeekPrefs();
+  }, []);
+
+  // The list's push has landed once its URL is current: record the history length it produced.
+  useEffect(() => {
+    if (isOpen) stampPeekPush(here, window.history.length);
+  }, [here, isOpen]);
+
+  const close = () => {
+    const target = peekHref(pathname, searchParams, null);
+    const push = readPeekPush();
+    clearPeekPush();
+    if (closesWithBack(push, here, target, window.history.length)) router.back();
+    else router.replace(target, { scroll: false });
+  };
+  const openItem = (id: string) => {
+    const next = peekHref(pathname, searchParams, id);
+    movePeekPush(here, next);
+    router.replace(next, { scroll: false });
+  };
+  // The control that had focus when the mode changed (the mode button): the Dialog's own focus handling runs while the
+  // detail is between slots, so focus would otherwise land on the page body.
+  const refocus = useRef<HTMLElement | null>(null);
+  const changeHost = (host: DetailHost) => {
+    if (!peek) return;
+    if (host === "page") {
+      router.push(`/projects/${projectId}/work-items/${peek.id}`);
+      return;
+    }
+    const active = document.activeElement;
+    refocus.current = active instanceof HTMLElement && mountNode !== null && mountNode.contains(active) ? active : null;
+    savePeekPrefs({ mode: host === "modal" ? "modal" : "side" });
+  };
+  useEffect(() => {
+    const target = refocus.current;
+    refocus.current = null;
+    if (target === null) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (target.isConnected) target.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isModal]);
+
+  // The Dialog owns Escape while it is open (its layer stack prevents the default), so the hotkey serves the side panel.
+  useHotkeys([{ keys: "escape", onPress: close, allowInInputs: true, isDisabled: !isOpen || isModal }]);
+
+  const panel = useResizable({
+    defaultSize: prefs.width,
+    minSize: PEEK_MIN_WIDTH,
+    maxSize: PEEK_MAX_WIDTH,
+    direction: "horizontal",
+    onSizeChange: (size) => savePeekPrefs({ width: size }),
+  });
+
+  // `defaultSize` is read once, before storage is; apply the stored width when it arrives.
+  const appliedStoredWidth = useRef(false);
+  const { isLoaded, width } = prefs;
+  const { resize } = panel;
+  useEffect(() => {
+    if (!isLoaded || appliedStoredWidth.current) return;
+    appliedStoredWidth.current = true;
+    resize(width);
+  }, [isLoaded, resize, width]);
+
+  const detail = peek ? (
+    peek.data ? (
+      <WorkItemDetail key={peek.id} data={peek.data} host={isModal ? "modal" : "peek"} onClose={close} onHostChange={changeHost} onOpenItem={openItem} />
+    ) : (
+      <PeekNotFound key={peek.id} id={peek.id} onClose={close} />
+    )
+  ) : null;
+
+  const sidePanel =
+    isOpen && !isModal ? (
+      <>
+        <ResizeHandle resizable={panel.props} direction="horizontal" isReversed hasDivider label="Resize the work item panel" />
+        <LayoutPanel resizable={panel.props} hasDivider={false} padding={0} isScrollable label="Work item" role="complementary">
+          <PeekSlot node={slotNode} />
+        </LayoutPanel>
+      </>
+    ) : undefined;
+
+  return (
+    <>
+      <Layout
+        height="fill"
+        content={
+          <LayoutContent padding={0} isScrollable>
+            {children}
+          </LayoutContent>
+        }
+        end={sidePanel}
+      />
+      {isOpen && isModal ? (
+        <Dialog
+          isOpen
+          onOpenChange={(open) => {
+            if (!open) close();
+          }}
+          variant="standard"
+          width={760}
+          maxHeight="85dvh"
+          purpose="form"
+          padding={0}
+          aria-label="Work item"
+        >
+          <PeekSlot node={slotNode} />
+        </Dialog>
+      ) : null}
+      {/* Same tree position in both modes; the layer depth matches what the Dialog gives its own children. */}
+      {detail && slotNode ? createPortal(<LayerDepthProvider>{detail}</LayerDepthProvider>, slotNode) : null}
+    </>
+  );
+}

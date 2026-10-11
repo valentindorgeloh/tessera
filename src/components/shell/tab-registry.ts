@@ -85,10 +85,21 @@ function titleCase(segment: string): string {
 
 const FALLBACK_PROJECT_NAME = "Project";
 
+/** A path segment decoded for display; the raw segment when it is not valid percent-encoding. */
+function decodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
 /**
  * Label and icon for a route. Known routes: `/home`, `/projects`,
  * `/projects/[id]`, `/projects/[id]/work-items`,
- * `/projects/[id]/work-items/[workItemId]`. Any other project section
+ * `/projects/[id]/work-items/[workItemId]`, `/work-items/[workItemId]` (the
+ * global detail, labelled by `workItemLabel` once the screen registers it)
+ * and `/browse/[key]` (the key, upper-cased). Any other project section
  * (`/projects/[id]/cycles`, `/settings`, ...) resolves to "<project> · <Section>"
  * with the page icon, so later lanes get sensible tabs without editing this
  * file; unknown top-level paths use their first segment.
@@ -98,6 +109,14 @@ export function resolveTab(pathname: string, lookup: TabLookup): TabInfo {
   const [root, projectId, section, entityId] = segments;
 
   if (root === undefined || root === "home") return { label: "Home", icon: "home" };
+
+  // Global detail routes: the second segment is the work item id or key, not a project.
+  if (root === "work-items" && projectId !== undefined) {
+    return { label: lookup.workItemLabel?.(projectId) ?? "Work item", icon: "work-item" };
+  }
+  if (root === "browse" && projectId !== undefined) {
+    return { label: decodeSegment(projectId).toUpperCase(), icon: "work-item" };
+  }
 
   if (root === "projects") {
     if (projectId === undefined) return { label: "Projects", icon: "projects" };
@@ -126,11 +145,35 @@ export function labelTabs(state: TabsState, lookup: TabLookup): LabelledTab[] {
   return state.tabs.map((tab) => ({ ...tab, ...resolveTab(tab.path, lookup) }));
 }
 
-/** Adds a tab for `path` (or activates the existing one). */
+/**
+ * Redirect aliases (`/browse/[key]`): the route either redirects to the item's
+ * page or shows not-found, so its tab only lasts until the next route.
+ */
+export function isTransientPath(path: string): boolean {
+  return normalizePath(path).startsWith("/browse/");
+}
+
+/**
+ * Adds a tab for `path` (or activates the existing one). A transient tab
+ * (`isTransientPath`) gives its slot to the route that follows it, which is
+ * the redirect target after `/browse/WEB-1`; other transient tabs (restored
+ * from storage, say) are dropped.
+ */
 export function addTab(state: TabsState, path: string): TabsState {
   const key = normalizePath(path);
-  if (state.tabs.some((tab) => tab.path === key)) return activateTab(state, key);
-  return { tabs: [...state.tabs, { path: key }], active: key };
+  const hasStale = state.tabs.some((tab) => tab.path !== key && isTransientPath(tab.path));
+  if (!hasStale) {
+    if (state.tabs.some((tab) => tab.path === key)) return activateTab(state, key);
+    return { tabs: [...state.tabs, { path: key }], active: key };
+  }
+  const exists = state.tabs.some((tab) => tab.path === key);
+  const slot = state.active !== null && state.active !== key && isTransientPath(state.active) ? state.tabs.findIndex((tab) => tab.path === state.active) : -1;
+  const tabs = state.tabs.flatMap((tab, index) => {
+    if (index === slot && !exists) return [{ path: key }];
+    return tab.path !== key && isTransientPath(tab.path) ? [] : [tab];
+  });
+  if (!tabs.some((tab) => tab.path === key)) tabs.push({ path: key });
+  return { tabs, active: key };
 }
 
 /** Makes `path` the active tab; unknown paths leave the state untouched. */

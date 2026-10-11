@@ -12,6 +12,16 @@
   background: var(--color-background-surface);
 }
 
+/*
+ * The strip's child (the ContextMenu wrapper around the TabList) is a flex item:
+ * without min-width 0 it grows to the width of every tab and the shell's main
+ * area scrolls sideways, hiding the left edge of every page. With it the
+ * TabList scrolls inside the strip (overflow="scroll").
+ */
+.tessera-tabbar > * {
+  min-width: 0;
+}
+
 /* Decorative close glyph inside a tab: quiet until the tab is hovered or active. */
 .tessera-tab-close {
   color: var(--color-icon-secondary);
@@ -31,4 +41,29 @@
   width: 100%;
   max-width: 960px;
   margin-inline: auto;
+}
+
+/* Power K (lane D4): palette rows and the Search / Ask tabs under the input. */
+.tessera-cmd-row {
+  min-width: 0;
+}
+
+.tessera-cmd-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Work item keys line up in a column wide enough for WEB-999. */
+.tessera-cmd-key {
+  flex: 0 0 auto;
+  min-width: 56px;
+}
+
+.tessera-cmd-meta,
+.tessera-cmd-keys {
+  flex: 0 0 auto;
+}
+
+.tessera-cmd-tabs {
+  padding-inline: var(--spacing-2);
 }
