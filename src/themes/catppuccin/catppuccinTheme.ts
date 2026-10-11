@@ -40,7 +40,7 @@ export const catppuccinTheme = defineTheme({
     contrast: "standard",
   },
   typography: {
-    scale: {base: 16, ratio: 1.22},
+    scale: {base: 14, ratio: 1.2},
     body: {
       family: "var(--font-body)",
       fallbacks: '"Source Sans 3", "Source Sans Pro", sans-serif',

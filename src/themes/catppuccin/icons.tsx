@@ -103,6 +103,9 @@ import {
   ChartLineDown,
   ChartLineUp,
   Timer,
+  // Shell frame: top bar help and the recents list.
+  ClockCounterClockwise,
+  Question,
   type Icon as PhosphorIcon,
   type IconProps,
 } from "@phosphor-icons/react";
@@ -237,6 +240,10 @@ export const CalendarDotsIcon = duotoneIcon(CalendarDots);
 export const RestoreIcon = duotoneIcon(ArrowCounterClockwise);
 export const TimerIcon = duotoneIcon(Timer);
 export const TransferIcon = duotoneIcon(ArrowsLeftRight);
+
+// Shell frame: top bar help and the recents list.
+export const QuestionIcon = duotoneIcon(Question);
+export const RecentIcon = duotoneIcon(ClockCounterClockwise);
 
 /**
  * Icons a project logo may use (`Logo.icon` holds the Phosphor name). The

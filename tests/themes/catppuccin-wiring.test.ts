@@ -83,6 +83,16 @@ describe("catppuccin theme wiring", () => {
     for (const declaration of declarations) expect(body).toContain(declaration);
   });
 
+  // 14px working density: body and labels at 14px, supporting text at 12px.
+  it.each([
+    ["--font-size-base", "0.875rem"],
+    ["--font-size-sm", "0.75rem"],
+    ["--text-body-size", "var(--font-size-base)"],
+    ["--text-supporting-size", "var(--font-size-sm)"],
+  ])("%s is %s", (token, value) => {
+    expect(tokens.get(token)).toBe(value);
+  });
+
   it("the focus ring follows the on-colour on inverted surfaces", () => {
     expect(ruleBody('[data-astryx-media="dark"]')).toContain("--focus-outline-color: var(--color-on-dark)");
     expect(ruleBody('[data-astryx-media="light"]')).toContain("--focus-outline-color: var(--color-on-light)");
