@@ -21,7 +21,9 @@
  * that switched the mode.
  *
  * Close goes Back when the list pushed the entry being closed (./peek-history.ts),
- * so opening and closing the peek leaves no duplicate history entry.
+ * so opening and closing the peek leaves no duplicate history entry. While
+ * mounted, the host is counted in ./peek-hosts.ts, which Power K reads before
+ * it opens a work item hit as a peek.
  */
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -39,6 +41,7 @@ import { IdSchema } from "@/lib/tessera/schemas";
 import { WorkItemDetail } from "./WorkItemDetail";
 import type { DetailHost, WorkItemDetailData } from "./types";
 import { clearPeekPush, movePeekPush, readPeekPush, stampPeekPush } from "./peek-history";
+import { registerPeekHost } from "./peek-hosts";
 import { PEEK_MAX_WIDTH, PEEK_MIN_WIDTH, loadPeekPrefs, savePeekPrefs, usePeekPrefs } from "./peek-prefs";
 import { closesWithBack, currentHref, peekHref } from "./peek-url";
 
@@ -133,6 +136,9 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
   useEffect(() => {
     loadPeekPrefs();
   }, []);
+
+  // Power K opens a work item of this project as a peek only while a host is mounted (./peek-hosts.ts).
+  useEffect(() => registerPeekHost(projectId), [projectId]);
 
   // The list's push has landed once its URL is current: record the history length it produced.
   useEffect(() => {

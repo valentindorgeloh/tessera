@@ -106,6 +106,21 @@ function insertModule(ctx: TesseraContext, projectId: string, name: string) {
     .get();
 }
 
+/** Marks the module archived directly (archiveModule needs a completed or cancelled status). */
+function archiveModuleRow(ctx: TesseraContext, moduleId: string): void {
+  ctx.db.update(moduleTable).set({ archived_at: ctx.now() }).where(eq(moduleTable.id, moduleId)).run();
+}
+
+function errorMessage(fn: () => unknown): string | undefined {
+  try {
+    fn();
+  } catch (err) {
+    if (err instanceof TrackerError) return err.message;
+    throw err;
+  }
+  return undefined;
+}
+
 function insertEstimatePoint(ctx: TesseraContext, projectId: string, value = "3") {
   const est = ctx.db
     .insert(estimate)
@@ -249,6 +264,19 @@ describe("createWorkItem", () => {
     expect(item.cycle_id).toBe(sprint.id);
     expect(item.estimate_point_id).toBe(point.id);
     expect(getWorkItem(ctx, parent.id).sub_items_count).toBe(1);
+  });
+
+  it("refuses to add the new item to an archived module (ARCHIVED) and writes nothing", () => {
+    const { ctx, project: p } = setup();
+    const core = insertModule(ctx, p.id, "Core");
+    const old = insertModule(ctx, p.id, "Old");
+    archiveModuleRow(ctx, old.id);
+    const seq = latestSeq(ctx);
+    expect(errorCode(() => createWorkItem(ctx, { project_id: p.id, name: "A", module_ids: [core.id, old.id] }))).toBe("ARCHIVED");
+    expect(errorMessage(() => createWorkItem(ctx, { project_id: p.id, name: "A", module_ids: [old.id] }))).toBe('module "Old" is archived');
+    expect(latestSeq(ctx)).toBe(seq);
+    expect(listWorkItems(ctx, { scope: { type: "project", project_id: p.id } }).total).toBe(0);
+    expect(createWorkItem(ctx, { project_id: p.id, name: "A", module_ids: [core.id] }).module_ids).toEqual([core.id]);
   });
 
   it("requires start_date <= target_date", () => {
@@ -1014,6 +1042,40 @@ describe("setLabels, setModules, setAssignees", () => {
     const other = createProject(ctx, { name: "Other", identifier: "OTH" });
     expect(ruleName(() => setModules(ctx, item.id, [insertModule(ctx, other.id, "X").id]))).toBe("module_project");
     expect(errorCode(() => setModules(ctx, item.id, [newId()]))).toBe("NOT_FOUND");
+  });
+
+  it("setModules and moveWorkItem refuse to add or remove an archived module (ARCHIVED) and keep its membership otherwise", () => {
+    const { ctx, project: p } = setup();
+    const core = insertModule(ctx, p.id, "Core");
+    const api = insertModule(ctx, p.id, "API");
+    const old = insertModule(ctx, p.id, "Old");
+    const item = createWorkItem(ctx, { project_id: p.id, name: "A", module_ids: [core.id, old.id] });
+    const fresh = createWorkItem(ctx, { project_id: p.id, name: "B" });
+    archiveModuleRow(ctx, old.id);
+    const seq = latestSeq(ctx);
+    // Leaving the archived module is refused and nothing changes.
+    expect(errorCode(() => setModules(ctx, item.id, [core.id]))).toBe("ARCHIVED");
+    expect(errorMessage(() => setModules(ctx, item.id, []))).toBe('module "Old" is archived');
+    // Joining it is refused too.
+    expect(errorCode(() => setModules(ctx, fresh.id, [old.id]))).toBe("ARCHIVED");
+    expect(errorCode(() => moveWorkItem(ctx, fresh.id, { group_by: "module", value: old.id }))).toBe("ARCHIVED");
+    expect(errorCode(() => moveWorkItem(ctx, item.id, { group_by: "module", value: api.id, from_value: old.id }))).toBe("ARCHIVED");
+    expect(latestSeq(ctx)).toBe(seq);
+    expect(getWorkItem(ctx, item.id).module_ids.sort()).toEqual([core.id, old.id].sort());
+    expect(getWorkItem(ctx, fresh.id).module_ids).toEqual([]);
+    // Changes that leave the archived membership alone go through and keep it.
+    expect(setModules(ctx, item.id, [api.id, old.id]).module_ids.sort()).toEqual([api.id, old.id].sort());
+    expect(moveWorkItem(ctx, item.id, { group_by: "module", value: core.id, from_value: api.id }).module_ids.sort()).toEqual([core.id, old.id].sort());
+    const rows = activityRows(ctx, item.id).filter((r) => r.field === "modules" && r.seq > seq);
+    expect(rows.map((r) => [r.verb, r.old_identifier ?? r.new_identifier])).toEqual([
+      ["removed", "Core"],
+      ["added", "API"],
+      ["removed", "API"],
+      ["added", "Core"],
+    ]);
+    // Moving the item to another project still clears every membership, archived ones included.
+    const other = createProject(ctx, { name: "Other", identifier: "OTH" });
+    expect(moveWorkItemToProject(ctx, item.id, { project_id: other.id }).module_ids).toEqual([]);
   });
 
   it("setAssignees has replace semantics, needs live actors and auto-subscribes added actors", () => {

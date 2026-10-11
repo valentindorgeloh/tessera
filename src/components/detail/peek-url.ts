@@ -38,6 +38,44 @@ export function peekHref(pathname: string, searchParams: SearchParamsLike | null
   return withSearchParam(pathname, searchParams, PEEK_PARAM, id);
 }
 
+/**
+ * True when `pathname` renders a work items list of `projectId` that mounts the
+ * peek: the project list, a cycle's or a module's list, and the archived work
+ * items (`/projects/<id>/work-items`, `/projects/<id>/cycles/<cycleId>`,
+ * `/projects/<id>/modules/<moduleId>`, `/projects/<id>/archives/work-items`);
+ * a trailing slash is ignored. Power K opens a work item hit there as a peek
+ * when a peek host is mounted too (`workItemHitTarget`).
+ */
+export function mountsPeek(pathname: string, projectId: string): boolean {
+  const prefix = `/projects/${projectId}/`;
+  const bare = pathname.replace(/\/+$/, "");
+  if (!bare.startsWith(prefix)) return false;
+  const rest = bare.slice(prefix.length).split("/");
+  if (rest.some((segment) => segment === "")) return false;
+  if (rest.length === 1) return rest[0] === "work-items";
+  if (rest.length === 2) return rest[0] === "cycles" || rest[0] === "modules" || (rest[0] === "archives" && rest[1] === "work-items");
+  return false;
+}
+
+/**
+ * Where Power K opens a work item hit of `projectId`: as a peek of the list on
+ * screen (`pathname` with `peek=<itemId>`, the other params kept) when the
+ * route is one of the project's lists (`mountsPeek`) and a `PeekHost` of the
+ * project is mounted (`hasHost`, ./peek-hosts.ts), else on the item's full
+ * page. A cycle or module route that shows the feature-off state or the
+ * not-found screen passes the path test but mounts no host.
+ */
+export function workItemHitTarget(
+  pathname: string,
+  searchParams: SearchParamsLike | null | undefined,
+  projectId: string,
+  itemId: string,
+  hasHost: boolean,
+): { href: string; isPeek: boolean } {
+  if (hasHost && mountsPeek(pathname, projectId)) return { href: peekHref(pathname, searchParams, itemId), isPeek: true };
+  return { href: `/projects/${projectId}/work-items/${itemId}`, isPeek: false };
+}
+
 /** The `peek` param of a query string, or null when it is absent or empty. */
 export function peekIdOf(searchParams: SearchParamsLike | null | undefined): string | null {
   const value = new URLSearchParams(searchParams?.toString() ?? "").get(PEEK_PARAM);

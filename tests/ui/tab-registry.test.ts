@@ -10,12 +10,14 @@ import {
   addTab,
   closeOtherTabs,
   closeTab,
+  dropTabsUnder,
   isTransientPath,
   isTypingTarget,
   labelTabs,
   lookupFromNames,
   normalizePath,
   parseTabsState,
+  projectIdFromPath,
   projectNameMap,
   reorderTab,
   resolveTab,
@@ -25,6 +27,8 @@ import {
 
 const PROJECT = "11111111-1111-7111-8111-111111111111";
 const ITEM = "22222222-2222-7222-8222-222222222222";
+const CYCLE = "33333333-3333-7333-8333-333333333333";
+const MODULE = "44444444-4444-7444-8444-444444444444";
 
 const lookup: TabLookup = {
   projectName: (id) => (id === PROJECT ? "Website" : undefined),
@@ -75,8 +79,36 @@ describe("resolveTab", () => {
   });
 
   it("gives later project sections a readable label without code changes", () => {
-    expect(resolveTab(`/projects/${PROJECT}/cycles`, lookup)).toEqual({ label: "Website · Cycles", icon: "page" });
+    expect(resolveTab(`/projects/${PROJECT}/settings`, lookup)).toEqual({ label: "Website · Settings", icon: "page" });
     expect(resolveTab(`/projects/${PROJECT}/work-items/`, lookup).icon).toBe("work-items");
+  });
+
+  it("labels the cycles and modules routes, with the registered entity name on a detail", () => {
+    expect(resolveTab(`/projects/${PROJECT}/cycles`, lookup)).toEqual({ label: "Website · Cycles", icon: "cycles" });
+    expect(resolveTab(`/projects/${PROJECT}/cycles/${CYCLE}`, lookup)).toEqual({ label: "Website · Cycle", icon: "cycles" });
+    expect(resolveTab(`/projects/${PROJECT}/modules`, lookup)).toEqual({ label: "Website · Modules", icon: "modules" });
+    expect(resolveTab(`/projects/${PROJECT}/modules/${MODULE}`, lookup)).toEqual({ label: "Website · Module", icon: "modules" });
+    const names: Record<string, string> = { [CYCLE]: "Sprint 1", [MODULE]: "Launch" };
+    const withEntities: TabLookup = { ...lookup, entityLabel: (id) => names[id] };
+    expect(resolveTab(`/projects/${PROJECT}/cycles/${CYCLE}?peek=x`, withEntities).label).toBe("Website · Sprint 1");
+    expect(resolveTab(`/projects/${PROJECT}/modules/${MODULE}/`, withEntities).label).toBe("Website · Launch");
+    // The list routes keep their section label even when an entity label exists.
+    expect(resolveTab(`/projects/${PROJECT}/cycles`, withEntities).label).toBe("Website · Cycles");
+  });
+
+  it("labels the project archives and the archived projects page", () => {
+    expect(resolveTab(`/projects/${PROJECT}/archives`, lookup)).toEqual({ label: "Website · Archives", icon: "archives" });
+    expect(resolveTab(`/projects/${PROJECT}/archives/cycles`, lookup)).toEqual({ label: "Website · Archives", icon: "archives" });
+    expect(resolveTab("/projects/archives", lookup)).toEqual({ label: "Archived projects", icon: "archives" });
+    expect(resolveTab("/projects/archives/", lookup).label).toBe("Archived projects");
+    // Checked before the project lookup, so a lookup that knows "archives" cannot rename it.
+    const odd: TabLookup = { projectName: () => "Archives project" };
+    expect(resolveTab("/projects/archives", odd).label).toBe("Archived projects");
+  });
+
+  it("labels the cycle and module alias routes", () => {
+    expect(resolveTab(`/cycles/${CYCLE}`, lookup)).toEqual({ label: "Cycle", icon: "cycles" });
+    expect(resolveTab(`/modules/${MODULE}`, lookup)).toEqual({ label: "Module", icon: "modules" });
   });
 
   it("falls back to the first segment for unknown routes", () => {
@@ -134,6 +166,64 @@ describe("addTab", () => {
     expect(addTab(restored, "/projects")).toEqual(state(["/home", "/projects"], "/projects"));
     expect(isTransientPath("/browse/WEB-1/")).toBe(true);
     expect(isTransientPath("/work-items/w1")).toBe(false);
+  });
+
+  it("treats the cycle and module aliases as transient, not the project routes", () => {
+    expect(isTransientPath(`/cycles/${CYCLE}`)).toBe(true);
+    expect(isTransientPath(`/modules/${MODULE}/`)).toBe(true);
+    expect(isTransientPath(`/projects/${PROJECT}/cycles/${CYCLE}`)).toBe(false);
+    expect(isTransientPath(`/projects/${PROJECT}/modules`)).toBe(false);
+  });
+
+  it("treats the archives index as transient, not the archive lists or the archived projects page", () => {
+    expect(isTransientPath(`/projects/${PROJECT}/archives`)).toBe(true);
+    expect(isTransientPath(`/projects/${PROJECT}/archives/`)).toBe(true);
+    expect(isTransientPath(`/projects/${PROJECT}/archives/work-items`)).toBe(false);
+    expect(isTransientPath("/projects/archives")).toBe(false);
+    const target = `/projects/${PROJECT}/archives/work-items`;
+    const base = state(["/home", `/projects/${PROJECT}/archives`], `/projects/${PROJECT}/archives`);
+    expect(addTab(base, target)).toEqual(state(["/home", target], target));
+  });
+
+  it("treats the project index as transient: it only redirects to the work items", () => {
+    expect(isTransientPath(`/projects/${PROJECT}`)).toBe(true);
+    expect(isTransientPath(`/projects/${PROJECT}/`)).toBe(true);
+    expect(isTransientPath("/projects")).toBe(false);
+    expect(isTransientPath(`/projects/${PROJECT}/work-items`)).toBe(false);
+    const target = `/projects/${PROJECT}/work-items`;
+    const base = state(["/home", `/projects/${PROJECT}`], `/projects/${PROJECT}`);
+    expect(addTab(base, target)).toEqual(state(["/home", target], target));
+  });
+
+  it("gives a /cycles alias tab's slot to the cycle it redirects to", () => {
+    const target = `/projects/${PROJECT}/cycles/${CYCLE}`;
+    const base = state(["/home", `/cycles/${CYCLE}`], `/cycles/${CYCLE}`);
+    expect(addTab(base, target)).toEqual(state(["/home", target], target));
+    // The cycle already has a tab: the alias goes away and that tab activates.
+    const open = state(["/home", target, `/cycles/${CYCLE}`], `/cycles/${CYCLE}`);
+    expect(addTab(open, target)).toEqual(state(["/home", target], target));
+  });
+});
+
+describe("projectIdFromPath", () => {
+  it("reads the project id of a project route", () => {
+    expect(projectIdFromPath(`/projects/${PROJECT}`)).toBe(PROJECT);
+    expect(projectIdFromPath(`/projects/${PROJECT}/work-items`)).toBe(PROJECT);
+    expect(projectIdFromPath(`/projects/${PROJECT}/archives/cycles`)).toBe(PROJECT);
+  });
+
+  it("never treats the archived projects page as a project", () => {
+    expect(projectIdFromPath("/projects/archives")).toBeNull();
+    expect(projectIdFromPath("/projects/archives/")).toBeNull();
+    // Only the exact segment is guarded; an id that starts with the word is still an id.
+    expect(projectIdFromPath("/projects/archives-2024/work-items")).toBe("archives-2024");
+  });
+
+  it("returns null outside project routes", () => {
+    expect(projectIdFromPath("/projects")).toBeNull();
+    expect(projectIdFromPath("/projects/")).toBeNull();
+    expect(projectIdFromPath("/home")).toBeNull();
+    expect(projectIdFromPath(`/cycles/${CYCLE}`)).toBeNull();
   });
 });
 
@@ -284,5 +374,30 @@ describe("labelTabs", () => {
 
   it("returns no tabs for an empty state", () => {
     expect(labelTabs(EMPTY_TABS, lookup)).toEqual([]);
+  });
+});
+
+describe("dropTabsUnder", () => {
+  const cycle = `/projects/${PROJECT}/cycles/${CYCLE}`;
+  const list = `/projects/${PROJECT}/cycles`;
+
+  it("removes the deleted entity's tab and the tabs below it, keeping siblings", () => {
+    const open = state(["/home", list, cycle, `${cycle}/extra`, `/projects/${PROJECT}/cycles/${CYCLE}0`], list);
+    expect(dropTabsUnder(open, `${cycle}/`)).toEqual(state(["/home", list, `/projects/${PROJECT}/cycles/${CYCLE}0`], list));
+  });
+
+  it("clears a removed active tab so the next route takes over", () => {
+    const open = state(["/home", cycle], cycle);
+    expect(dropTabsUnder(open, cycle)).toEqual({ tabs: [{ path: "/home" }], active: null });
+  });
+
+  it("drops every tab of a deleted project, not the archived projects page", () => {
+    const open = state(["/home", `/projects/${PROJECT}/work-items`, cycle, "/projects/archives", "/projects"], "/projects/archives");
+    expect(dropTabsUnder(open, `/projects/${PROJECT}`)).toEqual(state(["/home", "/projects/archives", "/projects"], "/projects/archives"));
+  });
+
+  it("returns the same state when nothing matches", () => {
+    const open = state(["/home"], "/home");
+    expect(dropTabsUnder(open, cycle)).toBe(open);
   });
 });

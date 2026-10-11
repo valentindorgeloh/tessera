@@ -986,7 +986,10 @@ export type ProgressTarget = { type: "cycle"; cycle_id: string } | { type: "modu
   `transferTargets(bundle.cycles, cycle.id)` (`cycle-format.ts`: status current,
   upcoming or draft, the source excluded; the bundle holds no archived cycles).
   `Dialog purpose="form" width={480}`; text "Move the N open work items of Sprint 1.
-  Its progress is frozen as it is now."; Astryx `Selector label="Move to"`
+  Its progress is frozen as it is now." (`cycle-format.transferText`); when
+  `cycle.progress_snapshot !== null` (frozen earlier, for example archived and then
+  restored; the engine never replaces a snapshot) the second sentence reads "Its
+  progress was frozen earlier and stays as it was then."; Astryx `Selector label="Move to"`
   (`dist/Selector/Selector.d.ts`) with targets (status in the option description)
   plus "No cycle" (value `__none__`, the `DisplayMenu` NONE pattern); footer primary
   "Transfer N work items". → `transferCycleWorkItemsAction({ cycle_id, to_cycle_id })`;
@@ -1170,7 +1173,8 @@ export type ProgressTarget = { type: "cycle"; cycle_id: string } | { type: "modu
   cycle detail's layout with `ModuleHeader` and `ModuleSidePanel`; same peek rule,
   same `registerEntityLabel`.
 - `ModuleHeader`: name, status `Selector` (inline, `size="sm"`, saves on change),
-  "Add existing", panel toggle, `ModuleMenu`; archived → info `Banner` with Restore.
+  "Add existing", panel toggle (`label` "Show details" / "Hide details" and no
+  `aria-pressed`, like the cycle toggle), `ModuleMenu`; archived → info `Banner` with Restore.
 - `ModuleSidePanel` (`LayoutPanel width={360}`): Astryx `MetadataList`
   (`dist/MetadataList/`: `MetadataListItem label icon`) with Lead, Members, Start,
   Target (inline controls), then `ModuleLinks`, then `ProgressPanel` without `chart`.
@@ -1355,24 +1359,42 @@ export type ProgressTarget = { type: "cycle"; cycle_id: string } | { type: "modu
   `src/components/work-items/quick-add.ts` (no directive, `tests/ui/quick-add.test.ts`)
   so it can be tested:
   ```ts
-  export type QuickAddContext = {
+  export type OpenMemberships = {
+    openModuleIds: ReadonlySet<string>;   // bundle.modules that are not archived
+    openCycleIds: ReadonlySet<string>;    // bundle.cycles that are not completed (the bundle holds no archived cycle)
+  };
+  export type QuickAddContext = OpenMemberships & {
     projectId: string;
     states: readonly State[];        // bundle.states (state_group, sort_order); the first state per group as today
     scopeDefaults?: ScopeDefaults;
   };
+  export function openMemberships(bundle: Pick<ProjectBundle, "modules" | "cycles">): OpenMemberships;
+  export function isOpenGroupValue(field: GroupBy | null, value: string | null, open: OpenMemberships): boolean;
+  export function acceptsGroupMove(field: GroupBy | null, fromValue: string | null, toValue: string | null, open: OpenMemberships): boolean;
   export function quickAddInput(group: QuickAddGroup, name: string, context: QuickAddContext): CreateWorkItemInputType | null;
+  export function withScopeDefaults<T extends ScopeDefaults>(input: T, scopeDefaults: ScopeDefaults | undefined): T;
   export function quickAddAllowed(group: QuickAddGroup, context: QuickAddContext): boolean;
   ```
-  `quickAddInput` keeps today's switch and then applies `scopeDefaults`
-  (`cycle_id ??=`; `module_ids` is the union); the optimistic placeholder follows the
-  input; the create dialog gets `{ ...scopeDefaults, ...createDefaults }` (module ids
-  united). `quickAddAllowed` is false only when `scopeDefaults.cycle_id` is set and the
-  group pins a closed state: field `state` whose state's group is `completed` or
-  `cancelled`, or field `state_group` with value `completed` or `cancelled`. Closed
-  items cannot join a cycle (`RULE work_item_closed`), so those groups show no
-  quick-add row in a cycle scope instead of a failing request; every other group and
-  every module scope keep it. Test cases: both closed group kinds hidden in a cycle
-  scope, shown in a module scope and in the project list, open groups shown, and
+  `quickAddInput` keeps today's switch and then applies `scopeDefaults` through
+  `withScopeDefaults` (`cycle_id ??=`; `module_ids` is the union); the optimistic
+  placeholder follows the input; the create dialog gets
+  `{ ...scopeDefaults, ...createDefaults }` (module ids united). `quickAddAllowed` is
+  true for the none group (value null) and false in two cases:
+  - in every scope, for a group whose value is a module or cycle that is not open
+    (`isOpenGroupValue`: an archived module, a completed or archived cycle). Items
+    neither join nor leave those (`ARCHIVED`, `LOCKED`), so the group shows no
+    quick-add row instead of a failing request;
+  - in a cycle scope (`scopeDefaults.cycle_id` set), for a group that pins a closed
+    state: field `state` whose state's group is `completed` or `cancelled`, or field
+    `state_group` with value `completed` or `cancelled`. Closed items cannot join a
+    cycle (`RULE work_item_closed`).
+
+  Every other group keeps the row, and a module scope adds no state rule. The board
+  applies the same open-membership rule to drops and "Move to"
+  (`acceptsGroupMove`; see "As built (review fixes, 2026-10-11)"). Test cases: both
+  closed state group kinds hidden in a cycle scope and shown in a module scope and in
+  the project list, groups of an archived module and of a completed or archived cycle
+  hidden in every scope, open groups shown, `openMemberships`, `acceptsGroupMove`, and
   `quickAddInput` merging `cycle_id` and the module union.
   `canCreate` false: no "New work item" button, the `c` hotkey and `?create=1` do
   nothing, layouts get `onQuickAdd={undefined}`. The unused `settingsDisplay` prop
@@ -1466,7 +1488,9 @@ export type ProgressTarget = { type: "cycle"; cycle_id: string } | { type: "modu
   - `CommandBar.openHit`: `cycle` → `/projects/${hit.project_id}/cycles/${hit.id}`,
     `module` → `/projects/${hit.project_id}/modules/${hit.id}` (no-op without
     `project_id`); `work_item` opens the peek when
-    `mountsPeek(window.location.pathname, hit.project_id)`, else the full page.
+    `mountsPeek(window.location.pathname, hit.project_id)` and a `PeekHost` of that
+    project is mounted (`peek-url.workItemHitTarget`, `peek-hosts.hasPeekHost`), else
+    the full page.
   - `src/components/detail/peek-url.ts` (additive): `mountsPeek(pathname, projectId)`
     is true for `/projects/<projectId>/work-items`, `/projects/<projectId>/cycles/<id>`,
     `/projects/<projectId>/modules/<id>` and `/projects/<projectId>/archives/work-items`
@@ -1701,3 +1725,123 @@ Review fixes adopted with a change:
   `.mcp.json` and `tests/mcp-stdio.test.ts` use) with no `--db` and no `--migrate`
   rather than `npm run mcp:stdio -- --db <path>`, so it opens exactly the database the
   dev server resolves and never migrates it.
+
+### As built (integration, 2026-10-11)
+
+Notes from the P3 integration run; the hand-off is in docs/PLAN-STATUS.md "P3
+(integration, 2026-10-11)".
+
+- No page needed `instant = false`: the project layout keeps its P2a opt-out
+  (row 26), and acceptance step 15 walked the sibling navigations with no Next
+  overlay, error or instant-navigation insight.
+- Tabs: the project index `/projects/<id>` is transient like the alias routes
+  (`tab-registry.isTransientPath`). Deleting a cycle, a module or a project closes
+  its tab and every tab under it (`tab-registry.dropTabsUnder`, called through
+  `TabBar.forgetTabsUnder` by `CycleMenu`, `ModuleMenu`, `ArchivedCycles`,
+  `ArchivedModules` and `DeleteProjectDialog`). Tab labels of an archived project
+  keep its name: the tab bar reads active and archived projects.
+- `CycleHeader`: a completed cycle reads "Completed cycles are read-only." and adds
+  the transfer hint only while it has open items.
+- `ModuleControl`: an item whose only module is archived shows "No active modules
+  in this project" in the empty picker.
+- Power K's search input carries an id (`useId`).
+
+### As built (fix round 1, 2026-10-11)
+
+- Power K opens a work item hit as a peek only when the route is a list of the
+  item's project (`mountsPeek`) and a `PeekHost` of that project is mounted:
+  `PeekHost` counts itself in `src/components/detail/peek-hosts.ts`
+  (`registerPeekHost` in an effect, `hasPeekHost`), and `peek-url.workItemHitTarget`
+  makes the choice. A cycle or module route that shows `FeatureOffState` or the
+  not-found screen keeps its URL but mounts no host, so the hit opens the full page.
+- Power K Enter: Astryx keeps a hover highlight when a new query narrows the list.
+  `PaletteInput` clears the highlight when the query changes and when it points past
+  the end of the list (so `aria-activedescendant` never names a missing option), and
+  Enter treats a highlight outside the list as none (`command-source.liveHighlight`)
+  and opens the first result.
+- `TransferDialog` text comes from `cycle-format.transferText`; a cycle that already
+  has a snapshot reads "Its progress was frozen earlier and stays as it was then."
+- `ModuleHeader`'s panel toggle has no `aria-pressed` (its label already changes),
+  matching the cycle toggle.
+
+### As built (fix round 2, 2026-10-11)
+
+- Modal dialogs and hidden routes: Cache Components keeps a route the user leaves
+  mounted under React `<Activity mode="hidden">` (`display: none`). The Astryx
+  `Dialog` (and `AlertDialog`) opens its native `<dialog>` with `showModal()` in an
+  effect and closes it only when `isOpen` turns false, with no effect cleanup, so a
+  dialog open at the moment of a navigation (a chip or the breadcrumb in the modal
+  peek, Power K, a link clicked from code, a redirect) stayed in the top layer
+  without a box and made the next page inert. `HiddenDialogGuard`
+  (`src/components/shell/HiddenDialogGuard.tsx`, mounted by `TesseraShell` in its
+  own Suspense boundary) runs `closeHiddenDialogs`
+  (`src/components/shell/hidden-dialogs.ts`) after every URL change: it closes each
+  open `<dialog>` that has no box. React state is untouched, so Back shows the route
+  again and the Dialog's effect reopens it (`showModal()`), the modal peek included.
+  Upstream candidate: an effect cleanup in the Astryx Dialog that closes the element.
+- Burndown and burnup: the "Today" label sits right of its marker in the first half
+  of the cycle and left of it from the middle on (`burndown.todayLabelPosition`), so
+  it is no longer clipped by the y-axis when today is the first day.
+- Work items toolbar (`WorkItemsScreen`): the row wraps (`wrap="wrap"`), the filter
+  keeps `min(16rem, 100%)` and the actions (Display, New work item) move to a line
+  of their own at the end, wrapping themselves when the column is narrower still (a
+  cycle or module detail beside its side panel, the list beside a side peek).
+- The cycles and modules lists and the three archive lists end with
+  `paddingBlockEnd={10}`, so the last row's menu scrolls clear of the bottom-end
+  toasts and the Next dev indicator.
+
+### As built (review fixes, 2026-10-11)
+
+Fixes from the review before the P3 commit; the hand-off is in
+docs/PLAN-STATUS.md "Review fixes, logic and tests".
+
+- Open memberships, quick-add and board drops. Items neither join nor leave an
+  archived module (`ARCHIVED`) or a completed (`LOCKED`) or archived (`ARCHIVED`)
+  cycle. `quick-add.openMemberships(bundle)` builds `openModuleIds` and
+  `openCycleIds` into `QuickAddContext`; `isOpenGroupValue` is false for a module or
+  cycle group whose value is not open and true for every other field and the none
+  group; `acceptsGroupMove` needs both the old and the new value open.
+  `quickAddAllowed` hides the row of such a group in every scope (the E4 text above
+  is corrected to match). `BoardLayout.acceptsDrop` refuses a drop into or out of
+  such a column or swimlane: no placeholder shows, the card snaps back and no request
+  goes out. "Move to" (`moveTargetsFrom`) leaves closed columns out, and a card in a
+  closed column has no "Move to" entry. An empty closed column says why: "This module is
+  archived, so work items cannot join it." or "This cycle is completed or archived,
+  so work items cannot join it." The list layout takes no drops between groups, so
+  it needed no change. The engine is unchanged: `filters.loadModules` still lists
+  archived modules as groups.
+- Cycle rows. `CycleRow` shows completed / (total − cancelled) through
+  `module-format.moduleProgressValues`. These are the numbers of the progress panel,
+  the summary card and the module rows. `CycleProgressSummary` (list_cycles) carries
+  `cancelled` over the same rows as `total` (service-api.md "P3 additions (lane A)").
+- Panel toggles while a peek is open. The side peek takes the panel's place, so the
+  detail screens pass `isPanelBlocked={peekOpen}` to `CycleHeader` and
+  `ModuleHeader`. The toggle is then disabled, keeps its "Show progress" or "Show
+  details" label, and its tooltip reads "Close the work item to show progress" or
+  "Close the work item to show details".
+- Deleting a project. `DeleteProjectDialog` calls `useShortcuts.forgetLastProject`
+  after the delete. It removes `tessera.lastProject.v1` when the key names the
+  deleted project, so `g i`, `g c`, `g m`, `n c`, `n m` and `c` off-project say
+  "Open a project first" instead of opening a not-found route. Archiving keeps the
+  pointer.
+- Dialog names. Astryx `Dialog` takes its name from the `DialogHeader` title only
+  when the `<dialog>` element attaches. A dialog whose form mounts only while
+  `isOpen` is true therefore stayed unnamed. Each such dialog passes an `aria-label`
+  equal to its visible title:
+  - P3: `CycleDialog` ("New cycle" or "Edit <name>"), `TransferDialog`,
+    `AddExistingItemsDialog` (its title), `ModuleDialog` ("New module" or "Edit
+    module"), the `ModuleLinks` link dialog and `DeleteProjectDialog` ("Delete
+    <name>?");
+  - earlier screens: `CreateWorkItemDialog` ("New work item"; the cycle and module
+    lists open it too), `CreateProjectDialog` ("New project") and the work item
+    `LinksList` dialog ("Add link" or "Edit link").
+
+  Tests: `tests/ui/planning-a11y.test.ts` and `tests/ui/dialog-names.test.ts`.
+- Breakdown order. `cycles.breakdownRows` sorts by total descending, then by id.
+  `tests/cycles.test.ts` pins the id tie-break: its tied labels reach the breakdown
+  in the opposite order of their ids, so a sort by total alone fails the test.
+- Not changed: a stray `to` attribute on app anchors. Astryx `LinkProvider` hands a
+  custom link component `to={href}` (for React Router), and `next/link` passes
+  unknown props on to the `<a>`. `src/app/providers.tsx` uses the documented
+  `<LinkProvider component={Link}>` setup. Dropping `to` would need an adapter the
+  Astryx docs do not describe, so it waits for a decision or an upstream fix.

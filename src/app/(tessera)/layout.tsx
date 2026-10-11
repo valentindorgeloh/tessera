@@ -48,10 +48,11 @@ async function SidebarData() {
  * Project names for the tab labels. Server-rendered into the TabBar (which
  * the shell wraps in its own Suspense boundary) so the first client render
  * already labels "/projects/[id]/..." tabs with the project's name instead
- * of waiting for the sidebar to register them from an effect.
+ * of waiting for the sidebar to register them from an effect. Archived
+ * projects leave the sidebar but keep their tabs, so their names are read too.
  */
 async function TabBarData() {
   await io();
-  const projects = await loadProjects();
-  return <TabBar projectNames={projectNameMap(projects)} />;
+  const [projects, archived] = await Promise.all([loadProjects(), readTessera((ctx) => listProjects(ctx, { archived: true }))]);
+  return <TabBar projectNames={projectNameMap([...projects, ...archived])} />;
 }

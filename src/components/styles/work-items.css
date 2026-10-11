@@ -9,9 +9,19 @@
   min-height: 100%;
 }
 
+/*
+ * The filter takes the free toolbar width but keeps a readable minimum (the
+ * result count sits inside the field); when the toolbar is narrower than that
+ * plus the actions (a cycle or module detail beside its side panel), the
+ * toolbar wraps and the actions move to a line of their own, at the end.
+ */
 .tessera-wi-filter {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 16rem;
+  min-width: min(16rem, 100%);
+}
+
+.tessera-wi-actions {
+  margin-inline-start: auto;
 }
 
 /* PowerSearch wraps its field in a block element; let that wrapper take the free toolbar width. */

@@ -8,6 +8,12 @@
  * the server's re-render (the action's `refresh()`) settles it. Layout moves
  * are translated for the engine by ./moves.ts; quick-add placeholders carry
  * ids from ./optimistic.ts and stay inert until the server item arrives.
+ *
+ * The same screen lists a cycle's or a module's items (P3, the scoped list in
+ * src/app/(tessera)/projects/[projectId]/work-items/scoped-list.tsx): the
+ * optional scope props save the display to that scope's view settings, let new
+ * items join the scope (./quick-add.ts), hide grouping by the scope's own field
+ * and, for a closed scope, remove every way to create an item.
  */
 import { startTransition, useEffect, useOptimistic, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -31,8 +37,9 @@ import { toEngineMove } from "./moves";
 import { isOptimisticId, optimisticId } from "./optimistic";
 import { useProject } from "./project-provider";
 import { isPriority } from "./properties";
+import { openMemberships, quickAddAllowed, quickAddInput, withScopeDefaults, type QuickAddContext } from "./quick-add";
 import { TableLayout } from "./TableLayout";
-import type { MoveInput, QuickAddGroup, UpdateWorkItemPatch } from "./types";
+import type { LayoutProps, MoveInput, QuickAddGroup, ScopeDefaults, SettingsScope, UpdateWorkItemPatch } from "./types";
 import { decodeUrlState } from "./url-state";
 
 export type WorkItemsScreenProps = {
@@ -45,7 +52,17 @@ export type WorkItemsScreenProps = {
   settingsDisplay: Display;
   /** Open the create dialog (`?create=1`, the sidebar's "New work item"). */
   createOnOpen: boolean;
+  /** View settings row the display menu saves to; default `{ "project", projectId }`. */
+  settingsScope?: SettingsScope;
+  /** Memberships new items join (a cycle's or a module's list). */
+  scopeDefaults?: ScopeDefaults;
+  /** Default true; false hides "New work item", the `c` hotkey, `?create=1` and quick-add. */
+  canCreate?: boolean;
+  /** Group fields the display menu leaves out (the scope's own field); default none. */
+  hiddenGroupFields?: readonly GroupBy[];
 };
+
+const NO_HIDDEN_FIELDS: readonly GroupBy[] = [];
 
 const NONE_GROUP_ID = "none";
 
@@ -182,13 +199,28 @@ function realNeighbour(id: string | undefined): string | undefined {
   return id !== undefined && !isOptimisticId(id) ? id : undefined;
 }
 
-export function WorkItemsScreen({ projectId, result, display, filters, createOnOpen }: WorkItemsScreenProps) {
+export function WorkItemsScreen({
+  projectId,
+  result,
+  display,
+  filters,
+  createOnOpen: createRequested,
+  settingsScope: settingsScopeProp,
+  scopeDefaults,
+  canCreate = true,
+  hiddenGroupFields = NO_HIDDEN_FIELDS,
+}: WorkItemsScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const toast = useToast();
   const { bundle, statesById, firstStateByGroup } = useProject();
   const urlState = decodeUrlState(searchParams.get("q"));
+  const settingsScope: SettingsScope = settingsScopeProp ?? { scope_type: "project", scope_id: projectId };
+  // A closed scope (completed or archived cycle, archived module) ignores `?create=1`.
+  const createOnOpen = canCreate && createRequested;
+  // Open modules and cycles: groups of an archived module or a completed or archived cycle get no quick-add row.
+  const quickAddContext: QuickAddContext = { projectId, states: bundle.states, ...openMemberships(bundle), scopeDefaults };
   const stateGroupOf: StateGroupOf = (stateId) => statesById.get(stateId)?.state_group;
 
   const [optimistic, applyOptimistic] = useOptimistic(result, (state: WorkItemListResult, action: OptimisticAction): WorkItemListResult => {
@@ -267,7 +299,7 @@ export function WorkItemsScreen({ projectId, result, display, filters, createOnO
     setCreateDefaults(undefined);
     setCreateOpen(true);
   };
-  useHotkeys([{ keys: "c", onPress: openCreate, isDisabled: isCreateOpen }]);
+  useHotkeys([{ keys: "c", onPress: openCreate, isDisabled: isCreateOpen || !canCreate }]);
 
   const fail = (what: string, message: string) => toast({ type: "error", body: `${what}: ${message}` });
 
@@ -299,51 +331,8 @@ export function WorkItemsScreen({ projectId, result, display, filters, createOnO
     });
   };
 
-  /** Create input for a quick-add row: the group's field carries the group's value. */
-  const quickAddInput = (group: QuickAddGroup, name: string): CreateWorkItemInputType | null => {
-    const input: CreateWorkItemInputType = { project_id: projectId, name, source: "in_app" };
-    const { field, value } = group;
-    if (!field || value === null) return input;
-    switch (field) {
-      case "state":
-        input.state_id = value;
-        break;
-      case "state_group": {
-        const first = isStateGroup(value) ? firstStateByGroup.get(value) : undefined;
-        if (!first) return null;
-        input.state_id = first.id;
-        break;
-      }
-      case "priority":
-        if (!isPriority(value)) return null;
-        input.priority = value;
-        break;
-      case "labels":
-        input.label_ids = [value];
-        break;
-      case "cycle":
-        input.cycle_id = value;
-        break;
-      case "module":
-        input.module_ids = [value];
-        break;
-      case "assignees":
-        input.assignee_ids = [value];
-        break;
-      case "start_date":
-        input.start_date = value;
-        break;
-      case "target_date":
-        input.target_date = value;
-        break;
-      default:
-        return null;
-    }
-    return input;
-  };
-
   const onQuickAdd = (group: QuickAddGroup, name: string) => {
-    const input = quickAddInput(group, name);
+    const input = quickAddInput(group, name, quickAddContext);
     if (!input) {
       setCreateDefaults({ name });
       setCreateOpen(true);
@@ -401,15 +390,26 @@ export function WorkItemsScreen({ projectId, result, display, filters, createOnO
     router.push(href, { scroll: false });
   };
 
-  const layoutProps = { result: optimistic, display, bundle, onMove, onUpdate, onOpen, onQuickAdd };
+  const layoutProps: LayoutProps = {
+    result: optimistic,
+    display,
+    bundle,
+    onMove,
+    onUpdate,
+    onOpen,
+    onQuickAdd: canCreate ? onQuickAdd : undefined,
+    canQuickAdd: (group) => quickAddAllowed(group, quickAddContext),
+  };
+  // The dialog starts in the scope: `{ ...scopeDefaults, ...createDefaults }` with module ids united.
+  const dialogDefaults = scopeDefaults ? withScopeDefaults(createDefaults ?? {}, scopeDefaults) : createDefaults;
 
   return (
     <VStack gap={0} className="tessera-wi-screen">
-      <HStack gap={2} vAlign="center" paddingInline={5} paddingBlock={3}>
+      <HStack gap={2} vAlign="center" wrap="wrap" paddingInline={5} paddingBlock={3}>
         <FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} />
-        <HStack gap={2} vAlign="center" className="tessera-wi-actions">
-          <DisplayMenu projectId={projectId} display={display} urlState={urlState} />
-          <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" />
+        <HStack gap={2} vAlign="center" hAlign="end" wrap="wrap" className="tessera-wi-actions">
+          <DisplayMenu projectId={projectId} display={display} urlState={urlState} settingsScope={settingsScope} hiddenGroupFields={hiddenGroupFields} />
+          {canCreate ? <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" /> : null}
         </HStack>
       </HStack>
       {display.layout === "list" ? (
@@ -421,7 +421,7 @@ export function WorkItemsScreen({ projectId, result, display, filters, createOnO
       ) : (
         <EmptyState title={display.layout === "calendar" ? "Calendar arrives in P10" : "Gantt arrives in P10"} description="Switch back to list, board or table from the Display menu." />
       )}
-      <CreateWorkItemDialog projectId={projectId} isOpen={isCreateOpen} onOpenChange={setCreateOpen} defaults={createDefaults} />
+      <CreateWorkItemDialog projectId={projectId} isOpen={isCreateOpen} onOpenChange={setCreateOpen} defaults={dialogDefaults} />
     </VStack>
   );
 }

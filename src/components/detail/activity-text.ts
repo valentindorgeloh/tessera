@@ -28,6 +28,8 @@ const FIELD_LABELS: Record<string, string> = {
   sort_order: "the position",
   labels: "label",
   modules: "module",
+  // Item rows written by modules.ts before lane A renamed the field to "modules" (P3).
+  module: "module",
   assignees: "assignee",
   subscribers: "subscriber",
   link: "link",

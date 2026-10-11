@@ -6,6 +6,10 @@ import { DateInput } from "@astryxdesign/core/DateInput";
 import { Popover } from "@astryxdesign/core/Popover";
 import { VStack } from "@astryxdesign/core/Stack";
 import { CalendarIcon } from "@/themes/catppuccin/icons";
+import { formatShortDate } from "./date-format";
+
+// Moved to the directive-free date-format.ts (P3); re-exported so current importers keep working.
+export { formatShortDate };
 
 export type DateControlProps = {
   /** YYYY-MM-DD or null. */
@@ -30,14 +34,6 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 function asIsoDate(value: string | null | undefined): IsoDate {
   // The engine validates dates with IsoDateSchema, so the regex only guards against bad rows.
   return value && ISO_DATE.test(value) ? (value as NonNullable<IsoDate>) : undefined;
-}
-
-/** "Nov 10" (with the year when it is not the current one); fixed locale so server and client agree. */
-export function formatShortDate(value: string): string {
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-  const sameYear = year === new Date().getFullYear();
-  return date.toLocaleDateString("en-US", sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" });
 }
 
 /** Date picker for start or target dates; clearing sends null so the field is unset. */

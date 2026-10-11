@@ -221,13 +221,40 @@ export const ProgressCountsSchema = z.object({
   backlog: z.number().int().nonnegative().describe("Items in the backlog group."),
 });
 
+/** The `ProgressCounts` keys summed in estimate points; estimate values may be fractional. */
+export const PointsCountsSchema = z.object({
+  total: z.number().nonnegative().describe("All points counted."),
+  completed: z.number().nonnegative().describe("Points in the completed group."),
+  cancelled: z.number().nonnegative().describe("Points in the cancelled group."),
+  started: z.number().nonnegative().describe("Points in the started group."),
+  unstarted: z.number().nonnegative().describe("Points in the unstarted group."),
+  backlog: z.number().nonnegative().describe("Points in the backlog group."),
+});
+
+/** Unit of a progress series: items (issues) or estimate points. */
+export const ProgressModeSchema = z.enum(["issues", "points"]);
+
+/** One row of an assignee or label breakdown; `id: null` collects the items without an assignee or without labels. */
+export const ProgressBreakdownRowSchema = z.object({
+  id: IdSchema.nullable().describe("Assignee actor id or label id; null for items without one."),
+  total: z.number().int().nonnegative().describe("Items counted in this row."),
+  completed: z.number().int().nonnegative().describe("Items of this row in the completed group."),
+});
+
 /** Progress of a cycle, by count and optionally by estimate points; frozen as `progress_snapshot` on transfer. */
 export const CycleProgressSchema = ProgressCountsSchema.extend({
   by_state: z.record(z.string(), z.number().int()).describe("Item count per state id."),
   by_label: z.record(z.string(), z.number().int()).describe("Item count per label id."),
   by_assignee: z.record(z.string(), z.number().int()).describe("Item count per assignee actor id."),
-  points: ProgressCountsSchema.optional().describe("Same counts in estimate points when an estimate system is active."),
-  completion_chart: z.record(IsoDateSchema, z.number().int()).describe("Pending items per day for the burndown chart."),
+  assignees: z.array(ProgressBreakdownRowSchema).optional().describe("Items and completed items per assignee, the null row last."),
+  labels: z.array(ProgressBreakdownRowSchema).optional().describe("Items and completed items per label, the null row last."),
+  points: PointsCountsSchema.optional().describe("Same counts in estimate points when the project has an active estimate."),
+  chart_mode: ProgressModeSchema.optional().describe("Unit of completion_chart: issues (items) or points."),
+  completion_chart: z.record(IsoDateSchema, z.number().nonnegative()).describe("Pending amount per day for the burndown and burnup charts."),
+  completion_chart_points: z
+    .record(IsoDateSchema, z.number().nonnegative())
+    .optional()
+    .describe("Pending points per day; stored in frozen snapshots only, never part of a returned progress."),
 });
 
 /** Free-form metadata stored next to a link (favicon, title fetched later, ...). */

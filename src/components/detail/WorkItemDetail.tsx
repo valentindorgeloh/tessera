@@ -7,11 +7,15 @@
  * above the description in the peek), description, sub-items, links and
  * activity. Registers the entity label for the tab bar and the command
  * context for Power K and the item shortcuts; both go away on unmount.
- * Must mount inside ProjectProvider.
+ * Archive and restore (P3, docs/contracts/ui.md "Archives (E3)") sit in the
+ * header menu; an archived item shows an info Banner with Restore above the
+ * title and stays read-only. Must mount inside ProjectProvider.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { useClipboard } from "@astryxdesign/core/hooks";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -20,11 +24,13 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
 import { copyWorkItemAction } from "@/app/actions/detail";
-import { deleteWorkItemAction } from "@/app/actions/work-items";
+import { archiveWorkItemAction, deleteWorkItemAction, unarchiveWorkItemAction } from "@/app/actions/work-items";
+import { ARCHIVE_OPEN_ITEM_REASON, canArchiveWorkItem } from "@/components/planning/archive-rules";
 import { registerCommandContext } from "@/components/shell/command-context";
 import { registerEntityLabel } from "@/components/shell/entity-labels";
+import { useProject } from "@/components/work-items/project-provider";
 import type { WorkItemDetail as WorkItemDetailModel } from "@/lib/tessera/types";
-import { PencilIcon } from "@/themes/catppuccin/icons";
+import { PencilIcon, RestoreIcon } from "@/themes/catppuccin/icons";
 import { ActivityFeed } from "./ActivityFeed";
 import { DescriptionEditor } from "./DescriptionEditor";
 import { DetailHeader, workItemPath } from "./DetailHeader";
@@ -116,6 +122,8 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
   const [confirmDelete, setConfirmDelete] = useState(false);
   const readOnly = item.archived_at !== null;
   const listPath = `/projects/${item.project_id}/work-items`;
+  const { statesById } = useProject();
+  const canArchive = canArchiveWorkItem(statesById.get(item.state_id)?.state_group);
 
   const copyItem = () => {
     actions.run(
@@ -126,6 +134,24 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
       },
       "Could not copy the work item",
     );
+  };
+
+  // Archive and restore share one pending flag, so the Banner's Restore shows its spinner and cannot fire twice.
+  const [isArchiving, startArchiving] = useTransition();
+  const archiveItem = () => {
+    startArchiving(async () => {
+      const result = await archiveWorkItemAction({ work_item_id: item.id });
+      if (result.ok) toast({ type: "info", body: `Archived ${item.key}` });
+      else actions.fail(`Could not archive the work item: ${result.message}`);
+    });
+  };
+  const restoreItem = () => {
+    if (isArchiving) return;
+    startArchiving(async () => {
+      const result = await unarchiveWorkItemAction({ work_item_id: item.id });
+      if (result.ok) toast({ type: "info", body: `Restored ${item.key}` });
+      else actions.fail(`Could not restore the work item: ${result.message}`);
+    });
   };
 
   const deleteItem = () => {
@@ -188,10 +214,21 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
         onOpenItem={onOpenItem}
         onCopyItem={readOnly ? undefined : copyItem}
         onDelete={() => setConfirmDelete(true)}
+        onArchive={readOnly ? undefined : archiveItem}
+        archiveBlockedReason={readOnly || canArchive ? undefined : ARCHIVE_OPEN_ITEM_REASON}
+        onRestore={readOnly ? restoreItem : undefined}
       />
       {/* Grid areas (detail.css): title, rail and main stack in one column; page and modal hosts from 960px put the rail in a right column. */}
       <VStack gap={0} className="tessera-detail-body" as="section" aria-label={label}>
-        <VStack gap={0} className="tessera-detail-heading">
+        <VStack gap={3} className="tessera-detail-heading">
+          {readOnly ? (
+            <Banner
+              status="info"
+              title="This work item is archived"
+              description="Restore it to edit it."
+              endContent={<Button variant="secondary" size="sm" label="Restore" icon={<RestoreIcon />} isLoading={isArchiving} onClick={restoreItem} />}
+            />
+          ) : null}
           <DetailTitle item={item} host={host} readOnly={readOnly} actions={actions} />
         </VStack>
         <VStack gap={0} className="tessera-detail-rail" as="aside" aria-label="Properties">

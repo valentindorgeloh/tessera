@@ -5,7 +5,7 @@
  * one window keydown listener, resolved through the pure registry in
  * ./shortcuts.ts and dispatched to the registered command context (item
  * shortcuts open D2's property pickers), the router (navigation and create
- * chords) or a toast ("Arrives in P3"). Mounted once by CommandBar, which also
+ * chords) or a toast ("Arrives in P4"). Mounted once by CommandBar, which also
  * owns `mod+k`, `mod+/` and the help dialog through Astryx `useHotkeys`; those
  * two ids are left to it here, and Escape belongs to PeekHost. Nothing fires
  * from a typing surface (input, textarea, select, the contenteditable editor)
@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provider";
 import { useCommandContext, type CommandContextValue } from "./command-context";
 import { isQuietTarget, resolveShortcut, SHORTCUT_BY_ID, type ChordState, type ShortcutId } from "./shortcuts";
+import { projectIdFromPath } from "./tab-registry";
 
 // ---------------------------------------------------------------------------
 // Preferences store (localStorage), read after mount so server and client
@@ -111,13 +112,10 @@ export type ShortcutRunner = (id: ShortcutId) => void;
 /** Ids CommandBar dispatches through Astryx `useHotkeys`; the keydown path never fires them twice. */
 const DELEGATED: ReadonlySet<ShortcutId> = new Set<ShortcutId>(["palette.open", "shortcuts.help"]);
 
-/** Project id from `/projects/[id]/...`, else null (same rule as the Sidebar). */
-function projectIdFromPath(pathname: string): string | null {
-  const match = /^\/projects\/([^/]+)/.exec(pathname);
-  return match ? match[1] : null;
-}
-
-/** The project of the current route, else the last visited one (`tessera.lastProject.v1`), else null. */
+/**
+ * The project of the current route, else the last visited one (`tessera.lastProject.v1`), else null.
+ * `/projects/archives` is no project (`projectIdFromPath` guards it), so there the last project is used.
+ */
 function currentOrLastProjectId(): string | null {
   const current = projectIdFromPath(window.location.pathname);
   if (current) return current;
@@ -128,12 +126,34 @@ function currentOrLastProjectId(): string | null {
   }
 }
 
+/**
+ * Clears the last visited project (`tessera.lastProject.v1`) when it is `projectId`, so `g i`, `g c`, `g m`,
+ * `n c`, `n m` and `c` off-project stop pushing routes of a deleted project (DeleteProjectDialog calls it after
+ * the delete). Another project's pointer is left alone; blocked storage is ignored. Client-only.
+ */
+export function forgetLastProject(projectId: string): void {
+  try {
+    if (window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY) === projectId) window.localStorage.removeItem(LAST_PROJECT_STORAGE_KEY);
+  } catch {
+    // Private mode or blocked storage: nothing was stored to forget.
+  }
+}
+
 function isApplePlatform(): boolean {
   if (typeof navigator === "undefined") return false;
   const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
   const platform = nav.userAgentData?.platform || nav.platform || "";
   return /mac|iphone|ipad|ipod/i.test(platform);
 }
+
+/** Routes under `/projects/<id>/` that the project-scoped navigation and create shortcuts open. */
+const PROJECT_ROUTES = {
+  "nav.workItems": "work-items",
+  "nav.cycles": "cycles",
+  "nav.modules": "modules",
+  "create.cycle": "cycles?create=1",
+  "create.module": "modules?create=1",
+} as const satisfies Partial<Record<ShortcutId, string>>;
 
 function runShortcut(id: ShortcutId, options: ShortcutDispatchOptions, context: CommandContextValue | null): void {
   const def = SHORTCUT_BY_ID.get(id);
@@ -163,10 +183,20 @@ function runShortcut(id: ShortcutId, options: ShortcutDispatchOptions, context: 
     case "nav.projects":
       options.push("/projects");
       return;
-    case "nav.workItems": {
+    case "nav.workItems":
+    case "nav.cycles":
+    case "nav.modules":
+    case "create.cycle":
+    case "create.module": {
       const project = currentOrLastProjectId();
-      if (project) options.push(`/projects/${project}/work-items`);
+      if (project) options.push(`/projects/${project}/${PROJECT_ROUTES[id]}`);
       else options.notify("Open a project first");
+      return;
+    }
+    case "nav.archives": {
+      // Inside a project its archives; elsewhere the archived projects.
+      const project = projectIdFromPath(window.location.pathname);
+      options.push(project ? `/projects/${project}/archives` : "/projects/archives");
       return;
     }
     default:

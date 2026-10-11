@@ -58,7 +58,20 @@ export function isAllowedEditorUri(url: string, schemes: readonly (string | { sc
   return schemes.some((entry) => (typeof entry === "string" ? entry : entry.scheme).toLowerCase() === parts.scheme);
 }
 
-/** Route for an entity link: work items resolve through `/browse/[key]`; pages, cycles and modules have no route until P3/P6. */
+/**
+ * Route for an entity link: work items resolve through `/browse/[key]`, cycles
+ * and modules through the alias routes `/cycles/[id]` and `/modules/[id]`
+ * (which redirect into their project); pages have no route until P6.
+ */
 export function entityRoute(link: EntityLink): string | null {
-  return link.scheme === "work" ? `/browse/${encodeURIComponent(link.ref)}` : null;
+  switch (link.scheme) {
+    case "work":
+      return `/browse/${encodeURIComponent(link.ref)}`;
+    case "cycle":
+      return `/cycles/${encodeURIComponent(link.ref)}`;
+    case "module":
+      return `/modules/${encodeURIComponent(link.ref)}`;
+    default:
+      return null;
+  }
 }

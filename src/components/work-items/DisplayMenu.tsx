@@ -4,8 +4,8 @@
  * Display menu (docs/contracts/ui.md "Work items screen"): layout, grouping,
  * ordering, toggles and visible properties. Every change is written twice:
  * to the URL (`q`, display half) so the page re-renders with it, and to the
- * project's view settings through `saveViewSettingsAction` so it survives a
- * plain navigation. Properties are always written as the full object; the
+ * list's view settings (the project's, or a cycle's or module's in a scoped
+ * list) through `saveViewSettingsAction` so it survives a plain navigation. Properties are always written as the full object; the
  * engine merges nested objects one level deep.
  */
 import { startTransition, useState } from "react";
@@ -26,7 +26,7 @@ import { LayoutSchema, SubGroupBySchema } from "@/lib/tessera/schemas";
 import type { Display, DisplayProperties, GroupBy, Layout, OrderBy, SubGroupBy } from "@/lib/tessera/types";
 import { CalendarIcon, GanttIcon, KanbanIcon, RowsIcon, SlidersIcon, TableIcon } from "@/themes/catppuccin/icons";
 import { useProject } from "./project-provider";
-import type { UrlState } from "./types";
+import type { SettingsScope, UrlState } from "./types";
 import { encodeUrlState } from "./url-state";
 
 export type DisplayMenuProps = {
@@ -35,7 +35,13 @@ export type DisplayMenuProps = {
   display: Display;
   /** Decoded `q` param; the menu rewrites its `display` half. */
   urlState: UrlState;
+  /** View settings row that save and reset write: the project's, or the cycle's or module's of a scoped list. */
+  settingsScope: SettingsScope;
+  /** Fields left out of the group and sub-group options (a cycle list cannot group by cycle). */
+  hiddenGroupFields?: readonly GroupBy[];
 };
+
+const NO_HIDDEN_FIELDS: readonly GroupBy[] = [];
 
 const NONE = "__none__";
 
@@ -113,7 +119,7 @@ function orderLabel(value: OrderBy): string {
   return `${ORDER_LABELS[field]} (${descending ? "newest first" : "oldest first"})`;
 }
 
-export function DisplayMenu({ projectId, display, urlState }: DisplayMenuProps) {
+export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupFields = NO_HIDDEN_FIELDS }: DisplayMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -132,7 +138,7 @@ export function DisplayMenu({ projectId, display, urlState }: DisplayMenuProps) 
   const apply = (patch: Partial<Display>) => {
     writeUrl({ ...(urlState.display ?? {}), ...patch });
     startTransition(async () => {
-      const result = await saveViewSettingsAction({ scope_type: "project", scope_id: projectId, display: patch });
+      const result = await saveViewSettingsAction({ ...settingsScope, display: patch });
       if (!result.ok) toast({ type: "error", body: `Could not save the view settings: ${result.message}` });
     });
   };
@@ -140,20 +146,21 @@ export function DisplayMenu({ projectId, display, urlState }: DisplayMenuProps) 
   const reset = () => {
     writeUrl(undefined);
     startTransition(async () => {
-      const result = await resetViewSettingsAction({ scope_type: "project", scope_id: projectId });
+      const result = await resetViewSettingsAction(settingsScope);
       if (!result.ok) toast({ type: "error", body: `Could not reset the view settings: ${result.message}` });
     });
   };
 
+  const isShown = (field: GroupBy) => !hiddenGroupFields.includes(field);
   const groupOptions: SelectorOptionData[] = [
     { value: NONE, label: "None" },
-    ...GROUPABLE_FIELDS.filter((field) => field !== "project")
+    ...GROUPABLE_FIELDS.filter((field) => field !== "project" && isShown(field))
       .filter((field) => (field === "cycle" ? bundle.project.cycles_enabled : field === "module" ? bundle.project.modules_enabled : true))
       .map((field) => ({ value: field, label: FIELD_LABELS[field] })),
   ];
   const subGroupOptions: SelectorOptionData[] = [
     { value: NONE, label: "None" },
-    ...SubGroupBySchema.options
+    ...SubGroupBySchema.options.filter(isShown)
       .filter((field) => (field === "cycle" ? bundle.project.cycles_enabled : field === "module" ? bundle.project.modules_enabled : true))
       .map((field) => ({ value: field, label: FIELD_LABELS[field] })),
   ];

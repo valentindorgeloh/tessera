@@ -582,6 +582,7 @@ describe("PeekHost", () => {
     const { savePeekPrefs } = await import("@/components/detail/peek-prefs");
     savePeekPrefs({ mode: "side" });
     window.sessionStorage.clear();
+    nav.pathname = LIST;
     nav.search = "";
     nav.router.back.mockClear();
     nav.router.replace.mockClear();
@@ -637,6 +638,41 @@ describe("PeekHost", () => {
     });
     expect(nav.router.back).not.toHaveBeenCalled();
     expect(nav.router.replace).toHaveBeenCalledWith(LIST, { scroll: false });
+  });
+
+  it("closes the modal peek when a navigation hides its route, and opens it again when the route comes back", async () => {
+    const { Activity } = await import("react");
+    const { savePeekPrefs } = await import("@/components/detail/peek-prefs");
+    const { HiddenDialogGuard } = await import("@/components/shell/HiddenDialogGuard");
+    savePeekPrefs({ mode: "modal" });
+    nav.search = `peek=${ITEM}`;
+    const element = await host();
+    // The shell's guard sits outside the route; Cache Components hides a route it leaves with <Activity mode="hidden">.
+    // children go in as the third argument; the cast covers the props object without them.
+    const frame = (mode: "visible" | "hidden") =>
+      createElement(Fragment, null, createElement(HiddenDialogGuard), createElement(Activity, { mode } as ComponentProps<typeof Activity>, element));
+    await render(frame("visible"));
+    const dialog = document.querySelector<HTMLDialogElement>('dialog[aria-label="Work item"]');
+    expect(dialog?.open).toBe(true);
+
+    // A link in the description (a cycle chip) navigates away: new URL, the work items route hidden in the same commit.
+    nav.pathname = "/projects/p/cycles/c";
+    nav.search = "";
+    await act(async () => {
+      root?.render(frame("hidden"));
+    });
+    // Still mounted (Activity keeps the DOM), but no longer open, so it cannot leave the next page inert.
+    expect(dialog?.isConnected).toBe(true);
+    expect(dialog?.open).toBe(false);
+
+    // Back: the route shows again with its ?peek, and the Dialog's own effect opens it again.
+    nav.pathname = LIST;
+    nav.search = `peek=${ITEM}`;
+    await act(async () => {
+      root?.render(frame("visible"));
+    });
+    expect(document.querySelector('dialog[aria-label="Work item"]')).toBe(dialog);
+    expect(dialog?.open).toBe(true);
   });
 
   it("renders a skeleton on the server and the detail after hydration, without a mismatch", async () => {

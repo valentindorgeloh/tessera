@@ -3,19 +3,20 @@
 /**
  * Detail header (docs/contracts/ui.md "DetailHeader"): breadcrumbs (project,
  * "Work items" on the full page, parent key, current key), then copy ID,
- * copy link, the overflow menu, the
- * mode switcher (side panel, modal, full page) and close for the peek and
- * modal hosts. The URL copied is the full page route of the item.
+ * copy link, the overflow menu (make a copy, archive or restore, delete),
+ * the mode switcher (side panel, modal, full page) and close for the peek
+ * and modal hosts. The URL copied is the full page route of the item.
  */
 import { BreadcrumbItem, Breadcrumbs } from "@astryxdesign/core/Breadcrumbs";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
+import type { DropdownMenuOption } from "@astryxdesign/core/DropdownMenu";
 import { useClipboard } from "@astryxdesign/core/hooks";
 import { HStack } from "@astryxdesign/core/Stack";
 import { useProject } from "@/components/work-items/project-provider";
 import type { WorkItem, WorkItemDetail } from "@/lib/tessera/types";
-import { ArrowSquareOutIcon, ArrowsOutIcon, CheckIcon, CopyIcon, LinkIcon, SidebarIcon, XIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { ArchiveIcon, ArrowSquareOutIcon, ArrowsOutIcon, CheckIcon, CopyIcon, LinkIcon, RestoreIcon, SidebarIcon, XIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import type { DetailHost } from "./types";
 
 export type DetailHeaderProps = {
@@ -25,9 +26,14 @@ export type DetailHeaderProps = {
   onClose?: () => void;
   onHostChange?: (host: DetailHost) => void;
   onOpenItem: (id: string) => void;
-  /** Overflow actions: make a copy, delete. */
+  /** Overflow actions: make a copy, archive or restore (P3), delete. */
   onCopyItem?: () => void;
   onDelete?: () => void;
+  /** Archive entry; shown disabled with `archiveBlockedReason` as its description while the item cannot be archived. */
+  onArchive?: () => void;
+  /** Restore entry, for an archived item. */
+  onRestore?: () => void;
+  archiveBlockedReason?: string;
 };
 
 /** Full page route of an item; the origin is added at copy time. */
@@ -41,12 +47,33 @@ const MODES: readonly { host: DetailHost; label: string; icon: typeof SidebarIco
   { host: "page", label: "Full page", icon: ArrowSquareOutIcon },
 ];
 
-export function DetailHeader({ item, parent, host, onClose, onHostChange, onOpenItem, onCopyItem, onDelete }: DetailHeaderProps) {
+export function DetailHeader({
+  item,
+  parent,
+  host,
+  onClose,
+  onHostChange,
+  onOpenItem,
+  onCopyItem,
+  onDelete,
+  onArchive,
+  onRestore,
+  archiveBlockedReason,
+}: DetailHeaderProps) {
   const { bundle } = useProject();
   const { project } = bundle;
   const copyId = useClipboard({ announce: "Copied" });
   const copyUrl = useClipboard({ announce: "Copied" });
   const LogoIcon = resolveLogoIcon(project.logo?.icon);
+
+  const menuItems: DropdownMenuOption[] = [
+    ...(onCopyItem ? [{ id: "copy", label: "Make a copy", onClick: onCopyItem }] : []),
+    ...(onRestore ? [{ id: "restore", label: "Restore", icon: RestoreIcon, onClick: onRestore }] : []),
+    ...(onArchive
+      ? [{ id: "archive", label: "Archive", icon: ArchiveIcon, isDisabled: archiveBlockedReason !== undefined, description: archiveBlockedReason, onClick: onArchive }]
+      : []),
+    ...(onDelete ? [{ id: "delete", label: "Delete…", variant: "destructive" as const, onClick: onDelete }] : []),
+  ];
 
   const copyLink = () => {
     const origin = typeof window === "undefined" ? "" : window.location.origin;
@@ -81,16 +108,7 @@ export function DetailHeader({ item, parent, host, onClose, onHostChange, onOpen
           icon={copyUrl.isCopied ? <CheckIcon /> : <LinkIcon />}
           onClick={copyLink}
         />
-        {onCopyItem || onDelete ? (
-          <MoreMenu
-            label="More actions"
-            size="sm"
-            items={[
-              ...(onCopyItem ? [{ id: "copy", label: "Make a copy", onClick: onCopyItem }] : []),
-              ...(onDelete ? [{ id: "delete", label: "Delete…", variant: "destructive" as const, onClick: onDelete }] : []),
-            ]}
-          />
-        ) : null}
+        {menuItems.length > 0 ? <MoreMenu label="More actions" size="sm" items={menuItems} /> : null}
         {onHostChange
           ? MODES.map((mode) => (
               <IconButton

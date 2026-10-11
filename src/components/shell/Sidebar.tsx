@@ -12,9 +12,11 @@ import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from "@astryxdes
 import { Text } from "@astryxdesign/core/Text";
 import type { Project } from "@/lib/tessera/types";
 import {
+  CycleIcon,
   FolderIcon,
   HouseIcon,
   KanbanIcon,
+  ModuleIcon,
   MonitorIcon,
   MoonIcon,
   PlusIcon,
@@ -29,6 +31,7 @@ import {
   useColorScheme,
   type ColorScheme,
 } from "./color-scheme";
+import { projectIdFromPath } from "./tab-registry";
 import { useShell } from "./TesseraShell";
 
 export const SIDEBAR_STORAGE_KEY = "tessera.sidebar.v1";
@@ -37,18 +40,16 @@ export const LAST_PROJECT_STORAGE_KEY = "tessera.lastProject.v1";
 export type ProjectNavItem = { key: string; label: string; href: string; icon: IconType };
 
 /**
- * Sub-items under a project in the tree. Extension point for later lanes:
- * append Cycles, Modules, Views, Pages, Intake and Settings here according to
- * the project's feature toggles, in the order of docs/PLAN.md section 6.
+ * Sub-items under a project in the tree: Work items, then Cycles and Modules
+ * when the project's feature toggles turn them on. Extension point for later
+ * lanes: append Views, Pages, Intake and Settings in the order of docs/PLAN.md
+ * section 6. Archives stays a frame tab (and `g r`) until the P9 sidebar pass.
  */
-export function projectNavItems(project: Project): ProjectNavItem[] {
-  return [{ key: "work-items", label: "Work items", href: `/projects/${project.id}/work-items`, icon: KanbanIcon }];
-}
-
-/** Project id from `/projects/[id]/...`, else null. */
-export function projectIdFromPath(pathname: string): string | null {
-  const match = /^\/projects\/([^/]+)/.exec(pathname);
-  return match ? match[1] : null;
+export function projectNavItems(project: Pick<Project, "id" | "cycles_enabled" | "modules_enabled">): ProjectNavItem[] {
+  const items: ProjectNavItem[] = [{ key: "work-items", label: "Work items", href: `/projects/${project.id}/work-items`, icon: KanbanIcon }];
+  if (project.cycles_enabled) items.push({ key: "cycles", label: "Cycles", href: `/projects/${project.id}/cycles`, icon: CycleIcon });
+  if (project.modules_enabled) items.push({ key: "modules", label: "Modules", href: `/projects/${project.id}/modules`, icon: ModuleIcon });
+  return items;
 }
 
 function isUnder(pathname: string, href: string): boolean {
@@ -259,7 +260,7 @@ export function Sidebar({ projects }: { projects: Project[] }) {
       <SideNavSection title="Workspace" isHeaderHidden>
         <SideNavItem label="Search" icon={SearchIcon} onClick={openCommandBar} endContent={isNavCollapsed ? undefined : <Kbd keys="mod+k" />} />
         <SideNavItem label="Home" icon={HouseIcon} href="/home" isSelected={pathname === "/home"} />
-        <SideNavItem label="Projects" icon={FolderIcon} href="/projects" isSelected={pathname === "/projects"} />
+        <SideNavItem label="Projects" icon={FolderIcon} href="/projects" isSelected={pathname === "/projects" || isUnder(pathname, "/projects/archives")} />
       </SideNavSection>
       <SideNavSection title="Projects">
         {projects.length === 0 ? (

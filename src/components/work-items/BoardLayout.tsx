@@ -10,7 +10,9 @@
  * (WorkItemsScreen) owns the optimistic state, so this component is a pure
  * function of its props. Columns of a field the engine cannot move between
  * (created by, created at, project; see ./moves.ts) accept no drops and offer
- * no "Move to"; quick-add placeholders render as inert cards.
+ * no "Move to"; neither do the columns and lanes of an archived module or a
+ * completed or archived cycle, in either direction (./quick-add.ts
+ * `acceptsGroupMove`). Quick-add placeholders render as inert cards.
  *
  * Layout idea ported from the Astryx `kanban-board` page template (MIT,
  * Meta Platforms; THIRD_PARTY_NOTICES.md): className + tokens
@@ -39,7 +41,8 @@ import { isMovableGroup } from "./moves";
 import { isOptimisticId } from "./optimistic";
 import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } from "./properties";
 import { QuickAdd } from "./QuickAdd";
-import type { LayoutProps, MoveInput, ProjectBundle } from "./types";
+import { acceptsGroupMove, isOpenGroupValue, openMemberships } from "./quick-add";
+import type { LayoutProps, MoveInput, ProjectBundle, QuickAddGroup } from "./types";
 
 /** Id of the synthetic "no value" group (`NONE_GROUP_ID` in the engine's filters.ts). */
 const NONE_GROUP = "none";
@@ -63,6 +66,11 @@ function containerId(columnId: string, laneId: string | null): string {
 
 function toColumn(group: Group): Column {
   return { id: group.id, name: group.name, color: group.color, count: group.count, itemIds: group.item_ids };
+}
+
+/** Empty-column text for a column no item may join (an archived module, a completed or archived cycle). */
+function closedColumnText(field: GroupBy | null): string {
+  return field === "module" ? "This module is archived, so work items cannot join it." : "This cycle is completed or archived, so work items cannot join it.";
 }
 
 /** Columns, swimlanes and drop containers derived from the grouped list result. */
@@ -106,29 +114,56 @@ function useBoardModel(result: LayoutProps["result"], display: Display) {
   }, [display.group_by, display.show_empty_groups, display.sub_group_by, result.groups, result.items]);
 }
 
-export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAdd }: LayoutProps) {
+export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAdd, canQuickAdd }: LayoutProps) {
   const { columns, lanes, containers, byId } = useBoardModel(result, display);
   // The header "+" opens that column's quick-add row; a per-column nonce remounts only that row
   // active, so text typed in another column's row survives.
   const [quickAddNonces, setQuickAddNonces] = useState<Record<string, number>>({});
   const canMoveColumns = isMovableGroup(display.group_by);
   const canMoveLanes = isMovableGroup(display.sub_group_by);
+  // The modules and cycles items may join or leave; an archived module or a completed or archived cycle is closed.
+  const open = useMemo(() => openMemberships(bundle), [bundle]);
 
   // Quick-add placeholders are not registered with the drag hook and cannot be neighbours.
   const itemsOf = useCallback((container: string) => (containers.get(container)?.itemIds ?? []).filter((id) => !isOptimisticId(id)), [containers]);
+
+  /**
+   * Whether a drop from one container into another goes through. A change of column (or lane) needs a field the engine
+   * can move between and, for modules and cycles, an open value on both sides: the item leaves one and joins the other.
+   */
+  const acceptsDrop = useCallback(
+    (fromContainer: string, toContainer: string): boolean => {
+      const from = containers.get(fromContainer);
+      const to = containers.get(toContainer);
+      if (!from || !to) return false;
+      const field = display.group_by;
+      if (from.columnId !== to.columnId) {
+        if (!canMoveColumns || field === null) return false;
+        if (!acceptsGroupMove(field, groupValue(from.columnId, field), groupValue(to.columnId, field), open)) return false;
+      }
+      const subField = display.sub_group_by;
+      if (to.laneId !== null && from.laneId !== to.laneId) {
+        if (!canMoveLanes || subField === null) return false;
+        const fromLane = from.laneId === null ? null : groupValue(from.laneId, subField);
+        if (!acceptsGroupMove(subField, fromLane, groupValue(to.laneId, subField), open)) return false;
+      }
+      return true;
+    },
+    [canMoveColumns, canMoveLanes, containers, display.group_by, display.sub_group_by, open],
+  );
 
   const handleDrop = useCallback(
     (event: DragDropEvent) => {
       const from = containers.get(event.fromContainer);
       const to = containers.get(event.toContainer);
       if (!from || !to) return;
+      // A drop the engine would refuse is ignored: the card snaps back.
+      if (!acceptsDrop(event.fromContainer, event.toContainer)) return;
       // Neighbour ids only mean something when the list is in sort order; otherwise a drop just changes the group.
       const placement: Pick<MoveInput, "before_id" | "after_id"> = display.order_by === "sort_order" ? { before_id: event.before_id, after_id: event.after_id } : {};
       const field = display.group_by;
       const columnChanged = from.columnId !== to.columnId;
       const laneChanged = to.laneId !== null && from.laneId !== to.laneId;
-      // A drop into a column (or lane) of a field the engine cannot move between is ignored: the card snaps back.
-      if ((columnChanged && !canMoveColumns) || (laneChanged && !canMoveLanes)) return;
       if (field !== null && columnChanged) {
         onMove({ id: event.id, group_by: field, value: groupValue(to.columnId, field), from_value: groupValue(from.columnId, field), ...placement });
       } else if (placement.before_id !== undefined || placement.after_id !== undefined) {
@@ -139,7 +174,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
         onMove({ id: event.id, group_by: subField, value: groupValue(to.laneId, subField), from_value: from.laneId === null ? null : groupValue(from.laneId, subField) });
       }
     },
-    [canMoveColumns, canMoveLanes, containers, display.group_by, display.order_by, display.sub_group_by, onMove],
+    [acceptsDrop, containers, display.group_by, display.order_by, display.sub_group_by, onMove],
   );
 
   const { drag, registerContainer, registerItem, registerScroller, registerOverlay, itemHandlers } = usePointerDrag({ onDrop: handleDrop, itemsOf });
@@ -149,17 +184,45 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
     (itemId: string, fromColumn: string, toColumn: string) => {
       const field = display.group_by;
       if (field === null || !canMoveColumns) return;
-      onMove({ id: itemId, group_by: field, value: groupValue(toColumn, field), from_value: groupValue(fromColumn, field) });
+      const value = groupValue(toColumn, field);
+      const fromValue = groupValue(fromColumn, field);
+      if (!acceptsGroupMove(field, fromValue, value, open)) return;
+      onMove({ id: itemId, group_by: field, value, from_value: fromValue });
     },
-    [canMoveColumns, display.group_by, onMove],
+    [canMoveColumns, display.group_by, onMove, open],
   );
+
+  /** "Move to" targets of a card in `column`: none when the field cannot be moved between or the column is closed. */
+  const moveTargetsFrom = (column: Column): Column[] => {
+    const field = display.group_by;
+    if (field === null || !canMoveColumns) return [];
+    const fromValue = groupValue(column.id, field);
+    return columns.filter((target) => acceptsGroupMove(field, fromValue, groupValue(target.id, field), open));
+  };
+
+  /** A column of an archived module or a completed or archived cycle; its empty state says why nothing can join it. */
+  const isClosedColumn = (column: Column): boolean => {
+    const field = display.group_by;
+    return field !== null && !isOpenGroupValue(field, groupValue(column.id, field), open);
+  };
+
+  const quickAddGroupOf = useCallback(
+    (column: Column): QuickAddGroup => {
+      const field = display.group_by;
+      return { field, value: field === null ? null : groupValue(column.id, field) };
+    },
+    [display.group_by],
+  );
+
+  // A column has no quick-add when the list cannot create items, or when its group pins a value the engine refuses
+  // (a closed state in a cycle scope, an archived module, a completed or archived cycle; ./quick-add.ts).
+  const canAddTo = (column: Column) => onQuickAdd !== undefined && canQuickAdd?.(quickAddGroupOf(column)) !== false;
 
   const quickAdd = useCallback(
     (column: Column, name: string) => {
-      const field = display.group_by;
-      onQuickAdd({ field, value: field === null ? null : groupValue(column.id, field) }, name);
+      onQuickAdd?.(quickAddGroupOf(column), name);
     },
-    [display.group_by, onQuickAdd],
+    [onQuickAdd, quickAddGroupOf],
   );
 
   const renderCards = (container: string, column: Column): ReactNode => {
@@ -176,7 +239,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
           item={item}
           bundle={bundle}
           properties={display.properties}
-          columns={canMoveColumns ? columns : []}
+          columns={moveTargetsFrom(column)}
           currentColumn={column.id}
           cardRef={registerItem(item.id)}
           handlers={itemHandlers(item.id, container)}
@@ -185,11 +248,17 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
         />
       ),
     );
-    if (drag?.target && drag.target.container === container) {
+    // The placeholder shows only where the drop would go through.
+    if (drag?.target && drag.target.container === container && acceptsDrop(drag.fromContainer, container)) {
       nodes.splice(Math.min(drag.target.index, nodes.length), 0, <Card key="placeholder" variant="muted" padding={0} height={drag.height} className="tessera-board-placeholder" />);
     }
     if (nodes.length === 0) {
-      return <EmptyState isCompact title="No work items" description={lanes === null ? "Drag a card here or add one with the plus button." : "Drag a card here."} />;
+      const description = isClosedColumn(column)
+        ? closedColumnText(display.group_by)
+        : lanes === null && canAddTo(column)
+          ? "Drag a card here or add one with the plus button."
+          : "Drag a card here.";
+      return <EmptyState isCompact title="No work items" description={description} />;
     }
     return (
       <VStack gap={2} className="tessera-board-cards">
@@ -203,11 +272,12 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
       column={column}
       field={display.group_by}
       bundle={bundle}
-      onAdd={() => setQuickAddNonces((current) => ({ ...current, [column.id]: (current[column.id] ?? 0) + 1 }))}
+      onAdd={canAddTo(column) ? () => setQuickAddNonces((current) => ({ ...current, [column.id]: (current[column.id] ?? 0) + 1 })) : undefined}
     />
   );
 
   const quickAddRow = (column: Column) => {
+    if (!canAddTo(column)) return null;
     const nonce = quickAddNonces[column.id] ?? 0;
     return <QuickAdd key={`${column.id}:${nonce}`} defaultIsActive={nonce > 0} label={`Add a work item to ${column.name}`} onSubmit={(name) => quickAdd(column, name)} />;
   };
@@ -230,7 +300,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
                     {renderCards(containerId(column.id, null), column)}
                   </LayoutContent>
                 }
-                footer={<LayoutFooter padding={2}>{quickAddRow(column)}</LayoutFooter>}
+                footer={canAddTo(column) ? <LayoutFooter padding={2}>{quickAddRow(column)}</LayoutFooter> : undefined}
               />
             </Card>
           ))}
@@ -283,14 +353,15 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
 // Column header and group titles
 // ---------------------------------------------------------------------------
 
-function ColumnHeader({ column, field, bundle, onAdd }: { column: Column; field: GroupBy | null; bundle: ProjectBundle; onAdd: () => void }) {
+/** `onAdd` absent: the column takes no quick-add (closed scope or a closed state in a cycle), so no plus button. */
+function ColumnHeader({ column, field, bundle, onAdd }: { column: Column; field: GroupBy | null; bundle: ProjectBundle; onAdd?: () => void }) {
   return (
     <HStack hAlign="between" vAlign="center" gap={2}>
       <HStack gap={2} vAlign="center" className="tessera-board-column-title">
         <GroupTitle name={column.name} color={column.color} id={column.id} field={field} bundle={bundle} level={4} />
         <Badge label={column.count} variant="neutral" />
       </HStack>
-      <IconButton label={`Add a work item to ${column.name}`} tooltip="Add work item" size="sm" variant="ghost" icon={<Icon icon={PlusIcon} size="sm" />} onClick={onAdd} />
+      {onAdd ? <IconButton label={`Add a work item to ${column.name}`} tooltip="Add work item" size="sm" variant="ghost" icon={<Icon icon={PlusIcon} size="sm" />} onClick={onAdd} /> : null}
     </HStack>
   );
 }

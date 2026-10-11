@@ -5,7 +5,8 @@ import { ASSISTANT_ACTOR_ID, registerActor, SYSTEM_ACTOR_ID, USER_ACTOR_ID } fro
 import { TrackerError } from "@/lib/tessera/core/errors";
 import { newId } from "@/lib/tessera/core/ids";
 import { firstSortOrder } from "@/lib/tessera/core/order";
-import { activity, estimate, estimate_point, moduleTable, module_member, project, work_item, work_item_module } from "@/lib/tessera/db/schema";
+import { activity, estimate, estimate_point, moduleTable, module_member, project, work_item, work_item_assignee, work_item_label, work_item_module } from "@/lib/tessera/db/schema";
+import { createLabel } from "@/lib/tessera/labels";
 import { addLink, getLink, listLinks } from "@/lib/tessera/links";
 import {
   addModuleLink,
@@ -268,6 +269,10 @@ describe("getModule", () => {
       unstarted: 1,
       completed: 1,
       by_state: { [states.unstarted]: 1, [states.completed]: 1 },
+      by_label: {},
+      by_assignee: {},
+      assignees: [{ id: null, total: 2, completed: 1 }],
+      labels: [{ id: null, total: 2, completed: 1 }],
     });
     expect(detail.progress.points).toBeUndefined();
   });
@@ -486,7 +491,7 @@ describe("addWorkItemsToModule and removeWorkItemsFromModule", () => {
       work_item_id: one.id,
       project_id: projectId,
       verb: "added",
-      field: "module",
+      field: "modules",
       new_value: auth.id,
       new_identifier: "Auth",
     });
@@ -533,7 +538,7 @@ describe("addWorkItemsToModule and removeWorkItemsFromModule", () => {
     const rows = rowsSince(ctx, seqBefore);
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({ entity_type: "module", entity_id: m.id, verb: "removed", field: "work_item", old_value: one.id, old_identifier: `WEB-${one.sequence_id}` });
-    expect(rows[1]).toMatchObject({ entity_type: "work_item", entity_id: one.id, work_item_id: one.id, verb: "removed", field: "module", old_value: m.id, old_identifier: "Auth" });
+    expect(rows[1]).toMatchObject({ entity_type: "work_item", entity_id: one.id, work_item_id: one.id, verb: "removed", field: "modules", old_value: m.id, old_identifier: "Auth" });
     expect(errorCode(() => removeWorkItemsFromModule(ctx, m.id, [newId()]))).toBe("NOT_FOUND");
     expect(errorCode(() => removeWorkItemsFromModule(ctx, m.id, []))).toBe("VALIDATION");
   });
@@ -569,9 +574,76 @@ describe("getModuleProgress", () => {
       completed: 1,
       cancelled: 1,
       by_state: { [states.backlog]: 1, [states.unstarted]: 1, [states.started]: 2, [states.completed]: 1, [states.cancelled]: 1 },
+      by_label: {},
+      by_assignee: {},
+      assignees: [{ id: null, total: 6, completed: 1 }],
+      labels: [{ id: null, total: 6, completed: 1 }],
     });
     expect(listModules(ctx, projectId)[0].progress).toEqual({ total: 6, backlog: 1, unstarted: 1, started: 2, completed: 1, cancelled: 1 });
     expect(errorCode(() => getModuleProgress(ctx, newId()))).toBe("NOT_FOUND");
+  });
+
+  it("breaks items down by assignee and label with completed counts, the id: null row last, archived and triage items left out", () => {
+    const { ctx, projectId } = setup();
+    updateProjectFeatures(ctx, projectId, { intake_enabled: true });
+    const states = stateIds(ctx, projectId);
+    const m = createModule(ctx, { project_id: projectId, name: "Auth" });
+    const bug = createLabel(ctx, { project_id: projectId, name: "Bug" });
+    const ux = createLabel(ctx, { project_id: projectId, name: "UX" });
+    const docs = createLabel(ctx, { project_id: projectId, name: "Docs" });
+    const items = {
+      a: insertWorkItem(ctx, projectId, states.completed, "a"),
+      b: insertWorkItem(ctx, projectId, states.started, "b"),
+      c: insertWorkItem(ctx, projectId, states.unstarted, "c"),
+      d: insertWorkItem(ctx, projectId, states.completed, "d"),
+      triage: insertWorkItem(ctx, projectId, states.triage, "triage"),
+      archived: insertWorkItem(ctx, projectId, states.completed, "archived", { archived_at: ctx.now() }),
+    };
+    ctx.db
+      .insert(work_item_module)
+      .values(Object.values(items).map((item) => ({ work_item_id: item.id, module_id: m.id })))
+      .run();
+    const labelRows: [string, string][] = [
+      [items.a.id, bug.id],
+      [items.a.id, ux.id],
+      [items.b.id, bug.id],
+      [items.c.id, ux.id],
+      [items.d.id, docs.id],
+      [items.triage.id, docs.id],
+      [items.archived.id, docs.id],
+    ];
+    ctx.db
+      .insert(work_item_label)
+      .values(labelRows.map(([work_item_id, label_id]) => ({ work_item_id, label_id })))
+      .run();
+    const assigneeRows: [string, string][] = [
+      [items.a.id, USER_ACTOR_ID],
+      [items.a.id, ASSISTANT_ACTOR_ID],
+      [items.b.id, USER_ACTOR_ID],
+      [items.archived.id, ASSISTANT_ACTOR_ID],
+    ];
+    ctx.db
+      .insert(work_item_assignee)
+      .values(assigneeRows.map(([work_item_id, actor_id]) => ({ work_item_id, actor_id })))
+      .run();
+    const progress = getModuleProgress(ctx, m.id);
+    expect(progress.total).toBe(4);
+    expect(progress.by_label).toEqual({ [bug.id]: 2, [ux.id]: 2, [docs.id]: 1 });
+    expect(progress.by_assignee).toEqual({ [USER_ACTOR_ID]: 2, [ASSISTANT_ACTOR_ID]: 1 });
+    // Ties on total sort by id; every item carries a label here, so there is no id: null label row.
+    const [first, second] = [bug.id, ux.id].sort();
+    expect(progress.labels).toEqual([
+      { id: first, total: 2, completed: 1 },
+      { id: second, total: 2, completed: 1 },
+      { id: docs.id, total: 1, completed: 1 },
+    ]);
+    // An item with two assignees counts in both rows; c and d have none.
+    expect(progress.assignees).toEqual([
+      { id: USER_ACTOR_ID, total: 2, completed: 1 },
+      { id: ASSISTANT_ACTOR_ID, total: 1, completed: 1 },
+      { id: null, total: 2, completed: 1 },
+    ]);
+    expect(getModule(ctx, m.id).progress.assignees).toEqual(progress.assignees);
   });
 
   it("reports points from estimate_point.value when the project has an active estimate system", () => {
@@ -596,6 +668,10 @@ describe("getModuleProgress", () => {
     const two = point(system.id, 0, "2");
     const five = point(system.id, 1, "5");
     const eight = point(system.id, 2, "8");
+    const half = point(system.id, 3, "0.5");
+    const negative = point(system.id, 4, "-3");
+    const removed = point(system.id, 5, "13");
+    ctx.db.update(estimate_point).set({ deleted_at: ctx.now() }).where(eq(estimate_point.id, removed.id)).run();
     const staleEight = point(stale.id, 0, "8");
     const items = [
       insertWorkItem(ctx, projectId, states.backlog, "b", { estimate_point_id: two.id }),
@@ -604,6 +680,9 @@ describe("getModuleProgress", () => {
       insertWorkItem(ctx, projectId, states.completed, "c2", { estimate_point_id: five.id }),
       insertWorkItem(ctx, projectId, states.completed, "c3", { estimate_point_id: staleEight.id }),
       insertWorkItem(ctx, projectId, states.unstarted, "no estimate"),
+      insertWorkItem(ctx, projectId, states.unstarted, "half", { estimate_point_id: half.id }),
+      insertWorkItem(ctx, projectId, states.unstarted, "negative", { estimate_point_id: negative.id }),
+      insertWorkItem(ctx, projectId, states.started, "deleted point", { estimate_point_id: removed.id }),
     ];
     ctx.db
       .insert(work_item_module)
@@ -612,8 +691,9 @@ describe("getModuleProgress", () => {
     expect(getModuleProgress(ctx, m.id).points).toBeUndefined();
     ctx.db.update(project).set({ estimate_id: system.id, estimates_enabled: true }).where(eq(project.id, projectId)).run();
     const progress = getModuleProgress(ctx, m.id);
-    expect(progress.total).toBe(6);
-    expect(progress.points).toEqual({ total: 20, backlog: 2, unstarted: 0, started: 5, completed: 13, cancelled: 0 });
+    expect(progress.total).toBe(9);
+    // Fractions count, negative values and deleted points count 0, points of another estimate are ignored.
+    expect(progress.points).toEqual({ total: 20.5, backlog: 2, unstarted: 0.5, started: 5, completed: 13, cancelled: 0 });
     ctx.db.update(project).set({ estimates_enabled: false }).where(eq(project.id, projectId)).run();
     expect(getModuleProgress(ctx, m.id).points).toBeUndefined();
   });

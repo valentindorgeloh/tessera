@@ -62,7 +62,8 @@ export function CreateWorkItemDialog({ projectId, isOpen, onOpenChange, defaults
   };
   return (
     <>
-      <Dialog isOpen={isOpen} onOpenChange={handleOpenChange} purpose="form" width={600}>
+      {/* Named explicitly: the Dialog reads its DialogHeader title only when the <dialog> attaches, and the form below mounts later. */}
+      <Dialog isOpen={isOpen} onOpenChange={handleOpenChange} purpose="form" width={600} aria-label="New work item">
         {/* Mounted only while open so every session starts from a fresh draft. */}
         {isOpen ? (
           <CreateWorkItemForm

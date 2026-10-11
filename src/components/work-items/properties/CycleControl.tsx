@@ -1,8 +1,8 @@
 "use client";
 
 import { Selector, type SelectorOptionData } from "@astryxdesign/core/Selector";
-import type { CycleStatus } from "@/lib/tessera/types";
 import { useProject } from "../project-provider";
+import { cycleControlModel } from "./membership-rules";
 
 export type CycleControlProps = {
   /** Cycle id or null. */
@@ -13,21 +13,16 @@ export type CycleControlProps = {
   label?: string;
 };
 
-const STATUS_LABEL: Record<CycleStatus, string> = {
-  current: "Current",
-  upcoming: "Upcoming",
-  completed: "Completed",
-  draft: "Draft",
-};
-
-/** Ghost selector over the project's non-archived cycles; clearing removes the item from its cycle. */
+/**
+ * Ghost selector over the project's cycles that are not completed; clearing
+ * removes the item from its cycle. A value in a completed cycle, or in an
+ * archived one (missing from the bundle), is read-only: the engine refuses to
+ * move the item out of it (./membership-rules.ts).
+ */
 export function CycleControl({ value, onChange, compact = false, readOnly = false, label = "Cycle" }: CycleControlProps) {
   const { bundle } = useProject();
-  const options: SelectorOptionData[] = bundle.cycles.map((cycle) => ({
-    value: cycle.id,
-    label: cycle.name,
-    description: STATUS_LABEL[cycle.status],
-  }));
+  const model = cycleControlModel(value, bundle.cycles);
+  const options: SelectorOptionData[] = model.options;
   return (
     <Selector
       label={label}
@@ -38,9 +33,9 @@ export function CycleControl({ value, onChange, compact = false, readOnly = fals
       value={value}
       onChange={(next) => onChange(next)}
       hasClear
-      isReadOnly={readOnly}
+      isReadOnly={readOnly || model.readOnly}
       placeholder={compact ? "Cycle" : "No cycle"}
-      emptyText="No cycles in this project yet"
+      emptyText="No open cycles in this project"
     />
   );
 }

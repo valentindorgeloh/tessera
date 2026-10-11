@@ -19,6 +19,9 @@
  * except unarchive and delete, so items neither join nor leave them here.
  * `deleteWorkItem` is the one exception: a member of a completed or archived
  * cycle can be deleted (live cycle progress drops, a frozen snapshot stays).
+ * Archived modules are read-only too: `createWorkItem` and `syncModules`
+ * refuse (ARCHIVED) to add an item to one or remove it from one, and keep the
+ * memberships of archived modules that a call leaves unchanged.
  */
 import { and, asc, count, eq, inArray, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
@@ -284,6 +287,22 @@ function resolveModules(ctx: TesseraContext, projectId: string, ids: string[]): 
     if (row.project_id !== projectId) throw rule("module_project", `Module "${row.name}" belongs to another project`);
   }
   return byId;
+}
+
+/**
+ * Items neither join nor leave an archived module: ARCHIVED when one of `ids`
+ * (the modules a call adds or removes) is archived. Memberships of archived
+ * modules that the call leaves unchanged are kept.
+ */
+function assertModulesNotArchived(ctx: TesseraContext, ids: readonly string[]): void {
+  if (ids.length === 0) return;
+  const row = ctx.db
+    .select({ name: moduleTable.name })
+    .from(moduleTable)
+    .where(and(inArray(moduleTable.id, [...ids]), isNull(moduleTable.deleted_at), isNotNull(moduleTable.archived_at)))
+    .orderBy(asc(moduleTable.sort_order), asc(moduleTable.created_at))
+    .get();
+  if (row) throw archived(`module "${row.name}" is archived`);
 }
 
 /** Live actors by id; NOT_FOUND for a deleted or unknown one. */
@@ -757,11 +776,16 @@ export function syncLabels(ctx: TesseraContext, loaded: LoadedWorkItem, labelIds
   for (const id of added) logMembership(ctx, loaded, "labels", "added", id, names.get(id)?.name ?? id);
 }
 
-/** Replaces the module set (same project only) and logs one row per change; inside withTx. */
+/**
+ * Replaces the module set (same project only) and logs one row per change;
+ * inside withTx. ARCHIVED when a module being added or removed is archived;
+ * archived modules the call keeps stay untouched.
+ */
 export function syncModules(ctx: TesseraContext, loaded: LoadedWorkItem, moduleIds: string[]): void {
   assertInTransaction(ctx, "syncModules");
   const names = resolveModules(ctx, loaded.project.id, moduleIds);
   const { added, removed } = diffSets(currentModuleIds(ctx, loaded.item.id), moduleIds);
+  assertModulesNotArchived(ctx, [...added, ...removed]);
   if (removed.length > 0) {
     ctx.db.delete(work_item_module).where(and(eq(work_item_module.work_item_id, loaded.item.id), inArray(work_item_module.module_id, removed))).run();
   }
@@ -1059,6 +1083,7 @@ export function createWorkItem(ctx: TesseraContext, input: CreateWorkItemInputTy
     resolveLabels(ctx, projectRow.id, labelIds);
     const moduleIds = [...new Set(data.module_ids ?? [])];
     resolveModules(ctx, projectRow.id, moduleIds);
+    assertModulesNotArchived(ctx, moduleIds);
     if (data.estimate_point_id !== undefined) resolveEstimatePoint(ctx, projectRow.id, data.estimate_point_id);
     let assigneeIds = [...new Set(data.assignee_ids ?? [])];
     if (assigneeIds.length === 0 && projectRow.default_assignee_id !== null) assigneeIds = [projectRow.default_assignee_id];

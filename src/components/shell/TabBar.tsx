@@ -6,7 +6,7 @@ import { ContextMenu } from "@astryxdesign/core/ContextMenu";
 import { Icon, type IconType } from "@astryxdesign/core/Icon";
 import { HStack } from "@astryxdesign/core/Layout";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
-import { FolderIcon, HouseIcon, KanbanIcon, ListBulletsIcon, PageIcon, XIcon } from "@/themes/catppuccin/icons";
+import { ArchiveIcon, CycleIcon, FolderIcon, HouseIcon, KanbanIcon, ListBulletsIcon, ModuleIcon, PageIcon, XIcon } from "@/themes/catppuccin/icons";
 import { useEntityLabels } from "./entity-labels";
 import {
   EMPTY_TABS,
@@ -14,6 +14,7 @@ import {
   addTab,
   closeOtherTabs,
   closeTab,
+  dropTabsUnder,
   isTypingTarget,
   labelTabs,
   lookupFromNames,
@@ -32,6 +33,9 @@ const TAB_ICONS: Record<TabIconKey, IconType> = {
   "work-items": KanbanIcon,
   "work-item": ListBulletsIcon,
   page: PageIcon,
+  cycles: CycleIcon,
+  modules: ModuleIcon,
+  archives: ArchiveIcon,
 };
 
 // ---------------------------------------------------------------------------
@@ -88,6 +92,15 @@ function loadStoredTabs() {
   emit();
 }
 
+/**
+ * Forgets the tabs of an entity that was just deleted (`path` and everything
+ * below it), so the bar keeps no tab that would only show not-found. Callers
+ * navigate away themselves when they were on the deleted route.
+ */
+export function forgetTabsUnder(path: string) {
+  commit(dropTabsUnder(getSnapshot(), path));
+}
+
 function isCloseTarget(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest(`.${CLOSE_CLASS}`) !== null;
 }
@@ -120,9 +133,12 @@ export function TabBar({ projectNames }: { projectNames: ProjectNameMap }) {
     commit(addTab(getSnapshot(), pathname));
   }, [pathname]);
 
-  // Detail screens register "<KEY> <title>" for the item they show (./entity-labels.ts).
+  // Detail screens register "<KEY> <title>" for the item they show, and the cycle or module name (./entity-labels.ts).
   const labels = useEntityLabels();
-  const lookup = useMemo(() => ({ ...lookupFromNames(projectNames), workItemLabel: (id: string) => labels.get(id) }), [projectNames, labels]);
+  const lookup = useMemo(
+    () => ({ ...lookupFromNames(projectNames), workItemLabel: (id: string) => labels.get(id), entityLabel: (id: string) => labels.get(id) }),
+    [projectNames, labels],
+  );
 
   const close = useCallback(
     (path: string) => {

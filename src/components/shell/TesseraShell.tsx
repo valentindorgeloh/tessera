@@ -6,6 +6,7 @@ import { useHotkeys } from "@astryxdesign/core/hooks";
 import { HStack, Layout, LayoutContent, LayoutHeader } from "@astryxdesign/core/Layout";
 import { ToastViewport } from "@astryxdesign/core/Toast";
 import { CommandBar, type CommandBarHandle } from "./CommandBar";
+import { HiddenDialogGuard } from "./HiddenDialogGuard";
 
 export type ShellContextValue = {
   isNavCollapsed: boolean;
@@ -34,7 +35,9 @@ export function useShell(): ShellContextValue {
  * its first client render. The TabBar reads `usePathname()`, which is
  * request-bound under Cache Components, so it sits in its own Suspense
  * boundary (an empty strip of the same height in the static shell) instead
- * of blocking the whole route.
+ * of blocking the whole route. `HiddenDialogGuard` closes the modal dialogs a
+ * navigation leaves open in the hidden route (./hidden-dialogs.ts); it reads
+ * the URL too, so it has its own empty Suspense boundary.
  */
 export function TesseraShell({ sideNav, tabBar, children }: { sideNav: ReactNode; tabBar: ReactNode; children: ReactNode }) {
   const [isNavCollapsed, setNavCollapsed] = useState(false);
@@ -57,6 +60,9 @@ export function TesseraShell({ sideNav, tabBar, children }: { sideNav: ReactNode
     <ShellContext.Provider value={value}>
       <ToastViewport position="bottomEnd">
         <CommandBar ref={commandBar} />
+        <Suspense fallback={null}>
+          <HiddenDialogGuard />
+        </Suspense>
         <AppShell height="fill" contentPadding={0} variant="elevated" sideNav={sideNav}>
           <Layout
             height="fill"

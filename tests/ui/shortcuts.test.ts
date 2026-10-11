@@ -11,6 +11,7 @@ import {
   createCommandSource,
   hitItemId,
   hitToItem,
+  liveHighlight,
   matchesCommand,
   parseHitId,
   parseHits,
@@ -440,10 +441,22 @@ describe("buildCommands", () => {
 
   it("carries the keys and the arrival hint of a command", () => {
     const items = buildCommands(null);
-    const cycle = items.find((item) => item.id === "create.cycle");
-    expect(cycle?.auxiliaryData).toMatchObject({ kind: "command", keys: "n c", hint: "Arrives in P3" });
+    const view = items.find((item) => item.id === "create.view");
+    expect(view?.auxiliaryData).toMatchObject({ kind: "command", keys: "n v", hint: "Arrives in P4" });
     const home = items.find((item) => item.id === "nav.home");
     expect(home?.auxiliaryData).toMatchObject({ kind: "command", keys: "g h", hint: undefined });
+  });
+
+  it("ships cycles, modules and archives in P3: no arrival hint, views arrive in P4", () => {
+    const items = buildCommands(null);
+    const hintOf = (id: string) => items.find((item) => item.id === id)?.auxiliaryData;
+    expect(hintOf("create.cycle")).toMatchObject({ kind: "command", keys: "n c", hint: undefined });
+    expect(hintOf("create.module")).toMatchObject({ kind: "command", keys: "n m", hint: undefined });
+    expect(hintOf("nav.cycles")).toMatchObject({ kind: "command", keys: "g c", hint: undefined });
+    expect(hintOf("nav.modules")).toMatchObject({ kind: "command", keys: "g m", hint: undefined });
+    expect(hintOf("nav.archives")).toMatchObject({ kind: "command", keys: "g r", hint: undefined });
+    expect(hintOf("nav.views")).toMatchObject({ kind: "command", keys: "g v", hint: "Arrives in P4" });
+    expect(SHORTCUTS.some((def) => (def.arrives as string | undefined) === "P3")).toBe(false);
   });
 
   it("shows the subscribe note: the subscription works, notifications arrive in P7", () => {
@@ -491,6 +504,27 @@ describe("matchesCommand and sortBySection", () => {
     expect(groupsOf(sorted)).toEqual(["Work items", "Projects", "Create", "Navigate"]);
     expect(sorted.filter((item) => item.auxiliaryData?.group === "Navigate").map((item) => item.id)).toEqual(["nav.home", "nav.projects"]);
     expect(SECTION_ORDER[0]).toBe("Work items");
+  });
+});
+
+describe("liveHighlight", () => {
+  const rows = [{ disabled: false }, {}, { disabled: true }];
+
+  it("keeps a highlight on an enabled row of the list", () => {
+    expect(liveHighlight(0, rows)).toBe(0);
+    expect(liveHighlight(1, rows)).toBe(1);
+  });
+
+  it("treats no highlight and a disabled row as none", () => {
+    expect(liveHighlight(-1, rows)).toBe(-1);
+    expect(liveHighlight(2, rows)).toBe(-1);
+  });
+
+  it("drops a hover highlight the narrowed list no longer reaches, so Enter opens the first result", () => {
+    // Hovered row 1 of the bootstrap list, then typed "Sprint 2": one row is left.
+    expect(liveHighlight(1, [{}])).toBe(-1);
+    expect(liveHighlight(3, rows)).toBe(-1);
+    expect(liveHighlight(0, [])).toBe(-1);
   });
 });
 

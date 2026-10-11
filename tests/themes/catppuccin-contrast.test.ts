@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   ACCENT_TOKENS,
   CHIP_TOKENS,
+  DATA_TOKENS,
   PALETTE_KEY_COLOURS,
   SEMANTIC_TOKENS,
   STATUS_TOKENS,
@@ -133,6 +134,26 @@ describe("catppuccin palette contrast", () => {
       for (const [surface, background] of surfaces) {
         const outline = SEMANTIC_TOKENS["--color-border-emphasized"][mode];
         expect(ratio(paint(outline), paint(background)), surface).toBeGreaterThanOrEqual(ICON);
+      }
+    });
+
+    // Burndown and burnup (src/components/planning/chart-colors.ts): the actual
+    // line (blue), the burnup scope (purple), the ideal line (text-secondary)
+    // and the Today marker (border-emphasized) are graphics on the cycle panel
+    // and summary card (surface, card) and the page body. Green and peach fail
+    // on Latte, so the chart does not use them.
+    it("chart strokes are visible on every content surface", () => {
+      const strokes = [
+        ["actual", DATA_TOKENS["--color-data-categorical-blue"]],
+        ["scope", DATA_TOKENS["--color-data-categorical-purple"]],
+        ["ideal", SEMANTIC_TOKENS["--color-text-secondary"]],
+        ["today", SEMANTIC_TOKENS["--color-border-emphasized"]],
+      ] as const;
+      const contentSurfaces = surfaces.filter(([name]) => name === "body" || name === "surface" || name === "card");
+      for (const [stroke, pair] of strokes) {
+        for (const [surface, background] of contentSurfaces) {
+          expect(ratio(paint(pair[mode]), paint(background)), `${stroke} on ${surface}`).toBeGreaterThanOrEqual(ICON);
+        }
       }
     });
 

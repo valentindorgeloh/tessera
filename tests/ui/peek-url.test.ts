@@ -5,7 +5,8 @@
  * go Back instead of stacking a copy of the list URL.
  */
 import { describe, expect, it } from "vitest";
-import { closesWithBack, currentHref, parsePeekPush, peekHref, peekIdOf, withSearchParam } from "@/components/detail/peek-url";
+import { hasPeekHost, registerPeekHost } from "@/components/detail/peek-hosts";
+import { closesWithBack, currentHref, mountsPeek, parsePeekPush, peekHref, peekIdOf, withSearchParam, workItemHitTarget } from "@/components/detail/peek-url";
 
 const PROJECT = "11111111-1111-7111-8111-111111111111";
 const ITEM = "22222222-2222-7222-8222-222222222222";
@@ -47,6 +48,66 @@ describe("peekHref", () => {
   it("round-trips through peekIdOf", () => {
     const href = peekHref(LIST, new URLSearchParams("q=view"), ITEM);
     expect(peekIdOf(new URL(href, "http://localhost").searchParams)).toBe(ITEM);
+  });
+});
+
+describe("mountsPeek", () => {
+  it("is true for the lists of the project that mount the peek", () => {
+    expect(mountsPeek(LIST, PROJECT)).toBe(true);
+    expect(mountsPeek(`${LIST}/`, PROJECT)).toBe(true);
+    expect(mountsPeek(`/projects/${PROJECT}/cycles/${OTHER}`, PROJECT)).toBe(true);
+    expect(mountsPeek(`/projects/${PROJECT}/modules/${OTHER}/`, PROJECT)).toBe(true);
+    expect(mountsPeek(`/projects/${PROJECT}/archives/work-items`, PROJECT)).toBe(true);
+  });
+
+  it("is false for other screens of the project and for other projects", () => {
+    expect(mountsPeek(`${LIST}/${ITEM}`, PROJECT)).toBe(false);
+    expect(mountsPeek(`/projects/${PROJECT}/cycles`, PROJECT)).toBe(false);
+    expect(mountsPeek(`/projects/${PROJECT}/modules`, PROJECT)).toBe(false);
+    expect(mountsPeek(`/projects/${PROJECT}/archives`, PROJECT)).toBe(false);
+    expect(mountsPeek(`/projects/${PROJECT}/archives/cycles`, PROJECT)).toBe(false);
+    expect(mountsPeek(`/projects/${PROJECT}`, PROJECT)).toBe(false);
+    expect(mountsPeek(`/projects/${OTHER}/work-items`, PROJECT)).toBe(false);
+    expect(mountsPeek(`/work-items/${ITEM}`, PROJECT)).toBe(false);
+    expect(mountsPeek("/projects/archives", PROJECT)).toBe(false);
+  });
+});
+
+describe("workItemHitTarget (Power K)", () => {
+  const CYCLE = `/projects/${PROJECT}/cycles/${OTHER}`;
+  const FULL_PAGE = { href: `/projects/${PROJECT}/work-items/${ITEM}`, isPeek: false };
+
+  it("opens a peek on a list of the item's project while its host is mounted, keeping the other params", () => {
+    expect(workItemHitTarget(LIST, "?q=abc", PROJECT, ITEM, true)).toEqual({ href: `${LIST}?q=abc&peek=${ITEM}`, isPeek: true });
+    expect(workItemHitTarget(CYCLE, "", PROJECT, ITEM, true)).toEqual({ href: `${CYCLE}?peek=${ITEM}`, isPeek: true });
+  });
+
+  it("opens the full page on a cycle or module route with no host (feature off, not found)", () => {
+    // Cycles turned off: the cycle route keeps its URL but renders FeatureOffState, so no PeekHost is mounted.
+    expect(workItemHitTarget(CYCLE, "", PROJECT, ITEM, false)).toEqual(FULL_PAGE);
+    expect(workItemHitTarget(`/projects/${PROJECT}/modules/${OTHER}`, "", PROJECT, ITEM, false)).toEqual(FULL_PAGE);
+    expect(workItemHitTarget(LIST, "", PROJECT, ITEM, false)).toEqual(FULL_PAGE);
+  });
+
+  it("opens the full page on screens that are no list of the item's project, even with a host mounted", () => {
+    expect(workItemHitTarget(`/projects/${OTHER}/work-items`, "", PROJECT, ITEM, true)).toEqual(FULL_PAGE);
+    expect(workItemHitTarget(`/projects/${PROJECT}/cycles`, "", PROJECT, ITEM, true)).toEqual(FULL_PAGE);
+    expect(workItemHitTarget("/home", "", PROJECT, ITEM, true)).toEqual(FULL_PAGE);
+  });
+});
+
+describe("peek host registry", () => {
+  it("counts mounted hosts per project and uncounts each one once", () => {
+    expect(hasPeekHost(PROJECT)).toBe(false);
+    const first = registerPeekHost(PROJECT);
+    const second = registerPeekHost(PROJECT);
+    expect(hasPeekHost(PROJECT)).toBe(true);
+    expect(hasPeekHost(OTHER)).toBe(false);
+    first();
+    first();
+    expect(hasPeekHost(PROJECT)).toBe(true);
+    second();
+    expect(hasPeekHost(PROJECT)).toBe(false);
   });
 });
 

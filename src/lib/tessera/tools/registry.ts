@@ -741,7 +741,7 @@ const cycleTools = [
     name: "list_cycles",
     title: "List cycles",
     description:
-      "Lists the cycles of a project in sequence order with their derived status (current, upcoming, completed or draft for cycles without dates) and progress counts; filter by status, or pass archived: true for archived cycles.",
+      "Lists the cycles of a project in sequence order with their derived status (current, upcoming, completed or draft for cycles without dates) and progress counts; filter by status, or pass archived: true for archived cycles. Each cycle carries open_count, the number of items transfer_cycle_work_items would move.",
     input: ListCyclesInput.extend({ project_id: ProjectId }),
     mutates: false,
     core: true,
@@ -751,7 +751,7 @@ const cycleTools = [
   defineTool({
     name: "get_cycle",
     title: "Get cycle",
-    description: "Returns one cycle with its derived status, dates and progress counts.",
+    description: "Returns one cycle with its derived status, dates, open_count and progress (issues mode).",
     input: CycleIdInput,
     mutates: false,
     core: true,
@@ -799,7 +799,7 @@ const cycleTools = [
   defineTool({
     name: "unarchive_cycle",
     title: "Unarchive cycle",
-    description: "Restores an archived cycle; RULE not_archived when it is not archived.",
+    description: "Restores an archived cycle; RULE not_archived when it is not archived; CONFLICT when its dates now overlap another active cycle; the frozen snapshot stays.",
     input: CycleIdInput,
     mutates: true,
     phase: "P3",
@@ -852,7 +852,7 @@ const cycleTools = [
     name: "get_cycle_progress",
     title: "Get cycle progress",
     description:
-      "Returns a cycle's progress: totals by state group, per day burndown data and the ideal line, in issues (counts) or points (estimate point values) by mode.",
+      "Returns a cycle's progress: totals by state group, item counts per state, label and assignee (with completed counts per label and assignee), and the pending amount per day from start_date to min(end_date, today) for burndown and burnup charts. There is no ideal line and no scope-per-day series: derive the ideal line from the dates and total minus cancelled, and treat scope as today's total. mode issues counts items; mode points sums estimate point values when the project has an active estimate, and chart_mode says which unit the series uses. A cycle whose open items were transferred, or an archived one, returns its frozen snapshot.",
     input: GetCycleProgressInput.extend({ cycle_id: CycleId }),
     mutates: false,
     core: true,
@@ -1027,7 +1027,8 @@ const moduleTools = [
   defineTool({
     name: "get_module_progress",
     title: "Get module progress",
-    description: "Returns a module's progress: item totals by state group and the completion percentage.",
+    description:
+      "Returns a module's progress: item totals by state group, item counts per state, label and assignee (with completed counts per label and assignee), and the same totals in estimate points when the project has an active estimate.",
     input: ModuleIdInput,
     mutates: false,
     phase: "P3",

@@ -13,6 +13,9 @@
  * getCycleProgress whenever it is non-null. Progress counts the population
  * the cycle list shows plus archived members (finished work keeps counting);
  * items waiting in the hidden triage state are not accepted work and stay out.
+ * Points follow the project's active estimate (as module progress does): the
+ * snapshot keeps the items series and, with an active estimate, the points
+ * series, and a returned progress says in `chart_mode` which one it serves.
  */
 import { and, asc, count, eq, gte, inArray, isNotNull, isNull, lte, ne } from "drizzle-orm";
 import { z } from "zod";
@@ -25,20 +28,33 @@ import { lastSortOrder, sortOrderAfter, sortOrderForMove } from "./core/order";
 import { addDays, isIsoDate, localDateOf } from "./core/time";
 import { withTx } from "./core/tx";
 import { cycle, estimate_point, project, state, work_item, work_item_assignee, work_item_label } from "./db/schema";
-import { CycleProgressSchema, CycleStatusSchema, IdSchema, IsoDateSchema } from "./schemas";
-import type { CycleProgress, CycleRow, CycleStatus, ProgressCounts, ProjectRow, StateGroup } from "./types";
+import { CycleProgressSchema, CycleStatusSchema, IdSchema, IsoDateSchema, ProgressModeSchema } from "./schemas";
+import type { CycleProgress, CycleRow, CycleStatus, PointsCounts, ProgressBreakdownRow, ProgressCounts, ProgressMode, ProjectRow, StateGroup } from "./types";
 
-export type CycleProgressSummary = { total: number; completed: number };
+/**
+ * The list's progress summary: `total` items, of which `completed` and
+ * `cancelled` (the same population as getCycleProgress), so a row can show
+ * completed / (total - cancelled) like the progress panel.
+ */
+export type CycleProgressSummary = { total: number; completed: number; cancelled: number };
 
-/** List view model: the row plus the derived status and a two-number progress summary. */
-export type Cycle = CycleRow & { status: CycleStatus; progress: CycleProgressSummary };
+/**
+ * List view model: the row plus the derived status, a (total, completed,
+ * cancelled) progress summary and `open_count`, the live number of non-deleted members that are
+ * neither completed nor cancelled (archived and triage members included),
+ * which is exactly what transferCycleWorkItems would move. The row spread
+ * includes the raw `progress_snapshot`; clients treat a cycle as frozen when
+ * it is non-null and read progress only from `progress` / getCycleProgress.
+ */
+export type Cycle = CycleRow & { status: CycleStatus; progress: CycleProgressSummary; open_count: number };
 
-/** Detail view model: the row plus the derived status and the full progress (the snapshot once frozen). */
+/** Detail view model: the row plus the derived status, `open_count` and the full progress in issues mode (the snapshot once frozen). */
 export type CycleDetail = Omit<Cycle, "progress"> & { progress: CycleProgress };
 
-export const CycleProgressModeSchema = z.enum(["issues", "points"]);
+/** Alias of ProgressModeSchema kept for the existing imports. */
+export const CycleProgressModeSchema = ProgressModeSchema;
 
-export type CycleProgressMode = z.infer<typeof CycleProgressModeSchema>;
+export type CycleProgressMode = ProgressMode;
 
 const CYCLE_NAME = z.string().trim().min(1).max(120);
 const CYCLE_DESCRIPTION = z.string().max(100_000);
@@ -168,31 +184,42 @@ type ProgressItem = {
   state_id: string;
   state_group: StateGroup;
   completed_at: string | null;
-  /** Numeric estimate_point.value; null when the item has no point or the value is not a number. */
+  /** Value of the item's point in the project's active estimate; null without an active estimate, without a point, or for an unusable value. */
   points: number | null;
 };
 
-function parsePoints(value: string | null): number | null {
+/** The project's active estimate (`estimates_enabled` with an `estimate_id`), or null; points are counted only against it. */
+export function activeEstimateId(projectRow: Pick<ProjectRow, "estimates_enabled" | "estimate_id">): string | null {
+  return projectRow.estimates_enabled ? projectRow.estimate_id : null;
+}
+
+/** `estimate_point.value` as a number when it is numeric and >= 0 (fractions allowed); null otherwise (category names, blanks, negatives). */
+export function parsePointValue(value: string | null): number | null {
   if (value === null) return null;
   const trimmed = value.trim();
   if (trimmed === "") return null;
   const n = Number(trimmed);
-  return Number.isFinite(n) ? n : null;
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-/** Every non-deleted item of the cycle outside triage, archived ones included so finished work keeps counting. */
-function loadProgressItems(ctx: TesseraContext, cycleId: string): ProgressItem[] {
+/**
+ * Every non-deleted item of the cycle outside triage, archived ones included
+ * so finished work keeps counting. Points come only from non-deleted points
+ * of `estimateId`.
+ */
+function loadProgressItems(ctx: TesseraContext, cycleId: string, estimateId: string | null): ProgressItem[] {
   const rows = ctx.db
     .select({
       id: work_item.id,
       state_id: work_item.state_id,
       state_group: state.state_group,
       completed_at: work_item.completed_at,
+      point_estimate_id: estimate_point.estimate_id,
       point_value: estimate_point.value,
     })
     .from(work_item)
     .innerJoin(state, eq(work_item.state_id, state.id))
-    .leftJoin(estimate_point, eq(work_item.estimate_point_id, estimate_point.id))
+    .leftJoin(estimate_point, and(eq(work_item.estimate_point_id, estimate_point.id), isNull(estimate_point.deleted_at)))
     .where(and(eq(work_item.cycle_id, cycleId), isNull(work_item.deleted_at), ne(state.state_group, "triage")))
     .all();
   return rows.map((row) => ({
@@ -200,55 +227,98 @@ function loadProgressItems(ctx: TesseraContext, cycleId: string): ProgressItem[]
     state_id: row.state_id,
     state_group: row.state_group,
     completed_at: row.completed_at,
-    points: parsePoints(row.point_value),
+    points: estimateId !== null && row.point_estimate_id === estimateId ? parsePointValue(row.point_value) : null,
   }));
 }
 
-function countByLabel(ctx: TesseraContext, itemIds: string[]): Record<string, number> {
-  if (itemIds.length === 0) return {};
-  const rows = ctx.db
-    .select({ key: work_item_label.label_id, n: count() })
-    .from(work_item_label)
-    .where(inArray(work_item_label.work_item_id, itemIds))
-    .groupBy(work_item_label.label_id)
-    .all();
-  return Object.fromEntries(rows.map((row) => [row.key, row.n]));
+/** An item of a progress population, as the breakdowns need it. */
+export type BreakdownItem = { id: string; state_group: StateGroup };
+
+/** Assignee and label breakdowns of a progress population (shared with modules.ts). */
+export type ProgressBreakdowns = {
+  by_label: Record<string, number>;
+  by_assignee: Record<string, number>;
+  assignees: ProgressBreakdownRow[];
+  labels: ProgressBreakdownRow[];
+};
+
+/**
+ * One row per key with at least one item, sorted by total descending then id,
+ * plus a last row with `id: null` for the items without any key (when there
+ * are some). `completed` counts items in the completed group; an item with
+ * two keys counts in both rows.
+ */
+function breakdownRows(items: readonly BreakdownItem[], pairs: readonly { work_item_id: string; key: string }[]): ProgressBreakdownRow[] {
+  const groupOf = new Map(items.map((item) => [item.id, item.state_group]));
+  const rows = new Map<string, { id: string; total: number; completed: number }>();
+  const keyed = new Set<string>();
+  for (const pair of pairs) {
+    const group = groupOf.get(pair.work_item_id);
+    if (group === undefined) continue;
+    keyed.add(pair.work_item_id);
+    const row = rows.get(pair.key) ?? { id: pair.key, total: 0, completed: 0 };
+    row.total += 1;
+    if (group === "completed") row.completed += 1;
+    rows.set(pair.key, row);
+  }
+  const sorted: ProgressBreakdownRow[] = [...rows.values()].sort((a, b) => b.total - a.total || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const none = { id: null, total: 0, completed: 0 };
+  for (const item of items) {
+    if (keyed.has(item.id)) continue;
+    none.total += 1;
+    if (item.state_group === "completed") none.completed += 1;
+  }
+  if (none.total > 0) sorted.push(none);
+  return sorted;
 }
 
-function countByAssignee(ctx: TesseraContext, itemIds: string[]): Record<string, number> {
-  if (itemIds.length === 0) return {};
-  const rows = ctx.db
-    .select({ key: work_item_assignee.actor_id, n: count() })
-    .from(work_item_assignee)
-    .where(inArray(work_item_assignee.work_item_id, itemIds))
-    .groupBy(work_item_assignee.actor_id)
-    .all();
-  return Object.fromEntries(rows.map((row) => [row.key, row.n]));
+function countsOf(rows: readonly ProgressBreakdownRow[]): Record<string, number> {
+  return Object.fromEntries(rows.flatMap((row) => (row.id === null ? [] : [[row.id, row.total]])));
+}
+
+/** by_label / by_assignee item counts and the assignee and label rows over `items` (two junction queries). */
+export function loadBreakdowns(ctx: TesseraContext, items: readonly BreakdownItem[]): ProgressBreakdowns {
+  const itemIds = items.map((item) => item.id);
+  const labelPairs =
+    itemIds.length === 0
+      ? []
+      : ctx.db
+          .select({ work_item_id: work_item_label.work_item_id, key: work_item_label.label_id })
+          .from(work_item_label)
+          .where(inArray(work_item_label.work_item_id, itemIds))
+          .all();
+  const assigneePairs =
+    itemIds.length === 0
+      ? []
+      : ctx.db
+          .select({ work_item_id: work_item_assignee.work_item_id, key: work_item_assignee.actor_id })
+          .from(work_item_assignee)
+          .where(inArray(work_item_assignee.work_item_id, itemIds))
+          .all();
+  const labels = breakdownRows(items, labelPairs);
+  const assignees = breakdownRows(items, assigneePairs);
+  return { by_label: countsOf(labels), by_assignee: countsOf(assignees), assignees, labels };
 }
 
 function emptyCounts(): ProgressCounts {
   return { total: 0, completed: 0, cancelled: 0, started: 0, unstarted: 0, backlog: 0 };
 }
 
-function addToCounts(counts: ProgressCounts, group: StateGroup, weight: number): void {
+function addToCounts(counts: PointsCounts, group: StateGroup, weight: number): void {
   // Triage items are filtered out of the population; the guard keeps the buckets summing to total should one slip through.
   if (group === "triage") return;
   counts.total += weight;
   counts[group] += weight;
 }
 
-function itemWeight(item: ProgressItem, mode: CycleProgressMode): number {
-  return mode === "points" ? (item.points ?? 0) : 1;
-}
-
 /**
- * Pending work per day from start_date to min(end_date, today), inclusive.
- * An item is pending on a day until the local calendar date of its
- * completed_at (the same calendar `today` uses) is on or before that day;
- * cancelled items are left out so the curve can reach zero. Empty for drafts
- * and upcoming cycles.
+ * Pending work per day from start_date to min(end_date, today), inclusive,
+ * each item weighing `weight(item)`. An item is pending on a day until the
+ * local calendar date of its completed_at (the same calendar `today` uses) is
+ * on or before that day; cancelled items are left out so the curve can reach
+ * zero. Empty for drafts and upcoming cycles.
  */
-function buildCompletionChart(items: ProgressItem[], range: DateRange, today: string, mode: CycleProgressMode): Record<string, number> {
+function buildCompletionChart(items: ProgressItem[], range: DateRange, today: string, weight: (item: ProgressItem) => number): Record<string, number> {
   const chart: Record<string, number> = {};
   if (range.start_date === null || range.end_date === null) return chart;
   const lastDay = range.end_date < today ? range.end_date : today;
@@ -257,7 +327,7 @@ function buildCompletionChart(items: ProgressItem[], range: DateRange, today: st
     let pending = 0;
     for (const item of open) {
       const doneByDay = item.completed_at !== null && localDateOf(item.completed_at) <= day;
-      if (!doneByDay) pending += itemWeight(item, mode);
+      if (!doneByDay) pending += weight(item);
     }
     chart[day] = pending;
   }
@@ -265,37 +335,50 @@ function buildCompletionChart(items: ProgressItem[], range: DateRange, today: st
 }
 
 /**
- * Live progress with item counts, point totals and the completion chart in
- * `chartMode` units (items or points). by_state / by_label / by_assignee are
- * always item counts.
+ * Live progress in its stored form: item counts, the breakdowns, the items
+ * series as `completion_chart` and, only when the project has an active
+ * estimate, `points` and the points series as `completion_chart_points`.
+ * by_state / by_label / by_assignee and the breakdown rows are always item
+ * counts. forMode turns it into a returned progress.
  */
-function computeProgress(ctx: TesseraContext, row: CycleRow, today: string, chartMode: CycleProgressMode): CycleProgress {
-  const items = loadProgressItems(ctx, row.id);
+function computeProgress(ctx: TesseraContext, row: CycleRow, today: string): CycleProgress {
+  const estimateId = activeEstimateId(loadProject(ctx, row.project_id));
+  const items = loadProgressItems(ctx, row.id, estimateId);
   const counts = emptyCounts();
-  const points = emptyCounts();
+  const points: PointsCounts = emptyCounts();
   const by_state: Record<string, number> = {};
   for (const item of items) {
     addToCounts(counts, item.state_group, 1);
     addToCounts(points, item.state_group, item.points ?? 0);
     by_state[item.state_id] = (by_state[item.state_id] ?? 0) + 1;
   }
-  const itemIds = items.map((item) => item.id);
-  return {
+  const breakdowns = loadBreakdowns(ctx, items);
+  const progress: CycleProgress = {
     ...counts,
     by_state,
-    by_label: countByLabel(ctx, itemIds),
-    by_assignee: countByAssignee(ctx, itemIds),
-    points,
-    completion_chart: buildCompletionChart(items, row, today, chartMode),
+    by_label: breakdowns.by_label,
+    by_assignee: breakdowns.by_assignee,
+    assignees: breakdowns.assignees,
+    labels: breakdowns.labels,
+    completion_chart: buildCompletionChart(items, row, today, () => 1),
   };
+  if (estimateId === null) return progress;
+  return { ...progress, points, completion_chart_points: buildCompletionChart(items, row, today, (item) => item.points ?? 0) };
 }
 
-/** Issues mode hides the point totals; points mode returns them. */
-function forMode(progress: CycleProgress, mode: CycleProgressMode): CycleProgress {
-  if (mode === "points") return progress;
-  const copy = { ...progress };
-  delete copy.points;
-  return copy;
+/**
+ * A returned progress from the stored form: `chart_mode` always set and
+ * `completion_chart_points` never present. Issues mode drops `points` and
+ * serves the items series. Points mode keeps `points` when present and serves
+ * the points series, falling back to the items series (`chart_mode: "issues"`)
+ * when there is none (no active estimate, or a snapshot frozen before P3).
+ */
+function forMode(progress: CycleProgress, mode: ProgressMode): CycleProgress {
+  const { completion_chart_points, points, ...rest } = progress;
+  if (mode === "issues") return { ...rest, chart_mode: "issues" };
+  const withPoints = points === undefined ? rest : { ...rest, points };
+  if (completion_chart_points === undefined) return { ...withPoints, chart_mode: "issues" };
+  return { ...withPoints, completion_chart: completion_chart_points, chart_mode: "points" };
 }
 
 /** The frozen progress parsed through its schema; null when absent or unreadable (then progress is computed live). */
@@ -305,10 +388,10 @@ function readSnapshot(row: CycleRow): CycleProgress | null {
   return parsed.success ? parsed.data : null;
 }
 
-/** Stores the live progress (item chart plus point totals) as progress_snapshot when it is still null. */
+/** Stores the live progress in its stored form (both series, counts, points and breakdowns) as progress_snapshot when it is still null. */
 function freezeSnapshot(ctx: TesseraContext, row: CycleRow): CycleRow {
   if (readSnapshot(row) !== null) return row;
-  const snapshot = computeProgress(ctx, row, ctx.today(), "issues");
+  const snapshot = computeProgress(ctx, row, ctx.today());
   const now = ctx.now();
   return ctx.db
     .update(cycle)
@@ -318,51 +401,62 @@ function freezeSnapshot(ctx: TesseraContext, row: CycleRow): CycleRow {
     .get();
 }
 
-function progressOf(ctx: TesseraContext, row: CycleRow, mode: CycleProgressMode): CycleProgress {
-  const snapshot = readSnapshot(row);
-  return forMode(snapshot ?? computeProgress(ctx, row, ctx.today(), mode), mode);
+function progressOf(ctx: TesseraContext, row: CycleRow, mode: ProgressMode): CycleProgress {
+  return forMode(readSnapshot(row) ?? computeProgress(ctx, row, ctx.today()), mode);
 }
 
 // ---------------------------------------------------------------------------
 // View models
 // ---------------------------------------------------------------------------
 
-/** One grouped query for the (total, completed) summary of cycles without a snapshot. */
-function loadLiveSummaries(ctx: TesseraContext, cycleIds: string[]): Map<string, CycleProgressSummary> {
-  const result = new Map(cycleIds.map((id) => [id, { total: 0, completed: 0 }]));
+type LiveSummary = { progress: CycleProgressSummary; open_count: number };
+
+function emptySummary(): CycleProgressSummary {
+  return { total: 0, completed: 0, cancelled: 0 };
+}
+
+/**
+ * One grouped query over every non-deleted member of the cycles: the live
+ * (total, completed, cancelled) summary over the progress population (triage left out)
+ * and `open_count` over all members (triage and archived included) that are
+ * neither completed nor cancelled, the set a transfer moves.
+ */
+function loadLiveSummaries(ctx: TesseraContext, cycleIds: string[]): Map<string, LiveSummary> {
+  const result = new Map(cycleIds.map((id) => [id, { progress: emptySummary(), open_count: 0 }]));
   if (cycleIds.length === 0) return result;
   const rows = ctx.db
     .select({ cycle_id: work_item.cycle_id, state_group: state.state_group, n: count() })
     .from(work_item)
     .innerJoin(state, eq(work_item.state_id, state.id))
-    .where(and(inArray(work_item.cycle_id, cycleIds), isNull(work_item.deleted_at), ne(state.state_group, "triage")))
+    .where(and(inArray(work_item.cycle_id, cycleIds), isNull(work_item.deleted_at)))
     .groupBy(work_item.cycle_id, state.state_group)
     .all();
   for (const row of rows) {
     const summary = row.cycle_id === null ? undefined : result.get(row.cycle_id);
     if (!summary) continue;
-    summary.total += row.n;
-    if (row.state_group === "completed") summary.completed += row.n;
+    if (!CLOSED_GROUPS.has(row.state_group)) summary.open_count += row.n;
+    if (row.state_group === "triage") continue;
+    summary.progress.total += row.n;
+    if (row.state_group === "completed") summary.progress.completed += row.n;
+    if (row.state_group === "cancelled") summary.progress.cancelled += row.n;
   }
   return result;
 }
 
 function toCycles(ctx: TesseraContext, rows: CycleRow[]): Cycle[] {
   const today = ctx.today();
-  const snapshots = new Map(rows.map((row) => [row.id, readSnapshot(row)]));
-  const live = loadLiveSummaries(
-    ctx,
-    rows.filter((row) => snapshots.get(row.id) === null).map((row) => row.id),
-  );
+  const live = loadLiveSummaries(ctx, rows.map((row) => row.id));
   return rows.map((row) => {
-    const snapshot = snapshots.get(row.id) ?? null;
-    const progress = snapshot ? { total: snapshot.total, completed: snapshot.completed } : (live.get(row.id) ?? { total: 0, completed: 0 });
-    return { ...row, status: deriveCycleStatus(row, today), progress };
+    const snapshot = readSnapshot(row);
+    const summary = live.get(row.id) ?? { progress: emptySummary(), open_count: 0 };
+    const progress = snapshot ? { total: snapshot.total, completed: snapshot.completed, cancelled: snapshot.cancelled } : summary.progress;
+    return { ...row, status: deriveCycleStatus(row, today), progress, open_count: summary.open_count };
   });
 }
 
 function toCycleDetail(ctx: TesseraContext, row: CycleRow): CycleDetail {
-  return { ...row, status: deriveCycleStatus(row, ctx.today()), progress: progressOf(ctx, row, "issues") };
+  const open_count = loadLiveSummaries(ctx, [row.id]).get(row.id)?.open_count ?? 0;
+  return { ...row, status: deriveCycleStatus(row, ctx.today()), open_count, progress: progressOf(ctx, row, "issues") };
 }
 
 // ---------------------------------------------------------------------------
@@ -399,13 +493,15 @@ export function getCycle(ctx: TesseraContext, id: string): CycleDetail {
 
 export const GetCycleProgressInput = z
   .object({
-    mode: CycleProgressModeSchema.default("issues").describe("issues counts items; points also sums numeric estimate point values and draws the chart in points."),
+    mode: CycleProgressModeSchema.default("issues").describe(
+      "issues counts items; points also returns estimate point totals and the series in points when the project has an active estimate (chart_mode says which unit the series uses).",
+    ),
   })
   .strict();
 
 export type GetCycleProgressInputType = z.input<typeof GetCycleProgressInput>;
 
-/** The frozen snapshot whenever it is non-null, otherwise the live progress in the requested mode. */
+/** The frozen snapshot whenever it is non-null, otherwise the live progress, served in the requested mode with `chart_mode` set. */
 export function getCycleProgress(ctx: TesseraContext, id: string, input: GetCycleProgressInputType = {}): CycleProgress {
   const data = validateInput(GetCycleProgressInput, input);
   return progressOf(ctx, getCycleRow(ctx, id), data.mode);

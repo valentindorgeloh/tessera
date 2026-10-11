@@ -30,8 +30,11 @@ import type {
   OrderBySchema,
   PageAccessSchema,
   PaletteColorSchema,
+  PointsCountsSchema,
   PrioritySchema,
+  ProgressBreakdownRowSchema,
   ProgressCountsSchema,
+  ProgressModeSchema,
   RelationTypeSchema,
   StateGroupSchema,
   SubGroupBySchema,
@@ -78,6 +81,12 @@ export type DisplayProperties = z.infer<typeof DisplayPropertiesSchema>;
 export type CalendarDisplay = z.infer<typeof CalendarDisplaySchema>;
 export type Display = z.infer<typeof DisplaySchema>;
 export type ProgressCounts = z.infer<typeof ProgressCountsSchema>;
+/** ProgressCounts summed in estimate points (fractional values allowed). */
+export type PointsCounts = z.infer<typeof PointsCountsSchema>;
+/** One assignee or label row of a progress breakdown; `id: null` = no assignee / no labels. */
+export type ProgressBreakdownRow = z.infer<typeof ProgressBreakdownRowSchema>;
+/** "issues" counts items, "points" sums estimate point values. */
+export type ProgressMode = z.infer<typeof ProgressModeSchema>;
 export type CycleProgress = z.infer<typeof CycleProgressSchema>;
 export type LinkMetadata = z.infer<typeof LinkMetadataSchema>;
 export type HomeWidgets = z.infer<typeof HomeWidgetsSchema>;
@@ -209,6 +218,8 @@ export type {
   MoveWorkItemToProjectInputType,
 } from "./work-items";
 export type { Group, GroupableItem, GroupOptions } from "./filters";
+// P3: Cycle and CycleDetail carry `open_count: number` (open members a transfer would move);
+// Cycle.progress (CycleProgressSummary) is `{ total, completed, cancelled }`.
 export type {
   Cycle,
   CycleDetail,

@@ -3,3 +3,57 @@
  * Classes are prefixed tessera-modules-. Tokens only; corners follow the
  * Theme section of docs/contracts/ui.md.
  */
+
+/* List screen: fills the frame's content area like the work items screen. */
+.tessera-modules-screen {
+  width: 100%;
+  min-height: 100%;
+}
+
+/* Rows: when the name would get less than its minimum, the end content wraps onto a second line under it. */
+.tessera-modules-row {
+  min-width: 0;
+  flex-wrap: wrap;
+  row-gap: var(--spacing-1);
+}
+
+/* Astryx's label slot (it holds the module name): a minimum share before the end content wraps. */
+.tessera-modules-row > :has(.tessera-modules-row-name) {
+  min-width: min(14rem, 100%);
+}
+
+/* Astryx's end slot: stays at the end of the row, also on the wrapped line. */
+.tessera-modules-row > :has(> .tessera-modules-row-end) {
+  margin-inline-start: auto;
+}
+
+/* "3/8" keeps its width as the numbers change, so the bars line up row under row. */
+.tessera-modules-row-count {
+  min-width: 40px;
+  text-align: end;
+}
+
+/* Structural width of the row progress bar. */
+.tessera-modules-row-bar {
+  width: 96px;
+}
+
+/* Detail header: the title group takes the free width and truncates; the actions keep their size. */
+.tessera-modules-header {
+  justify-content: space-between;
+}
+
+.tessera-modules-header-title {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The module description in the side panel keeps its line breaks (plain Markdown source). */
+.tessera-modules-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tessera-modules-links {
+  min-width: 0;
+}

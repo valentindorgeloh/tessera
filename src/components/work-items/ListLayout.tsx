@@ -262,11 +262,14 @@ type GroupSectionProps = {
   onToggle: (isOpen: boolean) => void;
   onUpdate: RowProps["onUpdate"];
   onOpen: RowProps["onOpen"];
-  onQuickAdd: (group: QuickAddGroup, name: string) => void;
+  onQuickAdd: LayoutProps["onQuickAdd"];
+  canQuickAdd: LayoutProps["canQuickAdd"];
 };
 
-function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpen, onQuickAdd }: GroupSectionProps) {
+function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpen, onQuickAdd, canQuickAdd }: GroupSectionProps) {
   const quickAddGroup: QuickAddGroup = group ? { field: group.field, value: group.id === NONE_GROUP_ID ? null : group.id } : { field: null, value: null };
+  // No row when the list cannot create items, or when this group pins a state the scope refuses (a closed state in a cycle).
+  const showQuickAdd = onQuickAdd !== undefined && canQuickAdd?.(quickAddGroup) !== false;
   const body = (
     <VStack gap={0}>
       {items.length > 0 ? (
@@ -276,7 +279,7 @@ function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpe
           ))}
         </List>
       ) : null}
-      <QuickAdd onSubmit={(name) => onQuickAdd(quickAddGroup, name)} />
+      {showQuickAdd ? <QuickAdd onSubmit={(name) => onQuickAdd(quickAddGroup, name)} /> : null}
     </VStack>
   );
   if (!group) return body;
@@ -293,7 +296,7 @@ function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpe
 // Layout
 // ---------------------------------------------------------------------------
 
-export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd }: LayoutProps) {
+export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQuickAdd }: LayoutProps) {
   const itemsById = useMemo(() => new Map(result.items.map((item) => [item.id, item])), [result.items]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const { listRef, handleKeyDown, handleFocus } = useListFocus<HTMLElement>({
@@ -323,7 +326,7 @@ export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd }: La
         <EmptyState
           isCompact
           title="No work items yet"
-          description="Create the first one with the button above, press c, or use the quick-add row."
+          description={onQuickAdd ? "Create the first one with the button above, press c, or use the quick-add row." : "New work items cannot be added to this list."}
         />
       ) : null}
       {groups ? (
@@ -341,6 +344,7 @@ export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd }: La
             onUpdate={onUpdate}
             onOpen={onOpen}
             onQuickAdd={onQuickAdd}
+            canQuickAdd={canQuickAdd}
           />
         ))
       ) : (
@@ -353,6 +357,7 @@ export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd }: La
           onUpdate={onUpdate}
           onOpen={onOpen}
           onQuickAdd={onQuickAdd}
+          canQuickAdd={canQuickAdd}
         />
       )}
     </VStack>

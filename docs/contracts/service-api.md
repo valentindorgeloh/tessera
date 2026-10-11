@@ -251,7 +251,8 @@ CycleProgressSchema = ProgressCountsSchema.extend({
 // types.ts: PointsCounts, ProgressBreakdownRow, ProgressMode
 
 // cycles.ts
-type Cycle = CycleRow & { status: CycleStatus; progress: { total: number; completed: number }; open_count: number }
+type Cycle = CycleRow & { status: CycleStatus; progress: CycleProgressSummary; open_count: number }
+type CycleProgressSummary = { total: number; completed: number; cancelled: number }   // cancelled added in the P3 fix round
 type CycleDetail = Omit<Cycle, "progress"> & { progress: CycleProgress }      // progress in issues mode
 listCycles(ctx, projectId, { status?, archived? } = {}): Cycle[]                // + open_count
 getCycle(ctx, id): CycleDetail                                                  // + open_count
@@ -298,6 +299,11 @@ getModule(ctx, id): ModuleDetail                                                
   `list_cycles`, `get_cycle` and the UI's project bundle. Clients treat a cycle as
   frozen exactly when `progress_snapshot !== null` and read progress only from
   `progress` / `getCycleProgress`, never from the raw column.
+- **List summary** (`Cycle.progress`, `CycleProgressSummary`): `total`, `completed`
+  and `cancelled` over the same population as `getCycleProgress` (non-deleted members
+  outside triage, archived members included), from the frozen snapshot's counts once
+  `progress_snapshot` is non-null. Clients show `completed` against
+  `total − cancelled`, as the progress panel does.
 - **`open_count`**: live count of non-deleted members whose state group is neither
   `completed` nor `cancelled`, archived and triage members included, which is exactly
   the set `transferCycleWorkItems` moves; computed even when a snapshot is frozen (one
@@ -319,3 +325,10 @@ getModule(ctx, id): ModuleDetail                                                
 - Tests: `tests/cycles.test.ts`, `tests/modules.test.ts`, `tests/work-items.test.ts`
   (cases listed in docs/contracts/ui.md "Lane A: engine additions"); `tests/registry.test.ts`
   is unchanged.
+- As built (lane A, 2026-10-11): `cycles.ts` also exports three read-only helpers that
+  `modules.ts` imports, so cycle and module progress follow one rule each:
+  `activeEstimateId(project)` (the estimate points count against, or null),
+  `parsePointValue(value)` (numeric and ≥ 0, else null) and
+  `loadBreakdowns(ctx, items)` (`by_label`, `by_assignee`, `assignees`, `labels`, with
+  the types `BreakdownItem` and `ProgressBreakdowns`). The snapshot is stored without
+  `chart_mode`; `forMode` sets it on every returned progress.

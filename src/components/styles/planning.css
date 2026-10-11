@@ -3,3 +3,58 @@
  * Classes are prefixed tessera-planning-. Tokens only; corners follow the
  * Theme section of docs/contracts/ui.md.
  */
+
+/* Cycles list: rows keep their progress block on one line; the bar widths are structural. */
+.tessera-planning-row-end {
+  flex-wrap: nowrap;
+}
+
+.tessera-planning-cycle-bar {
+  inline-size: 96px;
+  flex: none;
+}
+
+/* Breakdown rows (BreakdownTabs): a 64px completed bar next to its "2/5". */
+.tessera-planning-row-bar {
+  inline-size: 64px;
+  flex: none;
+}
+
+/* Inactive tab panels carry `hidden`; the stack's own display rule would otherwise win. */
+.tessera-planning-tabpanel[hidden] {
+  display: none;
+}
+
+.tessera-planning-tabpanel {
+  border-radius: var(--radius-element);
+}
+
+.tessera-planning-tabpanel:focus-visible {
+  outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+}
+
+/* Chart frame: no corner of its own; tick and label text use the supporting size. */
+.tessera-planning-chart-frame {
+  inline-size: 100%;
+  min-inline-size: 0;
+  font-size: var(--text-supporting-size);
+}
+
+.tessera-planning-chart-swatch {
+  inline-size: var(--spacing-6);
+  block-size: var(--spacing-2);
+  flex: none;
+}
+
+/*
+ * "Data table" collapsible (BurndownChart): an Astryx Table bleeds into the
+ * nearest container's padding (Table.js containerBleed), and as the first child
+ * of the collapsible's content its header rose 16px over the trigger. Neither
+ * Collapsible nor Table has a prop for this, so the block-axis inset is zero
+ * inside the collapsible; the inline bleed to the panel edges stays.
+ */
+.tessera-planning-data-table {
+  --container-padding-block-start: var(--spacing-0);
+  --container-padding-block-end: var(--spacing-0);
+}

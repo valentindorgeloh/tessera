@@ -14,6 +14,7 @@ export const updateWorkItemDescriptionAction = toolAction("update_work_item_desc
 export const moveWorkItemAction = toolAction("move_work_item");
 export const bulkUpdateWorkItemsAction = toolAction("bulk_update_work_items");
 export const archiveWorkItemAction = toolAction("archive_work_item");
+export const unarchiveWorkItemAction = toolAction("unarchive_work_item");
 export const deleteWorkItemAction = toolAction("delete_work_item");
 export const setLabelsAction = toolAction("set_labels");
 export const setAssigneesAction = toolAction("set_assignees");

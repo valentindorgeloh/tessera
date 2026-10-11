@@ -22,7 +22,7 @@
  * them. Selection comes back as the chosen item id (`onValueChange`), looked
  * up in the map of items the source produced.
  */
-import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type KeyboardEvent, type Ref } from "react";
+import { useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type KeyboardEvent, type Ref } from "react";
 import { useRouter } from "next/navigation";
 import { CommandPalette, CommandPaletteFooter, CommandPaletteInput, useCommandPaletteContext } from "@astryxdesign/core/CommandPalette";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
@@ -37,7 +37,8 @@ import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Heading, Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { notePeekPush } from "@/components/detail/peek-history";
-import { currentHref, peekHref } from "@/components/detail/peek-url";
+import { hasPeekHost } from "@/components/detail/peek-hosts";
+import { currentHref, workItemHitTarget } from "@/components/detail/peek-url";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import type { SearchHit, SearchType } from "@/lib/tessera/types";
 import {
@@ -62,6 +63,7 @@ import { useCommandContext, type CommandContextValue } from "./command-context";
 import {
   buildCommands,
   createCommandSource,
+  liveHighlight,
   OPEN_ITEM_PREFIX,
   shortcutHint,
   themeCommandScheme,
@@ -70,6 +72,7 @@ import {
   type CommandSource,
 } from "./command-source";
 import { isShortcutId, SHORTCUTS, type ShortcutGroup } from "./shortcuts";
+import { projectIdFromPath } from "./tab-registry";
 import { setSingleKeys, useShortcutPrefs, useShortcuts } from "./useShortcuts";
 
 /** What the shell calls: `open()` behaves exactly like `mod+k`. */
@@ -99,12 +102,6 @@ type PaletteState = {
 };
 
 const ASK_PLACEHOLDER = "The assistant arrives in P5";
-
-/** Project id from `/projects/[id]/...`, else null (same rule as the Sidebar). */
-function projectIdFromPath(pathname: string): string | null {
-  const match = /^\/projects\/([^/]+)/.exec(pathname);
-  return match ? match[1] : null;
-}
 
 export function CommandBar({ ref }: CommandBarProps) {
   const router = useRouter();
@@ -225,13 +222,15 @@ export function CommandBar({ ref }: CommandBarProps) {
       switch (hit.type) {
         case "work_item": {
           if (!hit.project_id) return;
-          const pathname = window.location.pathname;
-          if (pathname === `/projects/${hit.project_id}/work-items`) {
-            const href = peekHref(pathname, window.location.search, hit.id);
-            notePeekPush(currentHref(pathname, window.location.search), href);
-            router.push(href, { scroll: false });
+          const { pathname, search } = window.location;
+          // A list of the item's project (work items, a cycle, a module, the archived items) with its peek host
+          // mounted opens it in the peek; anywhere else (a feature-off or not-found screen too) opens the full page.
+          const target = workItemHitTarget(pathname, search, hit.project_id, hit.id, hasPeekHost(hit.project_id));
+          if (target.isPeek) {
+            notePeekPush(currentHref(pathname, search), target.href);
+            router.push(target.href, { scroll: false });
           } else {
-            router.push(`/projects/${hit.project_id}/work-items/${hit.id}`);
+            router.push(target.href);
           }
           return;
         }
@@ -239,8 +238,10 @@ export function CommandBar({ ref }: CommandBarProps) {
           router.push(`/projects/${hit.id}/work-items`);
           return;
         case "cycle":
+          if (hit.project_id) router.push(`/projects/${hit.project_id}/cycles/${hit.id}`);
+          return;
         case "module":
-          notify("Arrives in P3");
+          if (hit.project_id) router.push(`/projects/${hit.project_id}/modules/${hit.id}`);
           return;
         case "page":
           notify("Arrives in P6");
@@ -306,6 +307,8 @@ export function CommandBar({ ref }: CommandBarProps) {
 
 function PaletteInput({ mode, onModeChange }: { mode: PaletteMode; onModeChange: (mode: PaletteMode) => void }) {
   const palette = useCommandPaletteContext();
+  // An id for the combobox input, so the browser can tell the form field apart (DevTools flags fields with neither id nor name).
+  const inputId = useId();
   // Enter pressed while the debounced search is still running: open the
   // first result once it lands instead of the stale list on screen.
   const pendingEnter = useRef(false);
@@ -331,14 +334,30 @@ function PaletteInput({ mode, onModeChange }: { mode: PaletteMode; onModeChange:
     openFirst();
   }, [openFirst, palette]);
 
+  // Astryx keeps a hover highlight when the list changes under it. A new query
+  // starts without one, so Enter opens its first result; a highlight past the
+  // end of the list (the list narrowed) is dropped too, so the input's
+  // aria-activedescendant never names an option that is gone.
+  const query = palette?.search;
+  const highlighted = palette?.highlightedIndex ?? -1;
+  const rowCount = palette?.selectableItems.length ?? 0;
+  const setHighlighted = palette?.setHighlightedIndex;
+  useEffect(() => {
+    setHighlighted?.(-1);
+  }, [query, setHighlighted]);
+  useEffect(() => {
+    if (highlighted >= rowCount) setHighlighted?.(-1);
+  }, [highlighted, rowCount, setHighlighted]);
+
   // The palette highlights nothing until an arrow key moves; Enter on a fresh
-  // query opens the first result (a key such as WEB-1 ranks first).
+  // query opens the first result (a key such as WEB-1 ranks first). A row the
+  // user highlighted is the palette's to open; a stale highlight is not.
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== "Enter") {
       pendingEnter.current = false;
       return;
     }
-    if (!palette || palette.highlightedIndex >= 0 || mode === "ask") return;
+    if (!palette || mode === "ask" || liveHighlight(palette.highlightedIndex, palette.selectableItems) >= 0) return;
     if (palette.isBusy) {
       event.preventDefault();
       pendingEnter.current = true;
@@ -349,6 +368,7 @@ function PaletteInput({ mode, onModeChange }: { mode: PaletteMode; onModeChange:
   return (
     <VStack gap={0} width="100%">
       <CommandPaletteInput
+        id={inputId}
         placeholder={mode === "ask" ? "Ask the assistant…" : "Search work items, or type a command…"}
         label={mode === "ask" ? "Ask" : "Search"}
         endContent={<Kbd keys="escape" />}

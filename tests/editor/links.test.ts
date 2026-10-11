@@ -70,11 +70,13 @@ describe("isAllowedEditorUri", () => {
 });
 
 describe("entityRoute", () => {
-  it("routes work items through /browse and nothing else yet", () => {
+  it("routes work items through /browse, cycles and modules through their alias routes, pages not yet", () => {
     expect(entityRoute({ scheme: "work", ref: "WEB-12" })).toBe("/browse/WEB-12");
     expect(entityRoute({ scheme: "work", ref: "a b" })).toBe("/browse/a%20b");
     expect(entityRoute({ scheme: "page", ref: "spec-1" })).toBeNull();
-    expect(entityRoute({ scheme: "cycle", ref: CYCLE_ID })).toBeNull();
-    expect(entityRoute({ scheme: "module", ref: CYCLE_ID })).toBeNull();
+    expect(entityRoute({ scheme: "cycle", ref: CYCLE_ID })).toBe(`/cycles/${CYCLE_ID}`);
+    expect(entityRoute({ scheme: "module", ref: CYCLE_ID })).toBe(`/modules/${CYCLE_ID}`);
+    // The ref is encoded like a work item key, so an odd ref cannot change the path.
+    expect(entityRoute({ scheme: "cycle", ref: "a/b" })).toBe("/cycles/a%2Fb");
   });
 });

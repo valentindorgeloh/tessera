@@ -121,7 +121,9 @@ export function toolAction<N extends ToolName>(name: N): (input: ToolInput<N>) =
   - `list_cycles`: the current text plus " Each cycle carries open_count, the number of items transfer_cycle_work_items would move."
   - `get_cycle`: "Returns one cycle with its derived status, dates, open_count and progress (issues mode)."
   - `unarchive_cycle`: "Restores an archived cycle; RULE not_archived when it is not archived; CONFLICT when its dates now overlap another active cycle; the frozen snapshot stays."
-- Outputs: `list_cycles` and `get_cycle` gain `open_count`; `get_cycle_progress`,
+- Outputs: `list_cycles` and `get_cycle` gain `open_count`; each `list_cycles` item's
+  `progress` summary is `{ total, completed, cancelled }` (`cancelled` added in the P3
+  fix round, so clients can show completed against total minus cancelled); `get_cycle_progress`,
   `get_cycle` and `get_module_progress` / `get_module` gain the breakdown rows,
   `chart_mode` (cycles) and the P3 points rules (docs/contracts/service-api.md "P3 additions").
 - Errors: `create_work_item`, `set_modules` and `move_work_item` (grouped by module)
@@ -136,4 +138,5 @@ export function toolAction<N extends ToolName>(name: N): (input: ToolInput<N>) =
   The UI confirms destructive tools itself (`AlertDialog`, the transfer dialog, the
   typed project identifier); `confirm: true` stays an MCP-only field.
 - Registry test: unchanged; the description changes keep every rule in "Registry test".
-- Acceptance client `scripts/mcp-call.ts` (lane A, docs/contracts/ui.md "Lane A: engine additions" item 9): `npx tsx scripts/mcp-call.ts <tool> ['<json>']` calls one tool by registry name over stdio (it spawns `npx tsx scripts/mcp-stdio.ts` without `--db`, so it uses the dev server's database; client name `p3-acceptance`) and prints the structured result.
+- Acceptance client `scripts/mcp-call.ts` (lane A, docs/contracts/ui.md "Lane A: engine additions" item 9): `npx tsx scripts/mcp-call.ts <tool> ['<json>']` calls one tool by registry name over stdio (it spawns `npx tsx scripts/mcp-stdio.ts` without `--db`, so it uses the dev server's database; client name `p3-acceptance`) and prints the structured result. As built: exit 0 on success, 1 when the result `isError` (the error text, e.g. `"NOT_FOUND: …"`, is printed as a JSON string), when the call itself is refused, or when the command line is unusable (unknown registry name, arguments that are not one JSON object; no server is started then), and 2 when the connection fails (for example the server's exit 2 on pending migrations).
+- As built (lane A): the `mode` input field of `get_cycle_progress` now reads "issues counts items; points also returns estimate point totals and the series in points when the project has an active estimate (chart_mode says which unit the series uses)." The old text promised a points chart unconditionally, which the P3 points rules no longer give.

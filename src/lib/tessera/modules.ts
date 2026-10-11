@@ -23,6 +23,7 @@ import { formatKey, nameKey } from "./core/keys";
 import { lastSortOrder, sortOrderAfter, sortOrderForMove } from "./core/order";
 import { isIsoDate } from "./core/time";
 import { withTx } from "./core/tx";
+import { activeEstimateId, loadBreakdowns, parsePointValue } from "./cycles";
 import { actor, estimate_point, moduleTable, module_member, project, state, work_item, work_item_module } from "./db/schema";
 import {
   addLink,
@@ -38,14 +39,22 @@ import {
   type UpdateLinkInputType,
 } from "./links";
 import { IdListSchema, IdSchema, IsoDateSchema, ModuleStatusSchema } from "./schemas";
-import type { ActorRow, ModuleRow, ModuleStatus, ProgressCounts, ProjectRow, StateGroup } from "./types";
+import type { ActorRow, ModuleRow, ModuleStatus, PointsCounts, ProgressBreakdownRow, ProgressCounts, ProjectRow, StateGroup } from "./types";
 
-/** Progress of a module: counts by state group, per state, and in estimate points when the project has an active estimate. */
+/** Progress of a module: counts by state group, per state, label and assignee, and in estimate points when the project has an active estimate. */
 export type ModuleProgress = ProgressCounts & {
   /** Item count per state id. */
   by_state: Record<string, number>;
-  /** Same counts in estimate points (`estimate_point.value`); only when the project has an active estimate system. */
-  points?: ProgressCounts;
+  /** Item count per label id. */
+  by_label: Record<string, number>;
+  /** Item count per assignee actor id. */
+  by_assignee: Record<string, number>;
+  /** Items and completed items per assignee, sorted by total then id, the `id: null` row (no assignee) last. */
+  assignees: ProgressBreakdownRow[];
+  /** Items and completed items per label, sorted by total then id, the `id: null` row (no labels) last. */
+  labels: ProgressBreakdownRow[];
+  /** Same counts in estimate points (numeric `estimate_point.value` >= 0); only when the project has an active estimate. */
+  points?: PointsCounts;
 };
 
 export type Module = ModuleRow & {
@@ -157,7 +166,7 @@ function emptyProgressCounts(): ProgressCounts {
 }
 
 /** Adds `n` to the group's bucket and to the total; triage items are not counted. */
-function addToCounts(counts: ProgressCounts, group: StateGroup, n: number): void {
+function addToCounts(counts: PointsCounts, group: StateGroup, n: number): void {
   if (group === "triage") return;
   counts.total += n;
   counts[group] += n;
@@ -227,13 +236,6 @@ function listActiveWorkItemIds(ctx: TesseraContext, moduleId: string): string[] 
     .map((row) => row.id);
 }
 
-/** `estimate_point.value` as a number; non-numeric values (category names) count as 0. */
-function pointValue(raw: string | null): number {
-  if (raw === null) return 0;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : 0;
-}
-
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
@@ -277,13 +279,18 @@ export function getModule(ctx: TesseraContext, id: string): ModuleDetail {
   };
 }
 
-/** Counts by state group and per state; `points` sums `estimate_point.value` when the project has an active estimate system. */
+/**
+ * Counts by state group, per state, label and assignee (with the breakdown
+ * rows), over non-deleted, non-archived items outside triage; `points` sums
+ * the numeric values >= 0 of non-deleted points of the project's active
+ * estimate and is absent without one (the cycle rules, cycles.ts).
+ */
 export function getModuleProgress(ctx: TesseraContext, id: string): ModuleProgress {
   const row = getModuleRow(ctx, id);
-  const projectRow = loadProject(ctx, row.project_id);
-  const estimateId = projectRow.estimates_enabled ? projectRow.estimate_id : null;
-  const items = ctx.db
+  const estimateId = activeEstimateId(loadProject(ctx, row.project_id));
+  const rows = ctx.db
     .select({
+      id: work_item.id,
       state_id: work_item.state_id,
       state_group: state.state_group,
       estimate_id: estimate_point.estimate_id,
@@ -295,16 +302,17 @@ export function getModuleProgress(ctx: TesseraContext, id: string): ModuleProgre
     .leftJoin(estimate_point, and(eq(work_item.estimate_point_id, estimate_point.id), isNull(estimate_point.deleted_at)))
     .where(activeItemsInModules([id]))
     .all();
+  const items = rows.filter((item) => item.state_group !== "triage");
   const counts = emptyProgressCounts();
   const by_state: Record<string, number> = {};
-  const points = estimateId === null ? undefined : emptyProgressCounts();
+  const points: PointsCounts | undefined = estimateId === null ? undefined : emptyProgressCounts();
   for (const item of items) {
-    if (item.state_group === "triage") continue;
     addToCounts(counts, item.state_group, 1);
     by_state[item.state_id] = (by_state[item.state_id] ?? 0) + 1;
-    if (points && item.estimate_id === estimateId) addToCounts(points, item.state_group, pointValue(item.value));
+    if (points && item.estimate_id === estimateId) addToCounts(points, item.state_group, parsePointValue(item.value) ?? 0);
   }
-  return points ? { ...counts, by_state, points } : { ...counts, by_state };
+  const progress: ModuleProgress = { ...counts, by_state, ...loadBreakdowns(ctx, items) };
+  return points ? { ...progress, points } : progress;
 }
 
 // ---------------------------------------------------------------------------
@@ -622,7 +630,7 @@ function logMembership(ctx: TesseraContext, row: ModuleRow, item: ItemRef, verb:
     entity_id: item.id,
     work_item_id: item.id,
     verb,
-    field: "module",
+    field: "modules",
     [valueField]: row.id,
     [identifierField]: row.name,
   });

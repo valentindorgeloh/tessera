@@ -23,7 +23,7 @@ import {
   unarchiveCycle,
   updateCycle,
 } from "@/lib/tessera/cycles";
-import { activity, cycle, estimate, estimate_point, work_item, work_item_assignee, work_item_label } from "@/lib/tessera/db/schema";
+import { activity, cycle, estimate, estimate_point, project, work_item, work_item_assignee, work_item_label } from "@/lib/tessera/db/schema";
 import { createLabel } from "@/lib/tessera/labels";
 import { archiveProject, createProject, deleteProject, updateProjectFeatures } from "@/lib/tessera/projects";
 import { listStates } from "@/lib/tessera/states";
@@ -128,8 +128,23 @@ function assign(ctx: TesseraContext, workItemId: string, actorId: string): void 
   ctx.db.insert(work_item_assignee).values({ work_item_id: workItemId, actor_id: actorId }).run();
 }
 
-/** Creates a points estimate with one point per value and returns the point ids in order. */
-function insertEstimatePoints(ctx: TesseraContext, projectId: string, values: string[]): string[] {
+/** Makes `estimateId` the project's active estimate (estimates_enabled plus estimate_id). */
+function activateEstimate(ctx: TesseraContext, projectId: string, estimateId: string): void {
+  ctx.db.update(project).set({ estimates_enabled: true, estimate_id: estimateId }).where(eq(project.id, projectId)).run();
+}
+
+function estimateIdOf(ctx: TesseraContext, pointId: string): string {
+  const row = ctx.db.select({ estimate_id: estimate_point.estimate_id }).from(estimate_point).where(eq(estimate_point.id, pointId)).get();
+  if (!row) throw new Error("estimate point missing");
+  return row.estimate_id;
+}
+
+/**
+ * Creates a points estimate with one point per value, makes it the project's
+ * active estimate unless `activate` is false (cycle points follow the active
+ * estimate) and returns the point ids in order.
+ */
+function insertEstimatePoints(ctx: TesseraContext, projectId: string, values: string[], { activate = true }: { activate?: boolean } = {}): string[] {
   const now = ctx.now();
   const audit = { created_at: now, updated_at: now, created_by: ctx.actor.id, updated_by: ctx.actor.id };
   const est = ctx.db
@@ -137,6 +152,7 @@ function insertEstimatePoints(ctx: TesseraContext, projectId: string, values: st
     .values({ id: newId(), project_id: projectId, name: "Points", type: "points", ...audit })
     .returning()
     .get();
+  if (activate) activateEstimate(ctx, projectId, est.id);
   return values.map(
     (value, position) =>
       ctx.db
@@ -160,6 +176,7 @@ describe("createCycle", () => {
     expect(draft.progress_snapshot).toBeNull();
     expect(draft.archived_at).toBeNull();
     expect(draft.progress.total).toBe(0);
+    expect(draft.open_count).toBe(0);
     expect(draft.created_by).toBe(ctx.actor.id);
     const second = createCycle(ctx, { project_id: projectId, name: "Sprint 1", description_md: "Goals", ...CURRENT });
     expect(second.status).toBe("current");
@@ -248,7 +265,7 @@ describe("derived status", () => {
 });
 
 describe("listCycles and getCycle", () => {
-  it("lists active cycles in sort order with status and a (total, completed) summary; archived ones on request", () => {
+  it("lists active cycles in sort order with status and a (total, completed, cancelled) summary; archived ones on request", () => {
     const { ctx, projectId, states } = setup();
     const a = createCycle(ctx, { project_id: projectId, name: "A", ...CURRENT });
     const b = createCycle(ctx, { project_id: projectId, name: "B", ...UPCOMING });
@@ -258,12 +275,16 @@ describe("listCycles and getCycle", () => {
     insertWorkItem(ctx, projectId, byName(states, "Todo").id, "one", { cycle_id: a.id });
     insertWorkItem(ctx, projectId, byName(states, "Todo").id, "two", { cycle_id: a.id });
     insertWorkItem(ctx, projectId, byName(states, "Done").id, "three", { cycle_id: a.id });
+    insertWorkItem(ctx, projectId, byName(states, "Cancelled").id, "four", { cycle_id: a.id });
     insertWorkItem(ctx, projectId, byName(states, "Done").id, "deleted", { cycle_id: a.id, deleted_at: ctx.now() });
+    insertWorkItem(ctx, projectId, byName(states, "Cancelled").id, "deleted cancelled", { cycle_id: a.id, deleted_at: ctx.now() });
     const listed = listCycles(ctx, projectId);
     expect(listed.map((row) => row.id)).toEqual([a.id, b.id, d.id]);
     expect(listed.map((row) => row.status)).toEqual(["current", "upcoming", "draft"]);
-    expect(listed[0].progress).toEqual({ total: 3, completed: 1 });
-    expect(listed[1].progress).toEqual({ total: 0, completed: 0 });
+    expect(listed[0].progress).toEqual({ total: 4, completed: 1, cancelled: 1 });
+    // The summary counts the rows the progress panel counts, so a row's completed / (total - cancelled) matches it.
+    expect(getCycleProgress(ctx, a.id)).toMatchObject(listed[0].progress);
+    expect(listed[1].progress).toEqual({ total: 0, completed: 0, cancelled: 0 });
     expect(listCycles(ctx, projectId, { archived: true }).map((row) => row.id)).toEqual([c.id]);
     expect(errorCode(() => listCycles(ctx, newId()))).toBe("NOT_FOUND");
     expect(errorCode(() => listCycles(ctx, projectId, { archived: "yes" } as never))).toBe("VALIDATION");
@@ -431,14 +452,18 @@ describe("archiveCycle and unarchiveCycle", () => {
     insertWorkItem(ctx, projectId, byName(states, "Todo").id, "two", { cycle_id: done.id });
     const finished = insertWorkItem(ctx, projectId, byName(states, "Done").id, "three", { cycle_id: done.id, completed_at: "2026-02-10T12:00:00.000Z" });
     const archivedCycle = archiveCycle(ctx, done.id);
-    expect(archivedCycle.progress_snapshot).toMatchObject({ total: 3, completed: 1, unstarted: 2, points: { total: 0 } });
-    expect(archivedCycle.progress).toMatchObject({ total: 3, completed: 1 });
+    expect(archivedCycle.progress_snapshot).toMatchObject({ total: 3, completed: 1, unstarted: 2, labels: [{ id: null, total: 3, completed: 1 }] });
+    // No active estimate: neither point totals nor a points series are frozen.
+    expect(archivedCycle.progress_snapshot?.points).toBeUndefined();
+    expect(archivedCycle.progress_snapshot?.completion_chart_points).toBeUndefined();
+    expect(archivedCycle.progress).toMatchObject({ total: 3, completed: 1, chart_mode: "issues" });
     expect(archivedCycle.progress.points).toBeUndefined();
     // The snapshot is served even after the underlying rows change.
     ctx.db.update(work_item).set({ deleted_at: ctx.now() }).where(eq(work_item.id, finished.id)).run();
     expect(getCycleProgress(ctx, done.id, { mode: "issues" })).toMatchObject({ total: 3, completed: 1 });
-    expect(getCycleProgress(ctx, done.id, { mode: "points" }).points).toMatchObject({ total: 0, completed: 0 });
-    expect(listCycles(ctx, projectId, { archived: true })[0].progress).toEqual({ total: 3, completed: 1 });
+    expect(getCycleProgress(ctx, done.id, { mode: "points" })).toMatchObject({ total: 3, completed: 1, chart_mode: "issues" });
+    expect(getCycleProgress(ctx, done.id, { mode: "points" }).points).toBeUndefined();
+    expect(listCycles(ctx, projectId, { archived: true })[0].progress).toEqual({ total: 3, completed: 1, cancelled: 0 });
   });
 
   it("unarchive restores the cycle, refuses non-archived cycles (RULE) and overlapping dates (CONFLICT), keeps the snapshot", () => {
@@ -645,7 +670,8 @@ describe("transferCycleWorkItems", () => {
     expect(cycleRow(ctx, source.id).progress_snapshot).toBeNull();
     transferCycleWorkItems(ctx, source.id, { to_cycle_id: null });
     const snapshot = cycleRow(ctx, source.id).progress_snapshot;
-    expect(snapshot).toMatchObject({ total: 2, completed: 1, unstarted: 1, points: { total: 0 } });
+    expect(snapshot).toMatchObject({ total: 2, completed: 1, unstarted: 1 });
+    expect(snapshot?.points).toBeUndefined();
     expect(Object.keys(snapshot?.completion_chart ?? {})).toHaveLength(28);
     expect(getCycleProgress(ctx, source.id, { mode: "issues" })).toMatchObject({ total: 2, completed: 1 });
     expect(getCycle(ctx, source.id).progress.total).toBe(2);
@@ -653,6 +679,39 @@ describe("transferCycleWorkItems", () => {
     expect(transferCycleWorkItems(ctx, source.id, { to_cycle_id: null })).toEqual({ moved: 1 });
     expect(cycleRow(ctx, source.id).progress_snapshot).toEqual(snapshot);
     expect(getCycleProgress(ctx, source.id, { mode: "issues" }).total).toBe(2);
+  });
+
+  it("open_count is the number of items a transfer moves, archived and triage members included, and stays live after the freeze", () => {
+    const { ctx, projectId } = setup();
+    updateProjectFeatures(ctx, projectId, { intake_enabled: true });
+    const states = listStates(ctx, projectId);
+    const triage = states.find((row) => row.state_group === "triage");
+    if (!triage) throw new Error("triage state missing");
+    const source = createCycle(ctx, { project_id: projectId, name: "Feb", ...COMPLETED });
+    const target = createCycle(ctx, { project_id: projectId, name: "Mar", ...CURRENT });
+    insertWorkItem(ctx, projectId, byName(states, "Todo").id, "todo", { cycle_id: source.id });
+    insertWorkItem(ctx, projectId, byName(states, "In Progress").id, "started", { cycle_id: source.id });
+    insertWorkItem(ctx, projectId, byName(states, "Backlog").id, "backlog", { cycle_id: source.id });
+    insertWorkItem(ctx, projectId, triage.id, "triage", { cycle_id: source.id });
+    insertWorkItem(ctx, projectId, byName(states, "Todo").id, "archived open", { cycle_id: source.id, archived_at: ctx.now() });
+    insertWorkItem(ctx, projectId, byName(states, "Done").id, "done", { cycle_id: source.id, completed_at: "2026-02-20T10:00:00.000Z" });
+    insertWorkItem(ctx, projectId, byName(states, "Cancelled").id, "cancelled", { cycle_id: source.id });
+    insertWorkItem(ctx, projectId, byName(states, "Todo").id, "deleted", { cycle_id: source.id, deleted_at: ctx.now() });
+    const openCount = (id: string) => listCycles(ctx, projectId).find((row) => row.id === id)?.open_count;
+    expect(openCount(source.id)).toBe(5);
+    expect(getCycle(ctx, source.id)).toMatchObject({ open_count: 5, progress: { total: 6 } });
+    expect(openCount(target.id)).toBe(0);
+    const { moved } = transferCycleWorkItems(ctx, source.id, { to_cycle_id: target.id });
+    expect(moved).toBe(5);
+    expect(getCycle(ctx, source.id).open_count).toBe(0);
+    expect(getCycle(ctx, target.id).open_count).toBe(moved);
+    expect(cycleRow(ctx, source.id).progress_snapshot).not.toBeNull();
+    // Live even when the snapshot is frozen: the progress stays frozen, the open count follows the members.
+    insertWorkItem(ctx, projectId, byName(states, "Todo").id, "late", { cycle_id: source.id });
+    expect(openCount(source.id)).toBe(1);
+    expect(getCycle(ctx, source.id)).toMatchObject({ open_count: 1, progress: { total: 6 } });
+    expect(listCycles(ctx, projectId).find((row) => row.id === source.id)?.progress).toEqual({ total: 6, completed: 1, cancelled: 1 });
+    expect(transferCycleWorkItems(ctx, source.id, { to_cycle_id: null })).toEqual({ moved: 1 });
   });
 
   it("refuses a source that is not completed (RULE), a target that is completed, archived or foreign, and the same cycle", () => {
@@ -682,7 +741,7 @@ describe("transferCycleWorkItems", () => {
 });
 
 describe("getCycleProgress", () => {
-  it("computes counts by state group, by_state, by_label and by_assignee live", () => {
+  it("computes counts by state group, by_state, by_label, by_assignee and the breakdown rows live", () => {
     const { ctx, projectId, states } = setup();
     const c = createCycle(ctx, { project_id: projectId, name: "A", ...CURRENT });
     const backlog = byName(states, "Backlog");
@@ -697,7 +756,7 @@ describe("getCycleProgress", () => {
     const three = insertWorkItem(ctx, projectId, todo.id, "three", { cycle_id: c.id });
     const four = insertWorkItem(ctx, projectId, started.id, "four", { cycle_id: c.id });
     insertWorkItem(ctx, projectId, started.id, "five", { cycle_id: c.id });
-    insertWorkItem(ctx, projectId, done.id, "six", { cycle_id: c.id, completed_at: ctx.now() });
+    const six = insertWorkItem(ctx, projectId, done.id, "six", { cycle_id: c.id, completed_at: ctx.now() });
     insertWorkItem(ctx, projectId, cancelled.id, "seven", { cycle_id: c.id });
     insertWorkItem(ctx, projectId, done.id, "archived", { cycle_id: c.id, completed_at: ctx.now(), archived_at: ctx.now() });
     insertWorkItem(ctx, projectId, todo.id, "deleted", { cycle_id: c.id, deleted_at: ctx.now() });
@@ -705,6 +764,7 @@ describe("getCycleProgress", () => {
     addLabel(ctx, one.id, bug.id);
     addLabel(ctx, two.id, bug.id);
     addLabel(ctx, two.id, feature.id);
+    addLabel(ctx, six.id, bug.id);
     assign(ctx, one.id, USER_ACTOR_ID);
     assign(ctx, three.id, USER_ACTOR_ID);
     assign(ctx, four.id, USER_ACTOR_ID);
@@ -712,15 +772,53 @@ describe("getCycleProgress", () => {
     const progress = getCycleProgress(ctx, c.id, { mode: "issues" });
     expect(progress).toMatchObject({ total: 8, backlog: 2, unstarted: 1, started: 2, completed: 2, cancelled: 1 });
     expect(progress.by_state).toEqual({ [backlog.id]: 2, [todo.id]: 1, [started.id]: 2, [done.id]: 2, [cancelled.id]: 1 });
-    expect(progress.by_label).toEqual({ [bug.id]: 2, [feature.id]: 1 });
+    expect(progress.by_label).toEqual({ [bug.id]: 3, [feature.id]: 1 });
     expect(progress.by_assignee).toEqual({ [USER_ACTOR_ID]: 3, [ASSISTANT_ACTOR_ID]: 1 });
+    // Rows by total, the id: null row (no labels / no assignee) last; archived members count, an item with two assignees counts twice.
+    expect(progress.labels).toEqual([
+      { id: bug.id, total: 3, completed: 1 },
+      { id: feature.id, total: 1, completed: 0 },
+      { id: null, total: 5, completed: 1 },
+    ]);
+    expect(progress.assignees).toEqual([
+      { id: USER_ACTOR_ID, total: 3, completed: 0 },
+      { id: ASSISTANT_ACTOR_ID, total: 1, completed: 0 },
+      { id: null, total: 5, completed: 2 },
+    ]);
     expect(progress.points).toBeUndefined();
+    expect(progress.chart_mode).toBe("issues");
+    expect(progress.completion_chart_points).toBeUndefined();
     expect(getCycleProgress(ctx, c.id)).toEqual(progress);
     expect(errorCode(() => getCycleProgress(ctx, c.id, { mode: "hours" as "issues" }))).toBe("VALIDATION");
     expect(errorCode(() => getCycleProgress(ctx, newId()))).toBe("NOT_FOUND");
   });
 
-  it("points mode sums numeric estimate_point values and skips non-numeric ones", () => {
+  it("orders breakdown rows by total, then id: a larger total with a larger id comes first, and equal totals follow the id, not the row order", () => {
+    const { ctx, projectId, states } = setup();
+    const c = createCycle(ctx, { project_id: projectId, name: "A", ...CURRENT });
+    const todo = byName(states, "Todo");
+    // Created in this order, so the ids sort Feature < Bug < Chore; Bug has the largest total.
+    const feature = createLabel(ctx, { project_id: projectId, name: "Feature" });
+    const bug = createLabel(ctx, { project_id: projectId, name: "Bug" });
+    const chore = createLabel(ctx, { project_id: projectId, name: "Chore" });
+    expect([chore.id, bug.id, feature.id].sort()).toEqual([feature.id, bug.id, chore.id]);
+    const [one, two, three] = ["one", "two", "three"].map((name) => insertWorkItem(ctx, projectId, todo.id, name, { cycle_id: c.id }));
+    expect([two.id, one.id].sort()).toEqual([one.id, two.id]);
+    for (const item of [one, two, three]) addLabel(ctx, item.id, bug.id);
+    // The tied labels reach the breakdown in the opposite order of their ids: Chore sits on the first item (smaller id,
+    // inserted first), Feature on the second, so the junction rows yield Chore before Feature in key order and in
+    // insertion order alike. A sort by total alone would keep Chore first; only the id tie-break puts Feature first.
+    addLabel(ctx, one.id, chore.id);
+    addLabel(ctx, two.id, feature.id);
+    // Total first: Bug (3) leads although its id is larger than Feature's; equal totals fall back to the id (Feature before Chore).
+    expect(getCycleProgress(ctx, c.id).labels).toEqual([
+      { id: bug.id, total: 3, completed: 0 },
+      { id: feature.id, total: 1, completed: 0 },
+      { id: chore.id, total: 1, completed: 0 },
+    ]);
+  });
+
+  it("points mode sums numeric estimate_point values of the active estimate and skips non-numeric ones", () => {
     const { ctx, projectId, states } = setup();
     const c = createCycle(ctx, { project_id: projectId, name: "A", ...CURRENT });
     const [one, three, xl, five] = insertEstimatePoints(ctx, projectId, ["1", "3", "XL", " 5 "]);
@@ -732,7 +830,80 @@ describe("getCycleProgress", () => {
     const progress = getCycleProgress(ctx, c.id, { mode: "points" });
     expect(progress).toMatchObject({ total: 5, unstarted: 1, started: 1, completed: 2, backlog: 1, cancelled: 0 });
     expect(progress.points).toEqual({ total: 9, completed: 5, cancelled: 0, started: 3, unstarted: 1, backlog: 0 });
-    expect(getCycleProgress(ctx, c.id, { mode: "issues" }).points).toBeUndefined();
+    expect(progress.chart_mode).toBe("points");
+    expect(progress.completion_chart_points).toBeUndefined();
+    const issues = getCycleProgress(ctx, c.id, { mode: "issues" });
+    expect(issues.points).toBeUndefined();
+    expect(issues.chart_mode).toBe("issues");
+  });
+
+  it("counts points only with an active estimate, only for live points of that estimate, values >= 0 including fractions", () => {
+    const { ctx, projectId, states } = setup();
+    const c = createCycle(ctx, { project_id: projectId, name: "A", ...CURRENT });
+    const [half, oneAndHalf, negative, gone] = insertEstimatePoints(ctx, projectId, ["0.5", "1.5", "-2", "4"], { activate: false });
+    const [foreignPoint] = insertEstimatePoints(ctx, projectId, ["7"], { activate: false });
+    ctx.db.update(estimate_point).set({ deleted_at: ctx.now() }).where(eq(estimate_point.id, gone)).run();
+    const todo = byName(states, "Todo").id;
+    insertWorkItem(ctx, projectId, todo, "half", { cycle_id: c.id, estimate_point_id: half });
+    insertWorkItem(ctx, projectId, byName(states, "Done").id, "done", { cycle_id: c.id, estimate_point_id: oneAndHalf, completed_at: "2026-03-05T12:00:00.000Z" });
+    insertWorkItem(ctx, projectId, todo, "negative", { cycle_id: c.id, estimate_point_id: negative });
+    insertWorkItem(ctx, projectId, todo, "deleted point", { cycle_id: c.id, estimate_point_id: gone });
+    insertWorkItem(ctx, projectId, todo, "other estimate", { cycle_id: c.id, estimate_point_id: foreignPoint });
+    withTimeZone("UTC", () => {
+      // No active estimate: no point totals and no points series, even in points mode.
+      const none = getCycleProgress(ctx, c.id, { mode: "points" });
+      expect(none.points).toBeUndefined();
+      expect(none.chart_mode).toBe("issues");
+      expect(none.completion_chart[TODAY]).toBe(4);
+      // An estimate that is set but switched off does not count either.
+      ctx.db.update(project).set({ estimate_id: estimateIdOf(ctx, half), estimates_enabled: false }).where(eq(project.id, projectId)).run();
+      expect(getCycleProgress(ctx, c.id, { mode: "points" }).points).toBeUndefined();
+      activateEstimate(ctx, projectId, estimateIdOf(ctx, half));
+      const on = getCycleProgress(ctx, c.id, { mode: "points" });
+      expect(on.points).toEqual({ total: 2, completed: 1.5, cancelled: 0, started: 0, unstarted: 0.5, backlog: 0 });
+      expect(on.chart_mode).toBe("points");
+      expect(on.completion_chart["2026-03-04"]).toBe(2);
+      expect(on.completion_chart[TODAY]).toBe(0.5);
+      expect(on.total).toBe(5);
+      const issues = getCycleProgress(ctx, c.id, { mode: "issues" });
+      expect(issues.chart_mode).toBe("issues");
+      expect(issues.completion_chart[TODAY]).toBe(4);
+      expect(issues.points).toBeUndefined();
+    });
+  });
+
+  it("freezes both series with an active estimate and serves each by mode, fractional points included", () => {
+    const { ctx, projectId, states } = setup();
+    const sprint = createCycle(ctx, { project_id: projectId, name: "Sprint", start_date: "2026-03-01", end_date: "2026-03-05" });
+    const [half, three] = insertEstimatePoints(ctx, projectId, ["0.5", "3"]);
+    insertWorkItem(ctx, projectId, byName(states, "Todo").id, "open", { cycle_id: sprint.id, estimate_point_id: three });
+    insertWorkItem(ctx, projectId, byName(states, "Done").id, "finished", { cycle_id: sprint.id, estimate_point_id: half, completed_at: "2026-03-03T12:00:00.000Z" });
+    withTimeZone("UTC", () => transferCycleWorkItems(ctx, sprint.id, { to_cycle_id: null }));
+    const snapshot = cycleRow(ctx, sprint.id).progress_snapshot;
+    expect(snapshot).toMatchObject({
+      total: 2,
+      completed: 1,
+      points: { total: 3.5, completed: 0.5, unstarted: 3 },
+      completion_chart: { "2026-03-01": 2, "2026-03-02": 2, "2026-03-03": 1, "2026-03-04": 1, "2026-03-05": 1 },
+      completion_chart_points: { "2026-03-01": 3.5, "2026-03-02": 3.5, "2026-03-03": 3, "2026-03-04": 3, "2026-03-05": 3 },
+    });
+    expect(snapshot?.chart_mode).toBeUndefined();
+    // The open item left with the transfer; the fractional snapshot still parses and is served instead of live progress.
+    const issues = getCycleProgress(ctx, sprint.id, { mode: "issues" });
+    expect(issues).toMatchObject({ total: 2, chart_mode: "issues", completion_chart: snapshot?.completion_chart });
+    expect(issues.points).toBeUndefined();
+    expect(issues.completion_chart_points).toBeUndefined();
+    const points = getCycleProgress(ctx, sprint.id, { mode: "points" });
+    expect(points).toMatchObject({ total: 2, chart_mode: "points", points: { total: 3.5 }, completion_chart: snapshot?.completion_chart_points });
+    expect(points.completion_chart_points).toBeUndefined();
+    // get_cycle serves issues mode; the raw progress_snapshot column (spread from the row) still shows both series.
+    const detail = getCycle(ctx, sprint.id);
+    expect(detail.progress).toEqual(issues);
+    expect(detail.progress_snapshot?.completion_chart_points).toEqual(snapshot?.completion_chart_points);
+    expect(listCycles(ctx, projectId)[0].progress_snapshot).toEqual(snapshot);
+    // Frozen means frozen: switching the estimate off later changes nothing.
+    ctx.db.update(project).set({ estimates_enabled: false }).where(eq(project.id, projectId)).run();
+    expect(getCycleProgress(ctx, sprint.id, { mode: "points" })).toEqual(points);
   });
 
   it("excludes items waiting in triage, matching getCounts and listWorkItems", () => {
@@ -759,6 +930,7 @@ describe("getCycleProgress", () => {
     const { ctx, projectId, states } = setup("2026-03-05");
     const c = createCycle(ctx, { project_id: projectId, name: "A", start_date: "2026-03-01", end_date: "2026-03-10" });
     const [two, three, five, eight] = insertEstimatePoints(ctx, projectId, ["2", "3", "5", "8"]);
+    expect(getCycleProgress(ctx, c.id, { mode: "points" }).chart_mode).toBe("points");
     const done = byName(states, "Done");
     insertWorkItem(ctx, projectId, done.id, "first", { cycle_id: c.id, estimate_point_id: two, completed_at: "2026-03-02T10:00:00.000Z" });
     insertWorkItem(ctx, projectId, done.id, "second", { cycle_id: c.id, estimate_point_id: three, completed_at: "2026-03-04T23:59:59.000Z" });
@@ -801,7 +973,9 @@ describe("getCycleProgress", () => {
   it("serves the snapshot whenever it is non-null and computes live when it is unreadable", () => {
     const { ctx, projectId, states } = setup();
     const c = createCycle(ctx, { project_id: projectId, name: "A", ...CURRENT });
-    insertWorkItem(ctx, projectId, byName(states, "Todo").id, "one", { cycle_id: c.id });
+    // An active estimate does not matter for a snapshot frozen before P3: it has no points series.
+    const [one] = insertEstimatePoints(ctx, projectId, ["1"]);
+    insertWorkItem(ctx, projectId, byName(states, "Todo").id, "one", { cycle_id: c.id, estimate_point_id: one });
     const frozen: CycleProgress = {
       total: 9,
       completed: 4,
@@ -817,14 +991,16 @@ describe("getCycleProgress", () => {
     };
     ctx.db.update(cycle).set({ progress_snapshot: frozen }).where(eq(cycle.id, c.id)).run();
     const issues = getCycleProgress(ctx, c.id, { mode: "issues" });
-    expect(issues).toMatchObject({ total: 9, completed: 4, by_state: { x: 9 }, completion_chart: { "2026-03-01": 9 } });
+    expect(issues).toEqual({ ...frozen, points: undefined, chart_mode: "issues" });
     expect(issues.points).toBeUndefined();
-    expect(getCycleProgress(ctx, c.id, { mode: "points" })).toEqual(frozen);
+    // Pre-P3 snapshot: points mode keeps its point totals and falls back to the items series.
+    expect(getCycleProgress(ctx, c.id, { mode: "points" })).toEqual({ ...frozen, chart_mode: "issues" });
     expect(getCycle(ctx, c.id).progress.total).toBe(9);
-    expect(listCycles(ctx, projectId)[0].progress).toEqual({ total: 9, completed: 4 });
+    expect(listCycles(ctx, projectId)[0].progress).toEqual({ total: 9, completed: 4, cancelled: 1 });
     ctx.db.update(cycle).set({ progress_snapshot: { bogus: true } as never }).where(eq(cycle.id, c.id)).run();
     expect(getCycleProgress(ctx, c.id).total).toBe(1);
-    expect(listCycles(ctx, projectId)[0].progress).toEqual({ total: 1, completed: 0 });
+    expect(getCycleProgress(ctx, c.id, { mode: "points" })).toMatchObject({ chart_mode: "points", points: { total: 1, unstarted: 1 } });
+    expect(listCycles(ctx, projectId)[0].progress).toEqual({ total: 1, completed: 0, cancelled: 0 });
   });
 });
 
@@ -946,7 +1122,7 @@ describe("deleteWorkItem on cycle members", () => {
     expect(workItemRow(later, done.id).deleted_at).not.toBeNull();
     expect(cycleRow(later, sprint.id).progress_snapshot).toEqual(archivedCycle.progress_snapshot);
     expect(getCycleProgress(later, sprint.id)).toMatchObject({ total: 2, completed: 1 });
-    expect(listCycles(later, projectId, { archived: true })[0].progress).toEqual({ total: 2, completed: 1 });
+    expect(listCycles(later, projectId, { archived: true })[0].progress).toEqual({ total: 2, completed: 1, cancelled: 0 });
     expect(listWorkItems(later, { scope: { type: "cycle", cycle_id: sprint.id } }).items.map((item) => item.id)).toEqual([todo.id]);
   });
 });

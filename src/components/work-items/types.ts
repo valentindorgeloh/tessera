@@ -45,6 +45,16 @@ export type UpdateWorkItemPatch = Omit<UpdateWorkItemInputType, "id">;
 
 export type QuickAddGroup = { field: GroupBy | null; value: string | null };
 
+/**
+ * The view_settings row a list reads and saves (decision 23): the project list
+ * uses `{ "project", projectId }`, a cycle `{ "cycle", cycleId }`, a module
+ * `{ "module", moduleId }`. Re-exported by the scoped list (scoped-list.tsx).
+ */
+export type SettingsScope = { scope_type: "project" | "cycle" | "module"; scope_id: string };
+
+/** Memberships new items of a scoped list join: the cycle, the module(s). */
+export type ScopeDefaults = { cycle_id?: string; module_ids?: string[] };
+
 /** Props every layout component (list, board, table, calendar, gantt) receives. */
 export type LayoutProps = {
   result: WorkItemListResult;
@@ -53,7 +63,10 @@ export type LayoutProps = {
   onMove: (input: MoveInput) => void;
   onUpdate: (id: string, patch: UpdateWorkItemPatch) => void;
   onOpen: (id: string) => void;
-  onQuickAdd: (group: QuickAddGroup, name: string) => void;
+  /** Absent when the list cannot create items (a completed or archived cycle, an archived module). */
+  onQuickAdd?: (group: QuickAddGroup, name: string) => void;
+  /** Whether a group or column shows its quick-add row; absent = always. */
+  canQuickAdd?: (group: QuickAddGroup) => boolean;
 };
 
 /** URL state carried in the `q` search param (base64url JSON). */

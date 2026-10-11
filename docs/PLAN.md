@@ -280,7 +280,7 @@ Destructive: every `delete_*`, `transfer_cycle_work_items`, `bulk_update_work_it
 /active-cycles
 /analytics/[tab]
 /stickies
-/projects, /projects/archives
+/projects, /projects/archives            /projects/archives = archived projects (lane E, P3; a static segment beside [projectId])
 /projects/[projectId]/layout.tsx          ProjectFrame + ProjectProvider (states, labels, cycles, modules, estimates, actors)
 /projects/[projectId]/work-items(/[workItemId])
 /projects/[projectId]/cycles(/[cycleId])  /modules(/[moduleId])  /views(/[viewId]|/new)
@@ -289,6 +289,7 @@ Destructive: every `delete_*`, `transfer_cycle_work_items`, `bulk_update_work_it
 /wiki, /pages/[pageId]                     workspace pages
 /work-items/[workItemId]                   global full-screen detail (loads its own project bundle)
 /browse/[key]                              Suspense → parseKey → lookup → redirect
+/cycles/[cycleId], /modules/[moduleId]     alias routes (P3, lane E): getCycle / getModule → redirect to the project route (targets of cycle: / module: links)
 /settings/(general|ai|agents|exports|webhooks)
 projects/error.tsx  projects/[projectId]/not-found.tsx  (tessera)/error.tsx  not-found.tsx
 actions/{_run,projects,states-labels,work-items,relations-comments,cycles,modules,views,pages,drafts-intake,estimates,workspace,settings,ai}.ts
@@ -312,6 +313,7 @@ api/mcp/route.ts
 ## 6. Shell, tabs, navigation
 
 - New `(tessera)` route group with Astryx `AppShell`: left `SideNav` = Tessera header, "New work item" + search (`mod+k`), workspace items (Home, Your work, Inbox with unread `Badge`, Drafts, Workspace views, Active cycles, Analytics, Projects, Archives), Favorites (folders, drag to reorder), Projects tree (each project expands to Work items, Cycles, Modules, Views, Pages, Intake per feature toggles; `…` menu Settings, Archives, Copy link, Favorite, Draft work item), bottom: Agents, Wiki, Settings. `mod+b` collapses it.
+- As built in P3 (deviation, §13): project Archives is a permanent frame tab (Work items, Cycles, Modules, Archives) plus `g r`, and archived projects are reached through a link on `/projects` to `/projects/archives`. The sidebar's workspace "Archives" entry and the project `…` menu above arrive with the P9 sidebar pass.
 - Tab bar (decision 15) above the content; `TabBar` + `tab-registry.ts` resolve label and icon from the path for every route above.
 - Power K (`CommandPalette`): search work items, cycles, modules, pages (toggle all projects); contextual actions on an open item (state, priority, assignee, copy link); create actions (`n` then `i/c/m/v/d/p`); navigate (`g` then `h/i/c/m/v/d/k/r/s/j/a/p/x/y`); settings; shortcut list (`mod+/`); "Ask" tab for the assistant.
 - Work item shortcuts: `s` state, `p` priority, `a` assign, `i` assign me, `l` labels, `shift+e` estimate, `shift+c` cycle, `shift+m` modules, `shift+s` subscribe, `mod+delete` delete, `mod+.` copy ID, `mod+shift+'` copy title, `mod+shift+,` copy URL. Pages: `shift+l` lock, `shift+a` access, `shift+r` archive. `mod+f` favourite cycle or module.
@@ -346,13 +348,13 @@ api/mcp/route.ts
 | **P1 Engine** | 2.5 | Vertical slice days 1–3 (actors, schema, migrations, projects, states, create/list/move work items, seed) so UI lanes start day 4; then labels, assignees, activity, FTS, cycles, modules, views, view settings, counts, search, changes, registry, MCP route + stdio | Vitest for every invariant listed; two-process interleave test; stdio write visible; `registry.test.ts` green |
 | **P2a Work items core** | 2 | Tessera shell and sidebar, tab bar, projects list and frame, list + board + table, create dialog, quick-add, filter bar, display menu | **User acceptance**: create → drag across board → set priority and due date → reload survives |
 | **P2b Detail, editor, Power K** | 3 | Peek / modal / full detail, property rail, `MarkdownEditor` with CAS and Banner, sub-items, `/browse/[key]`, Power K search and actions, shortcuts, hydration-clean tab bar | Browser steps 1–6; markdown round-trip tests; no hydration warnings |
-| **P3 Cycles, modules, archives** | 2 | Cycles list and detail, active cycle summary, burndown/burnup, transfer, modules list and detail, module links, archives with restore | Cycle rules Vitest; transfer keeps the snapshot; restore works in the browser |
+| **P3 Cycles, modules, archives** | 2 | Cycles list and detail, active cycle summary, burndown/burnup (Recharts 3.10.1 and `react-is` 19.3.0 are added here), transfer, modules list and detail, module links, archives with restore | Cycle rules Vitest; transfer keeps the snapshot; restore works in the browser |
 | **P4 Views, settings, counts** | 1.5 | Project views, save/update/duplicate/lock, sidebar counts, project settings (general, features, states, labels, agents tab), multi-valued grouping, sub-groups | Views round-trip; counts match `getCounts`; identifier rename keeps `/browse` |
 | **P5 AI** | 2 | Assistant panel, Power K Ask with proposals and Apply, view from prompt, cycle and module digests, status route, http guard | `propose_*` writes nothing until Apply; destructive Apply confirms; no key in the client bundle |
 | **P6 Pages and handbook retirement** | 2 | Pages in SQLite (tree, lock, access, archive, labels, versions, embeds, favourites hook), wiki and project pages, `scripts/import-handbook.ts` for `content/*.md`, remove handbook code, Milkdown and its MCP tools; Home moves to `/` | Import test on the 12 files; page round-trip; `grep -r milkdown src` empty |
 | **P7 Collaboration** | 2 | Relations with inverse display, comments (threaded) and reactions, links, subscriptions, mentions, notifications inbox (read, archive, snooze), inbox digest | Notification generated for an MCP state change on a subscribed item; relation shown on both items |
 | **P8 Intake, drafts, estimates, bulk** | 2 | Intake two-pane with accept/decline/snooze/duplicate and agent intake policy, drafts with Move to project, estimates (systems, templates, points-mode progress), bulk bar, copy and move across projects | Intake policy test: MCP create lands in triage when required; bulk archive refuses mixed groups |
-| **P9 Workspace surfaces** | 2.5 | Home widgets (quick links, recents, stickies, your work summary, "Since you were last here"), stickies page, favourites with folders, Your work, agent profiles, workspace views and static views, active cycles, analytics with Recharts and narrative | Home renders from one `getHomeSummary`; analytics numbers equal `getCounts` |
+| **P9 Workspace surfaces** | 2.5 | Home widgets (quick links, recents, stickies, your work summary, "Since you were last here"), stickies page, favourites with folders, Your work, agent profiles, workspace views and static views, active cycles, analytics with Recharts (added in P3) and narrative | Home renders from one `getHomeSummary`; analytics numbers equal `getCounts` |
 | **P10 Layouts and operations** | 2.5 | Calendar and gantt (dependency connectors from relations), rich filter tree, automations, version history with restore, CSV and JSON export, webhooks, remaining settings | Gantt date drag writes both dates; automation run logs `system` activity; export opens in a spreadsheet |
 | **P11 Hardening** | 2 | `"use cache"` + tags, Playwright acceptance suite, backup rotation, performance pass on 10k items, undo last assistant action | `next build` with no blocking-route insight; Playwright green; p95 list render < 300 ms on 10k items |
 
@@ -379,7 +381,7 @@ Merge gate per branch: `npm run check` (tsc, eslint, vitest, `check-conventions.
 
 0. **User action**: `git init` and commit the current tree (rename the folder to `tessera` first if wanted). P0 starts when `.git` exists.
 1. `package.json` name `tessera`; `.gitignore`: `data/`, `.env*`, `.next/`, `node_modules/`, `.projectatlas/`; `.env.example` with `TESSERA_DB_PATH`, `ANTHROPIC_API_KEY`, `TESSERA_AI_MODEL`, `TESSERA_AI_EFFORT`; `.nvmrc` = `22`.
-2. Install: `drizzle-orm@0.45.4 better-sqlite3@13.0.3 drizzle-zod@0.8.3 uuid@14.0.3 fractional-indexing@4.0.0 @anthropic-ai/sdk@0.133.0 @modelcontextprotocol/server@2.3.1 @next/env@16.4.0` and the Tiptap set (`@tiptap/core @tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/markdown @tiptap/suggestion @tiptap/extension-mention @tiptap/extension-task-list @tiptap/extension-table @tiptap/extension-drag-handle @tiptap/extension-placeholder @tiptap/extension-link @tiptap/extension-bubble-menu @tiptap/extension-code-block-lowlight lowlight`, all 3.31.4 except lowlight); dev: `drizzle-kit@0.31.11 vitest@5.0.3 tsx@4.23.15 @types/better-sqlite3@9.6.0 @modelcontextprotocol/client@2.3.1`. Recharts and Playwright are added at P9 and P11 with pinned versions. Remove `@milkdown/crepe`, `@heroicons/react`, `@stylexjs/stylex`, `lucide-react`, `src/themes/neutral/`; `@milkdown/kit` and `@milkdown/react` go in P6.
+2. Install: `drizzle-orm@0.45.4 better-sqlite3@13.0.3 drizzle-zod@0.8.3 uuid@14.0.3 fractional-indexing@4.0.0 @anthropic-ai/sdk@0.133.0 @modelcontextprotocol/server@2.3.1 @next/env@16.4.0` and the Tiptap set (`@tiptap/core @tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/markdown @tiptap/suggestion @tiptap/extension-mention @tiptap/extension-task-list @tiptap/extension-table @tiptap/extension-drag-handle @tiptap/extension-placeholder @tiptap/extension-link @tiptap/extension-bubble-menu @tiptap/extension-code-block-lowlight lowlight`, all 3.31.4 except lowlight); dev: `drizzle-kit@0.31.11 vitest@5.0.3 tsx@4.23.15 @types/better-sqlite3@9.6.0 @modelcontextprotocol/client@2.3.1`. Recharts (`recharts@3.10.1`, with `react-is@19.3.0` as the direct dependency React 19 elements need) was added in P3 for the burndown and burnup chart and is reused by P9 analytics; Playwright is added at P11 with a pinned version. Remove `@milkdown/crepe`, `@heroicons/react`, `@stylexjs/stylex`, `lucide-react`, `src/themes/neutral/`; `@milkdown/kit` and `@milkdown/react` go in P6.
 3. `drizzle.config.ts`, `vitest.config.ts` (node environment, `@/` alias), eslint `no-restricted-imports` boundary rule.
 4. `scripts/check-licenses.ts` + `licenses.exceptions.json` (U6): allowlist `MIT, ISC, Apache-2.0, BSD-2-Clause, BSD-3-Clause, 0BSD, BlueOak-1.0.0, CC0-1.0, Unlicense, Python-2.0, Zlib`; anything else or missing fails unless listed with a reason.
 5. npm scripts: `check`, `test`, `db:generate`, `db:migrate`, `db:seed`, `db:fts-rebuild`, `db:backup`, `mcp:stdio`, `automations`, `import:handbook`, `dev` = `next dev -H 127.0.0.1`.
@@ -414,6 +416,7 @@ Merge gate per branch: `npm run check` (tsc, eslint, vitest, `check-conventions.
 - Workspace views table-only, four static views virtual (as Plane).
 - Attachments, publish-to-web, members, billing excluded (user decision).
 - Known Plane quirks deliberately fixed: parent acyclicity enforced; completed-cycle edit guard applied; favourites deduplicated; `work_item_label` has a primary key.
+- Project archives (P3) are reached through a frame tab, `g r` and a link on `/projects`, not through the project `…` menu and a workspace "Archives" sidebar entry (§6): there is no project `…` menu before the P9 sidebar pass, and the frame tabs are the project navigation.
 
 **Risks**
 | Risk | Mitigation |

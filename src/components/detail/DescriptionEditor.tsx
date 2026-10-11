@@ -5,17 +5,19 @@
  * composes the Markdown editor with the save queue and the Banner states of
  * docs/contracts/editor.md ("Changed elsewhere", "Updated elsewhere", lossy
  * parse). Entity links to work items resolve their key through
- * `GET /api/search` and open through `onOpenItem`; other schemes arrive with
- * the pages, cycles and modules phases.
+ * `GET /api/search` and open through `onOpenItem`; cycle and module links open
+ * their alias route (`entityRoute`), which redirects into the project; page
+ * links arrive with P6.
  */
 import { useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { useProject } from "@/components/work-items/project-provider";
-import { MarkdownEditor, useDescriptionSave, type EntityLink, type MarkdownEditorHandle } from "@/components/editor";
+import { MarkdownEditor, entityRoute, useDescriptionSave, type EntityLink, type MarkdownEditorHandle } from "@/components/editor";
 import { matchWorkItemRef, toCandidates } from "./search-hits";
 
 export type DescriptionEditorProps = {
@@ -51,6 +53,7 @@ async function resolveWorkItemId(ref: string): Promise<string | null> {
 
 export function DescriptionEditor({ workItemId, text, version, readOnly = false, compact = false, onOpenItem }: DescriptionEditorProps) {
   const toast = useToast();
+  const router = useRouter();
   const { bundle } = useProject();
   const editor = useRef<MarkdownEditorHandle | null>(null);
   const save = useDescriptionSave({ workItemId, serverText: text, serverVersion: version, editor });
@@ -69,7 +72,9 @@ export function DescriptionEditor({ workItemId, text, version, readOnly = false,
       });
       return;
     }
-    toast({ type: "info", body: link.scheme === "page" ? "Arrives in P6" : "Arrives in P3" });
+    const route = entityRoute(link);
+    if (route !== null) router.push(route);
+    else toast({ type: "info", body: "Arrives in P6" });
   };
 
   let banner = null;

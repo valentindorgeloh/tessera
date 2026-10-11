@@ -239,6 +239,17 @@ export function sortBySection(items: readonly CommandSearchItem[]): CommandSearc
   return [...items].sort((a, b) => sectionRank(a) - sectionRank(b));
 }
 
+/**
+ * The palette row Enter would open: `index` when it names an enabled row of
+ * `rows` (the palette's selectable items), else -1. Astryx keeps a hover
+ * highlight when a new query narrows the list, so the index can point past
+ * the end; Power K then treats it as no highlight and opens the first result.
+ */
+export function liveHighlight(index: number, rows: readonly { disabled?: boolean }[]): number {
+  if (index < 0 || index >= rows.length) return -1;
+  return rows[index]?.disabled ? -1 : index;
+}
+
 /** The request URL for a query, with the project scope when one applies. */
 export function searchUrl(query: string, scope: string | null, limit: number = SEARCH_LIMIT): string {
   const params = new URLSearchParams({ q: query, limit: String(limit) });

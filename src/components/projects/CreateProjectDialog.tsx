@@ -63,7 +63,8 @@ export function suggestIdentifier(name: string): string {
 
 export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialogProps) {
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={520}>
+    // Named explicitly: the Dialog reads its DialogHeader title only when the <dialog> attaches, and the form below mounts later.
+    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={520} aria-label="New project">
       {isOpen ? <CreateProjectForm onOpenChange={onOpenChange} /> : null}
     </Dialog>
   );

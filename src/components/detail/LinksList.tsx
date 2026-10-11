@@ -56,7 +56,8 @@ type LinkDialogProps = {
 
 function LinkDialog({ title, isOpen, initial, submitLabel, onOpenChange, onSubmit }: LinkDialogProps) {
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={480}>
+    // Named explicitly: the Dialog reads its DialogHeader title only when the <dialog> attaches, and the form below mounts later.
+    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={480} aria-label={title}>
       {/* Mounted only while open so every session starts from the given values. */}
       {isOpen ? <LinkForm title={title} initial={initial} submitLabel={submitLabel} onOpenChange={onOpenChange} onSubmit={onSubmit} /> : null}
     </Dialog>

@@ -62,7 +62,7 @@ export type CommandId = ShortcutId | "theme.dark" | "theme.light" | "theme.syste
 
 export type ShortcutGroup = "Global" | "Work item" | "Create" | "Navigate";
 
-export type ShortcutArrival = "P3" | "P5" | "P6" | "P7" | "P8" | "P9";
+export type ShortcutArrival = "P4" | "P5" | "P6" | "P7" | "P8" | "P9";
 
 export type ShortcutDef = {
   id: ShortcutId;
@@ -99,20 +99,20 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { id: "item.copyUrl", label: "Copy link", keys: "mod+shift+,", group: "Work item", needsItem: true },
 
   { id: "create.workItem", label: "New work item", keys: "n i", group: "Create" },
-  { id: "create.cycle", label: "New cycle", keys: "n c", group: "Create", arrives: "P3" },
-  { id: "create.module", label: "New module", keys: "n m", group: "Create", arrives: "P3" },
-  { id: "create.view", label: "New view", keys: "n v", group: "Create", arrives: "P3" },
+  { id: "create.cycle", label: "New cycle", keys: "n c", group: "Create" },
+  { id: "create.module", label: "New module", keys: "n m", group: "Create" },
+  { id: "create.view", label: "New view", keys: "n v", group: "Create", arrives: "P4" },
   { id: "create.page", label: "New page", keys: "n d", group: "Create", arrives: "P6" },
   { id: "create.project", label: "New project", keys: "n p", group: "Create" },
 
   { id: "nav.home", label: "Home", keys: "g h", group: "Navigate" },
   { id: "nav.workItems", label: "Work items", keys: "g i", group: "Navigate" },
-  { id: "nav.cycles", label: "Cycles", keys: "g c", group: "Navigate", arrives: "P3" },
-  { id: "nav.modules", label: "Modules", keys: "g m", group: "Navigate", arrives: "P3" },
-  { id: "nav.views", label: "Views", keys: "g v", group: "Navigate", arrives: "P3" },
+  { id: "nav.cycles", label: "Cycles", keys: "g c", group: "Navigate" },
+  { id: "nav.modules", label: "Modules", keys: "g m", group: "Navigate" },
+  { id: "nav.views", label: "Views", keys: "g v", group: "Navigate", arrives: "P4" },
   { id: "nav.pages", label: "Pages", keys: "g d", group: "Navigate", arrives: "P6" },
   { id: "nav.inbox", label: "Inbox", keys: "g k", group: "Navigate", arrives: "P7" },
-  { id: "nav.archives", label: "Archives", keys: "g r", group: "Navigate", arrives: "P9" },
+  { id: "nav.archives", label: "Archives", keys: "g r", group: "Navigate" },
   { id: "nav.settings", label: "Settings", keys: "g s", group: "Navigate", arrives: "P8" },
   { id: "nav.yourWork", label: "Your work", keys: "g j", group: "Navigate", arrives: "P9" },
   { id: "nav.analytics", label: "Analytics", keys: "g a", group: "Navigate", arrives: "P9" },
