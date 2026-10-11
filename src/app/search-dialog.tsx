@@ -26,7 +26,7 @@ import {
   searchNodes,
   type WorkspaceNode,
 } from "../lib/workspace-model";
-import {FolderIcon, PageIcon, SearchIcon} from "../themes/paper/icons";
+import {FolderIcon, PageIcon, SearchIcon} from "../themes/catppuccin/icons";
 import {markNextNavigationAsNewTab, tabHref} from "./page-tabs";
 
 type SearchRow = {

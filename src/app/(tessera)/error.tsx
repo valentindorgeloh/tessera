@@ -4,7 +4,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { HStack, VStack } from "@astryxdesign/core/Layout";
-import { WarningIcon } from "@/themes/paper/icons";
+import { WarningIcon } from "@/themes/catppuccin/icons";
 
 /** Error boundary for every Tessera route outside a project (docs/PLAN.md section 6). */
 export default function TesseraError({

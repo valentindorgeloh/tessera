@@ -11,7 +11,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { HStack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { PlusIcon } from "@/themes/paper/icons";
+import { PlusIcon } from "@/themes/catppuccin/icons";
 
 export type QuickAddProps = {
   onSubmit: (name: string) => void;

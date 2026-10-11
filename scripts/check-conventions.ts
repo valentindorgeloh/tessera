@@ -3,7 +3,9 @@
  * that neither tsc nor eslint can see. Scope: src/, scripts/, tests/.
  *
  * Legacy handbook files (deleted in P6) are exempt from the Tessera-only rules
- * so the old routes keep working untouched until then.
+ * so the old routes keep working until then. The exception is hex-colour: the
+ * legacy files share the app theme, so only src/app/page.module.css (dead CSS)
+ * keeps its hex literals.
  *
  * Rules
  *  client-boundary      'use client' files import only @/lib/tessera/{types,schemas,core/keys,core/time,core/group}
@@ -52,6 +54,12 @@ const LEGACY_HANDBOOK_FILES = new Set([
   "src/lib/workspace-model.ts",
   "src/lib/workspace.ts",
 ]);
+
+/**
+ * Legacy files that may keep hex colours. The others share the Tessera theme
+ * (globals.css, providers.tsx, layout.tsx), so the hex rule covers them too.
+ */
+const HEX_EXEMPT_LEGACY = new Set(["src/app/page.module.css"]);
 
 const CLIENT_ALLOWED_TESSERA_IMPORTS = new Set([
   "@/lib/tessera/types",
@@ -144,7 +152,7 @@ for (const dir of SCAN_DIRS) {
         }
       }
 
-      if (!isLegacy && !isGenerated && !inThemes && !line.includes("hex-ok") && !line.startsWith("#!") && HEX_RE.test(line)) {
+      if ((!isLegacy || !HEX_EXEMPT_LEGACY.has(rel)) && !isGenerated && !inThemes && !line.includes("hex-ok") && !line.startsWith("#!") && HEX_RE.test(line)) {
         report(rel, n, "hex-colour", "hex colour literal; use var(--color-*) tokens or a palette key (append `hex-ok` if this is not a colour)");
       }
 

@@ -3,13 +3,30 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
+import { DropdownMenu, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@astryxdesign/core/DropdownMenu";
 import { Icon, type IconType } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { NavIcon } from "@astryxdesign/core/NavIcon";
 import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import type { Project } from "@/lib/tessera/types";
-import { FolderIcon, HouseIcon, KanbanIcon, PlusIcon, SquaresFourIcon } from "@/themes/paper/icons";
+import {
+  FolderIcon,
+  HouseIcon,
+  KanbanIcon,
+  MonitorIcon,
+  MoonIcon,
+  PlusIcon,
+  SquaresFourIcon,
+  SunIcon,
+} from "@/themes/catppuccin/icons";
+import {
+  COLOR_SCHEME_LABELS,
+  isColorScheme,
+  setColorScheme,
+  useColorScheme,
+  type ColorScheme,
+} from "./color-scheme";
 import { useShell } from "./TesseraShell";
 
 export const SIDEBAR_STORAGE_KEY = "tessera.sidebar.v1";
@@ -127,6 +144,49 @@ function rememberProject(projectId: string) {
 // Component
 // ---------------------------------------------------------------------------
 
+const COLOR_SCHEME_ICONS: Readonly<Record<ColorScheme, IconType>> = {
+  dark: MoonIcon,
+  light: SunIcon,
+  system: MonitorIcon,
+};
+
+/** Footer switch between Catppuccin Frappé, Latte and the OS setting. */
+function ColorSchemeMenu() {
+  const scheme = useColorScheme();
+  return (
+    <DropdownMenu
+      placement="above"
+      hasChevron={false}
+      renderTrigger={(triggerProps) => (
+        <IconButton
+          {...triggerProps}
+          label="Colour scheme"
+          variant="ghost"
+          icon={<Icon icon={COLOR_SCHEME_ICONS[scheme]} />}
+          tooltip={`Colour scheme: ${COLOR_SCHEME_LABELS[scheme]}`}
+        />
+      )}
+    >
+      <DropdownMenuRadioGroup
+        label="Colour scheme"
+        value={scheme}
+        onChange={(value) => {
+          if (isColorScheme(value)) setColorScheme(value);
+        }}
+      >
+        {(Object.keys(COLOR_SCHEME_LABELS) as ColorScheme[]).map((value) => (
+          <DropdownMenuRadioItem
+            key={value}
+            value={value}
+            label={COLOR_SCHEME_LABELS[value]}
+            icon={COLOR_SCHEME_ICONS[value]}
+          />
+        ))}
+      </DropdownMenuRadioGroup>
+    </DropdownMenu>
+  );
+}
+
 /**
  * SideNav of the Tessera shell (docs/contracts/ui.md "Shell"): Tessera
  * heading, "New work item" for the last visited (else first) project, Home
@@ -134,7 +194,7 @@ function rememberProject(projectId: string) {
  * `projectNavItems`. Workspace items that arrive in later phases are added
  * here when their routes exist. Collapse state comes from the shell
  * (`mod+b`); expanded projects and the last visited project are remembered
- * in localStorage.
+ * in localStorage. The footer holds the colour scheme menu.
  */
 export function Sidebar({ projects }: { projects: Project[] }) {
   const pathname = usePathname();
@@ -161,6 +221,7 @@ export function Sidebar({ projects }: { projects: Project[] }) {
     <SideNav
       aria-label="Tessera"
       collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed, hasButton: true }}
+      footerIcons={<ColorSchemeMenu />}
       header={
         <SideNavHeading
           heading="Tessera"

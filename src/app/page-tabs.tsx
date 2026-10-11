@@ -8,7 +8,7 @@ import {HStack} from "@astryxdesign/core/Layout";
 import {Tab, TabList} from "@astryxdesign/core/TabList";
 import {CaretLeft, CaretRight, Plus, X} from "@phosphor-icons/react";
 import {WORKSPACE_NAME, findNode, type WorkspaceNode} from "../lib/workspace-model";
-import {FolderIcon, PageIcon} from "../themes/paper/icons";
+import {FolderIcon, PageIcon} from "../themes/catppuccin/icons";
 
 export const HOME_TAB = "/";
 const STORAGE_KEY = "handbook.tabs";

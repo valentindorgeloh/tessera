@@ -9,6 +9,7 @@ Runtime and development dependencies are listed in `package.json`; every one of 
 | What | Where | Licence | Notes |
 |---|---|---|---|
 | Pointer drag-and-drop from the Astryx `kanban-board` page template (`@astryxdesign/cli` 0.6.0, assets/templates/pages/kanban-board) | `src/components/dnd/use-pointer-drag.ts` (added in P2a) | MIT, Copyright (c) Meta Platforms, Inc. and affiliates | Ported by hand: className + design tokens instead of `xstyle`, Phosphor icons instead of heroicons. |
+| Catppuccin colour palette, Latte and Frappé flavours, plus Mocha crust ([catppuccin/palette](https://github.com/catppuccin/palette)) | `src/themes/catppuccin/palette.ts` (added 2026-10-11) | MIT, Copyright (c) 2021 Catppuccin | Colour values only, mapped onto Astryx tokens; some text colours are deepened or lightened for WCAG contrast. |
 
 MIT licence text for the Astryx template:
 
@@ -35,6 +36,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+The Catppuccin palette is under the same MIT licence text, with the copyright line `Copyright (c) 2021 Catppuccin`.
 
 ## Reviewed licence exceptions (transitive, not shipped)
 

@@ -68,6 +68,10 @@ import {
   Trash,
   User,
   Users,
+  // Colour scheme switcher (shell footer).
+  Monitor,
+  Moon,
+  Sun,
   type Icon as PhosphorIcon,
   type IconProps,
 } from "@phosphor-icons/react";
@@ -110,7 +114,12 @@ export const CaretRightIcon = duotoneIcon(CaretRight);
 export const CaretDownIcon = duotoneIcon(CaretDown);
 export const DotsThreeIcon = duotoneIcon(DotsThree);
 
-export const paperIconRegistry: IconRegistry = {
+// Colour scheme switcher: Frappé (dark), Latte (light), match system.
+export const MoonIcon = duotoneIcon(Moon);
+export const SunIcon = duotoneIcon(Sun);
+export const MonitorIcon = duotoneIcon(Monitor);
+
+export const catppuccinIconRegistry: IconRegistry = {
   close: glyph(X),
   chevronDown: glyph(CaretDown),
   chevronLeft: glyph(CaretLeft),

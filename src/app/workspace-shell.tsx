@@ -29,7 +29,7 @@ import {
 import {createNodeAction} from "./actions";
 import {NavButtons, PageTabs, markNextNavigationAsNewTab, tabIdFromHref} from "./page-tabs";
 import {SearchDialog} from "./search-dialog";
-import {FolderIcon, FolderPlusIcon, PageIcon, PlusIcon, SearchIcon} from "../themes/paper/icons";
+import {FolderIcon, FolderPlusIcon, PageIcon, PlusIcon, SearchIcon} from "../themes/catppuccin/icons";
 
 const WorkspaceContext = createContext<WorkspaceNode[] | null>(null);
 

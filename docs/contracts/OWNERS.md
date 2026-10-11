@@ -7,7 +7,7 @@ Each lane works in its own branch and `git worktree` (`../tessera-<lane>`), star
 | Lane | Owns | Starts |
 |---|---|---|
 | **A Engine** | `src/lib/tessera/**` (including every ToolDef), `drizzle/**`, `scripts/**`, root configs (`package.json`, `tsconfig.json`, `eslint.config.mjs`, `vitest.config.ts`, `drizzle.config.ts`, `.env.example`, `.nvmrc`), `docs/contracts/**`, `licenses.exceptions.json` | P0 alone, then P1 |
-| **B Shell and workspace** | `src/app/(tessera)/layout.tsx`, `src/components/shell/**`, `src/components/tab-registry.ts`, `src/app/providers.tsx` (additive until P6), `src/app/globals.css` (additive until P6), `src/themes/paper/icons.tsx` (additive), `src/components/{home,inbox,settings}/**`, routes `/home` (then `/`), `/your-work/**`, `/agents/**`, `/inbox`, `/stickies`, `/settings/**` | P1 day 4 |
+| **B Shell and workspace** | `src/app/(tessera)/layout.tsx`, `src/components/shell/**`, `src/components/tab-registry.ts`, `src/app/providers.tsx` (additive until P6), `src/app/globals.css` (additive until P6), `src/themes/catppuccin/**` and the generated `src/astryx-themes.ts` (icons additive for others), `src/components/{home,inbox,settings}/**`, routes `/home` (then `/`), `/your-work/**`, `/agents/**`, `/inbox`, `/stickies`, `/settings/**` | P1 day 4 |
 | **C Work items UI** | `src/components/work-items/**`, `src/components/dnd/**`, `src/app/(tessera)/projects/page.tsx`, `src/app/(tessera)/projects/[projectId]/{layout.tsx,work-items/**}`, `src/app/actions/{_run,projects,states-labels,work-items}.ts` | P1 day 4 |
 | **D Detail, editor, pages** | `src/components/editor/**`, `src/components/detail/**`, `src/components/pages/**`, routes `work-items/[workItemId]/**`, `browse/**`, `pages/**`, `wiki/**`, `projects/[projectId]/pages/**`, `src/app/api/{work-items,pages,search}/**`, `src/app/actions/{relations-comments,pages}.ts` | P2a |
 | **E Planning** | `src/components/{planning,intake,drafts,estimates}/**`, routes `projects/[projectId]/{cycles,modules,archives,intake}/**`, `/drafts`, `/active-cycles`, `src/app/actions/{cycles,modules,drafts-intake,estimates}.ts` | P3 |
@@ -23,7 +23,8 @@ Lane G's files under `src/lib/tessera/` are the only exception to lane A owning 
 |---|---|---|
 | `package.json` | A | add a dependency only with an exact version and a line in the hand-off note; `npm run check:licenses` must stay green |
 | `src/app/globals.css` | B | append one `@import "../components/styles/<area>.css";` line per area |
-| `src/themes/paper/icons.tsx` | B | append new Phosphor re-exports |
+| `src/themes/catppuccin/icons.tsx` | B | append new Phosphor re-exports |
+| `src/themes/catppuccin/{palette.ts,catppuccinTheme.ts}` | B | nothing; request token or component changes from lane B. Generated `catppuccin.{css,js,d.ts,css.d.ts}` change only through `npm run astryx -- theme build`, `src/astryx-themes.ts` only through `astryx theme add/use` |
 | `src/app/providers.tsx` | B | append a provider |
 | `src/lib/tessera/schemas.ts`, `types.ts` | A | nothing; request the change from lane A |
 | `docs/contracts/*.md` | A | nothing; a contract change is a lane A commit that other lanes then follow |

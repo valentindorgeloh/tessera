@@ -1,5 +1,5 @@
 import type {Metadata} from "next";
-import {Source_Code_Pro, Source_Sans_3, Source_Serif_4} from "next/font/google";
+import {Source_Code_Pro, Source_Sans_3} from "next/font/google";
 import "./globals.css";
 import {Providers} from "./providers";
 
@@ -7,13 +7,6 @@ const bodyFont = Source_Sans_3({
   subsets: ["latin"],
   weight: "variable",
   variable: "--font-body",
-  display: "swap",
-});
-
-const headingFont = Source_Serif_4({
-  subsets: ["latin"],
-  weight: "variable",
-  variable: "--font-heading",
   display: "swap",
 });
 
@@ -36,9 +29,12 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({children}: LayoutProps<"/">) {
   return (
+    // data-theme="dark" is the Astryx SSR hint for the Frappé default
+    // (DEFAULT_COLOR_SCHEME); the root <Theme> updates it after hydration.
     <html
       lang="en"
-      className={`${bodyFont.variable} ${headingFont.variable} ${codeFont.variable}`}
+      data-theme="dark"
+      className={`${bodyFont.variable} ${codeFont.variable}`}
     >
       <body>
         <Providers>{children}</Providers>

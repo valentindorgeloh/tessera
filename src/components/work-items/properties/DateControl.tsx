@@ -5,7 +5,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { DateInput } from "@astryxdesign/core/DateInput";
 import { Popover } from "@astryxdesign/core/Popover";
 import { VStack } from "@astryxdesign/core/Stack";
-import { CalendarIcon } from "@/themes/paper/icons";
+import { CalendarIcon } from "@/themes/catppuccin/icons";
 
 export type DateControlProps = {
   /** YYYY-MM-DD or null. */

@@ -19,7 +19,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { createWorkItemAction, moveWorkItemAction, updateWorkItemAction } from "@/app/actions/work-items";
 import { isMultiValuedGroup } from "@/lib/tessera/core/group";
 import type { CreateWorkItemInputType, Display, Filters, Group, GroupBy, State, StateGroup, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
-import { PlusIcon } from "@/themes/paper/icons";
+import { PlusIcon } from "@/themes/catppuccin/icons";
 import { BoardLayout } from "./BoardLayout";
 import { CreateWorkItemDialog } from "./CreateWorkItemDialog";
 import { DisplayMenu } from "./DisplayMenu";

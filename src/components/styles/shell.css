@@ -12,10 +12,10 @@
   background: var(--color-background-surface);
 }
 
-/* Decorative close glyph inside a tab: quiet until the tab is hovered or active. */
+/* Decorative close glyph inside a tab: quieter until hovered, but still 3:1 on the tab bar. */
 .tessera-tab-close {
   color: var(--color-icon-secondary);
-  opacity: 0.55;
+  opacity: 0.85;
   border-radius: var(--radius-inner);
   transition: opacity var(--duration-fast) var(--ease-standard);
 }

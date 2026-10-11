@@ -3,6 +3,10 @@
  * drag overlay (src/components/dnd/use-pointer-drag.ts). Tokens only; the
  * column width is the one structural px value and matches COLUMN_WIDTH in
  * BoardLayout.tsx.
+ *
+ * Corners are concentric (`astryx docs shape`): a column or swimlane cell is
+ * its cards' radius plus the spacing-2 padding around them, so the inner and
+ * outer curves stay parallel.
  */
 
 .tessera-board {
@@ -23,6 +27,12 @@
 
 .tessera-board-strip > * {
   flex-shrink: 0;
+}
+
+.tessera-board-column,
+.tessera-board-column-head,
+.tessera-board-cell {
+  border-radius: calc(var(--radius-element) + var(--spacing-2));
 }
 
 .tessera-board-column {
@@ -67,6 +77,11 @@
 }
 
 /* Cards are the drag handles: no text selection, no touch panning, a lift on hover. */
+.tessera-board-card,
+.tessera-drag-overlay {
+  border-radius: var(--radius-element);
+}
+
 .tessera-board-card {
   cursor: grab;
   user-select: none;
@@ -82,7 +97,7 @@
 .tessera-board-placeholder {
   border: var(--border-width) dashed var(--color-border-emphasized);
   background: var(--color-background-muted);
-  border-radius: var(--radius-container);
+  border-radius: var(--radius-element);
 }
 
 /*

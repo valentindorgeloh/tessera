@@ -14,7 +14,7 @@ import { Heading } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Token } from "@astryxdesign/core/Token";
 import type { Project } from "@/lib/tessera/types";
-import { KanbanIcon, resolveLogoIcon } from "@/themes/paper/icons";
+import { KanbanIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { useProject } from "./project-provider";
 
 export type ProjectTab = {

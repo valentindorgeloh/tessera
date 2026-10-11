@@ -236,7 +236,7 @@ Italic, Strike, Code, Link (inline URL input; `setLink({ href })` / `unsetLink()
 Drag handle: `DragHandle` from `@tiptap/extension-drag-handle-react`
 (`extension-drag-handle-react/dist/index.d.ts`: `{ editor, children, nested?, onNodeChange, className }`)
 rendered when `!compact`, child icon `DragHandleIcon` (add `export const DragHandleIcon = duotoneIcon(DotsSixVertical);`
-to `src/themes/paper/icons.tsx`, additive, named in the hand-off). Its peers
+to `src/themes/catppuccin/icons.tsx`, additive, named in the hand-off). Its peers
 `@tiptap/extension-node-range`, `@tiptap/extension-collaboration`, `@tiptap/y-tiptap`
 are already installed transitively.
 

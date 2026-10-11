@@ -23,7 +23,7 @@ import { resetViewSettingsAction, saveViewSettingsAction } from "@/app/actions/v
 import { GROUPABLE_FIELDS, ORDER_BY_VALUES, type OrderableField } from "@/lib/tessera/core/group";
 import { LayoutSchema, SubGroupBySchema } from "@/lib/tessera/schemas";
 import type { Display, DisplayProperties, GroupBy, Layout, OrderBy, SubGroupBy } from "@/lib/tessera/types";
-import { CalendarIcon, GanttIcon, KanbanIcon, RowsIcon, SlidersIcon, TableIcon } from "@/themes/paper/icons";
+import { CalendarIcon, GanttIcon, KanbanIcon, RowsIcon, SlidersIcon, TableIcon } from "@/themes/catppuccin/icons";
 import { useProject } from "./project-provider";
 import type { UrlState } from "./types";
 import { encodeUrlState } from "./url-state";
@@ -40,10 +40,11 @@ const NONE = "__none__";
 
 /**
  * Popover width. The layout control hugs its five labelled segments (about
- * 340px at size sm, "Calendar" being the widest); anything narrower made the
- * Popover size itself to its trigger and truncated the labels to one letter.
+ * 346px at size sm, "Calendar" being the widest), inside the 16px stack padding,
+ * the 12px popover padding and the theme's 1px popover border: about 404px,
+ * below which the labels truncate to an ellipsis. 416 leaves some slack.
  */
-const MENU_WIDTH = 400;
+const MENU_WIDTH = 416;
 
 const FIELD_LABELS: Record<GroupBy, string> = {
   state: "State",

@@ -5,7 +5,7 @@ import { HStack } from "@astryxdesign/core/Stack";
 import { Selector, type SelectorOptionData } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
 import type { Priority } from "@/lib/tessera/types";
-import { PriorityHighIcon, PriorityLowIcon, PriorityMediumIcon, PriorityNoneIcon, PriorityUrgentIcon } from "@/themes/paper/icons";
+import { PriorityHighIcon, PriorityLowIcon, PriorityMediumIcon, PriorityNoneIcon, PriorityUrgentIcon } from "@/themes/catppuccin/icons";
 
 export type PriorityControlProps = {
   value: Priority;

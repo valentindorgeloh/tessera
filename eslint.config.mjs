@@ -60,7 +60,7 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    // Legacy handbook files: untouched until they are removed in P6 (see docs/PLAN.md).
+    // Legacy handbook files: kept to their old lint rules until they are removed in P6 (see docs/PLAN.md).
     files: [
       "src/app/page-body.tsx",
       "src/app/document-editor.tsx",

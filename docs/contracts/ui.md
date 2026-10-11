@@ -1,6 +1,6 @@
 # UI contract
 
-Owner: lane A for this document; the code is split between lanes B (shell), C (work items), D (detail, editor, pages), E (planning), F (views, analytics, settings) and G (AI) per `docs/contracts/OWNERS.md`. Astryx rules in `.cursor/rules/astryx.mdc` apply to every file: no raw `div`/`span` layout, components and tokens only, Phosphor icons through `src/themes/paper/icons.tsx`, no xstyle, no hex, no px except structural widths.
+Owner: lane A for this document; the code is split between lanes B (shell), C (work items), D (detail, editor, pages), E (planning), F (views, analytics, settings) and G (AI) per `docs/contracts/OWNERS.md`. Astryx rules in `.cursor/rules/astryx.mdc` apply to every file: no raw `div`/`span` layout, components and tokens only, Phosphor icons through `src/themes/catppuccin/icons.tsx`, no xstyle, no hex, no px except structural widths.
 
 ## Route groups
 
@@ -77,6 +77,25 @@ Filter bar: Astryx `PowerSearch` tokens for state, priority, labels, assignees, 
 - `QuickCreate`: global create dialog host so the sidebar button and `n i` shortcut open the same dialog as lane C's screen (lane C exports `CreateWorkItemDialog`; lane B mounts it).
 - Home at `/home`: project cards from `listProjects`, "Since you were last here" placeholder card (P5/P9 fill it), recent items (P9).
 - Keyboard: `useHotkeys` from `@astryxdesign/core/hooks` (verify the call form in `node_modules/@astryxdesign/core/hooks`); shortcut list per docs/PLAN.md §6.
+- Colour scheme: the SideNav `footerIcons` slot holds the "Colour scheme" menu (Frappé (dark), Latte (light), Match system) next to the collapse button. State lives in `src/components/shell/color-scheme.ts` (`useColorScheme`, `setColorScheme`, `localStorage` key `tessera.scheme.v1`); its values are the Astryx `<Theme mode>` values, which `src/app/providers.tsx` passes through.
+
+## Theme
+
+- The theme is the local Astryx theme `catppuccin` in `src/themes/catppuccin/`. Edit `palette.ts` (colours and `[latte, frappe]` token pairs, the only place for hex) or `catppuccinTheme.ts` (`defineTheme`). Then run `npm run astryx -- theme build src/themes/catppuccin/catppuccinTheme.ts`, and again after every Astryx upgrade.
+- Never edit the generated `catppuccin.{css,js,d.ts,css.d.ts}` (`npm run check:theme` fails when they are stale) or `src/astryx-themes.ts` (regenerate it with `npm run astryx -- theme add catppuccin --import`; `npm run astryx -- doctor` fails its theme-module check when it drifts). Every local import of the theme must resolve inside `src/themes/catppuccin/`; Astryx refuses the theme otherwise, which is why the icons live there.
+- A new colour pair gets a case in `tests/themes/catppuccin-contrast.test.ts` (text 4.5:1; icons, control outlines and the focus ring 3:1; translucent fills composited over their surface). `tests/themes/catppuccin-wiring.test.ts` checks the built CSS carries the palette, the syntax mapping and the overrides the contrast test assumes.
+- Corners: `--radius-inner` (4, chips and tokens), `--radius-element` (8, buttons, inputs, cards nested in a column), `--radius-container` (12, cards, menus, dialogs), `--radius-page` (16, page panels). Use `--radius-full` only for avatars and badges. A container's corner is the radius of the surface nested in it plus the padding between them, written with `calc()` on tokens (`src/components/styles/board.css`: 8px cards in 8px padding give 16px columns).
+- Exceptions to "only avatars and badges are round", inherent to the component: the `Switch` track and thumb, the radio indicator, status dots and spinners, the `Token` remove button, tab underline caps, and in date pickers the `Calendar` range bands and the touch month-scroller puck (neither themeable; revisit if a range or touch picker lands).
+- `--radius-page` only shows where Astryx's AppShell elevates its content, which needs a top nav next to an inline side nav (the legacy handbook). The Tessera shell has a side nav only, so its content panel is flat and the board columns are its 16px panels.
+- Control outlines (inputs, selectors, checkbox and radio rings, the off switch track) use `--color-border-emphasized`, tuned to 3:1 on every surface (WCAG 1.4.11). Change it only together with the contrast test.
+- A restyle of a whole component goes in `components` in `catppuccinTheme.ts`, keyed by `npm run astryx -- theme targets <Name>`, never in app CSS and never through private `--_*` variables. Per-instance layout stays className + tokens. Current overrides:
+  - Hairline borders on `popover` and `context-menu`.
+  - Token text colour on `popover`, `context-menu` and `dialog`; the browser's default styles for `<dialog>` and `[popover]` set `color: CanvasText` (pure white or black), which glyphs without their own colour would inherit.
+  - The off `switch` track takes `--color-border-emphasized` (the gray chip tint is too faint). Only the off state, so the checked track keeps Astryx's accent, hover tint and forced-colors colours. Trade-offs: the off track loses Astryx's 5% hover tint, and a disabled off track shows the outline colour at Astryx's half opacity.
+  - Rounded-square `nav-icon`, `tab-scroll-button` and `calendar-day`.
+  - `onDark`/`onLight`: the focus ring on inverted surfaces (toasts) uses the on-colour, as the accent does there.
+- Code highlighting uses Astryx's default syntax mapping (`syntaxTokenDefaults`, declared in the theme so it resolves to the Catppuccin text tokens). Code colours therefore follow `--color-text-{accent,green,orange,blue,purple,cyan,red,teal,secondary,primary}`.
+- The root layout sets `<html data-theme="dark">`, the Astryx SSR hint for the Frappé default; the root `<Theme>` updates it after hydration. Until then `<html>` and `<body>` resolve Astryx's default tokens, because the root `<Theme>` copies `data-astryx-theme` onto `<html>` in an effect. So every page paints its own surface inside the Theme wrapper: the shell does, and the root not-found page uses `.tessera-root-frame` (`src/app/globals.css`).
 
 ## Astryx usage rules that caught agents before
 
@@ -235,7 +254,7 @@ export function WorkItemDetail(props: WorkItemDetailProps): JSX.Element;
   key `isCurrent`; end: copy ID and copy URL `IconButton`s using
   `useClipboard({ announce: "Copied" })` (`dist/hooks/useClipboard.d.ts`: `copy`,
   `isCopied`), the mode switcher (three `IconButton`s: side, modal, page), close
-  (peek/modal). Icons needed and missing from `src/themes/paper/icons.tsx` are added
+  (peek/modal). Icons needed and missing from `src/themes/catppuccin/icons.tsx` are added
   there additively (`export const <Name>Icon = duotoneIcon(<Phosphor>);`, alphabetical),
   listed in the hand-off: `CopyIcon` (Copy), `LinkIcon` (Link), `SidebarIcon`
   (SidebarSimple), `ArrowsOutIcon` (ArrowsOutSimple), `DragHandleIcon` (DotsSixVertical),
@@ -319,7 +338,8 @@ export function WorkItemDetail(props: WorkItemDetailProps): JSX.Element;
   `value`/`onValueChange` props); `CommandBar` keeps a `Map<id, () => void>` built
   with the items and runs the handler. Section order (group names): "Work items",
   "Projects", "Cycles", "Modules", "Pages", "Actions", "Create", "Navigate", "Settings".
-  Hit ids are `hit:<type>:<id>`; command ids are the `ShortcutId`s below.
+  Hit ids are `hit:<type>:<id>`; command ids are `CommandId`s: the `ShortcutId`s below plus the palette-only theme commands.
+- Theme commands in the "Settings" group: "Theme: Frappé (dark)", "Theme: Latte (light)" and "Theme: Match system" call `setColorScheme("dark" | "light" | "system")` from `src/components/shell/color-scheme.ts`. They are palette-only commands with ids `theme.dark`, `theme.light` and `theme.system`, have no key binding, and are not entries in `SHORTCUTS`.
 - Scope: inside a project (`useOptionalProject()` non-null) `scope=<projectId>`
   and a footer toggle "All projects" (`CommandPaletteFooter` replaced through the
   `footer` slot) drops it; outside, no scope.
@@ -371,6 +391,7 @@ export type ShortcutId =
   | "create.workItem" | "create.cycle" | "create.module" | "create.view" | "create.page" | "create.project"
   | "nav.home" | "nav.workItems" | "nav.cycles" | "nav.modules" | "nav.views" | "nav.pages" | "nav.inbox"
   | "nav.archives" | "nav.settings" | "nav.yourWork" | "nav.analytics" | "nav.projects" | "nav.intake" | "nav.drafts";
+export type CommandId = ShortcutId | "theme.dark" | "theme.light" | "theme.system";
 export type ShortcutDef = { id: ShortcutId; label: string; keys: string; group: "Global" | "Work item" | "Create" | "Navigate"; needsItem?: boolean; arrives?: "P3" | "P5" | "P6" | "P7" | "P8" | "P9" };
 export const SHORTCUTS: readonly ShortcutDef[];
 export const CHORD_WINDOW_MS = 1000;
@@ -420,8 +441,8 @@ export function formatKeys(keys: string, isMac: boolean): string;   // "mod+." �
 
 | Lane | Creates | May edit additively (name it in the hand-off) | Must not touch |
 |---|---|---|---|
-| D1 editor | `src/components/editor/**`, `src/components/styles/editor.css`, `src/app/api/work-items/[workItemId]/description/route.ts`, `tests/editor/**` | `src/app/globals.css` (one `@import`), `src/themes/paper/icons.tsx` (`DragHandleIcon`), `package.json` + lockfile only for the three installs in editor.md | `src/components/detail`, `src/components/shell`, `src/components/work-items`, `src/app/actions/*` |
-| D2 detail | `src/components/detail/**` (except `PeekHost.tsx`, `peek-url.ts`, `peek-prefs.ts`), `src/components/styles/detail.css`, `src/app/actions/detail.ts` | `src/app/globals.css` (one `@import`), `src/themes/paper/icons.tsx` (icons listed above), `src/components/shell/command-context.ts` only if absent (verbatim surface) | `WorkItemsScreen.tsx`, `properties/*`, `TesseraShell.tsx`, `TabBar.tsx`, routes |
+| D1 editor | `src/components/editor/**`, `src/components/styles/editor.css`, `src/app/api/work-items/[workItemId]/description/route.ts`, `tests/editor/**` | `src/app/globals.css` (one `@import`), `src/themes/catppuccin/icons.tsx` (`DragHandleIcon`), `package.json` + lockfile only for the three installs in editor.md | `src/components/detail`, `src/components/shell`, `src/components/work-items`, `src/app/actions/*` |
+| D2 detail | `src/components/detail/**` (except `PeekHost.tsx`, `peek-url.ts`, `peek-prefs.ts`), `src/components/styles/detail.css`, `src/app/actions/detail.ts` | `src/app/globals.css` (one `@import`), `src/themes/catppuccin/icons.tsx` (icons listed above), `src/components/shell/command-context.ts` only if absent (verbatim surface) | `WorkItemsScreen.tsx`, `properties/*`, `TesseraShell.tsx`, `TabBar.tsx`, routes |
 | D3 hosts | `src/components/detail/{PeekHost.tsx,peek-url.ts,peek-prefs.ts}`, `src/components/shell/entity-labels.ts`, `src/app/(tessera)/work-items/**`, `src/app/(tessera)/browse/**`, `tests/ui/peek-url.test.ts` | `projects/[projectId]/work-items/page.tsx` (peek load + `PeekHost`), `projects/[projectId]/work-items/[workItemId]/page.tsx` (replace `QuickDetail`, delete `QuickDetail.tsx`), `WorkItemsScreen.tsx` (`onOpen` body + one import), `TabBar.tsx` (lookup), `tab-registry.ts` (two cases), `tests/ui/tab-registry.test.ts` | `TesseraShell.tsx`, `Sidebar.tsx`, `properties/*`, `src/components/editor` |
 | D4 Power K | `src/components/shell/{CommandBar.tsx,command-source.ts,command-context.ts,shortcuts.ts,useShortcuts.ts}`, `src/app/api/search/route.ts`, `tests/ui/shortcuts.test.ts` | `TesseraShell.tsx` (mount + `openCommandBar`), `Sidebar.tsx` (search button → `openCommandBar`, if the button exists), `src/components/styles/shell.css` | `tab-registry.ts`, `TabBar.tsx`, `src/components/detail`, `src/components/work-items`, routes other than `api/search` |
 

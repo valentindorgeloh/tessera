@@ -6,7 +6,7 @@ import { ContextMenu } from "@astryxdesign/core/ContextMenu";
 import { Icon, type IconType } from "@astryxdesign/core/Icon";
 import { HStack } from "@astryxdesign/core/Layout";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
-import { FolderIcon, HouseIcon, KanbanIcon, ListBulletsIcon, PageIcon, XIcon } from "@/themes/paper/icons";
+import { FolderIcon, HouseIcon, KanbanIcon, ListBulletsIcon, PageIcon, XIcon } from "@/themes/catppuccin/icons";
 import {
   EMPTY_TABS,
   TABS_STORAGE_KEY,

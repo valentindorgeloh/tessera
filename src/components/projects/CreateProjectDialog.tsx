@@ -22,7 +22,7 @@ import { Token } from "@astryxdesign/core/Token";
 import { createProjectAction } from "@/app/actions/projects";
 import { PROJECT_IDENTIFIER_PATTERN, PaletteColorSchema } from "@/lib/tessera/schemas";
 import type { PaletteColor } from "@/lib/tessera/types";
-import { PROJECT_LOGO_ICON_NAMES, PlusIcon, resolveLogoIcon, type ProjectLogoIconName } from "@/themes/paper/icons";
+import { PROJECT_LOGO_ICON_NAMES, PlusIcon, resolveLogoIcon, type ProjectLogoIconName } from "@/themes/catppuccin/icons";
 
 export type CreateProjectDialogProps = {
   isOpen: boolean;

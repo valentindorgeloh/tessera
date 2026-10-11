@@ -34,7 +34,7 @@ import { Heading, Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
 import { usePointerDrag, type DragDropEvent, type ItemDragHandlers } from "@/components/dnd/use-pointer-drag";
 import type { Display, DisplayProperties, Group, GroupBy, PaletteColor, StateGroup, WorkItem } from "@/lib/tessera/types";
-import { PlusIcon } from "@/themes/paper/icons";
+import { PlusIcon } from "@/themes/catppuccin/icons";
 import { isMovableGroup } from "./moves";
 import { isOptimisticId } from "./optimistic";
 import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } from "./properties";

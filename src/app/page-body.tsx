@@ -500,7 +500,7 @@ export function PageBody({
         });
         ctx.set(dropIndicatorConfig.key, {
           width: 2,
-          color: "#4A6711",
+          color: "var(--color-accent)",
           class: "milkdown-drop-indicator",
         });
         ctx.set(headingIdGenerator.key, (node) => {

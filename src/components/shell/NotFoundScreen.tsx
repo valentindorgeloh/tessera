@@ -4,18 +4,18 @@ import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/Stack";
-import { CompassIcon } from "@/themes/paper/icons";
+import { CompassIcon } from "@/themes/catppuccin/icons";
 
 /**
- * The Tessera "page not found" screen, shared by the route group's
- * `not-found.tsx` and by the project segment's boundary when the project
- * itself is unknown. A client component because the Phosphor glyphs in
- * src/themes/paper/icons.tsx create a React context at module load, which
- * React Server Components cannot evaluate.
+ * The Tessera "page not found" screen, shared by the root and route group
+ * `not-found.tsx` files and by the project segment's boundary when the project
+ * itself is unknown, centred in whatever area hosts it. A client component
+ * because the Phosphor glyphs in src/themes/catppuccin/icons.tsx create a React
+ * context at module load, which React Server Components cannot evaluate.
  */
 export function NotFoundScreen() {
   return (
-    <VStack padding={8} hAlign="center">
+    <VStack padding={8} minHeight="100%" hAlign="center" vAlign="center">
       <EmptyState
         icon={<Icon icon={CompassIcon} size="lg" color="secondary" />}
         title="Page not found"
