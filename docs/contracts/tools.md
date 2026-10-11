@@ -111,3 +111,29 @@ export function toolAction<N extends ToolName>(name: N): (input: ToolInput<N>) =
 4. Every `delete_*` tool and every tool listed as † above is destructive, nothing else; destructive tools mutate; read tools are exactly the `list_*`, `get_*`, `search_*`, `describe_*` tools; the core toolset equals the ★ tools; phases follow the rows above (links P1, the struck settings and automations tools do not exist); every P1 tool exists.
 5. `describe_filters` covers every `Filters` and `Display` key, types each filter by its schema, lists the enums and display values the schemas accept, ships three parsable examples, and is what the tool returns.
 6. `listTools` and `getTool` semantics; `runToolWithContext` end to end (validation before running, `ListResult` wrapping, delete results, cursor behaviour); the Server Action runner returns `{ ok: false }` instead of throwing. `tests/mcp.test.ts` and `tests/mcp-stdio.test.ts` cover the adapters (listing, confirm, error mapping, actor registration, stdio flags and exit codes).
+
+## P3 changes (lane A, consumed by docs/contracts/ui.md "P3: cycles, modules, archives")
+
+- No new tools: the registry stays at 90, names, phases, ★ and † marks unchanged.
+- Description text (exact):
+  - `get_cycle_progress`: "Returns a cycle's progress: totals by state group, item counts per state, label and assignee (with completed counts per label and assignee), and the pending amount per day from start_date to min(end_date, today) for burndown and burnup charts. There is no ideal line and no scope-per-day series: derive the ideal line from the dates and total minus cancelled, and treat scope as today's total. mode issues counts items; mode points sums estimate point values when the project has an active estimate, and chart_mode says which unit the series uses. A cycle whose open items were transferred, or an archived one, returns its frozen snapshot."
+  - `get_module_progress`: "Returns a module's progress: item totals by state group, item counts per state, label and assignee (with completed counts per label and assignee), and the same totals in estimate points when the project has an active estimate."
+  - `list_cycles`: the current text plus " Each cycle carries open_count, the number of items transfer_cycle_work_items would move."
+  - `get_cycle`: "Returns one cycle with its derived status, dates, open_count and progress (issues mode)."
+  - `unarchive_cycle`: "Restores an archived cycle; RULE not_archived when it is not archived; CONFLICT when its dates now overlap another active cycle; the frozen snapshot stays."
+- Outputs: `list_cycles` and `get_cycle` gain `open_count`; `get_cycle_progress`,
+  `get_cycle` and `get_module_progress` / `get_module` gain the breakdown rows,
+  `chart_mode` (cycles) and the P3 points rules (docs/contracts/service-api.md "P3 additions").
+- Errors: `create_work_item`, `set_modules` and `move_work_item` (grouped by module)
+  answer `ARCHIVED` when a module being added or removed is archived.
+- Server Action wrappers added in P3 (file-level `"use server"`, `toolAction(name)`):
+  - `src/app/actions/cycles.ts` (lane E1): `createCycleAction`, `updateCycleAction`, `archiveCycleAction`, `unarchiveCycleAction`, `deleteCycleAction`, `addWorkItemsToCycleAction`, `transferCycleWorkItemsAction`.
+  - `src/app/actions/modules.ts` (lane E2): `createModuleAction`, `updateModuleAction`, `archiveModuleAction`, `unarchiveModuleAction`, `deleteModuleAction`, `addWorkItemsToModuleAction`, `setModuleMembersAction`, `addModuleLinkAction`, `updateModuleLinkAction`, `removeModuleLinkAction`.
+  - `src/app/actions/work-items.ts` (lane E3, additive): `unarchiveWorkItemAction`.
+  - `src/app/actions/projects.ts` (lane E3, additive): `archiveProjectAction`, `unarchiveProjectAction`, `deleteProjectAction`.
+  - `reorder_cycle` and `reorder_module` get no wrapper in P3 (no reorder UI; MCP only). `remove_work_items_from_cycle` and `remove_work_items_from_module` get none either: an item leaves through its Cycle or Modules property (`update_work_item`, `set_modules`); the row action arrives with the P8 bulk bar.
+  - Archives › Work items deletes through the existing `deleteWorkItemAction` (`delete_work_item` works on archived items).
+  The UI confirms destructive tools itself (`AlertDialog`, the transfer dialog, the
+  typed project identifier); `confirm: true` stays an MCP-only field.
+- Registry test: unchanged; the description changes keep every rule in "Registry test".
+- Acceptance client `scripts/mcp-call.ts` (lane A, docs/contracts/ui.md "Lane A: engine additions" item 9): `npx tsx scripts/mcp-call.ts <tool> ['<json>']` calls one tool by registry name over stdio (it spawns `npx tsx scripts/mcp-stdio.ts` without `--db`, so it uses the dev server's database; client name `p3-acceptance`) and prints the structured result.

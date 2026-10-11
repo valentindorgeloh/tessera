@@ -95,6 +95,14 @@ import {
   ColumnsPlusRight,
   RowsPlusBottom,
   RowsPlusTop,
+  // P3 planning: cycles, charts, transfer and archives.
+  Archive,
+  ArrowCounterClockwise,
+  ArrowsLeftRight,
+  CalendarDots,
+  ChartLineDown,
+  ChartLineUp,
+  Timer,
   type Icon as PhosphorIcon,
   type IconProps,
 } from "@phosphor-icons/react";
@@ -222,6 +230,13 @@ export const ColumnAddLeftIcon = duotoneIcon(ColumnsPlusLeft);
 export const ColumnAddRightIcon = duotoneIcon(ColumnsPlusRight);
 export const RowAddAboveIcon = duotoneIcon(RowsPlusTop);
 export const RowAddBelowIcon = duotoneIcon(RowsPlusBottom);
+export const ArchiveIcon = duotoneIcon(Archive);
+export const BurndownIcon = duotoneIcon(ChartLineDown);
+export const BurnupIcon = duotoneIcon(ChartLineUp);
+export const CalendarDotsIcon = duotoneIcon(CalendarDots);
+export const RestoreIcon = duotoneIcon(ArrowCounterClockwise);
+export const TimerIcon = duotoneIcon(Timer);
+export const TransferIcon = duotoneIcon(ArrowsLeftRight);
 
 /**
  * Icons a project logo may use (`Logo.icon` holds the Phosphor name). The

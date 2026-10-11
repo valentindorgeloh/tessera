@@ -6,6 +6,9 @@
 @import "../components/styles/table.css";
 @import "../components/styles/editor.css";
 @import "../components/styles/detail.css";
+@import "../components/styles/planning.css";
+@import "../components/styles/modules.css";
+@import "../components/styles/archives.css";
 
 html,
 body {

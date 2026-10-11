@@ -2,10 +2,14 @@
   "mcpServers": {
     "tessera": {
       "command": "npx",
-      "args": ["tsx", "scripts/mcp-stdio.ts"],
+      "args": [
+        "tsx",
+        "scripts/mcp-stdio.ts"
+      ],
       "cwd": "/Users/valentindorgeloh/Documents/Github/tessera",
       "env": {
-        "TESSERA_DB_PATH": "/Users/valentindorgeloh/Documents/Github/tessera/data/tessera.db"
+        "TESSERA_DB_PATH": "/Users/valentindorgeloh/Documents/Github/tessera/data/tessera.db",
+        "PATH": "/opt/homebrew/bin:/usr/bin:/bin"
       }
     }
   }

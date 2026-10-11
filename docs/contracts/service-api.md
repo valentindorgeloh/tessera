@@ -226,3 +226,96 @@ describeFilters(): DescribeFiltersPayload                               // cache
 ## Filters and display
 
 `filters.ts` turns `Filters` (+ `RichFilters`) into Drizzle `where` fragments (`buildWhere(ctx, filters, { project_id?, include_triage? })`) and `Display` into `order by` (`buildOrder`) and grouping (`groupItems`). Deleted items are always excluded, archived items unless `filters.archived` is true, triage items unless the filter targets the triage state. `search` goes through FTS5 (`searchWorkItemIds`, capped at 100 000 ids inside a list query). Ordering puts `NULL` dates and estimates last and breaks ties on `sort_order` then `sequence_id`. Grouping by multi-valued fields (labels, assignees, modules) duplicates the item into every group; `moveWorkItem` with such a `group_by` adds the value and removes `from_value` instead of replacing it (`schema.md` "Work items"). `Display.type` and `Display.sub_items` act as filters when `filters` leave `type` / `sub_items` unset. Date filters: `before` and `after` are strict, `between` is inclusive, a `relative` token wins over `from` / `to`, `between` + `relative` spans today..anchor, timestamp columns (`created_at`, `updated_at`, `completed_at`) are compared on the server's local calendar day, a `DateFilter` without a usable bound is ignored. URL filter state is one base64url-encoded JSON `q=` param; `view_settings` supplies the defaults; URL wins (P2a).
+
+## P3 additions (lane A)
+
+Consumers: docs/contracts/ui.md "P3: cycles, modules, archives". No new service
+exports that mutate, no new tools, no new activity verbs, no migration:
+`cycle.progress_snapshot` is JSON and its schema only widens, so snapshots frozen
+before P3 still parse.
+
+```ts
+// schemas.ts
+PointsCountsSchema            // { total, completed, cancelled, started, unstarted, backlog }: z.number().nonnegative() (fractional estimate values)
+ProgressModeSchema            // z.enum(["issues", "points"]); cycles.ts keeps CycleProgressModeSchema as an alias
+ProgressBreakdownRowSchema    // { id: IdSchema.nullable(), total: int >= 0, completed: int >= 0 }
+CycleProgressSchema = ProgressCountsSchema.extend({
+  by_state, by_label, by_assignee,                       // unchanged: item counts per id
+  assignees: z.array(ProgressBreakdownRowSchema).optional(),
+  labels: z.array(ProgressBreakdownRowSchema).optional(),
+  points: PointsCountsSchema.optional(),                 // was ProgressCountsSchema (integers)
+  chart_mode: ProgressModeSchema.optional(),             // unit of completion_chart in a returned progress
+  completion_chart: z.record(IsoDateSchema, z.number().nonnegative()),
+  completion_chart_points: z.record(IsoDateSchema, z.number().nonnegative()).optional(),   // written into snapshots only; see "Snapshot visibility"
+})
+// types.ts: PointsCounts, ProgressBreakdownRow, ProgressMode
+
+// cycles.ts
+type Cycle = CycleRow & { status: CycleStatus; progress: { total: number; completed: number }; open_count: number }
+type CycleDetail = Omit<Cycle, "progress"> & { progress: CycleProgress }      // progress in issues mode
+listCycles(ctx, projectId, { status?, archived? } = {}): Cycle[]                // + open_count
+getCycle(ctx, id): CycleDetail                                                  // + open_count
+getCycleProgress(ctx, id, { mode?: "issues" | "points" } = {}): CycleProgress    // chart_mode always set
+
+// modules.ts
+type ModuleProgress = ProgressCounts & {
+  by_state: Record<string, number>;
+  by_label: Record<string, number>;          // new
+  by_assignee: Record<string, number>;       // new
+  assignees: ProgressBreakdownRow[];         // new
+  labels: ProgressBreakdownRow[];            // new
+  points?: PointsCounts;                     // only with an active estimate
+}
+getModuleProgress(ctx, id): ModuleProgress
+getModule(ctx, id): ModuleDetail                                                // progress: ModuleProgress
+```
+
+- **Points** (cycles now match modules): counted only when the project has an
+  active estimate (`estimates_enabled` and `estimate_id` set), only for items whose
+  `estimate_point` is not deleted and belongs to that estimate, and only for numeric
+  values ≥ 0 (anything else counts 0). Without an active estimate `points` is absent.
+- **Series**: `completion_chart` is the pending amount per day from `start_date` to
+  `min(end_date, today)` (unchanged rules: local day of `completed_at`, cancelled items
+  left out). Live progress builds the items series and, with an active estimate, the
+  points series. `mode: "issues"` returns the items series, no `points`, no
+  `completion_chart_points`, `chart_mode: "issues"`. `mode: "points"` returns `points`
+  when present and the points series as `completion_chart` with `chart_mode: "points"`;
+  without a points series (no active estimate, or a snapshot frozen before P3) it
+  returns the items series with `chart_mode: "issues"`. Burnup and the ideal line are
+  derived by clients from the series, the dates and `total − cancelled`; they are not
+  stored. There is no scope series (scope per day from each item's join day): burnup
+  clients draw today's scope as a flat line; a per-day scope series is P9 analytics work.
+- **Snapshot**: `freezeSnapshot` (first transfer out, or archive) stores the items
+  series as `completion_chart` and, with an active estimate, the points series as
+  `completion_chart_points`, together with the counts, `points` and the breakdowns.
+  `readSnapshot` keeps using `safeParse`; with the widened schema a snapshot holding
+  fractional points no longer falls back to live progress. `unarchiveCycle` keeps the
+  snapshot (and answers `CONFLICT` when the dates now overlap a non-archived cycle).
+- **Snapshot visibility**: `completion_chart_points` is never part of a returned
+  `CycleProgress` (`getCycleProgress`, `getCycle().progress`), but `Cycle` and
+  `CycleDetail` spread the whole `CycleRow` (`toCycles`, `toCycleDetail`), so the raw
+  `progress_snapshot` column, `completion_chart_points` included, is visible in
+  `list_cycles`, `get_cycle` and the UI's project bundle. Clients treat a cycle as
+  frozen exactly when `progress_snapshot !== null` and read progress only from
+  `progress` / `getCycleProgress`, never from the raw column.
+- **`open_count`**: live count of non-deleted members whose state group is neither
+  `completed` nor `cancelled`, archived and triage members included, which is exactly
+  the set `transferCycleWorkItems` moves; computed even when a snapshot is frozen (one
+  grouped query for the list, like `loadLiveSummaries`).
+- **Breakdown rows** (`assignees`, `labels`) over the progress population (cycles:
+  archived items included; modules: archived items excluded; triage excluded in both):
+  one row per actor or label with at least one item, plus a row with `id: null` for
+  items without an assignee or without labels when there are any; `completed` counts
+  items in the `completed` group; sorted by `total` descending then `id`, the `null` row
+  last. An item with two assignees counts in both rows.
+- **Archived modules**: `createWorkItem` (`module_ids`) and `syncModules` (`set_modules`,
+  `move_work_item` with `group_by: "module"`) throw `ARCHIVED` (`module "<name>" is archived`)
+  when a module being added or removed is archived; memberships of archived modules
+  that the call leaves unchanged are kept. `moveWorkItemToProject` still clears every
+  membership (the item leaves the project).
+- **Activity**: the item-side membership row written by `addWorkItemsToModule` /
+  `removeWorkItemsFromModule` uses `field: "modules"`, the field `syncModules` already
+  writes. Rows stored earlier keep `field: "module"`; the UI labels both.
+- Tests: `tests/cycles.test.ts`, `tests/modules.test.ts`, `tests/work-items.test.ts`
+  (cases listed in docs/contracts/ui.md "Lane A: engine additions"); `tests/registry.test.ts`
+  is unchanged.

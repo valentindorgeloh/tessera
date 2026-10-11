@@ -545,3 +545,1159 @@ peek, the full page, `/work-items/[id]` and `/browse/[key]`.
 15. `@tiptap/markdown` keeps unrecognised HTML as literal text and needs
     `window.DOMParser` for recognised inline HTML (`dist/index.js` ~927); without a DOM
     everything becomes literal text, which is why the corpus runs under jsdom.
+
+## P3: cycles, modules, archives
+
+Five lanes start on the same day and do not talk to each other: **A** engine
+additions (progress schemas, cycle points and snapshot, `open_count`,
+breakdowns, the archived-module guard, tool descriptions; no new tools) plus the
+acceptance MCP client `scripts/mcp-call.ts` and the docs/PLAN.md corrections,
+**E1** cycles and the burndown/burnup chart, **E2** modules, **E3** archives
+(work items, cycles, modules, projects) with every archive and restore control,
+**E4** integration (the scoped work items list, project tabs, sidebar, tab
+labels, Power K, editor links). Every API named here was checked against the
+installed packages on 2026-10-11 (file cited in brackets; Astryx declarations
+under `node_modules/@astryxdesign/core/dist/<Name>/`). `recharts@3.10.1` and
+`react-is@19.3.0` (exact) were installed in the P3 prep commit, together with the
+icon patch and the three empty stylesheets with their `@import` lines (see "Icons,
+CSS and conventions"); E1 re-checks the Recharts props named here against
+`node_modules/recharts/types/` before writing the chart. Mismatches with
+docs/PLAN.md and the code are collected at the end.
+
+### Carried items (not P3 work)
+
+- List titles, the Home "Projects" heading, the handbook search dialog's
+  accessible name and the old handbook tabs' button inside a button were fixed
+  in `2c96000`; nothing to do.
+- `npm run astryx -- doctor` now reports two warnings, the theme-fonts check and
+  the themes summary that repeats it (the agent-instructions warning is gone;
+  re-run 2026-10-11: pass 18, warn 2, fail 0).
+  Fonts load through `next/font`, as AGENTS.md records; accepted until Astryx
+  recognises `next/font`.
+- Astryx 0.6.8 `ContextMenu` prop warnings in development: an upstream fix; P3
+  adds no `ContextMenu`. React's occasional "negative time stamp" performance
+  error in development: known React issue, noted since P2a, not in production.
+  These two are the only dev-console entries the P3 acceptance tolerates.
+
+### Scope and deferrals
+
+Ships in P3: cycles list (sections Current, Upcoming, Completed, Draft) with the
+active cycle summary card; create and edit dialog; cycle detail with the scoped
+work items list and a side panel (progress, burndown/burnup, breakdowns by
+assignee, label and state); transfer of open items (to a cycle or to no cycle);
+archive, restore and delete of cycles; modules list and detail (status, lead,
+members, dates, links, progress, breakdowns); "Add existing work items" for
+cycles and modules; project archives (work items, cycles, modules) and archived
+projects, each with restore and delete; archive and restore of a work item from
+its detail; Cycles, Modules and Archives tabs, sidebar entries, tab labels, Power K
+targets and `cycle:` / `module:` editor links.
+
+| Deferred | Phase | Note |
+|---|---|---|
+| Module gallery and timeline layouts | P10 (timeline with gantt), P9 (gallery) | P3 modules list is a `List` |
+| Module burndown chart | P9 | The panel shows counts and breakdowns only |
+| Favourites of cycles and modules (`mod+f`) | P9 | No star button in P3 |
+| `/active-cycles` workspace page | P9 | Engine `getActiveCycles` already exists |
+| Cycle and module reorder UI | P9 (with favourites) | `reorder_cycle` / `reorder_module` stay MCP-only |
+| Entity activity feeds for cycles and modules | P5 (digests) | Rows are logged already |
+| `view_settings` and saved-filter cleanup when a cycle or module is deleted | P4 | Stale rows are ignored by the engine |
+| Feature toggle settings UI | P4 | P3 reads `cycles_enabled` / `modules_enabled` and hides UI; MCP `update_project_features` changes them |
+| Estimates UI; points mode in practice | P8 | P3 ships the points switch, shown only with an active estimate |
+| Search hits marked as archived | P9 | `searchAll` excludes archived entities by default |
+| Read-only UI for archived projects | P4 | P3 shows a Banner; the engine refuses writes (`ARCHIVED`, Toast) |
+| Burnup scope over time (a per-day scope series from each item's join day) | P9 analytics | P3 draws the current scope (`total − cancelled`) as a flat line, so items added mid-cycle do not show as a scope step; the engine has no scope series (tools.md `get_cycle_progress` says so) |
+| Filters, display options and layouts on Archives › Work items | P4 (views) | P3 shows a plain `List` ordered by last update; the `archived` view_settings scope stays unused |
+| Search, sort and filter on the cycles and modules lists | P4 (views) | Engine order (`sort_order`, then creation) |
+| "Copy link" in the cycle and module menus | P9 (with favourites) | The URL bar and the tab carry the link |
+| Module shortcuts `s` (status) and `m` (members) | P9 | The side panel's inline controls only |
+| Activity row per detached item when a module is deleted | P5 (entity feeds) | `deleteModule` logs only the module row; `deleteCycle` already logs one per item |
+| Row action "Remove from cycle" / "Remove from module" in the scoped list | P8 (bulk bar) | An item leaves through its Cycle or Modules property (peek or full page); P3 adds no `remove_work_items_from_*` wrapper |
+| Manual start/stop and parallel cycles | never | Decision 16: dates decide the status, no overlap |
+
+### Routes and data loading
+
+| Route | File (lane) | Reads in one `readTessera` |
+|---|---|---|
+| `/projects/[projectId]/cycles` | `src/app/(tessera)/projects/[projectId]/cycles/page.tsx` (E1) | `getProject`, `listCycles(ctx, projectId, {})`; for the current cycle `getCycle` and, with an active estimate, `getCycleProgress(ctx, id, { mode: "points" })`; `ctx.today()` |
+| `/projects/[projectId]/cycles/[cycleId]` | `.../cycles/[cycleId]/page.tsx` (E1) | `getProject`, `getCycle`, points progress as above, candidates (below), `ctx.today()`; then `<ScopedWorkItems>` (E4) |
+| `/projects/[projectId]/modules` | `.../modules/page.tsx` (E2) | `getProject`, `listModules(ctx, projectId, {})`, `ctx.today()` |
+| `/projects/[projectId]/modules/[moduleId]` | `.../modules/[moduleId]/page.tsx` (E2) | `getProject`, `getModule`, candidates, `ctx.today()`; then `<ScopedWorkItems>` |
+| `/projects/[projectId]/archives` | `.../archives/page.tsx` (E3) | none: after `await params` it redirects to `/projects/<projectId>/archives/work-items` |
+| (layout) | `.../archives/layout.tsx` (E3) | none: renders `<ArchivesTabs projectId>` above `children` |
+| `/projects/[projectId]/archives/work-items` | `.../archives/work-items/page.tsx` (E3) | `listWorkItems(ctx, { scope: { type: "archived", project_id }, display: { order_by: "-updated_at" }, limit: 2000 })`, the peek through `loadPeek` (E4) |
+| `/projects/[projectId]/archives/cycles` | `.../archives/cycles/page.tsx` (E3) | `getProject`, `listCycles(ctx, projectId, { archived: true })` |
+| `/projects/[projectId]/archives/modules` | `.../archives/modules/page.tsx` (E3) | `getProject`, `listModules(ctx, projectId, { archived: true })` |
+| `/projects/archives` | `src/app/(tessera)/projects/archives/page.tsx` (E3) | `listProjects(ctx, { archived: true })` |
+| `/cycles/[cycleId]`, `/modules/[moduleId]` | `src/app/(tessera)/{cycles/[cycleId],modules/[moduleId]}/page.tsx` (E4) | `getCycle` / `getModule` → `redirect` to the project route |
+
+- Pattern for every page (copy of `/browse/[key]` and the P2b detail page): sync
+  default export → `<Suspense fallback={<…Skeleton />}>` → async child that awaits
+  `params` (and `searchParams` where used), `await io()` (`04-functions/io.md`:
+  "call `await io()` before reading … a synchronous database driver"), validates
+  ids with `IdSchema.safeParse` (from `@/lib/tessera/schemas`) and calls `notFound()`
+  for a malformed id, then one `readTessera` in a `try`; `NOT_FOUND` / `VALIDATION`
+  → `notFound()`; an entity whose `project_id !== projectId` → `notFound()`.
+  `redirect()` stays outside the `try` (`04-functions/redirect.md`). The project
+  layout's `export const instant = false` opts out only navigations *into* the
+  project segment; navigations between sibling segments under it (work items →
+  cycles → a cycle → archives) are still validated ("Opting out" in
+  `01-app/02-guides/instant-navigation.md`: "Navigations between sibling segments
+  below are still validated"). So every new P3 page (each route in the table,
+  `/projects/archives` and the two alias routes included) adds
+  `export const instant = false` to its own `page.tsx` when the dev validator reports
+  an insight for it (typically the `notFound()` or `redirect()` path), and the lane
+  names it in the hand-off. Acceptance step 15 walks the sibling navigations.
+- `/projects/archives` is a static segment next to `[projectId]`, so Next routes it
+  to its own page and the project layout does not wrap it. Three path parsers treat
+  `archives` as a project id today (`Sidebar.tsx`, `useShortcuts.ts`, `CommandBar.tsx`;
+  mismatch 12); E4 replaces them with one guarded function.
+- Feature off (`project.cycles_enabled` / `modules_enabled`, read with `getProject`
+  in the same `readTessera`): the list and detail routes of that feature
+  (`/cycles`, `/cycles/[cycleId]`, `/modules`, `/modules/[moduleId]`) and its
+  archive route (`/archives/cycles`, `/archives/modules`) render
+  `<FeatureOffState feature="cycles" | "modules" />` (E1) instead of the screen and
+  skip the other reads; `ArchivesTabs` leaves out the Cycles or Modules tab; the
+  alias routes `/cycles/[cycleId]` and `/modules/[moduleId]` still redirect (the
+  target then shows the state). `FeatureOffState` is an Astryx `EmptyState`
+  (`dist/EmptyState/EmptyState.d.ts`: `title`, `description`, `icon`, `actions`,
+  `isCompact`) titled "Cycles are turned off for this project" (or "Modules …"),
+  description "Project settings arrive in P4; an agent can turn them on with
+  update_project_features." No action button.
+- `?create=1` on `/cycles` and `/modules` opens the create dialog once and is then
+  dropped with `router.replace` (the `WorkItemsScreen` `createOnOpen` handling). It
+  is what `n c` / `n m` push.
+- Candidates for "Add existing work items" are loaded with the detail, not searched:
+  `listWorkItems(ctx, { scope: { type: "project", project_id }, filters, display: { order_by: "-updated_at" }, limit: 500 })`
+  mapped to `ItemCandidate` (below). Cycles pass `filters: { state_group: ["backlog", "unstarted", "started"] }`
+  (the engine refuses closed items, `RULE work_item_closed`) and the client drops
+  members, items in a completed cycle (`bundle.cycles` status) and items in a cycle
+  missing from the bundle (archived); modules pass no filter and drop members.
+  Skipped for completed or archived cycles and archived modules.
+- `today` (`ctx.today()`, server local date, decision 6) travels as a prop so
+  "days left", the chart's today marker and the pace line render the same on the
+  server and the client.
+- Tab labels (E4, `tab-registry.ts`): `/projects/<p>/cycles` → "<project> · Cycles",
+  `/projects/<p>/cycles/<c>` → "<project> · <cycle name>" (else "Cycle"),
+  `/projects/<p>/modules(/<m>)` likewise with "Modules" / "Module",
+  `/projects/<p>/archives(/…)` → "<project> · Archives", `/projects/archives` →
+  "Archived projects", `/cycles/<id>` → "Cycle" and `/modules/<id>` → "Module"
+  (both transient, like `/browse/`). Detail screens call
+  `registerEntityLabel(id, name)` (`src/components/shell/entity-labels.ts`) in an effect.
+
+### Lane A: engine additions
+
+No new tools, no new activity verbs, no migration (`progress_snapshot` is JSON
+and the schema only widens). Signatures and rules are appended to
+`docs/contracts/service-api.md` ("P3 additions") and `docs/contracts/tools.md`
+("P3 changes"). Summary:
+
+1. `schemas.ts`: `PointsCountsSchema` (the `ProgressCounts` keys as
+   `z.number().nonnegative()`, since estimate values may be fractional),
+   `ProgressModeSchema = z.enum(["issues", "points"])` (`CycleProgressModeSchema` stays
+   as an alias), `ProgressBreakdownRowSchema = z.object({ id: IdSchema.nullable(), total: int ≥ 0, completed: int ≥ 0 })`.
+   `CycleProgressSchema` changes `points` to `PointsCountsSchema.optional()` and
+   `completion_chart` values to `z.number().nonnegative()`, and adds optional
+   `assignees`, `labels` (breakdown rows), `chart_mode` (`ProgressModeSchema`) and
+   `completion_chart_points` (written into snapshots only; never part of a returned
+   `CycleProgress`, but visible inside the raw `progress_snapshot` field, because
+   `Cycle` and `CycleDetail` spread the whole `CycleRow` in `toCycles` /
+   `toCycleDetail`, so `list_cycles`, `get_cycle` and the project bundle carry it).
+   Types `PointsCounts`, `ProgressBreakdownRow`, `ProgressMode` in `types.ts`.
+2. Cycle points follow the project's active estimate (`estimates_enabled` and
+   `estimate_id`), count only non-deleted points of that estimate with a numeric
+   value ≥ 0, and are absent otherwise (module progress already behaves this way).
+   `computeProgress` builds the items series and, with an active estimate, the
+   points series; `freezeSnapshot` stores both; `forMode` returns the requested
+   series with `chart_mode`, falling back to the items series (`chart_mode: "issues"`)
+   when no points series exists (pre-P3 snapshots, no estimate).
+3. `Cycle` and `CycleDetail` gain `open_count: number`: live count of non-deleted
+   members whose state group is neither completed nor cancelled, archived and triage
+   members included, so it equals what `transferCycleWorkItems` would move.
+4. Archived-module guard: `syncModules` (`set_modules`, `move_work_item` grouped by
+   module) and `createWorkItem` refuse with `ARCHIVED` when a module being added or
+   removed is archived; memberships of archived modules the call does not change are kept.
+5. Breakdowns: `CycleProgress` and `ModuleProgress` gain `assignees` and `labels`
+   rows (`completed` = completed group); `ModuleProgress` also gains `by_label` and
+   `by_assignee`.
+6. `modules.ts` `logMembership` writes the item-side row with `field: "modules"`
+   (the name `work-items.ts` uses), so one activity label covers both paths.
+7. Tool descriptions: `get_cycle_progress` (drop "the ideal line"; say there is no
+   scope series), `get_module_progress` (drop "the completion percentage"),
+   `list_cycles` and `get_cycle` (mention `open_count`), `unarchive_cycle` (name the
+   `CONFLICT` on overlapping dates and the kept snapshot). Exact text in tools.md.
+8. Tests: `tests/cycles.test.ts` (points gating, fractional and negative values,
+   both series frozen and served by mode, pre-P3 snapshot fallback, breakdown rows
+   with `id: null`, `open_count` equals `moved`; update the fixtures at lines
+   723–780 to enable the estimate on the project, and the expectations at 434–440,
+   648 and 821–822), `tests/modules.test.ts` (breakdowns; `field: "modules"` at
+   lines 489 and 536), `tests/work-items.test.ts` (archived-module guard on create,
+   `set_modules` add and remove, kept membership). Lane A merges first; the UI lanes
+   rebase onto it before using the new fields and never edit `schemas.ts` / `types.ts`.
+9. Acceptance MCP client `scripts/mcp-call.ts` (lane A owns `scripts/**`), run as
+   `npx tsx scripts/mcp-call.ts <tool> ['<json arguments>']`, for example
+   `npx tsx scripts/mcp-call.ts get_work_item_by_key '{"key":"P3A-3"}'`:
+   - `<tool>` is the registry name; the script prefixes it with `mcpToolName`
+     (`@/lib/tessera/tools/mcp`). Arguments default to `{}`; destructive tools need
+     `"confirm": true` in the JSON, as for any MCP client.
+   - It connects a `Client` from `@modelcontextprotocol/client` (2.3.1, already a dev
+     dependency) named `p3-acceptance` through `StdioClientTransport`
+     (`@modelcontextprotocol/client/stdio`) to `command: "npx"`,
+     `args: ["tsx", "scripts/mcp-stdio.ts"]`, `cwd` the repo root, `stderr: "pipe"`,
+     and an environment from `getDefaultEnvironment()` (a whitelist) with the
+     directory of `process.execPath` prepended to `PATH` (Node-API 10 for
+     better-sqlite3) and `TESSERA_DB_PATH` copied over when the calling shell sets it. This is
+     the spawn form `.mcp.json` and `tests/mcp-stdio.test.ts` use. No `--db` and no
+     `--migrate`: the stdio server resolves the database exactly as the dev server
+     does (`TESSERA_DB_PATH` from `.env.local`, else `data/tessera.db`) and refuses
+     pending migrations (exit 2) instead of migrating a database the dev server owns.
+   - Output: the stdio server's stderr (it names the absolute database path) is
+     copied to the script's stderr; `structuredContent` (else the first text
+     content) is printed to stdout as JSON; exit code 1 when the result `isError`,
+     2 when the connection fails. The actor is `mcp:p3-acceptance` (kind `agent`),
+     so `ChangesPoller` refreshes open tabs.
+   - No test: it is a verification tool. `npm run typecheck` covers it.
+10. docs/PLAN.md corrections (lane A, which owns `docs/contracts/**`; no other lane
+    owns the plan):
+    §11 step 2 and §9 (Recharts and `react-is` are added in P3 with the burndown, P9
+    reuses them for analytics), §5 (the alias routes `/cycles/[cycleId]` and
+    `/modules/[moduleId]`, and `/projects/archives` owned by lane E), §6 and §13
+    (project Archives is a frame tab plus `g r` and a link on `/projects` until the P9
+    sidebar pass adds the project `…` menu; listed under deviations).
+
+Burnup and the ideal line are derived in the client from `completion_chart`
+(pending per day), the dates and the scope; the engine does not store them. There
+is no scope series: the burnup draws today's scope as a flat line (deferral table).
+
+### Shared planning pieces (E1 creates, E2 and E3 import)
+
+`src/components/planning/types.ts` (client-safe imports from `@/lib/tessera/types` only):
+
+```ts
+import type { CycleDetail, CycleProgress, ModuleDetail, WorkItem } from "@/lib/tessera/types";
+
+/** A row of the "Add existing work items" dialog, mapped server-side from listWorkItems. */
+export type ItemCandidate = Pick<WorkItem, "id" | "key" | "name" | "state_id" | "cycle_id">;
+
+export type CycleDetailData = {
+  cycle: CycleDetail;                  // getCycle: status, open_count, progress (issues mode)
+  pointsProgress: CycleProgress | null; // getCycleProgress(points) when the project has an active estimate, else null
+  candidates: ItemCandidate[];         // [] for completed or archived cycles
+  today: string;                       // ctx.today()
+};
+
+export type ModuleDetailData = { module: ModuleDetail; candidates: ItemCandidate[]; today: string };
+
+export type ProgressTarget = { type: "cycle"; cycle_id: string } | { type: "module"; module_id: string };
+```
+
+- `ProgressPanel` (`src/components/planning/ProgressPanel.tsx`, `"use client"`):
+  ```ts
+  export type ProgressPanelProps = {
+    title: string;                        // "Progress"
+    counts: ProgressCounts;               // items: drives the top bar and the five state-group rows
+    points?: PointsCounts;                // second line "12 of 20 points" when present
+    byState: Record<string, number>;      // States tab: one row per state id, count only
+    assignees?: ProgressBreakdownRow[];   // absent on snapshots frozen before P3
+    labels?: ProgressBreakdownRow[];
+    byAssignee: Record<string, number>;   // fallback rows (totals only) when assignees is absent
+    byLabel: Record<string, number>;
+    includesArchived?: boolean;           // cycles: true → caption "Includes archived work items."
+    isFrozen?: boolean;                   // cycles: cycle.progress_snapshot !== null → caption "Frozen when the open items moved or the cycle was archived."
+    chart?: ReactNode;                    // cycles pass <BurndownChart/>; modules pass nothing (chart in P9)
+  };
+  ```
+  Top: Astryx `ProgressBar` (`dist/ProgressBar/ProgressBar.d.ts`: `label` required,
+  `value`, `max`, `hasValueLabel` (default false; the formatter renders only when it
+  is true), `formatValueLabel`, `variant` accent | success | warning | neutral |
+  error) with `label="Completed"`, `value={completed}`, `max={total - cancelled}`,
+  `variant="success"`, `hasValueLabel`, `formatValueLabel` → "3 of 8"; `max` 0
+  renders the text "No work items" instead of the bar. Then the five state groups
+  from `counts` (backlog, unstarted, started, completed, cancelled) as rows
+  (`StatusDot` with the decision 22 variant via `stateGroupVariant` from
+  `@/components/work-items/properties`, group label, count), then `chart`, then
+  `<BreakdownTabs>`, then the captions as `Text type="supporting"`. A cycle counts as
+  frozen exactly when `cycle.progress_snapshot !== null` (lane A item 1: the raw
+  snapshot reaches the client); the frozen caption shows only then, and the
+  archived-items caption always shows for cycles (mismatch 22).
+- `BreakdownTabs` (`BreakdownTabs.tsx`): the WAI-ARIA tabs pattern, because the tabs
+  swap a panel in place: `<TabList role="tablist" value onChange size="sm" layout="hug">`
+  (`dist/TabList/TabList.d.ts`: `value` and `onChange` required; `role="tablist"`
+  gives `role="tab"` + `aria-selected` and wires `panelId` as `aria-controls`; without
+  it the strip is a `<nav>` and `Tab.js` warns in development that `panelId` does
+  nothing). Each `Tab` gets `value`, `label`, `id={`${base}-tab-${key}`}` and
+  `panelId={`${base}-panel-${key}`}` (`dist/TabList/Tab.d.ts`; other props spread onto
+  the element), `base` from `useId()` so two panels on one page never collide; no
+  `href`. Tabs Assignees, Labels, States; the open panel renders as
+  `<VStack id={`${base}-panel-${key}`} role="tabpanel" aria-labelledby={`${base}-tab-${key}`}>`
+  (`VStack` props extend `BaseProps`, which extends `React.HTMLAttributes`,
+  `dist/BaseProps.d.ts`). Rows are an Astryx `List density="compact"` of `ListItem`
+  (`dist/List/ListItem.d.ts`: `label` ReactNode, `startContent`, `endContent`):
+  - Assignees (from `assignees`): `Avatar name size="sm"` + name (`ActorLabel`),
+    `id: null` → "No assignee"; Labels (from `labels`): `Token label
+    color={paletteTokenColor(label.color)} size="sm"`, `id: null` → "No label". Their
+    `endContent` is a 64px `ProgressBar isLabelHidden label="<name> completed"
+    variant="success" value={completed} max={total}` plus the text "2/5". When
+    `assignees` / `labels` are absent (pre-P3 snapshot), the rows come from
+    `byAssignee` / `byLabel` with the count only and no bar.
+  - States (from `byState`): `StatusDot` (group variant) + state name and the count
+    as text. No `ProgressBar`: a state's items are all completed or none are, so a bar
+    would only repeat the group.
+  Rows keep the engine order (States follow `bundle.states` order); a deleted actor,
+  label or state shows "Removed".
+- `AddExistingItemsDialog` (`AddExistingItemsDialog.tsx`):
+  ```ts
+  export type AddExistingItemsDialogProps = {
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    title: string;                          // "Add work items to Sprint 1"
+    target: ProgressTarget;
+    candidates: ItemCandidate[];
+    onAdd: (ids: string[]) => Promise<boolean>; // the screen calls addWorkItemsTo{Cycle,Module}Action; true closes
+  };
+  ```
+  Astryx `Dialog purpose="form" width={560} maxHeight="80dvh"` with the house
+  layout (`Layout` header / content / footer as in
+  `src/components/projects/CreateProjectDialog.tsx`; Astryx has no `DialogFooter`):
+  `DialogHeader title hasDivider`, a `TextInput` "Filter" (client-side match on key
+  or name, case-insensitive), a `List` of candidates, footer "Cancel" + primary "Add
+  N work items" (disabled at 0, `isLoading` while pending). At most 500 rows; an
+  empty list shows `EmptyState isCompact title="Nothing to add"`. Each row is a small
+  `CandidateRow` component owning `const rowRef = useRef<HTMLInputElement>(null)`:
+  `<ListItem label={<>{key} {name}</>} interactiveRef={rowRef} startContent={<CheckboxInput label={`${key} ${name}`} isLabelHidden value={selected} onChange={(checked) => toggle(id, checked)} ref={rowRef} />} />`
+  (`dist/CheckboxInput/CheckboxInput.d.ts`: `label: string` and `value: boolean |
+  "indeterminate"` required, `isLabelHidden`, `onChange(checked, event)`,
+  `ref?: React.Ref<HTMLInputElement>`; `ListItem.d.ts` `interactiveRef`: the row
+  delegates clicks to the checkbox and adds no second tab stop). `isLabelHidden`
+  keeps the label for assistive technology without printing it twice.
+- `FeatureOffState` (`FeatureOffState.tsx`): the EmptyState described under routes.
+- `panel-prefs.ts`: `localStorage` key `tessera.planningPanel.v1` =
+  `{ "open": boolean, "chart": "burndown" | "burnup", "unit": "issues" | "points" }`,
+  read through `useSyncExternalStore` with server snapshot
+  `{ open: true, chart: "burndown", unit: "issues" }` (the `peek-prefs.ts` pattern),
+  writes wrapped in `try`. Shared by cycles and modules (modules use `open` only).
+  The unit in use is `effectiveUnit(prefs.unit, pointsProgress !== null)` from
+  `burndown.ts`: `"issues"` whenever the cycle has no points progress; the stored
+  `"points"` is kept, not applied, and applies again on a cycle that has points.
+
+### Cycles (E1): `src/components/planning/`
+
+- `CyclesScreen` (`"use client"`):
+  ```ts
+  export type CyclesScreenProps = {
+    projectId: string;
+    cycles: Cycle[];                 // non-archived, engine order
+    active: CycleDetailData | null;  // the current cycle with full progress, candidates []
+    today: string;
+    createOnOpen: boolean;
+  };
+  ```
+  Header row: `Heading level={2}` "Cycles" (the frame holds the `h1`) and a primary
+  `Button size="sm" label="New cycle" icon={<PlusIcon />}`. Then
+  `<ActiveCycleSummary data={active} />` when a cycle is current. Then one Astryx
+  `List` per non-empty section in the order Current, Upcoming, Completed, Draft
+  (`List.d.ts` `header`, `hasDividers`), grouped by `groupCycles(cycles)`
+  (`cycle-format.ts`). No cycles at all → `EmptyState` "No cycles yet" with the New
+  cycle button in `actions`.
+- `CycleRow`: ``ListItem href={`/projects/${projectId}/cycles/${id}`}`` (`ListItem.d.ts`:
+  `href` renders an invisible anchor, so the menu in `endContent` is a sibling, not
+  nested). `startContent` = `StatusDot variant label` (current accent, upcoming
+  neutral, completed success, draft neutral; label = status label), `label` = name,
+  `description` = `formatCycleRange(start, end)` plus, when current, `daysLeftLabel`.
+  `endContent` = "3/8" + `ProgressBar isLabelHidden label="<name> progress"` (96px),
+  an "N open" `Badge` when completed with `open_count > 0`, and `<CycleMenu>`.
+- `CycleMenu`: Astryx `MoreMenu` (`dist/MoreMenu/`: `items`, `label`, `size`) with
+  `DropdownMenuItemData` (`dist/DropdownMenu/DropdownMenu.d.ts`: `id`, `label`, `icon`,
+  `onClick`, `isDisabled`, `description`, `variant: "default" | "destructive"`)
+  from `cycleActions(cycle, today)` (`cycle-format.ts`, pure):
+  Edit… (not completed, not archived), Transfer open items… (completed, not archived,
+  `open_count > 0`), Archive (enabled only when completed; otherwise disabled with
+  description "Cycles can be archived after their end date"), Restore (archived),
+  Delete… (destructive; disabled on a completed, non-archived cycle with
+  description "Archive it first"; the engine answers `LOCKED`). Delete confirms with
+  `AlertDialog` (`dist/AlertDialog/`: `title`, `description`, `actionLabel`,
+  `actionVariant="destructive"`, `onAction`, `isActionLoading`): "Delete Sprint 1? Its
+  work items stay and leave the cycle."
+- `ActiveCycleSummary`: Astryx `Card` (`dist/Card/`: `padding`, `variant`) with
+  `Heading level={3}` name + `Token label="Current"`, the range with `CalendarDotsIcon`,
+  `daysLeftLabel` with `TimerIcon`, the same top `ProgressBar` as `ProgressPanel`
+  (`hasValueLabel`, "3 of 8"), the counts by group, and a
+  compact `<BurndownChart height={160} hasDataTable={false} …/>`; an "Open cycle"
+  `Link` (`dist/Link/`). The chart keeps its text summary even when compact.
+- `CycleDialog` (create and edit):
+  ```ts
+  export type CycleDialogProps = {
+    projectId: string;
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    cycle?: Cycle;                    // edit when set
+  };
+  ```
+  The other cycles come from `useProject().bundle.cycles` (non-archived, with
+  `status` and, after lane A, `open_count`), the same source on the list page, the
+  detail header and the summary card: `otherCycles = overlapCandidates(bundle.cycles, cycle?.id ?? null)`
+  (`cycle-format.ts`: every bundle cycle except the edited one).
+  `Dialog purpose="form" width={520}`; fields `TextInput` "Name" (required, ≤ 120),
+  `TextArea` "Description" (plain Markdown, optional), `DateRangeInput` "Dates"
+  (`dist/DateRangeInput/DateRangeInput.d.ts`: `value: DateRange | null`, `onChange`,
+  `hasClear`, `dateConstraints: ReadonlyArray<(date: Date) => boolean>` where a
+  `false` disables the day, `status: { type, message }`, `numberOfMonths`;
+  `DateRange` = `{ start, end }` of ISO dates, `dist/utils/dateTypes.d.ts`). The
+  constraint disables days inside `otherCycles` ranges (convert the `Date` with its
+  local getters, never `toISOString`). No dates = draft, and the helper text says so.
+  Submit → `createCycleAction({ project_id, name, description_md, start_date, end_date })`
+  or `updateCycleAction({ cycle_id, … })` with only changed fields. `CONFLICT` and
+  `VALIDATION` render as the date field's `status` error, other errors as a Toast.
+- `CycleDetailScreen` (`"use client"`) wraps the scoped list it receives as
+  `children` (a Server Component passed into a Client Component,
+  `01-app/01-getting-started/05-server-and-client-components.md`, interleaving):
+  ```ts
+  export type CycleDetailScreenProps = { projectId: string; data: CycleDetailData; children: ReactNode };
+  ```
+  `<Layout height="fill" header={<CycleHeader …/>} content={<LayoutContent padding={0} isScrollable>{children}</LayoutContent>} end={panelOpen && !peekOpen ? <CycleSidePanel …/> : undefined} />`
+  (`dist/Layout/Layout.d.ts` slots). `peekOpen = peekIdOf(useSearchParams()) !== null`
+  (`src/components/detail/peek-url.ts`): the peek's own panel replaces the progress
+  panel while an item is open. Registers `registerEntityLabel(cycle.id, cycle.name)`.
+- `CycleHeader`: name (`Heading level={2}`), status `Token`, range, days left,
+  buttons "Add existing" (open cycles only; opens `AddExistingItemsDialog`), a
+  `IconButton` toggling the panel (`label="Show progress"` / `"Hide progress"`,
+  `BurndownIcon`), `<CycleMenu>`. Completed: a `Text` line "Completed cycles are
+  read-only. Transfer the open items to keep working on them." Archived: Astryx
+  `Banner status="info" title="This cycle is archived"` with a Restore `Button` in
+  `endContent` (`dist/Banner/Banner.d.ts`: no `actions` prop).
+- `CycleSidePanel`: `LayoutPanel width={360} hasDivider padding={4} isScrollable label="Cycle progress" role="complementary"`
+  (`dist/Layout/LayoutPanel.d.ts`) containing `ProgressPanel` with the chart block:
+  a `SegmentedControl size="sm" label="Chart"` (`dist/SegmentedControl/`: `value`,
+  `onChange`, `label`; items `value`, `label`, `icon`) Burndown / Burnup with
+  `BurndownIcon` / `BurnupIcon`, and, only when `pointsProgress !== null`, a second
+  `SegmentedControl label="Unit"` with items labelled "Work items" (value `issues`,
+  the engine's mode name) and "Points" (value `points`). Visible text never says
+  "issues": summaries read "5 of 8 work items pending". Choices persist in
+  `panel-prefs`; the unit in use is `effectiveUnit` (above). `ProgressPanel` gets
+  `includesArchived` and `isFrozen={cycle.progress_snapshot !== null}`.
+- `TransferDialog`:
+  ```ts
+  export type TransferDialogProps = {
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    cycle: Cycle;            // completed, not archived; N = cycle.open_count
+  };
+  ```
+  Targets come from `useProject().bundle.cycles`:
+  `transferTargets(bundle.cycles, cycle.id)` (`cycle-format.ts`: status current,
+  upcoming or draft, the source excluded; the bundle holds no archived cycles).
+  `Dialog purpose="form" width={480}`; text "Move the N open work items of Sprint 1.
+  Its progress is frozen as it is now."; Astryx `Selector label="Move to"`
+  (`dist/Selector/Selector.d.ts`) with targets (status in the option description)
+  plus "No cycle" (value `__none__`, the `DisplayMenu` NONE pattern); footer primary
+  "Transfer N work items". → `transferCycleWorkItemsAction({ cycle_id, to_cycle_id })`;
+  Toast "Moved N work items to Sprint 2" (or "out of the cycle").
+- Server Actions `src/app/actions/cycles.ts` (`"use server"`, `toolAction` from `./_run`):
+  `createCycleAction`, `updateCycleAction`, `archiveCycleAction`,
+  `unarchiveCycleAction`, `deleteCycleAction`, `addWorkItemsToCycleAction`,
+  `transferCycleWorkItemsAction` (tools `create_cycle`, `update_cycle`,
+  `archive_cycle`, `unarchive_cycle`, `delete_cycle`, `add_work_items_to_cycle`,
+  `transfer_cycle_work_items`; inputs per tools.md: `{ cycle_id, … }`,
+  `{ cycle_id, work_item_ids }`, `{ cycle_id, to_cycle_id }`). No wrapper for
+  `remove_work_items_from_cycle`: nothing in P3 calls it (deferral table).
+- `cycle-format.ts` (pure, no directive, `tests/ui/cycle-format.test.ts`):
+  `CYCLE_STATUS_LABEL`, `cycleStatusVariant(status)`, `groupCycles(cycles)` →
+  `{ key, label, cycles }[]` in section order without empty sections,
+  `formatCycleRange(start, end)` ("Mar 1 – Mar 14", "No dates") through
+  `formatShortDate` imported from `@/components/work-items/properties/date-format`
+  (directive-free, created by E4, mismatch 27; never from the `"use client"`
+  `DateControl.tsx`), `daysLeftLabel(end, today)` ("Ends today", "1 day left", "N
+  days left") with `daysBetween` from `@/lib/tessera/core/time`,
+  `cycleActions(cycle, today)`, `overlapCandidates(cycles, exceptId)`,
+  `transferTargets(cycles, sourceId)`. Server Components may call these helpers.
+
+### Burndown and burnup chart (E1)
+
+- Library: `recharts@3.10.1` (MIT) plus `react-is@19.3.0` (MIT) as exact direct
+  dependencies (mismatches 1 and 10). After install run `npm run check:licenses`
+  (Recharts' tree is MIT and ISC, both allowed by `scripts/check-licenses.ts`).
+  Recharts ships no `"use client"` banner, so only files marked `"use client"`
+  import it; `BurndownChart.tsx` starts with `"use client"` and is imported by client
+  components only.
+- `burndown.ts` (pure, no React, `tests/ui/burndown.test.ts`):
+  ```ts
+  export type ChartKind = "burndown" | "burnup";
+  export type ChartRow = { date: string; actual: number | null; ideal: number };
+  export type ChartEmpty = "draft" | "upcoming" | "no_items";
+  export type ChartModel = {
+    kind: ChartKind;
+    unit: ProgressMode;            // progress.chart_mode ?? "issues", never the requested unit blindly
+    rows: ChartRow[];              // every day start_date..end_date inclusive
+    scope: number;                 // total − cancelled in the unit (points.* in points)
+    today: string | null;          // today when start_date ≤ today ≤ end_date, else null
+    current: { actual: number; ideal: number } | null;  // at min(today, end_date)
+    pace: { status: "on_track" | "ahead" | "behind"; delta: number } | null;
+    empty: ChartEmpty | null;
+  };
+  export function buildChartModel(input: { start_date: string | null; end_date: string | null; status: CycleStatus; today: string; progress: CycleProgress; kind: ChartKind }): ChartModel;
+  export function idealSeries(scope: number, days: number): number[];
+  export function paceOf(actualPending: number, idealPending: number, scope: number): ChartModel["pace"];
+  export function summarizeChart(model: ChartModel): string;
+  export function formatAmount(value: number, unit: ProgressMode): string;   // "1 work item", "3 work items", "4.5 points" (one decimal at most)
+  export function effectiveUnit(preferred: ProgressMode, hasPoints: boolean): ProgressMode;  // "issues" unless hasPoints
+  ```
+  Burndown `actual` = `completion_chart[date]` (pending), `null` for days after
+  `min(today, end_date)` so the line stops; burnup `actual` = `scope − pending`, and
+  the scope line is flat at today's `scope` for the whole range (a known
+  simplification: the engine has no per-day scope series, deferral table → P9). On
+  a frozen cycle `scope` comes from the snapshot, so it is flat at the frozen scope.
+  Ideal burndown: `scope × (n − 1 − i) / (n − 1)` for day `i` of `n` days, one day
+  → `[0]`; burnup ideal is `scope − ideal`. Pace compares pending at
+  `min(today, end_date)` with the ideal there: on track when
+  `|delta| ≤ max(1, 5% of scope)`, behind when pending is higher, ahead when lower.
+  `empty`: no dates → `"draft"`, status upcoming → `"upcoming"`, `scope === 0` → `"no_items"`.
+- `chart-colors.ts`: token names only, never hex (the `hex-colour` convention rule):
+  ```ts
+  export const CHART_TOKENS = {
+    actual: "--color-data-categorical-blue",
+    ideal: "--color-text-secondary",
+    scope: "--color-data-categorical-purple",
+    today: "--color-border-emphasized",
+    grid: "--color-border",
+    axis: "--color-text-secondary",
+    tooltipSurface: "--color-background-popover",
+    tooltipText: "--color-text-primary",
+  } as const;
+  export function useChartColors(): Record<keyof typeof CHART_TOKENS, string>;
+  ```
+  `useChartColors` reads `useTheme().tokens` (`@astryxdesign/core/theme`,
+  `dist/theme/useTheme.d.ts`: "raw CSS values … suitable for … data visualization
+  libraries", resolved for the active mode and memoized per theme and mode) and maps
+  the names in a `useMemo`. Recharts writes colours into SVG attributes, which is the
+  case the Astryx doc reserves the resolver for; `tokenVar` stays for CSS. The data
+  tokens are already wired in `palette.ts` `DATA_TOKENS`.
+- Contrast (Theme rules): chart strokes are graphics and need 3:1 against the panel
+  and card surfaces (`--color-background-surface` / `-card`, both `base`) and the
+  body (`mantle`). Measured: blue 4.34 / 5.34 (Latte / Frappé on base), purple
+  4.79 / 5.60, `--color-border-emphasized` 3.54 / 3.65, axis text (`subtext1`) 5.53 /
+  6.75. Green (2.96) and peach (2.64) fail on Latte, so they are not used. E1 adds one
+  case to `tests/themes/catppuccin-contrast.test.ts` ("chart strokes are visible on
+  every content surface") importing `DATA_TOKENS`. Blue and purple are close in
+  luminance (1.10), so lines also differ by pattern and by direct labels: actual
+  solid 2px, ideal dashed `"4 4"`, scope dotted `"2 4"`, each named in the legend
+  text, never by colour alone (WCAG 1.4.1).
+- `BurndownChart`:
+  ```ts
+  export type BurndownChartProps = {
+    cycle: Pick<Cycle, "name" | "start_date" | "end_date" | "status">;
+    progress: CycleProgress;       // issues or points progress
+    kind: ChartKind;
+    today: string;
+    height?: number;               // default 240
+    hasDataTable?: boolean;        // default true
+    onAddDates?: () => void;       // draft empty state action (open cycles only)
+  };
+  ```
+  Recharts parts: `LineChart` with the `responsive` prop (not `ResponsiveContainer`)
+  and `style={{ width: "100%", height }}`, `accessibilityLayer={false}`;
+  `CartesianGrid vertical={false} stroke={grid}`; `XAxis dataKey="date"` (category,
+  ticks through `formatShortDate`, `tick={{ fill: axis }}`, `stroke={grid}`);
+  `YAxis allowDecimals={unit === "points"} stroke={grid} tick={{ fill: axis }}` (left
+  bare, both axes fall back to Recharts' default `#666` stroke, which also colours the
+  tick text: a hard-coded hex near 2:1 on Frappé base); `Line dataKey="actual"
+  type="linear" stroke={actual} strokeWidth={2} dot={false} connectNulls={false}
+  isAnimationActive={false}`; `Line dataKey="ideal" strokeDasharray="4 4"
+  stroke={ideal} dot={false} isAnimationActive={false}`; burnup only:
+  `ReferenceLine y={scope} stroke={scope} strokeDasharray="2 4" label={{ value: "Scope", fill: axis, position: "insideTopRight" }}`;
+  `ReferenceLine x={today} stroke={today} label={{ value: "Today", fill: axis, position: "insideTopRight" }}`
+  only when `model.today` (a bare string label sets no fill, so its text would fall
+  back to SVG black); `Tooltip cursor={{ stroke: grid }} isAnimationActive={false}`
+  (the default cursor is a light grey, the default animation `"auto"`) with
+  `contentStyle` / `labelStyle` / `itemStyle` built from the tooltip colours and
+  `var(--radius-container)`. No animation anywhere (reduced motion, stable tests), and
+  no colour in the chart that does not come from `useChartColors`.
+- Hydration: the theme mode resolves on the client and `responsive` measures the
+  DOM, so the SVG renders only after mount (`useSyncExternalStore(noop, () => true, () => false)`,
+  the `useHydrated` pattern in `src/components/detail/RelativeTime.tsx`); before
+  that a `Skeleton` of the same height holds the space.
+- Accessibility: the chart container is an Astryx primitive,
+  `<VStack role="img" aria-label={summarizeChart(model)}>` around the `LineChart`
+  (`VStack` props extend `BaseProps`, which extends `React.HTMLAttributes`,
+  `dist/BaseProps.d.ts`; never a raw `div`), with the label "Burndown of Sprint 1: 5
+  of 8 work items pending on Mar 9, ideal 4. Behind by 1."; the same sentence is
+  visible under the chart
+  (`Text type="supporting"`); a `Collapsible trigger="Data table"`
+  (`dist/Collapsible/`: `trigger`, `isOpen`, `onOpenChange`) holds an Astryx
+  `Table density="compact"` (`dist/Table/types.d.ts`: `data`, `columns` with `key`,
+  `header`, `align: "end"`, `idKey="date"`) with Date, Pending (or Done) and Ideal.
+- Empty states (`EmptyState isCompact`): draft "Add dates to see the chart" (action
+  "Add dates" when `onAddDates`), upcoming "Starts <date>", no items "Add work items
+  to see the chart". The panel's other sections still render.
+
+### Modules (E2): `src/components/planning/`
+
+- `ModulesScreen` (`"use client"`): props `{ projectId, modules: Module[], today, createOnOpen }`.
+  Header `Heading level={2}` "Modules" + "New module" button; one `List` of
+  `ModuleRow`s in engine order; empty → `EmptyState` "No modules yet".
+- `ModuleRow`: ``ListItem href={`/projects/${projectId}/modules/${id}`}``; `startContent`
+  `StatusDot` (`moduleStatusVariant`: backlog and planned neutral, in_progress accent,
+  paused warning, completed success, cancelled error), `label` name, `description`
+  status label · `formatModuleRange(start_date, target_date)`; `endContent` lead
+  `Avatar`, members `AvatarGroup size="sm"` with `AvatarGroupOverflow count` beyond 3
+  (`dist/AvatarGroup/`), "3/8" + `ProgressBar isLabelHidden`, `<ModuleMenu>`.
+- `ModuleMenu` from `moduleActions(module)` (`module-format.ts`): Edit…, Archive
+  (enabled only for completed or cancelled; description "Set the status to Completed
+  or Cancelled first"), Restore (archived), Delete… (`AlertDialog`, "Its work items
+  stay and leave the module.").
+- `ModuleDialog` props `{ projectId, isOpen, onOpenChange, module?: Module }`:
+  `TextInput` name, `TextArea` description, `Selector` status (default "Planned",
+  decision 5), `LeadControl`, members through `AssigneeControl label="Members"`
+  (`src/components/work-items/properties/AssigneeControl.tsx`, `value: string[]`),
+  start and target dates through two Astryx `DateInput`s labelled "Start date" and
+  "Target date" (`dist/DateInput/DateInput.d.ts`: `value?: ISODateString`,
+  `onChange(value | undefined)`, `min`, `max`, `hasClear`, `format="date"`,
+  `status?: { type: "error" | "warning" | "success"; message?: string }` from
+  `dist/Field/types.d.ts`), linked by `max` / `min`. Not `DateControl`: it has no
+  `status` prop (mismatch 29).
+  Create → `createModuleAction({ project_id, name, description_md, status, lead_actor_id, member_ids, start_date, target_date })`;
+  edit sends changed fields to `updateModuleAction` and members to
+  `setModuleMembersAction({ module_id, actor_ids })`. Errors (the
+  `CreateProjectDialog` pattern, which maps `CONFLICT` to a field `status`):
+  - `CONFLICT` (names are unique per project) → `status={{ type: "error", message: "A module with this name exists" }}`
+    on the Name `TextInput`.
+  - `VALIDATION` whose `details` issues have `path[0]` `start_date` or `target_date`
+    (`modules.ts` reports `target_date` when start is after target) → `status` on the
+    Target date input with the engine's message.
+  - Anything else (other `VALIDATION`, `ARCHIVED`, `NOT_FOUND`) → error Toast with the
+    message; the dialog stays open.
+- `LeadControl` props `{ value: string | null; onChange: (actorId: string | null) => void; readOnly?: boolean }`:
+  `Selector label="Lead"` over `bundle.actors` plus "No lead" (`__none__`).
+- `ModuleDetailScreen` props `{ projectId, data: ModuleDetailData, children }`: the
+  cycle detail's layout with `ModuleHeader` and `ModuleSidePanel`; same peek rule,
+  same `registerEntityLabel`.
+- `ModuleHeader`: name, status `Selector` (inline, `size="sm"`, saves on change),
+  "Add existing", panel toggle, `ModuleMenu`; archived → info `Banner` with Restore.
+- `ModuleSidePanel` (`LayoutPanel width={360}`): Astryx `MetadataList`
+  (`dist/MetadataList/`: `MetadataListItem label icon`) with Lead, Members, Start,
+  Target (inline controls), then `ModuleLinks`, then `ProgressPanel` without `chart`.
+- Archived module (`module.archived_at !== null`): every inline control is read-only
+  (header status `Selector isReadOnly`, `LeadControl readOnly`, `AssigneeControl
+  readOnly`, the date inputs `isDisabled`, `ModuleLinks readOnly`), "Add existing"
+  and quick-add are gone (`canCreate={false}`), and the menu offers Restore and
+  Delete only. Inline saves that fail show an error Toast with the engine message.
+- `ModuleLinks` props `{ moduleId: string; links: Link[]; readOnly: boolean }` (`Link` the
+  type from `@/lib/tessera/types`, imported under an alias next to Astryx's `Link`): `List`
+  of links, each `<AstryxLink href={link.url} isExternalLink>{link.title || link.url}</AstryxLink>`
+  (`dist/Link/Link.d.ts`: `isExternalLink` opens a new tab with the external-link
+  icon, sets `target="_blank"` and `rel="noopener noreferrer"`, and announces the new
+  tab through `newTabLabel`; no hand-added icon), `MoreMenu` Edit… / Remove (hidden
+  when `readOnly`); "Add link" opens a small form dialog (URL required, `https?://`,
+  title optional). Actions `addModuleLinkAction({ module_id, url, title })`,
+  `updateModuleLinkAction({ link_id, url, title })`, `removeModuleLinkAction({ link_id })`.
+- Server Actions `src/app/actions/modules.ts`: `createModuleAction`,
+  `updateModuleAction`, `archiveModuleAction`, `unarchiveModuleAction`,
+  `deleteModuleAction`, `addWorkItemsToModuleAction`, `setModuleMembersAction`,
+  `addModuleLinkAction`, `updateModuleLinkAction`, `removeModuleLinkAction`. No
+  wrapper for `remove_work_items_from_module` (deferral table).
+- `module-format.ts` (pure, no directive, `tests/ui/module-format.test.ts`):
+  `MODULE_STATUS_LABEL`, `moduleStatusVariant`, `ARCHIVABLE_STATUSES` (the test
+  asserts it equals the engine's `ARCHIVABLE_MODULE_STATUSES`; components cannot
+  import `modules.ts`), `formatModuleRange` (through `formatShortDate` from
+  `@/components/work-items/properties/date-format`), `moduleActions`.
+
+### Archives (E3)
+
+- `ArchivesTabs` (`src/components/planning/ArchivesTabs.tsx`, `"use client"`, props
+  `{ projectId: string }`): navigation tabs, so no `role` and no `panelId`:
+  `<TabList value={activeKind} onChange={() => {}} size="sm" layout="hug">` (both
+  `value` and `onChange` are required in `dist/TabList/TabList.d.ts`; the no-op
+  `onChange` is the `ProjectFrame.tsx` pattern for `href` tabs) with
+  `<Tab value={kind} label href={`/projects/${projectId}/archives/${kind}`} />` for Work
+  items, Cycles, Modules; `activeKind` is the path segment after `archives/` from
+  `usePathname()`. The Cycles tab is left out when
+  `useProject().bundle.project.cycles_enabled` is false, the Modules tab when
+  `modules_enabled` is false (the archives layout sits inside the project layout,
+  so the bundle is there).
+- `ArchivedWorkItems` props `{ projectId: string; items: WorkItem[] }`, rendered by
+  the page inside `<PeekHost projectId peek>`: a `List` whose rows open the peek
+  (`peekHref` + `notePeekPush`, the `WorkItemsScreen.onOpen` body), `startContent`
+  `StatusDot` of the state, `label` "WEB-3 Title", `description`
+  `<RelativeTime value={item.archived_at} />` (`src/components/detail/RelativeTime.tsx`),
+  `endContent` a secondary "Restore" `Button` (`RestoreIcon`) →
+  `unarchiveWorkItemAction({ work_item_id })` and a `MoreMenu label="Work item actions"`
+  with Delete… (destructive) → `AlertDialog` "Delete WEB-3? This cannot be undone."
+  (`actionLabel="Delete"`, `isActionLoading`, closes on success) →
+  `deleteWorkItemAction({ work_item_id })` (exists; `delete_work_item` works on
+  archived items). Toasts "Restored WEB-3" / "Deleted WEB-3". Empty → `EmptyState`
+  "No archived work items".
+- `ArchivedCycles` props `{ projectId, cycles: Cycle[] }` and `ArchivedModules` props
+  `{ projectId, modules: Module[] }`: rows link to the detail (which shows the archived
+  Banner) and carry Restore plus a `MoreMenu` with Delete… (`AlertDialog`). Neither
+  needs the other cycles: `unarchive_cycle` answers `CONFLICT` when the dates now
+  overlap, and the engine message already names the cycle (`assertNoOverlap` in
+  `cycles.ts`: `The dates overlap cycle "Sprint 3"`), so the Toast reads "Could not
+  restore Sprint 1. The dates overlap cycle "Sprint 3"." (`ActionFailure.message`).
+- `ArchivedProjects` props `{ projects: Project[] }` on `/projects/archives` (outside
+  the project layout, so no `useProject()` here or in anything it renders):
+  `Heading level={1}` "Archived projects", rows with `ProjectToken`
+  (`src/components/work-items/ProjectFrame.tsx`) linking to the project, Restore →
+  `unarchiveProjectAction({ project_id })`, Delete… → `DeleteProjectDialog`.
+- `ProjectArchive.tsx` exports two components rendered by E4's `ProjectFrame`:
+  `ProjectMenu({ project })` (`MoreMenu label="Project actions"`: Archive project
+  (`AlertDialog`: "Archive WEB? It leaves the sidebar and becomes read-only until
+  restored." → `archiveProjectAction`, then `router.push("/projects/archives")`),
+  Restore project (archived), Delete project… → `DeleteProjectDialog`) and
+  `ProjectArchivedBanner({ project })` (null unless archived; `Banner status="info"
+  title="This project is archived"` with Restore in `endContent`).
+- `DeleteProjectDialog` props `{ project: Project; isOpen; onOpenChange }`:
+  `Dialog purpose="form" width={480}`, text "Deletes WEB with its work items, cycles,
+  modules and views.", `TextInput label="Type WEB to confirm"`, footer Cancel +
+  `Button variant="destructive" label="Delete project"` enabled when
+  `confirmsDelete(project.identifier, typed)` (`archive-rules.ts`: trimmed,
+  case-insensitive). → `deleteProjectAction({ project_id })` then `router.push("/projects")`.
+- Work item archive and restore (additive edits in lane D's and C's files):
+  `DetailHeaderProps` gains `onArchive?: () => void`, `onRestore?: () => void`,
+  `archiveBlockedReason?: string`; the `MoreMenu` renders when any handler is set and
+  adds Archive (`ArchiveIcon`, `isDisabled` + `description` = the reason) or Restore
+  (`RestoreIcon`). `WorkItemDetail` passes them: archive only when the state group
+  is completed or cancelled (`canArchiveWorkItem(group)` in `archive-rules.ts`;
+  otherwise reason "Only completed or cancelled work items can be archived"), and
+  shows `Banner status="info" title="This work item is archived" description="Restore it to edit it."`
+  with a Restore `Button` above the title when `item.archived_at !== null`. Actions:
+  `archiveWorkItemAction` (exists) and new `unarchiveWorkItemAction` in
+  `src/app/actions/work-items.ts`; `archiveProjectAction`, `unarchiveProjectAction`,
+  `deleteProjectAction` in `src/app/actions/projects.ts`. Toasts "Archived WEB-3" /
+  "Restored WEB-3".
+- `projects/page.tsx` (lane C file, additive): an "Archived projects" `Link` (with
+  `ArchiveIcon`) next to "New project".
+- `archive-rules.ts` (pure, `tests/ui/archive-rules.test.ts`): `canArchiveWorkItem`,
+  `confirmsDelete`.
+
+### Icons, CSS and conventions (all lanes)
+
+- One P3 icon patch for `src/themes/catppuccin/icons.tsx`, applied in the prep
+  commit; no lane edits `icons.tsx` or adds another icon (a missing one is an open
+  issue in the hand-off). Phosphor files verified in `node_modules/@phosphor-icons/react/dist/csr/`.
+  ```tsx
+  // import list, after `RowsPlusTop,`:
+    // P3 planning: cycles, charts, transfer and archives.
+    Archive,
+    ArrowCounterClockwise,
+    ArrowsLeftRight,
+    CalendarDots,
+    ChartLineDown,
+    ChartLineUp,
+    Timer,
+  // after `export const RowAddBelowIcon = duotoneIcon(RowsPlusBottom);`:
+  export const ArchiveIcon = duotoneIcon(Archive);
+  export const BurndownIcon = duotoneIcon(ChartLineDown);
+  export const BurnupIcon = duotoneIcon(ChartLineUp);
+  export const CalendarDotsIcon = duotoneIcon(CalendarDots);
+  export const RestoreIcon = duotoneIcon(ArrowCounterClockwise);
+  export const TimerIcon = duotoneIcon(Timer);
+  export const TransferIcon = duotoneIcon(ArrowsLeftRight);
+  ```
+  Existing icons used: `CycleIcon`, `ModuleIcon`, `PlusIcon`, `UsersIcon`, `UserIcon`,
+  `LinkIcon`, `PencilIcon`, `TrashIcon`, `CalendarIcon`, `TargetIcon`, `KanbanIcon`.
+  External links get their icon from Astryx `Link isExternalLink`, not from an icon.
+- CSS: `src/components/styles/planning.css` (E1: cycles list, summary card, detail
+  header, side panel, progress panel, breakdowns, chart frame and data table),
+  `modules.css` (E2), `archives.css` (E3); classes prefixed `tessera-planning-`,
+  `tessera-modules-`, `tessera-archives-`; the three files and their `@import` lines
+  in `src/app/globals.css` (order planning, modules, archives) exist since the prep
+  commit, so no lane edits `globals.css`. Tokens only. Corners per the Theme rules: the summary
+  card and any custom panel surface `--radius-container`, nested rows or chips
+  `--radius-element` / `--radius-inner`; the chart frame has no corner of its own.
+  Control outlines (filter field, inline selectors) stay Astryx's
+  (`--color-border-emphasized`). No component restyles: if one is needed it is a
+  request to lane B for `catppuccinTheme.ts`, not app CSS.
+- Dates: `YYYY-MM-DD` values render through `formatShortDate` (from
+  `properties/date-format.ts`); timestamps through `RelativeTime`. Never Astryx
+  `Timestamp` on a date-only string (mismatch 13).
+- Accepted trade-off (P3; lane B copies it into the Theme section's trade-offs on its
+  next pass): `ProgressBar variant="success"` fills with `--color-success`
+  (`pair("green")`, `palette.ts`), 2.96:1 on Latte base, under the 3:1 graphics
+  rule. It stays because the fill never carries the information alone: every bar
+  sits next to its text value ("3 of 8", "2/5") or is `isLabelHidden` with that text
+  in the same row. A bar without an adjacent value must use `variant="accent"`.
+  Chart strokes have no such text, which is why the chart avoids green (above).
+
+### Integration (E4): scoped list, frame, sidebar, tabs, Power K, links
+
+- Scoped work items list, `src/app/(tessera)/projects/[projectId]/work-items/scoped-list.tsx`
+  (async Server Component, no directive; it imports `@/lib/tessera/server`, which
+  is why it lives under `src/app/` and not `src/components/`):
+  ```ts
+  export type WorkItemsScope = { type: "project"; project_id: string } | { type: "cycle"; cycle_id: string } | { type: "module"; module_id: string };
+  export type SettingsScope = { scope_type: "project" | "cycle" | "module"; scope_id: string };
+  export type ScopeDefaults = { cycle_id?: string; module_ids?: string[] };
+
+  export type ScopedWorkItemsProps = {
+    projectId: string;
+    scope: WorkItemsScope;
+    settingsScope: SettingsScope;              // view_settings row (decision 23): cycle → { "cycle", cycleId }
+    query: Record<string, string | string[] | undefined>; // the page's awaited searchParams: q, peek, create
+    scopeDefaults?: ScopeDefaults;             // new items join the cycle / module
+    canCreate?: boolean;                       // default true; false for completed or archived cycles and archived modules
+    hiddenGroupFields?: readonly GroupBy[];    // cycle scope ["cycle"], module scope ["module"]
+  };
+  export async function ScopedWorkItems(props: ScopedWorkItemsProps): Promise<React.JSX.Element>;
+  export async function loadPeek(projectId: string, peekId: string): Promise<PeekData>;   // moved here from page.tsx unchanged
+  export function ListSkeleton(): React.JSX.Element;                                     // moved here from page.tsx
+  ```
+  Body: `await io()`, then the `loadWorkItems` body of today's `work-items/page.tsx`
+  generalised to `getViewSettings(ctx, settingsScope.scope_type, settingsScope.scope_id)`
+  and `listWorkItems(ctx, { scope, filters, display, limit: 2000 })`; a `group_by` or
+  `sub_group_by` in `hiddenGroupFields` (from saved settings or the URL) becomes
+  `null` before the list call. Then the peek and
+  `<PeekHost projectId peek><WorkItemsScreen …/></PeekHost>`. `work-items/page.tsx`
+  becomes a thin page rendering `<ScopedWorkItems scope={{ type: "project", project_id }} settingsScope={{ scope_type: "project", scope_id: projectId }} …/>`
+  with identical behaviour. E1 and E2 render it as the `children` of their detail
+  screens inside `<Suspense fallback={<ListSkeleton />}>` so the header streams first.
+- `WorkItemsScreen` gains optional props (defaults keep the project list as it is):
+  `settingsScope` (default `{ scope_type: "project", scope_id: projectId }`),
+  `scopeDefaults`, `canCreate` (default true), `hiddenGroupFields` (default `[]`).
+  The quick-add closure moves into a new pure module
+  `src/components/work-items/quick-add.ts` (no directive, `tests/ui/quick-add.test.ts`)
+  so it can be tested:
+  ```ts
+  export type QuickAddContext = {
+    projectId: string;
+    states: readonly State[];        // bundle.states (state_group, sort_order); the first state per group as today
+    scopeDefaults?: ScopeDefaults;
+  };
+  export function quickAddInput(group: QuickAddGroup, name: string, context: QuickAddContext): CreateWorkItemInputType | null;
+  export function quickAddAllowed(group: QuickAddGroup, context: QuickAddContext): boolean;
+  ```
+  `quickAddInput` keeps today's switch and then applies `scopeDefaults`
+  (`cycle_id ??=`; `module_ids` is the union); the optimistic placeholder follows the
+  input; the create dialog gets `{ ...scopeDefaults, ...createDefaults }` (module ids
+  united). `quickAddAllowed` is false only when `scopeDefaults.cycle_id` is set and the
+  group pins a closed state: field `state` whose state's group is `completed` or
+  `cancelled`, or field `state_group` with value `completed` or `cancelled`. Closed
+  items cannot join a cycle (`RULE work_item_closed`), so those groups show no
+  quick-add row in a cycle scope instead of a failing request; every other group and
+  every module scope keep it. Test cases: both closed group kinds hidden in a cycle
+  scope, shown in a module scope and in the project list, open groups shown, and
+  `quickAddInput` merging `cycle_id` and the module union.
+  `canCreate` false: no "New work item" button, the `c` hotkey and `?create=1` do
+  nothing, layouts get `onQuickAdd={undefined}`. The unused `settingsDisplay` prop
+  stays as is.
+- `src/components/work-items/types.ts`: `LayoutProps.onQuickAdd` becomes optional and
+  `LayoutProps` gains `canQuickAdd?: (group: QuickAddGroup) => boolean` (absent =
+  always). `ListLayout` and `BoardLayout` render a group's or column's quick-add only
+  when `onQuickAdd` is set and `canQuickAdd?.(group) !== false`, passing the same
+  `QuickAddGroup` they would pass to `onQuickAdd`. `WorkItemsScreen` passes
+  `canQuickAdd={(group) => quickAddAllowed(group, context)}`.
+- `DisplayMenu` gains `settingsScope: SettingsScope` and `hiddenGroupFields?: readonly GroupBy[]`:
+  save and reset call `saveViewSettingsAction({ ...settingsScope, display })` /
+  `resetViewSettingsAction(settingsScope)` instead of the hard-coded project scope;
+  group and sub-group options drop the hidden fields.
+- Project frame tabs, new pure module `src/components/work-items/project-tabs.ts`
+  (tested in `tests/ui/project-tabs.test.ts`):
+  ```ts
+  export type ProjectTabKey = "work-items" | "cycles" | "modules" | "archives";
+  export type ProjectTabDef = { key: ProjectTabKey; label: string; segment: string };
+  export function projectTabs(project: Pick<Project, "cycles_enabled" | "modules_enabled">): ProjectTabDef[];
+  export function activeProjectTab(pathname: string, projectId: string, tabs: readonly ProjectTabDef[]): ProjectTabDef | null;
+  ```
+  Order: Work items, Cycles (when enabled), Modules (when enabled), Archives
+  (always). `ProjectFrame` replaces the static `TABS` (no other importer) with
+  `projectTabs(project)`, maps icons in the component (`KanbanIcon`, `CycleIcon`,
+  `ModuleIcon`, `ArchiveIcon`), passes `value={active?.key ?? ""}` (a route of a
+  disabled feature selects no tab), and renders E3's `<ProjectMenu project />` at the
+  end of the header row and `<ProjectArchivedBanner project />` between the header
+  row and the tabs.
+- Property controls and lane A's new refusals (an item may sit in an archived cycle
+  or module, which the bundle leaves out). New pure module
+  `src/components/work-items/properties/membership-rules.ts` (no directive, tested in
+  `tests/ui/property-controls.test.ts`):
+  ```ts
+  export type CycleControlModel = {
+    options: { value: string; label: string; description: string }[];
+    readOnly: boolean;
+    reason: "completed" | "archived" | null;
+  };
+  export function cycleControlModel(value: string | null, cycles: readonly Pick<Cycle, "id" | "name" | "status">[]): CycleControlModel;
+  export function splitModuleValue(value: readonly string[], modules: readonly Pick<Module, "id">[]): { editable: string[]; kept: string[] };
+  export function mergeModuleChange(next: readonly string[], kept: readonly string[]): string[];
+  ```
+  - `CycleControl.tsx`: options are the bundle cycles that are not completed, plus the
+    current value. The control is read-only (`Selector isReadOnly`) when the value is
+    a completed cycle (`reason: "completed"`, the engine answers `LOCKED`) or is
+    missing from `bundle.cycles` (`reason: "archived"`, the engine answers
+    `ARCHIVED`); a missing value gets the synthetic option `{ value, label: "Archived
+    cycle", description: "Archived" }` so the selector shows it. Option descriptions
+    keep the status label.
+  - `ModuleControl.tsx`: ids not in `bundle.modules` (archived modules) are `kept`:
+    the `MultiSelector` receives only `editable` as `value`, its `onChange` calls
+    `onChange(mergeModuleChange(next, kept))` so `set_modules` never drops them, and a
+    read-only `Token size="sm" color="gray"` next to it reads "1 archived module" /
+    "N archived modules" (names are not in the bundle).
+  - Test cases: completed value read-only; archived (missing) value read-only with the
+    synthetic option; open value editable and completed cycles left out of the options;
+    `kept` ids survive adding and removing an editable module; no kept ids → the value
+    passes through unchanged.
+- Sidebar (`src/components/shell/Sidebar.tsx`): `projectNavItems(project)` returns
+  Work items, Cycles (`CycleIcon`, when `cycles_enabled`) and Modules (`ModuleIcon`,
+  when `modules_enabled`) with `/projects/<id>/<segment>` hrefs; "Projects" is also
+  selected on `/projects/archives`. `projectIdFromPath` moves into `tab-registry.ts`
+  as an export with the guard `/^\/projects\/(?!archives(?:\/|$))([^/]+)/`;
+  `Sidebar.tsx` (whose copy is exported today, with no importer elsewhere),
+  `useShortcuts.ts` (line 115) and `CommandBar.tsx` (line 104, used at line 147 for
+  the palette's project scope, which on `/projects/archives` would send
+  `scope=archives` to `/api/search` and fail its `IdSchema`) import it and drop their
+  local copies. `tests/ui/tab-registry.test.ts` gains cases: `/projects/archives` and
+  `/projects/archives/` → `null`, `/projects/<id>/archives/cycles` → `<id>`,
+  `/projects/<id>` → `<id>`.
+- `src/components/work-items/properties/date-format.ts` (new, no directive):
+  `formatShortDate` moves here unchanged from `DateControl.tsx`, which imports it and
+  re-exports it so current importers keep working. `cycle-format.ts` and
+  `module-format.ts` (E1, E2) import it from here (mismatch 27).
+- `tab-registry.ts`: `TabIconKey` adds `"cycles" | "modules" | "archives"`;
+  `TabLookup` adds `entityLabel?: (id: string) => string | undefined`; `resolveTab`
+  adds the cases under "Routes and data loading" (`/projects/archives` checked before
+  the project lookup); `isTransientPath` also matches `/cycles/` and `/modules/`.
+  `TabBar.tsx`: `TAB_ICONS` gains `cycles: CycleIcon`, `modules: ModuleIcon`,
+  `archives: ArchiveIcon`, and the lookup passes `entityLabel: (id) => labels.get(id)`.
+- Power K:
+  - `shortcuts.ts`: remove `arrives` from `create.cycle`, `create.module`,
+    `nav.cycles`, `nav.modules`, `nav.archives`; `create.view` and `nav.views` →
+    `arrives: "P4"`; `ShortcutArrival` = `"P4" | "P5" | "P6" | "P7" | "P8" | "P9"`.
+  - `useShortcuts.runShortcut`: `create.cycle` → `/projects/<p>/cycles?create=1`,
+    `create.module` → `/projects/<p>/modules?create=1`, `nav.cycles` →
+    `/projects/<p>/cycles`, `nav.modules` → `/projects/<p>/modules` (each with
+    `currentOrLastProjectId()`, else Toast "Open a project first"); `nav.archives` →
+    `/projects/<p>/archives` inside a project, else `/projects/archives`.
+  - `CommandBar.openHit`: `cycle` → `/projects/${hit.project_id}/cycles/${hit.id}`,
+    `module` → `/projects/${hit.project_id}/modules/${hit.id}` (no-op without
+    `project_id`); `work_item` opens the peek when
+    `mountsPeek(window.location.pathname, hit.project_id)`, else the full page.
+  - `src/components/detail/peek-url.ts` (additive): `mountsPeek(pathname, projectId)`
+    is true for `/projects/<projectId>/work-items`, `/projects/<projectId>/cycles/<id>`,
+    `/projects/<projectId>/modules/<id>` and `/projects/<projectId>/archives/work-items`
+    (trailing slash ignored).
+- Editor links: `src/components/editor/links.ts` `entityRoute` returns
+  `/cycles/<encoded ref>` for `cycle` and `/modules/<encoded ref>` for `module`
+  (`page` stays `null` until P6). `DescriptionEditor.openEntity` pushes that route
+  for cycles and modules instead of the "Arrives in P3" Toast. The alias pages
+  `(tessera)/cycles/[cycleId]/page.tsx` and `(tessera)/modules/[moduleId]/page.tsx`
+  follow `/browse/[key]`: `IdSchema` check → `getCycle` / `getModule` in a `try`
+  (`NOT_FOUND` / `VALIDATION` → `notFound()`) → `redirect` to
+  `/projects/<project_id>/cycles/<id>` (or modules) outside the `try`.
+- `src/components/detail/activity-text.ts`: `FIELD_LABELS` gains `module: "module"`
+  for item rows written before lane A's rename.
+
+### Lane split and file ownership
+
+All five lanes start at once from `main`. Merge order: A, E1, E4, E2, E3, so the
+shared planning pieces (E1) and the scoped list (E4) are on `main` before the lanes
+that use them. Until a dependency merges, a lane codes against the signatures in
+this section; a stub lives at the owner's exact path with the exact exported names,
+starts with the line `// STUB(P3): replaced by lane <X>`, and loses to the owner's
+file in the merge (add/add conflict resolved by taking the owner's version; between
+two stubs, keep the one already on `main`). Gate: `grep -rn "STUB(P3)" src` is empty
+after the last merge. UI lanes never stub `src/lib/tessera/**`: they rebase onto A
+before using its new fields. Lanes B, C and D are idle in P3, so E3 and E4 may change
+(not only extend) the files in their middle column, keeping every behaviour this
+section does not change; the hand-off names each file.
+
+As built (prep, 2026-10-11): the lanes run at the same time in one shared checkout,
+not on branches, as in P2b. "Merge order" is the order in which the integrator
+resolves leftover stubs. A lane writes a stub only while the owner's file does not
+exist yet, never overwrites a file it does not own, and checks again before its
+hand-off (a stub whose owner has landed is deleted and the import kept). An owner
+that finds a file starting with the `STUB(P3)` line replaces it. `package.json`, the
+lockfile, `icons.tsx` and `globals.css` are already done (prep) and no lane edits
+them; `planning.css`, `modules.css` and `archives.css` exist with a header comment
+only, and each lane fills its own.
+
+| Lane | Creates | May edit additively (name it in the hand-off) | Must not touch |
+|---|---|---|---|
+| A engine | `scripts/mcp-call.ts` | `src/lib/tessera/{schemas,types,cycles,modules,work-items}.ts`, `src/lib/tessera/tools/registry.ts` (five descriptions), `tests/{cycles,modules,work-items}.test.ts`, `docs/contracts/{service-api,tools}.md` (corrections only), `docs/PLAN.md` (§5, §6, §9, §11 step 2, §13; item 10) | `src/app/**`, `src/components/**`, migrations |
+| E1 cycles and charts | `src/app/(tessera)/projects/[projectId]/cycles/**`, `src/components/planning/{types,panel-prefs,burndown,cycle-format,chart-colors}.ts`, `src/components/planning/{ProgressPanel,BreakdownTabs,AddExistingItemsDialog,FeatureOffState,CyclesScreen,CycleRow,CycleMenu,ActiveCycleSummary,CycleDialog,CycleDetailScreen,CycleHeader,CycleSidePanel,TransferDialog,BurndownChart}.tsx`, `src/components/styles/planning.css`, `src/app/actions/cycles.ts`, `tests/ui/{burndown,cycle-format}.test.ts` | `tests/themes/catppuccin-contrast.test.ts` (one case) | `src/components/{work-items,shell,detail,editor}/**`, other routes, `palette.ts`, `catppuccinTheme.ts` |
+| E2 modules | `src/app/(tessera)/projects/[projectId]/modules/**`, `src/components/planning/{ModulesScreen,ModuleRow,ModuleMenu,ModuleDialog,ModuleDetailScreen,ModuleHeader,ModuleSidePanel,ModuleLinks,LeadControl}.tsx`, `src/components/planning/module-format.ts`, `src/components/styles/modules.css`, `src/app/actions/modules.ts`, `tests/ui/module-format.test.ts` | none | E1's planning files (stub them), `src/components/{work-items,shell,detail}/**` |
+| E3 archives | `src/app/(tessera)/projects/[projectId]/archives/**`, `src/app/(tessera)/projects/archives/page.tsx`, `src/components/planning/{ArchivesTabs,ArchivedWorkItems,ArchivedCycles,ArchivedModules,ArchivedProjects,ProjectArchive,DeleteProjectDialog}.tsx`, `src/components/planning/archive-rules.ts`, `src/components/styles/archives.css`, `tests/ui/archive-rules.test.ts` | `src/app/actions/work-items.ts` (`unarchiveWorkItemAction`), `src/app/actions/projects.ts` (three wrappers), `src/components/detail/{DetailHeader,WorkItemDetail}.tsx` (archive and restore), `src/app/(tessera)/projects/page.tsx` (link) | `ProjectFrame.tsx`, `src/components/shell/**`, `src/components/work-items/**` except the files named |
+| E4 integration | `src/app/(tessera)/projects/[projectId]/work-items/scoped-list.tsx`, `src/components/work-items/{project-tabs,quick-add}.ts`, `src/components/work-items/properties/{membership-rules,date-format}.ts`, `src/app/(tessera)/cycles/[cycleId]/page.tsx`, `src/app/(tessera)/modules/[moduleId]/page.tsx`, `tests/ui/{project-tabs,quick-add,property-controls}.test.ts` | `projects/[projectId]/work-items/page.tsx`, `src/components/work-items/{WorkItemsScreen,DisplayMenu,ListLayout,BoardLayout,ProjectFrame,types}.ts(x)`, `properties/{CycleControl,ModuleControl,DateControl}.tsx`, `src/components/shell/{Sidebar,tab-registry,TabBar,shortcuts,useShortcuts,CommandBar}.ts(x)`, `src/components/detail/{peek-url,activity-text,DescriptionEditor}.ts(x)`, `src/components/editor/links.ts`, `tests/ui/{tab-registry,shortcuts,peek-url}.test.ts`, `tests/editor/links.test.ts` | `src/components/planning/**` (renders `ProjectMenu` and `ProjectArchivedBanner` through stubs), `src/lib/tessera/**` |
+
+Stubs expected: E2 and E3 stub E1's `planning/types.ts`, `ProgressPanel`,
+`AddExistingItemsDialog`, `FeatureOffState` and `cycle-format.ts` as they need them;
+E3 stubs E2's `module-format.ts`; E1, E2 and E3 stub E4's `scoped-list.tsx`
+(`ScopedWorkItems` and `ListSkeleton` render a plain "Work items arrive with E4"
+text, `loadPeek` returns `{ id, data: null }`); E1 and E2 stub E4's
+`properties/date-format.ts` (the `formatShortDate` body copied from `DateControl.tsx`,
+so the stub pulls no client file); E4 stubs E3's `ProjectArchive.tsx` (both
+components return `null`). There is no `src/components/planning/index.ts` barrel:
+files are imported directly, so no lane writes a file another lane owns. Lane A's
+`scripts/mcp-call.ts` and docs/PLAN.md edits touch no UI file.
+
+### Acceptance (P3)
+
+The run uses its own database, so the user's `data/tessera.db` is never written.
+The gate's `next build` needs the dev server stopped anyway (it shares `.next` with
+`next dev`, and a second `next dev` in this folder exits on the lock `.next/dev/lock`,
+`setup-dev-bundler.js`, `Lockfile.acquireWithRetriesOrExit`). So the verifier, after
+the build:
+
+- stops the dev server, runs `rm -rf .next/dev` (a stale Turbopack dev cache after a
+  build causes an HMR reload loop), and restarts it with
+  `TESSERA_DB_PATH=<repo>/data/p3-acceptance.db` in the environment (a new file;
+  `.env.local` does not exist, and an exported variable wins over it anyway);
+- loads `http://127.0.0.1:3000/home` once, so the server creates and migrates the
+  file (the stdio MCP server refuses pending migrations), then exports the same
+  `TESSERA_DB_PATH` in the shell that runs `scripts/mcp-call.ts`, whose stderr line
+  names the database (the report records it);
+- at the end stops the server, runs `rm -rf .next/dev` and restarts it without the
+  variable (default `data/tessera.db`), and leaves `data/p3-acceptance.db` in place
+  (`data/` is git-ignored).
+
+The steps still use projects with identifiers of their own, `P3A` ("P3 Acceptance")
+and `P3T` ("P3 Throwaway"). Browser: the in-app browser, or a Chrome DevTools
+session at `http://127.0.0.1:3000` when the pane does not open (as in P2b).
+
+Before step 1:
+
+- "MCP" below means `npx tsx scripts/mcp-call.ts <tool> '<json>'`; ids come from the
+  browser URL (`/projects/<projectId>/cycles/<cycleId>`) or from
+  `get_work_item_by_key '{"key":"P3A-3"}'`.
+
+Steps in order:
+
+1. `/projects` → New project "P3 Acceptance" (`P3A`) → the frame shows the tabs Work
+   items, Cycles, Modules, Archives and the sidebar lists Work items, Cycles, Modules
+   under it. MCP `list_projects` lists P3 Acceptance, which proves the client and
+   the server share one database (if not, stop: the server runs on another
+   `TESSERA_DB_PATH`). MCP `update_project_features '{"project_id":"<id>","cycles_enabled":false}'`
+   → within 5 s the Cycles tab, the sidebar entry and the Archives › Cycles tab
+   disappear; `/projects/<id>/cycles`, `/projects/<id>/cycles/00000000-0000-4000-8000-000000000000`
+   and `/projects/<id>/archives/cycles` show "Cycles are turned off for this
+   project". MCP `update_project_features` with `cycles_enabled: true` → all three
+   come back.
+2. Work items → create `P3A-1` "Existing task". `g c` → Cycles shows "No cycles yet".
+   New cycle "Sprint 1" with dates today − 7 … today + 7 → listed under Current and
+   the summary card shows Sprint 1 with "7 days left". New cycle again → the Dates
+   picker shows the days of Sprint 1 disabled; Cancel.
+3. Open Sprint 1 → quick-add "Alpha" (`P3A-2`) and "Beta" (`P3A-3`) → both show
+   Sprint 1 in the cycle property. Display → group by State → the Done and Cancelled
+   groups have no quick-add row, Backlog and Todo do; set grouping back. "Add
+   existing" → filter "Existing" → add `P3A-1` → three items; the panel shows 0 of 3
+   and the tab reads "P3 Acceptance · Sprint 1".
+4. Open `P3A-2` in the peek (the progress panel hides), set it to Done, close the
+   peek → the panel shows 1 of 3; the burndown has a dashed ideal line, an actual
+   line ending today, a "Today" marker and the sentence under it names pending and
+   ideal values in work items; the axes and labels read in both colour schemes; open
+   "Data table" → one row per day. Switch to Burnup → a dotted "Scope" line at 3 and
+   actual 1 today; reload → Burnup is kept. The Unit switch is absent (no estimate).
+5. Edit Sprint 1 → end date yesterday → the header says Completed, quick-add and
+   "Add existing" are gone, the read-only line shows; a `P3A-1` peek shows the cycle
+   control read-only. MCP `update_work_item '{"work_item_id":"<P3A-3 id>","priority":"high"}'`
+   → the open tab shows High within 5 s.
+6. Cycles → New cycle "Sprint 2" with dates today … today + 13 → the summary card
+   now shows Sprint 2; Sprint 1 sits under Completed with a "2 open" badge and its
+   menu shows Archive enabled and Delete disabled ("Archive it first").
+7. Sprint 1 menu → "Transfer open items…" (targets: Sprint 2 and "No cycle") → Sprint
+   2 → Toast "Moved 2 work items to Sprint 2" → Sprint 2 lists `P3A-1` and `P3A-3`;
+   Sprint 1 still shows 1 of 3 in the row and in its panel, the panel says the
+   progress is frozen, its chart is unchanged and the Transfer item is gone. MCP
+   `get_cycle '{"cycle_id":"<Sprint 1 id>"}'` returns `open_count: 0` and a non-null
+   `progress_snapshot`.
+8. Sprint 1 menu → Archive → it leaves the list. Work items → open `P3A-2` (still in
+   Sprint 1) in the peek → its cycle control reads "Archived cycle" and is read-only.
+   Archives tab → Cycles lists Sprint 1; open it → "This cycle is archived" Banner →
+   Restore → it is back under Completed. Sprint 2's menu shows Archive disabled with
+   "Cycles can be archived after their end date".
+9. `g m` → New module "Launch" (status Planned by default, lead and member = the
+   human actor, start today, target today + 30) → the row shows the status, lead,
+   member and dates. New module "Launch" again → the Name field says "A module with
+   this name exists"; Cancel. Open Launch → Add link `https://example.com` "Spec" →
+   listed with the external-link icon, opens in a new tab; "Add existing" → `P3A-1`;
+   quick-add "Gamma" (`P3A-4`) → two items; the panel shows 0 of 2 with the
+   Assignees, Labels and States tabs (arrow keys move between them).
+10. Launch menu → Archive is disabled ("Set the status to Completed or Cancelled
+    first"); set status Completed → Archive → Archives › Modules lists Launch. Open
+    `P3A-1` in the peek → the Modules control shows "1 archived module" and no Launch
+    option; MCP `get_work_item_by_key '{"key":"P3A-1"}'` still lists Launch's id in
+    `module_ids`. Open Launch from Archives › Modules → the archived Banner, read-only
+    controls, no "Add link", no quick-add → Restore → back in Modules.
+11. Work items → open `P3A-2` (Done) → More → Archive → "This work item is archived"
+    Banner; the list no longer shows it. Archives › Work items lists `P3A-2` → open
+    it (peek with the Banner) → Restore → it is back in Work items. On `P3A-1` (open)
+    the Archive item is disabled with its reason. Archive `P3A-2` again → Archives ›
+    Work items → its menu → Delete… → confirm → Toast "Deleted P3A-2" and the tab
+    shows "No archived work items".
+12. Project actions (frame header) → Archive project → confirm → `/projects/archives`
+    lists P3 Acceptance and the sidebar no longer shows it; open it → the archived
+    Banner; Restore → the sidebar shows it again. Create project "P3 Throwaway"
+    (`P3T`), Delete project… → the button enables only after typing `P3T` → it
+    disappears everywhere.
+13. Power K inside P3 Acceptance: `g c` → Cycles; `n c` → the New cycle dialog
+    (Cancel); `mod+k` "Sprint 2" → Enter opens its detail; `g r` → Archives; `g m` →
+    Modules. On `/projects/archives`: `mod+k` "Existing task" finds `P3A-1` (the
+    palette is not scoped to a project called "archives") and `n i` opens the create
+    dialog of the last project (P3 Acceptance), never `/projects/archives/work-items`. The help
+    dialog (`mod+/`) shows no "Arrives in P3" hint; Views say "Arrives in P4".
+14. Copy Sprint 2's id from the URL; open `P3A-1`, switch its description to source,
+    add `[Sprint 2](cycle:<id>)`, switch back → a chip; click it → `/cycles/<id>`
+    redirects to the cycle and the tab bar keeps one tab for it (the alias tab is
+    transient).
+15. Sibling navigations, by clicking only (no typed URLs, no reloads): Work items tab
+    → Cycles tab → Sprint 2 row → Archives tab → Cycles (archives) → Modules
+    (archives) → Modules frame tab → Launch row → Work items tab. Each screen
+    renders, and no Next dev overlay, error or instant-navigation insight appears.
+16. The dev console shows no errors and no hydration warnings on any screen visited
+    in steps 1–15 (only the two known dev-only entries under "Carried items" are
+    allowed).
+17. Clean-up: P3 Acceptance → Project actions → Delete project… → type `P3A` → it
+    leaves the sidebar, `/projects` and `/projects/archives`; MCP `list_projects` and
+    `list_projects '{"archived":true}'` hold neither `P3A` nor `P3T`. The deleted
+    rows and their activity stay in `data/p3-acceptance.db` as soft-deleted history.
+
+Gate: `npm run check` green (typecheck, lint, Vitest including the new
+`tests/ui/{burndown,cycle-format,module-format,archive-rules,project-tabs,quick-add,property-controls}.test.ts`
+and the updated engine and UI tests, conventions, licences, theme), `next build`
+green, `grep -rn "STUB(P3)" src` empty, and docs/PLAN.md §9's P3 exit criteria met
+(cycle rules Vitest, transfer keeps the snapshot, restore works in the browser:
+steps 7, 8, 10 and 11).
+
+### API verification and mismatches found while writing this section
+
+| # | Source says | Installed code or package says | P3 resolution |
+|---|---|---|---|
+| 1 | docs/PLAN.md §11 step 2: "Recharts and Playwright are added at P9 and P11"; §9 names Recharts only in the P9 row | The burndown needs a chart in P3; `recharts` is not installed | E1 installs `recharts@3.10.1`; P9 reuses it; lane A corrects §9 and §11 (lane A item 10) |
+| 2 | `palette.ts` comment "Categorical chart hues (P9 charts)" | `DATA_TOKENS` are already wired in `catppuccinTheme.ts` | No palette change; lane B updates the comment on its next pass (others may not edit `palette.ts`) |
+| 3 | `shortcuts.ts` `create.view` / `nav.views` `arrives: "P3"` | Views are P4 (docs/PLAN.md §9) | E4 sets `"P4"` |
+| 4 | `shortcuts.ts` `nav.archives` `arrives: "P9"` | Archives ship in P3 | E4 removes `arrives` and wires `g r` |
+| 5 | docs/PLAN.md §6: project Archives in the sidebar's `…` menu, a workspace "Archives" entry | No project `…` menu exists; frame tabs are the project navigation | Archives is a permanent frame tab plus `g r` and a link on `/projects`; the sidebar entries wait for the P9 sidebar pass; lane A records the deviation in PLAN §6 and §13 and the alias routes in §5 (item 10) |
+| 6 | House dialogs need a footer | Astryx has no `DialogFooter` (`dist/Dialog/`) | `Layout` header / content / footer (`CreateProjectDialog.tsx`) |
+| 7 | Row menus inside clickable rows risk nested controls (the handbook tabs bug fixed in `2c96000`) | `ListItem` `href` / `onClick` render an invisible anchor or button beside the content (`dist/List/ListItem.d.ts`), and `label` is a ReactNode | Rows use `href` with menus in `endContent`; checkbox rows use `interactiveRef` |
+| 8 | `get_cycle_progress` description promises "the ideal line"; `get_module_progress` "the completion percentage" | Neither is returned | Lane A rewrites the descriptions (tools.md) |
+| 9 | Public product docs show a new module starting in Backlog | Decision 5 and `createModule` default to `planned` | Keep `planned` |
+| 10 | Recharts declares `react-is` as a peer | The hoisted `react-is` is 16.13.1 (via `prop-types`); React 19 elements need `react-is` 19 to be recognised | E1 adds `react-is@19.3.0` as an exact direct dependency |
+| 11 | P2b tests pin the pre-P3 behaviour | `tests/ui/shortcuts.test.ts` 441–446 ("Arrives in P3"), `tests/ui/tab-registry.test.ts` 77–79 (cycles icon `"page"`), `tests/editor/links.test.ts` 76–78 (cycle and module routes `null`) | E4 updates them |
+| 12 | `/projects/archives` is a static route | Three copies of `projectIdFromPath` match `archives` as a project id: `Sidebar.tsx` 49, `useShortcuts.ts` 115 and `CommandBar.tsx` 104 (the palette scope at 147, which would send `scope=archives` to `/api/search`) | One guarded export in `tab-registry.ts`, imported by all three (E4); `tests/ui/tab-registry.test.ts` covers `/projects/archives` → `null` |
+| 13 | Astryx `Timestamp` formats dates | A `YYYY-MM-DD` string parses as UTC midnight, a day early west of UTC and a hydration risk | `formatShortDate` for dates, `RelativeTime` for timestamps |
+| 14 | This contract names Recharts props | Not verifiable before install | E1 checks `responsive`, `accessibilityLayer`, `Line` (`connectNulls`, `strokeDasharray`, `isAnimationActive`, `dot`), `ReferenceLine` (`x`, `y`, `label` as an object with `value`, `fill`, `position`), `XAxis` / `YAxis` (`allowDecimals`, `tick`, `stroke`; the `CartesianAxis` default stroke `#666` they override), `CartesianGrid vertical`, `Tooltip` (`contentStyle`, `labelStyle`, `itemStyle`, `cursor`, `isAnimationActive`) in `node_modules/recharts/types/` and records any deviation in its hand-off |
+| 15 | `DateRangeInput` constraints could take ISO strings | `dateConstraints: ReadonlyArray<(date: Date) => boolean>` (`dist/DateRangeInput/DateRangeInput.d.ts`) | Convert with local date getters |
+| 16 | `CycleProgressSchema` `points` and `completion_chart` are integers | Estimate values may be fractional; a fractional snapshot fails `safeParse` and progress silently goes live | Lane A item 1 |
+| 17 | Module points follow the active estimate | Cycle points ignore `estimates_enabled` and the estimate id (`cycles.ts` `loadProgressItems`) | Lane A item 2 |
+| 18 | The snapshot freezes "issues mode, points included" (schema.md "Cycles") | Points mode on a frozen cycle returns the items series under point totals | Lane A item 2 (both series frozen, `chart_mode`) |
+| 19 | One activity field per membership kind | `modules.ts` writes `field: "module"`, `work-items.ts` writes `"modules"`; `activity-text.ts` labels only `modules` | Lane A item 6 plus E4's alias for stored rows |
+| 20 | Decision 24: cycle and module membership log on both sides | `update_work_item.cycle_id` and `set_modules` log only the item side | Recorded; fixed with the P5 entity activity feed |
+| 21 | Module tools refuse archived modules (`ARCHIVED`) | `syncModules` and `createWorkItem` let items join or leave an archived module | Lane A item 4 |
+| 22 | Cycle progress counts archived items (schema.md) | The cycle-scoped list hides archived items | The panel caption says "Includes archived work items." |
+| 23 | Feature toggles hide cycles and modules | The engine does not refuse cycle or module tools while a toggle is off; there is no settings UI before P4 | UI-only hiding in P3; enforcement decided with P4 settings |
+| 24 | `.cursor/rules/astryx.mdc` describes Astryx | It still describes 0.6.0 | Not P3; refresh with the next Astryx upgrade |
+| 25 | Acceptance could serve a fresh database on a second app server | Next 16.4 dev takes `<distDir>/lock` (`node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js` 175, `Lockfile.acquireWithRetriesOrExit`), so a second `next dev` here exits | Acceptance restarts the dev server after the build on its own database `data/p3-acceptance.db` (prep decision, 2026-10-11; the user's database is never written); MCP steps go through `scripts/mcp-call.ts` with the same `TESSERA_DB_PATH` (lane A item 9) |
+| 26 | The project layout's `instant = false` covers the pages under it | `01-app/02-guides/instant-navigation.md` "Opting out": "Navigations between sibling segments below are still validated" | Each new page adds `instant = false` when the validator reports it; acceptance step 15 walks sibling navigations |
+| 27 | Pure format helpers can import `formatShortDate` | It is exported from `DateControl.tsx`, a `"use client"` file: a Server Component would get a client reference, and Vitest would load Astryx client components | E4 moves it to `properties/date-format.ts` (no directive); `DateControl.tsx` re-exports it; E1 and E2 import the new path |
+| 28 | `completion_chart_points` is snapshot-only | `toCycles` / `toCycleDetail` spread `CycleRow`, so `progress_snapshot` reaches `list_cycles`, `get_cycle` and the project bundle | Documented (lane A item 1, service-api.md); the UI's frozen flag is `progress_snapshot !== null` |
+| 29 | Module date errors show on the date control | `DateControl` has no `status` prop; Astryx `DateInput` has `status?: InputStatus` (`dist/DateInput/DateInput.d.ts`, `dist/Field/types.d.ts`) | `ModuleDialog` uses two `DateInput`s directly |
+| 30 | `ProgressBar variant="success"` meets the 3:1 graphics rule | `--color-success` is `pair("green")` (`palette.ts` 154), 2.96:1 on Latte base | Accepted trade-off: a text value accompanies every bar ("Icons, CSS and conventions") |
+| 31 | A `Tab` with `panelId` works in any `TabList` | Without `role="tablist"` the strip is a `<nav>` and `dist/TabList/Tab.js` 208 warns in development that `panelId` does nothing | `BreakdownTabs` uses `role="tablist"`, tab ids and `role="tabpanel"` panels; `ArchivesTabs` and the frame tabs keep the navigation pattern without `panelId` |
+| 32 | External links need a hand-added icon | Astryx `Link isExternalLink` adds the icon, `target="_blank"`, `rel` and the new-tab announcement (`dist/Link/Link.d.ts`) | `ModuleLinks` uses it |
+| 33 | Quick-add works in every group | In a cycle scope a group pinned to a closed state sends `cycle_id` with that state, which `createWorkItem` refuses (`RULE work_item_closed`) | `quickAddAllowed` hides those quick-add rows (E4) |
+| 34 | Property controls only need the bundle's cycles and modules | The bundle leaves out archived cycles and modules; after lane A, dropping an archived module through `set_modules` or leaving an archived cycle answers `ARCHIVED` | `membership-rules.ts` keeps archived module ids and makes an archived or completed cycle value read-only (E4) |
+| 35 | The project layout wraps `/projects/archives` | It is a sibling static segment, so it has no `ProjectProvider` | `ArchivedProjects` takes its data as props and uses no `useProject()` |
+
+Review fixes adopted with a change:
+
+- Module date errors: shown on the Target date field as asked, but through Astryx
+  `DateInput` rather than `DateControl`, which has no `status` prop (row 29).
+- Acceptance MCP client: it spawns `npx tsx scripts/mcp-stdio.ts` (the form
+  `.mcp.json` and `tests/mcp-stdio.test.ts` use) with no `--db` and no `--migrate`
+  rather than `npm run mcp:stdio -- --db <path>`, so it opens exactly the database the
+  dev server resolves and never migrates it.
