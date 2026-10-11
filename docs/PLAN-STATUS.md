@@ -122,3 +122,31 @@ Plan: [docs/PLAN.md](PLAN.md). Ownership: [docs/contracts/OWNERS.md](contracts/O
   - **Handbook tabs nesting a button in a button** (a hydration error on `/`). The close control is a decorative glyph that the tab's click handler detects, as in the Tessera tab bar. Keyboard close of handbook tabs goes away with it; the handbook is removed in P6.
   - **Doctor `agent-docs`.** `npx astryx init --features agents --agent codex` added the managed Astryx block to `AGENTS.md`, followed by a short "Tessera project rules" note: the block forbids imported CSS, while `docs/contracts/ui.md` keeps per-area token-only CSS.
 - Still open, accepted: Doctor `theme-fonts` (and its `themes` summary), documented by Astryx as expected when the app loads fonts itself (`next/font` here). Astryx `ContextMenu` spreads its long-press hook result (`moveTo`, `start`, `cancel`) onto the trigger `div`; 0.6.8 is the newest stable release and the `0.6.9-canary.47eb0dd` build still does it, so the dev warning stays until Astryx fixes it. React's dev-only "negative time stamp" error stays as recorded in P2a.
+
+### Layout rework (2026-10-11)
+
+Goal: look like Plane's current cloud layout, with the calm of the Claude desktop app, keeping Catppuccin Frappé/Latte, the mauve accent and Source Sans 3. Milestone commits M1–M6 on `claude/app-visual-rework-250c6c`; the contract is docs/contracts/ui.md ("Shell", "Theme", "Work items screen", P2b "Routes and modes" and "Detail components"). Plane was read for design facts only (sizes, structure); no code was copied.
+
+- **Density (M1).** The theme's type scale is `{ base: 14, ratio: 1.2 }`: body 14px, supporting 12px, h1 24px, sm (28px) controls in headers and rows.
+- **Frame (M2).** `AppShell variant="wash"`: the top bar (collapse, brand, a search field that opens Power K, help, the account menu with the colour scheme) and the sidebar sit on the wash; the content sits in one 16px-cornered panel 8px in from it. The sidebar reads "Work": a quiet "New work item" button, Home, Projects, and a "Projects" section with a "+" and flat project rows. It is resizable 236–350px (`tessera.sidebarWidth.v1`). The colour scheme moved from the sidebar footer to the account menu.
+- **Tabs replaced by recents (M2).** `TabBar.tsx` is gone, and `tab-registry.ts` became `recents.ts`. Visits feed a newest-first list of 12 (`tessera.recents.v1`), shown on Home (8) and in Power K's "Recent" group (5). `alt+w`, middle-click and the tab context menu went with the tab bar, and so did the Astryx `ContextMenu` dev warning.
+- **Panel headers (M3).** `shell/PanelHeader.tsx` has three rows:
+  - a 52px header: the project token, name and section tabs (`ProjectFrame`);
+  - a 44px sub-header: "Work items", the count, the layout switch, Display and "New work item";
+  - a 44px filters row (`PowerSearch`).
+
+  The layout switch left the display menu. Home, Projects and not-found use `PanelPage` with a 960px reading column.
+- **Detail and peek (M4).**
+  - The header is one pinned 44px bar: breadcrumbs, copy link, a More menu (make a copy, copy ID, delete), an "Open as" menu (side panel, modal, full page) and Close.
+  - The property rail is four groups split by hairlines, with icon and muted labels in a 120px column (104px in the peek).
+  - The activity is a timeline of icon tiles.
+  - The page and wide modal put the rail in a 320–384px column behind a hairline.
+  - The side peek is an inset card: 12px corners, 4px inside the panel.
+- **List, board, table (M5).**
+  - List rows are at least 44px, with a muted tabular key and a medium-weight title.
+  - Group headers are sticky 40px muted bands.
+  - Row properties read as bordered 24px chips with no chevron.
+  - Board columns are 350px with 16px gaps. The table's first column lines up with the header.
+- **Extension point change for P3:** a project's pages are `ProjectFrame.TABS` only. `Sidebar.projectNavItems` and the per-project sidebar children are gone, and route labels come from `recents.resolveRoute` (the old `tab-registry.resolveTab`).
+- Gates (2026-10-11, after M6): `npm run check` (43 files, 1208 tests) green.
+- **Follow-up, not done:** the "+" in a list group header that appears on hover.

@@ -5,8 +5,8 @@ import { Heading } from "@astryxdesign/core/Text";
 
 /**
  * Panel headers (docs/contracts/ui.md "Shell", "Panel headers"): the slim
- * bars at the top of the content panel. A screen puts one `PanelHeader` (one
- * header landmark, hairline below) in its Layout's header slot and stacks
+ * bars at the top of the content panel. A screen puts one `PanelHeader` (an
+ * Astryx LayoutHeader, hairline below) in its Layout's header slot and stacks
  * `PanelBar` rows in it: the 52px page header (title, tabs, page actions),
  * the 44px sub-header (the view's name and count, layout, display and the
  * primary action) and the 44px filters row. A row is a plain stack, not an
