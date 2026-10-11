@@ -25,8 +25,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.133.0",
-    "@astryxdesign/cli": "^0.6.0",
-    "@astryxdesign/core": "^0.6.0",
+    "@astryxdesign/cli": "0.6.8",
+    "@astryxdesign/core": "0.6.8",
     "@milkdown/kit": "^7.22.2",
     "@milkdown/react": "^7.22.2",
     "@modelcontextprotocol/server": "2.3.1",

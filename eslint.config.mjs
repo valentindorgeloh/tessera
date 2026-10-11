@@ -52,6 +52,14 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // Astryx local theme descriptors (`astryx docs theme`) keep the CLI's canonical
+    // `export default {…}` shape so `astryx upgrade` and `doctor` can read them.
+    files: ["src/themes/**/*.doc.mjs"],
+    rules: {
+      "import/no-anonymous-default-export": "off",
+    },
+  },
+  {
     // Legacy handbook files: untouched until they are removed in P6 (see docs/PLAN.md).
     files: [
       "src/app/page-body.tsx",
