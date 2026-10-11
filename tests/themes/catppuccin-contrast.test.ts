@@ -146,7 +146,7 @@ describe("catppuccin palette contrast", () => {
 
     // Board cards are ClickableCards: their hover overlay paints over the
     // content, so avatar initials (text-secondary on neutral) sit under it too.
-    // The DisplayMenu segmented control hovers the same way inside a menu.
+    // The sub-header's LayoutSwitch segmented control hovers the same way.
     it("secondary text on neutral fills reads under the hover overlay", () => {
       const text = SEMANTIC_TOKENS["--color-text-secondary"][mode];
       const fills = [SEMANTIC_TOKENS["--color-neutral"][mode], SEMANTIC_TOKENS["--color-overlay-hover"][mode]];

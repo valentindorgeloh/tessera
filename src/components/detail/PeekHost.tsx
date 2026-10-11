@@ -4,12 +4,16 @@
  * Peek host (docs/contracts/ui.md "Routes and modes"): wraps the work items
  * screen and shows the item named by `?peek=<id>` next to it. `side` (the
  * default) is a resizable end panel of a nested Layout, 360–720 px wide,
- * holding an inset card (4px inside the content panel, so the corners stay
- * concentric) that scrolls the detail under its pinned header; `modal` is a
+ * holding an inset card (4px inside the content panel's border, 12px corners
+ * that follow the panel's 16px ones) that scrolls the detail under its pinned
+ * header; `modal` is a
  * Dialog over the list; both remember width and mode in
  * localStorage (./peek-prefs.ts). Open and close only change the `peek`
  * search param (./peek-url.ts keeps `q`), so a reload restores the panel.
- * Escape closes the side panel; the Dialog closes itself on Escape. The
+ * Escape closes the side panel; the Dialog closes itself on Escape. An item
+ * that has loaded counts as a visit to its full page in the recents
+ * (src/components/shell/recents-store.ts); a peek that shows "not found" is
+ * never recorded. The
  * list stays mounted in the same tree position whether or not the panel is
  * open, so an open or close never resets its state or focus.
  *
@@ -38,7 +42,9 @@ import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { VStack } from "@astryxdesign/core/Stack";
+import { recordVisit } from "@/components/shell/recents-store";
 import { IdSchema } from "@/lib/tessera/schemas";
+import { workItemPath } from "./DetailHeader";
 import { WorkItemDetail } from "./WorkItemDetail";
 import type { DetailHost, WorkItemDetailData } from "./types";
 import { clearPeekPush, movePeekPush, readPeekPush, stampPeekPush } from "./peek-history";
@@ -137,6 +143,14 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
     loadPeekPrefs();
   }, []);
 
+  // A loaded item counts as a visit to its full page; recording the page again first keeps the item ahead of it.
+  const visitPath = peek?.data ? workItemPath(peek.data.item) : null;
+  useEffect(() => {
+    if (visitPath === null) return;
+    recordVisit(pathname);
+    recordVisit(visitPath);
+  }, [pathname, visitPath]);
+
   // The list's push has landed once its URL is current: record the history length it produced.
   useEffect(() => {
     if (isOpen) stampPeekPush(here, window.history.length);
@@ -154,7 +168,7 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
     movePeekPush(here, next);
     router.replace(next, { scroll: false });
   };
-  // The control that had focus when the mode changed (the mode button): the Dialog's own focus handling runs while the
+  // The control that had focus when the mode changed (the "Open as" menu trigger): the Dialog's own focus handling runs while the
   // detail is between slots, so focus would otherwise land on the page body.
   const refocus = useRef<HTMLElement | null>(null);
   const changeHost = (host: DetailHost) => {

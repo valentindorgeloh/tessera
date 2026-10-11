@@ -173,7 +173,7 @@ function themeCommand(scheme: ColorScheme): CommandSearchItem {
 }
 
 /**
- * The palette-only theme commands, labelled like the sidebar's colour scheme
+ * The palette-only theme commands, labelled like the top bar's colour scheme
  * menu. They have no key binding and are not entries in `SHORTCUTS`.
  */
 export const THEME_COMMANDS: readonly CommandSearchItem[] = (Object.keys(COLOR_SCHEME_LABELS) as ColorScheme[]).map(themeCommand);

@@ -4,6 +4,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { VStack } from "@astryxdesign/core/Stack";
 import { NotFoundScreen } from "@/components/shell/NotFoundScreen";
+import { useMissingRoute } from "@/components/shell/recents-store";
 import { useOptionalProject } from "@/components/work-items/project-provider";
 
 /**
@@ -12,9 +13,10 @@ import { useOptionalProject } from "@/components/work-items/project-provider";
  * renders in two situations: inside the project frame, when a work item does
  * not exist or belongs to another project, and bare, when the project itself
  * is unknown and the layout rendered the page without a frame. The project
- * context tells the two apart.
+ * context tells the two apart. Either way the address leaves the recents.
  */
 export default function ProjectNotFound() {
+  useMissingRoute();
   const project = useOptionalProject();
   if (!project) return <NotFoundScreen />;
   return (

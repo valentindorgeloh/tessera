@@ -11,6 +11,7 @@ import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provid
 import type { Project } from "@/lib/tessera/types";
 import { FolderIcon, HouseIcon, PlusIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { projectIdFromPath } from "./recents";
+import { formatKeys, SHORTCUT_BY_ID } from "./shortcuts";
 import { useShell } from "./TesseraShell";
 
 export { LAST_PROJECT_STORAGE_KEY };
@@ -18,6 +19,9 @@ export { LAST_PROJECT_STORAGE_KEY };
 /** Width of the sidebar (docs/contracts/ui.md "Shell"): 250px by default, resizable from 236 to 350px. */
 export const SIDEBAR_WIDTH = { defaultWidth: 250, minWidth: 236, maxWidth: 350 } as const;
 export const SIDEBAR_WIDTH_STORAGE_KEY = "tessera.sidebarWidth.v1";
+
+/** The global create chord for the "New work item" tooltip ("N then I"; plain letters read the same on every platform). */
+const CREATE_ITEM_KEYS = formatKeys(SHORTCUT_BY_ID.get("create.workItem")?.keys ?? "n i", false);
 
 // ---------------------------------------------------------------------------
 // Preferences (localStorage), read after mount so server and client render the
@@ -145,7 +149,7 @@ export function Sidebar({ projects }: { projects: Project[] }) {
   }, [activeProjectId, projects]);
 
   const createTarget = projects.find((project) => project.id === lastProject) ?? projects[0] ?? null;
-  const createTooltip = createTarget === null ? "Create a project first" : "Create a work item (c)";
+  const createTooltip = createTarget === null ? "Create a project first" : `Create a work item (${CREATE_ITEM_KEYS})`;
   const openCreate = () => {
     if (createTarget) router.push(`/projects/${createTarget.id}/work-items?create=1`);
   };

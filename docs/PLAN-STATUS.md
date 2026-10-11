@@ -135,13 +135,13 @@ Goal: look like Plane's current cloud layout, with the calm of the Claude deskto
   - a 44px sub-header: "Work items", the count, the layout switch, Display and "New work item";
   - a 44px filters row (`PowerSearch`).
 
-  The layout switch left the display menu. Home, Projects and not-found use `PanelPage` with a 960px reading column.
+  The layout switch left the display menu. Home and Projects use `PanelPage` with a 960px reading column.
 - **Detail and peek (M4).**
   - The header is one pinned 44px bar: breadcrumbs, copy link, a More menu (make a copy, copy ID, delete), an "Open as" menu (side panel, modal, full page) and Close.
   - The property rail is four groups split by hairlines, with icon and muted labels in a 120px column (104px in the peek).
   - The activity is a timeline of icon tiles.
-  - The page and wide modal put the rail in a 320–384px column behind a hairline.
-  - The side peek is an inset card: 12px corners, 4px inside the panel.
+  - The full page (from 960px) puts the rail in a 320–384px column behind a hairline; the modal and the peek stack it under the title.
+  - The side peek is an inset card: 12px corners, 4px inside the panel's border.
 - **List, board, table (M5).**
   - List rows are at least 44px, with a muted tabular key and a medium-weight title.
   - Group headers are sticky 40px muted bands.
@@ -149,4 +149,13 @@ Goal: look like Plane's current cloud layout, with the calm of the Claude deskto
   - Board columns are 350px with 16px gaps. The table's first column lines up with the header.
 - **Extension point change for P3:** a project's pages are `ProjectFrame.TABS` only. `Sidebar.projectNavItems` and the per-project sidebar children are gone, and route labels come from `recents.resolveRoute` (the old `tab-registry.resolveTab`).
 - Gates (2026-10-11, after M6): `npm run check` (43 files, 1208 tests) green.
+- **Review and fixes (2026-10-11).** A multi-agent review with adversarial checks confirmed 48 findings (about 20 distinct issues, three medium) and refuted 5; a browser pass in Frappé and Latte at 1440 and 375 found a few more. Fixed:
+  - Focus is never hidden under the sticky group band or the pinned detail header (`scroll-padding` on the list scroller, `scroll-margin` in the detail body).
+  - The top bar search field passes the typed key to Power K as its first query (`openCommandBar(initialQuery)`), is named "Search work items and commands" and has `aria-haspopup="dialog"`.
+  - Row chips: the date chip has its own class, so a selector's clear button keeps its Astryx look; chips use the control outline (`--color-border-emphasized`); on a phone they wrap inside the row instead of running past it.
+  - The work items sub-header wraps (`PanelBar canWrap`) instead of scrolling the screen sideways on a phone or with the peek open; panel bar heights use tokens.
+  - Recents: a peek is recorded only once it has loaded (now in `PeekHost`); writes start from the stored list and follow other tabs; a deleted item and a not-found address leave the list (`forgetRecentsUnder`, `useMissingRoute`); a work item's project and global routes are one entry; Power K's "Recent" leaves out the page on screen and its peek.
+  - `ChangesPoller` moved out of the sidebar, whose mobile drawer React pauses while closed; it now polls at 375px too.
+  - Smaller items: the group band keeps its pressed feedback, the table's first-column rule uses Astryx's documented cell classes, the sidebar tooltip names the global `n i` chord, `PanelPage` uses a `VStack`, the module activity row has its icon, and stale tab-bar wording left comments, tests, OWNERS.md and PLAN.md. The contract now matches the code: sidebar collapse is not persisted, the modal stacks the rail, the peek inset, and Power K's bootstrap, section order and ids.
+  - Gates: `npm run check` (44 files, 1218 tests) and `next build` green.
 - **Follow-up, not done:** the "+" in a list group header that appears on hover.

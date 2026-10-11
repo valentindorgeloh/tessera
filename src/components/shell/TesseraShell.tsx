@@ -12,8 +12,8 @@ import { TopBar } from "./TopBar";
 export type ShellContextValue = {
   isNavCollapsed: boolean;
   setNavCollapsed: (collapsed: boolean) => void;
-  /** Opens Power K (the top bar's search field; `mod+k` does the same). */
-  openCommandBar: () => void;
+  /** Opens Power K (the top bar's search field; `mod+k` does the same), optionally with a first query. */
+  openCommandBar: (initialQuery?: string) => void;
   /** Opens the keyboard shortcuts dialog (the top bar's help button; `mod+/` does the same). */
   openShortcuts: () => void;
   /** Opens the Create project dialog (the sidebar's Projects "+"; `n p` does the same). */
@@ -52,7 +52,7 @@ export function TesseraShell({ sideNav, children }: { sideNav: ReactNode; childr
   ]);
 
   // CommandBar owns its dialogs; the top bar and the sidebar reach them through the same paths as the shortcuts.
-  const openCommandBar = useCallback(() => commandBar.current?.open(), []);
+  const openCommandBar = useCallback((initialQuery?: string) => commandBar.current?.open(initialQuery), []);
   const openShortcuts = useCallback(() => commandBar.current?.openHelp(), []);
   const openCreateProject = useCallback(() => commandBar.current?.openCreateProject(), []);
 

@@ -32,15 +32,18 @@ function opensSearch(event: KeyboardEvent<HTMLInputElement>): boolean {
  * The search field in the middle of the top bar. It is a read-only field that
  * opens Power K (the same path as `mod+k`) on a click or on the keys a user
  * would type into it, so the field never holds a query of its own and focus
- * comes back to it when the palette closes.
+ * comes back to it when the palette closes. A printable key becomes the
+ * palette's first query. The group and field labels join into one name,
+ * "Search work items and commands".
  */
-function SearchTrigger({ onOpen }: { onOpen: () => void }) {
+function SearchTrigger({ onOpen }: { onOpen: (initialQuery?: string) => void }) {
   return (
-    <Stack className="tessera-topbar-search" onClick={onOpen}>
+    <Stack className="tessera-topbar-search" onClick={() => onOpen()}>
       <InputGroup label="Search" isLabelHidden size="sm">
         <TextInput
-          label="Search"
+          label="work items and commands"
           isLabelHidden
+          aria-haspopup="dialog"
           isReadOnly
           size="sm"
           value=""
@@ -49,7 +52,7 @@ function SearchTrigger({ onOpen }: { onOpen: () => void }) {
           onKeyDown={(event) => {
             if (!opensSearch(event)) return;
             event.preventDefault();
-            onOpen();
+            onOpen(event.key.length === 1 && event.key !== " " ? event.key : undefined);
           }}
         />
         <InputGroupText>

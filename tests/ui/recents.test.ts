@@ -8,13 +8,17 @@ import {
   MAX_RECENTS,
   addRecent,
   isRecordable,
+  isSameRecent,
   isTransientPath,
   labelRecents,
   lookupFromNames,
   normalizePath,
+  onScreenPaths,
+  otherRecents,
   parseRecents,
   projectIdFromPath,
   projectNameMap,
+  removeRecentsUnder,
   resolveRoute,
   type RouteLookup,
 } from "@/components/shell/recents";
@@ -170,6 +174,12 @@ describe("addRecent", () => {
     expect(addRecent(recents, `/projects/${PROJECT}`)).toBe(recents);
   });
 
+  it("keeps one entry per work item: a visit to its global route replaces its project route, and back", () => {
+    const global = `/work-items/${ITEM}`;
+    expect(addRecent([DETAIL, LIST], global)).toEqual([global, LIST]);
+    expect(addRecent([LIST, global], DETAIL)).toEqual([DETAIL, LIST]);
+  });
+
   it("keeps at most `max` entries, dropping the oldest", () => {
     const many = Array.from({ length: MAX_RECENTS }, (_, index) => `/page-${index}`);
     const next = addRecent(many, LIST);
@@ -180,6 +190,43 @@ describe("addRecent", () => {
   });
 });
 
+describe("removeRecentsUnder", () => {
+  it("drops the path and the routes under it", () => {
+    expect(removeRecentsUnder([DETAIL, "/projects", LIST], LIST)).toEqual(["/projects"]);
+    expect(removeRecentsUnder([DETAIL, LIST], `${DETAIL}/`)).toEqual([LIST]);
+  });
+
+  it("keeps routes that only share a prefix, and returns the same list when nothing goes", () => {
+    const recents = [`${LIST}-archive`, LIST];
+    expect(removeRecentsUnder(recents, `${LIST}-archive`)).toEqual([LIST]);
+    expect(removeRecentsUnder(recents, DETAIL)).toBe(recents);
+  });
+});
+
+describe("onScreenPaths and otherRecents", () => {
+  it("is the page, plus the peeked item's full page inside a project", () => {
+    expect(onScreenPaths(`${LIST}/`, null)).toEqual([LIST]);
+    expect(onScreenPaths(LIST, ITEM)).toEqual([LIST, DETAIL]);
+    expect(onScreenPaths(`/projects/${PROJECT}/cycles/c1`, ITEM)).toEqual([`/projects/${PROJECT}/cycles/c1`, DETAIL]);
+    expect(onScreenPaths("/projects", ITEM)).toEqual(["/projects"]);
+  });
+
+  it("leaves the routes on screen out and caps what is left", () => {
+    const recents = [DETAIL, LIST, "/projects", "/a", "/b"].map((path) => ({ path }));
+    expect(otherRecents(recents, onScreenPaths(LIST, ITEM), 2).map((recent) => recent.path)).toEqual(["/projects", "/a"]);
+    expect(otherRecents(recents, ["/elsewhere"], 10)).toHaveLength(5);
+  });
+
+  it("treats the project and global routes of one work item as the same page", () => {
+    expect(isSameRecent(DETAIL, `/work-items/${ITEM}`)).toBe(true);
+    expect(isSameRecent(`${LIST}/`, LIST)).toBe(true);
+    expect(isSameRecent(LIST, "/work-items")).toBe(false);
+    expect(isSameRecent(DETAIL, `/work-items/other`)).toBe(false);
+    const recents = [`/work-items/${ITEM}`, "/projects"].map((path) => ({ path }));
+    expect(otherRecents(recents, onScreenPaths(LIST, ITEM), 5).map((recent) => recent.path)).toEqual(["/projects"]);
+  });
+});
+
 describe("parseRecents", () => {
   it("reads a stored list of paths, newest first", () => {
     expect(parseRecents([DETAIL, LIST])).toEqual([DETAIL, LIST]);
@@ -187,6 +234,7 @@ describe("parseRecents", () => {
 
   it("drops malformed, duplicate and unrecordable entries", () => {
     expect(parseRecents([LIST, 42, null, "relative", `${LIST}/`, "/home", "/browse/WEB-1", { path: DETAIL }, DETAIL])).toEqual([LIST, DETAIL]);
+    expect(parseRecents([DETAIL, `/work-items/${ITEM}`, LIST])).toEqual([DETAIL, LIST]);
   });
 
   it("caps the list and rejects anything that is not an array", () => {

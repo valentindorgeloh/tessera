@@ -39,6 +39,11 @@
   border-block-end: var(--border-width) solid var(--color-border);
 }
 
+/* Focus scrolled into view stays clear of the pinned header, whichever host scrolls the detail. */
+.tessera-detail-body * {
+  scroll-margin-block-start: calc(var(--size-element-md) + var(--spacing-4));
+}
+
 .tessera-detail-crumbs {
   min-width: 0;
   flex: 1;

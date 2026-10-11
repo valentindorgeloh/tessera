@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Layout, LayoutContent, LayoutHeader } from "@astryxdesign/core/Layout";
-import { HStack } from "@astryxdesign/core/Stack";
+import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Heading } from "@astryxdesign/core/Text";
 
 /**
@@ -36,22 +36,32 @@ export type PanelBarProps = {
   hasDivider?: boolean;
   /** Extra class for a bar that is not in a PanelHeader (the detail header pins itself). */
   className?: string;
+  /**
+   * Lets the row wrap when `start` and `end` do not fit on one line (a phone,
+   * the peek panel open): `end` drops under `start` and wraps its own actions.
+   * Off by default, where `start` shrinks instead (the tabs scroll, the
+   * filter field narrows).
+   */
+  canWrap?: boolean;
 };
 
 /**
  * One row of a panel header: `start` (title, tabs, filters) grows and may
- * shrink, `end` (actions) keeps its size. A row after the first one draws a
- * hairline above itself (`hasDivider`).
+ * shrink, `end` (actions) keeps its size unless the row wraps (`canWrap`). A
+ * row after the first one draws a hairline above itself (`hasDivider`).
  */
-export function PanelBar({ size = "header", start, end, hasDivider = false, className }: PanelBarProps) {
-  const classes = [BAR_CLASS[size], hasDivider ? "tessera-panel-bar--divided" : null, className ?? null].filter(Boolean).join(" ");
+export function PanelBar({ size = "header", start, end, hasDivider = false, className, canWrap = false }: PanelBarProps) {
+  const classes = [BAR_CLASS[size], hasDivider ? "tessera-panel-bar--divided" : null, canWrap ? "tessera-panel-bar--wraps" : null, className ?? null]
+    .filter(Boolean)
+    .join(" ");
+  const wrap = canWrap ? "wrap" : "nowrap";
   return (
-    <HStack gap={3} vAlign="center" paddingInline={4} className={classes}>
+    <HStack gap={3} vAlign="center" paddingInline={4} wrap={wrap} className={classes}>
       <HStack gap={2} vAlign="center" className="tessera-panel-bar-start">
         {start}
       </HStack>
       {end ? (
-        <HStack gap={2} vAlign="center" className="tessera-panel-bar-end">
+        <HStack gap={2} vAlign="center" hAlign="end" wrap={wrap} className="tessera-panel-bar-end">
           {end}
         </HStack>
       ) : null}
@@ -74,7 +84,7 @@ export function PanelTitle({ children }: { children: string }) {
 /**
  * A page in the content panel: the header pinned at the top and the content
  * scrolling under it. `width="reading"` centres the content in a 960px
- * column (Home, Projects, not found); `"full"` gives it the panel's width.
+ * column (Home, Projects); `"full"` gives it the panel's width.
  */
 export function PanelPage({ header, width = "full", children }: { header: ReactNode; width?: "reading" | "full"; children: ReactNode }) {
   return (
@@ -83,7 +93,7 @@ export function PanelPage({ header, width = "full", children }: { header: ReactN
       header={header}
       content={
         <LayoutContent isScrollable padding={0}>
-          {width === "reading" ? <div className="tessera-reading">{children}</div> : children}
+          {width === "reading" ? <VStack className="tessera-reading">{children}</VStack> : children}
         </LayoutContent>
       }
     />

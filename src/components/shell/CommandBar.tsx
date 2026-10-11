@@ -7,14 +7,16 @@
  * the static commands of the current context (actions on the open work item
  * from ./command-context.ts, create and navigate chords, settings and the
  * colour scheme), the "Recent" group of visited routes while the query is
- * empty (./recents-store.ts), an "All projects" footer toggle inside a
+ * empty (./recents-store.ts; the page on screen and its peek left out), an
+ * "All projects" footer toggle inside a
  * project, an "Ask" tab placeholder for the assistant (P5) and the keyboard
  * shortcuts dialog on `mod+/`. Mounts the shortcut dispatcher and the Create
  * project dialog once. The open state and the scope live here; the shell
  * reaches `open()`, `openHelp()` and `openCreateProject()` through the
  * `CommandBarHandle` ref, so the top bar's search field
  * (`useShell().openCommandBar()`) and `mod+k` take the same path and both
- * read the project of the current route when the palette opens.
+ * read the project of the current route when the palette opens; the field
+ * passes the key typed into it as the first query.
  * The scope is the route's project, not `useOptionalProject()`: the bar is
  * mounted by the shell, above every ProjectProvider.
  *
@@ -39,7 +41,7 @@ import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Heading, Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { notePeekPush } from "@/components/detail/peek-history";
-import { currentHref, peekHref } from "@/components/detail/peek-url";
+import { currentHref, PEEK_PARAM, peekHref } from "@/components/detail/peek-url";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import type { SearchHit, SearchType } from "@/lib/tessera/types";
 import {
@@ -69,7 +71,7 @@ import {
   type CommandSection,
   type CommandSource,
 } from "./command-source";
-import { projectIdFromPath, RECENTS_IN_PALETTE } from "./recents";
+import { onScreenPaths, otherRecents, projectIdFromPath, RECENTS_IN_PALETTE } from "./recents";
 import { readRecents } from "./recents-store";
 import { COLOR_SCHEME_ICONS, ROUTE_ICONS } from "./shell-icons";
 import { isShortcutId, SHORTCUTS, type ShortcutGroup } from "./shortcuts";
@@ -77,9 +79,11 @@ import { setSingleKeys, useShortcutPrefs, useShortcuts } from "./useShortcuts";
 
 /**
  * What the shell calls: `open()` behaves exactly like `mod+k`, `openHelp()`
- * like `mod+/` and `openCreateProject()` like `n p`.
+ * like `mod+/` and `openCreateProject()` like `n p`. `open(initialQuery)`
+ * starts the palette with that query (the key typed into the top bar's
+ * search field); a call while the palette is open does nothing.
  */
-export type CommandBarHandle = { open: () => void; openHelp: () => void; openCreateProject: () => void };
+export type CommandBarHandle = { open: (initialQuery?: string) => void; openHelp: () => void; openCreateProject: () => void };
 
 export type CommandBarProps = {
   ref?: Ref<CommandBarHandle>;
@@ -93,9 +97,11 @@ type PaletteScope = {
   /** The footer toggle: search every project instead of the current one. */
   allProjects: boolean;
   mode: PaletteMode;
+  /** The routes on screen when the palette opened (`onScreenPaths`), left out of the "Recent" group. */
+  onScreen: readonly string[];
 };
 
-const CLOSED_SCOPE: PaletteScope = { projectId: null, allProjects: false, mode: "search" };
+const CLOSED_SCOPE: PaletteScope = { projectId: null, allProjects: false, mode: "search", onScreen: [] };
 
 type PaletteState = {
   scope: PaletteScope;
@@ -115,6 +121,10 @@ export function CommandBar({ ref }: CommandBarProps) {
   // A new palette instance per opening, so a close from outside the palette
   // (the help dialog taking over) never leaves a stale query behind.
   const [session, setSession] = useState(0);
+  const [initialQuery, setInitialQuery] = useState("");
+  // Set the moment `open()` runs, before the render that opens the palette, so a second key the top bar's field
+  // receives before the palette takes focus does not start a new palette over the first.
+  const isOpenRef = useRef(false);
   const [isHelpOpen, setHelpOpen] = useState(false);
   const [isCreateProjectOpen, setCreateProjectOpen] = useState(false);
   const [scope, setScope] = useState<PaletteScope>(CLOSED_SCOPE);
@@ -143,10 +153,19 @@ export function CommandBar({ ref }: CommandBarProps) {
     [router],
   );
 
-  const open = useCallback(() => {
-    const next: PaletteScope = { projectId: projectIdFromPath(window.location.pathname), allProjects: false, mode: "search" };
+  const open = useCallback((query?: string) => {
+    if (isOpenRef.current) return;
+    isOpenRef.current = true;
+    const { pathname, search } = window.location;
+    const next: PaletteScope = {
+      projectId: projectIdFromPath(pathname),
+      allProjects: false,
+      mode: "search",
+      onScreen: onScreenPaths(pathname, new URLSearchParams(search).get(PEEK_PARAM)),
+    };
     paletteRef.current.scope = next;
     setScope(next);
+    setInitialQuery(query ?? "");
     setSession((count) => count + 1);
     setOpen(true);
   }, []);
@@ -155,6 +174,7 @@ export function CommandBar({ ref }: CommandBarProps) {
   // outside; the next open starts from a fresh scope and an empty item map.
   const onOpenChange = useCallback((next: boolean) => {
     setOpen(next);
+    isOpenRef.current = next;
     if (next) return;
     paletteRef.current.scope = CLOSED_SCOPE;
     paletteRef.current.items = new Map();
@@ -180,7 +200,7 @@ export function CommandBar({ ref }: CommandBarProps) {
   });
 
   useHotkeys([
-    { keys: "mod+k", onPress: open, allowInInputs: true, isDisabled: isOpen },
+    { keys: "mod+k", onPress: () => open(), allowInInputs: true, isDisabled: isOpen },
     { keys: "mod+/", onPress: openHelp, allowInInputs: true, isDisabled: isHelpOpen },
   ]);
 
@@ -192,7 +212,7 @@ export function CommandBar({ ref }: CommandBarProps) {
       const current = state();
       current.inner ??= createCommandSource({
         commands: () => (state().scope.mode === "ask" ? [] : buildCommands(state().context)),
-        recents: () => (state().scope.mode === "ask" ? [] : readRecents(RECENTS_IN_PALETTE).map(recentToItem)),
+        recents: () => (state().scope.mode === "ask" ? [] : otherRecents(readRecents(), state().scope.onScreen, RECENTS_IN_PALETTE).map(recentToItem)),
         scope: () => (state().scope.allProjects ? null : state().scope.projectId),
       });
       return current.inner;
@@ -296,7 +316,7 @@ export function CommandBar({ ref }: CommandBarProps) {
         renderItem={(item) => <CommandRow item={item} />}
         emptyBootstrapText={emptyText ?? "Type to search, or pick a command"}
         emptySearchText={emptyText ?? "No matches"}
-        input={<PaletteInput mode={scope.mode} onModeChange={setMode} />}
+        input={<PaletteInput initialQuery={initialQuery} mode={scope.mode} onModeChange={setMode} />}
         footer={<PaletteFooter scope={scope} onAllProjectsChange={setAllProjects} />}
       />
       <ShortcutsDialog isOpen={isHelpOpen} onOpenChange={setHelpOpen} singleKeys={singleKeys} />
@@ -309,8 +329,15 @@ export function CommandBar({ ref }: CommandBarProps) {
 // Input slot: the search field above the Search / Ask tabs
 // ---------------------------------------------------------------------------
 
-function PaletteInput({ mode, onModeChange }: { mode: PaletteMode; onModeChange: (mode: PaletteMode) => void }) {
+function PaletteInput({ initialQuery, mode, onModeChange }: { initialQuery: string; mode: PaletteMode; onModeChange: (mode: PaletteMode) => void }) {
   const palette = useCommandPaletteContext();
+  // The palette remounts per opening (`session`), so this seeds each opening's query once.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (seeded.current || !palette) return;
+    seeded.current = true;
+    if (initialQuery) palette.setSearch(initialQuery);
+  }, [initialQuery, palette]);
   // Enter pressed while the debounced search is still running: open the
   // first result once it lands instead of the stale list on screen.
   const pendingEnter = useRef(false);

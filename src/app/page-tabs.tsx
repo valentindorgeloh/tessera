@@ -212,7 +212,7 @@ export function PageTabs({nodes}: {nodes: WorkspaceNode[]}) {
             label={label}
             icon={icon}
             // A decorative close glyph: a button inside the tab's own button is invalid HTML (and a hydration
-            // error). The tab's click handler closes when the click lands on the glyph, like the Tessera tab bar.
+            // error). The tab's click handler closes when the click lands on the glyph.
             endContent={<Icon icon={XIcon} size="xsm" className={CLOSE_CLASS} />}
             onClick={(event) => {
               if (!(event.target instanceof Element) || event.target.closest(`.${CLOSE_CLASS}`) === null) return;

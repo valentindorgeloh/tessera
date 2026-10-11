@@ -4,10 +4,11 @@
  * Work item detail (docs/contracts/ui.md "Detail components (D2)"): one
  * component for the peek card, the modal and the full page. The pinned
  * header bar, then the title, the property rail (a column behind a hairline
- * from 960px on page and modal, compact and above the description in the
- * peek), description, sub-items, links and the activity timeline. Registers
- * the entity label (recents, Power K) and the command context for Power K
- * and the item shortcuts; both go away on unmount. Must mount inside
+ * from 960px on the full page, stacked under the title in the modal and,
+ * compact, in the peek), description, sub-items, links and the activity
+ * timeline. Registers the entity label (recents, Power K) and the command
+ * context for Power K and the item shortcuts; both go away on unmount. A
+ * deleted item leaves the recents. Must mount inside
  * ProjectProvider.
  */
 import { useEffect, useRef, useState } from "react";
@@ -24,6 +25,7 @@ import { copyWorkItemAction } from "@/app/actions/detail";
 import { deleteWorkItemAction } from "@/app/actions/work-items";
 import { registerCommandContext } from "@/components/shell/command-context";
 import { registerEntityLabel } from "@/components/shell/entity-labels";
+import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import type { WorkItemDetail as WorkItemDetailModel } from "@/lib/tessera/types";
 import { PencilIcon } from "@/themes/catppuccin/icons";
 import { ActivityFeed } from "./ActivityFeed";
@@ -135,6 +137,8 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
       () => deleteWorkItemAction({ work_item_id: item.id }),
       () => {
         setConfirmDelete(false);
+        forgetRecentsUnder(workItemPath(item));
+        forgetRecentsUnder(`/work-items/${item.id}`);
         if (host === "page") router.push(listPath);
         else onClose?.();
       },
@@ -191,7 +195,7 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
         onCopyItem={readOnly ? undefined : copyItem}
         onDelete={() => setConfirmDelete(true)}
       />
-      {/* Grid areas (detail.css): title, rail and main stack in one column; page and modal hosts from 960px put the rail in a right column. */}
+      {/* Grid areas (detail.css): title, rail and main stack in one column; the page host from 960px puts the rail in a right column. */}
       <VStack gap={0} className="tessera-detail-body" as="section" aria-label={label}>
         <VStack gap={0} className="tessera-detail-heading">
           <DetailTitle item={item} host={host} readOnly={readOnly} actions={actions} />

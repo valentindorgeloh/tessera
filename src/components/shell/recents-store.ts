@@ -4,8 +4,10 @@
  * Recents store (docs/contracts/ui.md "Shell"): the visited routes from
  * ./recents.ts, mirrored to localStorage (`tessera.recents.v1`), plus the
  * project names the Tessera layout reads on the server, so a recent under
- * `/projects/<id>` is labelled by its project. `RecentsTracker` records the
- * visits; Home's recents list and Power K read them. Module state behind
+ * `/projects/<id>` is labelled by its project. `RecentsTracker` and the peek
+ * host record the visits; Home's recents list and Power K read them. Every
+ * write starts from the stored list, and a `storage` listener follows other
+ * tabs, so tabs never erase each other's visits. Module state behind
  * `useSyncExternalStore`; the server snapshot is empty, so nothing renders
  * until the first client effect has loaded the stored list (hydration-safe).
  */
@@ -16,7 +18,9 @@ import {
   addRecent,
   labelRecents,
   lookupFromNames,
+  normalizePath,
   parseRecents,
+  removeRecentsUnder,
   type LabelledRecent,
   type ProjectNameMap,
 } from "./recents";
@@ -27,16 +31,43 @@ const EMPTY_STATE: RecentsState = { recents: [], projectNames: {}, isLoaded: fal
 
 let state: RecentsState = EMPTY_STATE;
 let loaded = false;
+/** The address a not-found screen is showing (`useMissingRoute`); a visit recorded for it afterwards is skipped. */
+let missingPath: string | null = null;
 const listeners = new Set<() => void>();
 
 function emit() {
   for (const listener of listeners) listener();
 }
 
+function sameList(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((path, index) => path === b[index]);
+}
+
+/** The stored list; null when storage cannot be read (private mode), and callers keep the in-memory list. */
+function readStored(): readonly string[] | null {
+  try {
+    const raw = window.localStorage.getItem(RECENTS_STORAGE_KEY);
+    return raw ? parseRecents(JSON.parse(raw)) : [];
+  } catch {
+    return null;
+  }
+}
+
+/** Keeps Home's list and Power K in step with visits recorded in other tabs. */
+function onStorage(event: StorageEvent) {
+  if (event.key !== RECENTS_STORAGE_KEY || !loaded) return;
+  const stored = readStored();
+  if (stored === null || sameList(stored, state.recents)) return;
+  state = { ...state, recents: stored };
+  emit();
+}
+
 function subscribe(listener: () => void) {
+  if (listeners.size === 0) window.addEventListener("storage", onStorage);
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
+    if (listeners.size === 0) window.removeEventListener("storage", onStorage);
   };
 }
 
@@ -52,35 +83,56 @@ function getServerSnapshot(): RecentsState {
 function loadStoredRecents() {
   if (loaded) return;
   loaded = true;
-  let stored: readonly string[] = [];
-  try {
-    const raw = window.localStorage.getItem(RECENTS_STORAGE_KEY);
-    stored = raw ? parseRecents(JSON.parse(raw)) : [];
-  } catch {
-    stored = [];
-  }
-  let merged = stored;
+  let merged = readStored() ?? [];
   for (const path of [...state.recents].reverse()) merged = addRecent(merged, path);
   state = { ...state, recents: merged, isLoaded: true };
   emit();
 }
 
-function persist() {
+function persist(recents: readonly string[]) {
   try {
-    window.localStorage.setItem(RECENTS_STORAGE_KEY, JSON.stringify(state.recents));
+    window.localStorage.setItem(RECENTS_STORAGE_KEY, JSON.stringify(recents));
   } catch {
     // Private mode or quota: recents live for this page only.
   }
 }
 
+/** Applies `change` to the stored list (so visits other tabs recorded since this one loaded survive) and stores the result. */
+function update(change: (recents: readonly string[]) => readonly string[]) {
+  loadStoredRecents();
+  const base = readStored() ?? state.recents;
+  const next = change(base);
+  if (next !== base) persist(next);
+  if (sameList(next, state.recents)) return;
+  state = { ...state, recents: next };
+  emit();
+}
+
 /** Records a visit to `path`; Home, the root and redirect aliases are ignored (`isRecordable`). */
 export function recordVisit(path: string): void {
-  loadStoredRecents();
-  const next = addRecent(state.recents, path);
-  if (next === state.recents) return;
-  state = { ...state, recents: next };
-  persist();
-  emit();
+  const key = normalizePath(path);
+  if (key === missingPath) return;
+  missingPath = null;
+  update((recents) => addRecent(recents, key));
+}
+
+/** Forgets `path` and the routes under it: a deleted work item, a page that showed not-found. */
+export function forgetRecentsUnder(path: string): void {
+  update((recents) => removeRecentsUnder(recents, path));
+}
+
+/**
+ * For not-found screens: the address on screen leaves the recents (a recent
+ * of an item deleted elsewhere goes away once it has led here), and the visit
+ * the recents tracker records for it, before or after this effect, does not
+ * stay.
+ */
+export function useMissingRoute(): void {
+  useEffect(() => {
+    const key = normalizePath(window.location.pathname);
+    missingPath = key;
+    forgetRecentsUnder(key);
+  }, []);
 }
 
 /** The project names recents under `/projects/<id>` are labelled with. */

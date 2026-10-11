@@ -68,7 +68,7 @@ import {
   Trash,
   User,
   Users,
-  // Colour scheme switcher (shell footer).
+  // Colour scheme menu (top bar account menu).
   Monitor,
   Moon,
   Sun,
@@ -141,7 +141,7 @@ export const PlusIcon = duotoneIcon(Plus);
 export const FolderPlusIcon = duotoneIcon(FolderPlus);
 export const SearchIcon = duotoneIcon(MagnifyingGlass);
 
-// Tessera shell (lane B): navigation, tab bar and boundary glyphs.
+// Tessera shell (lane B): navigation, recents and boundary glyphs.
 export const HouseIcon = duotoneIcon(House);
 export const KanbanIcon = duotoneIcon(Kanban);
 export const ListBulletsIcon = duotoneIcon(ListBullets);

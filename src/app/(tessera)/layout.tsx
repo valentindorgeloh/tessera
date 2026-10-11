@@ -10,10 +10,12 @@ import { latestSeq, listProjects, readTessera } from "@/lib/tessera/server";
 
 /**
  * Tessera frame (docs/contracts/ui.md "Shell"): the client shell renders the
- * AppShell, TopBar, SideNav and ToastViewport; the sidebar's data and the
- * recents tracker (with the project names its labels need) stream in as
- * server-rendered children under Suspense so the shell itself stays in the
- * static prerender.
+ * AppShell, TopBar, SideNav and ToastViewport; the sidebar's data, and the
+ * recents tracker (with the project names its labels need) next to the
+ * changes poller, stream in as server-rendered children under Suspense so the
+ * shell itself stays in the static prerender. The poller sits with the
+ * content, not in the sidebar: below the mobile breakpoint the sidebar lives
+ * in a drawer whose content React pauses while it is closed.
  */
 export default function TesseraLayout({ children }: { children: ReactNode }) {
   return (
@@ -25,7 +27,7 @@ export default function TesseraLayout({ children }: { children: ReactNode }) {
       }
     >
       <Suspense fallback={null}>
-        <RecentsData />
+        <WatchersData />
       </Suspense>
       {children}
     </TesseraShell>
@@ -35,25 +37,25 @@ export default function TesseraLayout({ children }: { children: ReactNode }) {
 /** One projects read per request, shared by the sidebar and the recents labels. */
 const loadProjects = cache(() => readTessera((ctx) => listProjects(ctx, {})));
 
-/** Projects for the sidebar and the change cursor the poller starts from. */
+/** Projects for the sidebar. */
 async function SidebarData() {
+  await io();
+  const projects = await loadProjects();
+  return <Sidebar projects={projects} />;
+}
+
+/**
+ * The two watchers that render nothing: the recents tracker, which reads the
+ * request-bound pathname and gets the project names its labels need, and the
+ * changes poller with the cursor it starts from.
+ */
+async function WatchersData() {
   await io();
   const [projects, cursor] = await Promise.all([loadProjects(), readTessera((ctx) => latestSeq(ctx))]);
   return (
     <>
-      <Sidebar projects={projects} />
+      <RecentsTracker projectNames={projectNameMap(projects)} />
       <ChangesPoller initialCursor={cursor} />
     </>
   );
-}
-
-/**
- * Records visits for Home's and Power K's recents. The tracker reads the
- * request-bound pathname and search params, so it streams in its own
- * Suspense boundary with the project names its labels need.
- */
-async function RecentsData() {
-  await io();
-  const projects = await loadProjects();
-  return <RecentsTracker projectNames={projectNameMap(projects)} />;
 }

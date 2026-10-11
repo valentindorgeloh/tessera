@@ -74,6 +74,7 @@ const FIELD_ICONS: Readonly<Record<string, TileIcon>> = {
   sort_order: ReorderIcon,
   labels: TagIcon,
   modules: ModuleIcon,
+  module: ModuleIcon,
   assignees: UsersIcon,
   subscribers: BellIcon,
   link: LinkIcon,

@@ -33,7 +33,9 @@
 /*
  * Panel header rows (PanelHeader.tsx): 52px page header, 44px sub-header and
  * filters row. The start group takes the room and may shrink (the tabs scroll,
- * the filter field narrows); the end group keeps its actions whole.
+ * the filter field narrows); the end group keeps its actions whole, unless the
+ * row wraps (`canWrap`, the work items sub-header): then the end group drops
+ * under the title when both do not fit and wraps its own actions on a phone.
  */
 .tessera-panel-bar {
   width: 100%;
@@ -41,12 +43,12 @@
 }
 
 .tessera-panel-bar--header {
-  min-height: 52px;
+  min-height: calc(var(--size-element-md) + var(--spacing-5));
 }
 
 .tessera-panel-bar--subheader,
 .tessera-panel-bar--filters {
-  min-height: 44px;
+  min-height: calc(var(--size-element-md) + var(--spacing-3));
 }
 
 .tessera-panel-bar--divided {
@@ -60,6 +62,22 @@
 
 .tessera-panel-bar-end {
   flex-shrink: 0;
+}
+
+/* A wrapped row keeps clear of the hairlines around it. */
+.tessera-panel-bar--wraps {
+  row-gap: var(--spacing-1);
+  padding-block: var(--spacing-1);
+}
+
+.tessera-panel-bar--wraps > .tessera-panel-bar-start {
+  flex: 1 1 auto;
+}
+
+.tessera-panel-bar--wraps > .tessera-panel-bar-end {
+  flex-shrink: 1;
+  min-width: 0;
+  row-gap: var(--spacing-1);
 }
 
 /* A short vertical hairline between groups in a row (the project name and its tabs). */

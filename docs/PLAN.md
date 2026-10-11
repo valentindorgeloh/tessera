@@ -366,7 +366,7 @@ One owner per file, recorded in `docs/contracts/OWNERS.md`; each lane in its own
 | Lane | Owns | Starts |
 |---|---|---|
 | A Engine | `src/lib/tessera/**` (incl. all ToolDefs), `drizzle/`, `scripts/**`, root configs, `package.json`, `docs/contracts/*` | P0 alone, then P1 |
-| B Shell and workspace | `(tessera)/layout.tsx`, `components/shell/**`, `tab-registry.ts`, `providers.tsx`, `globals.css`, `src/themes/catppuccin/**`, `src/astryx-themes.ts`, `components/{home,inbox,settings}/**`, routes `/`, `/your-work`, `/agents`, `/inbox`, `/stickies`, `/settings/**` | P1 day 4 |
+| B Shell and workspace | `(tessera)/layout.tsx`, `components/shell/**`, `providers.tsx`, `globals.css`, `src/themes/catppuccin/**`, `src/astryx-themes.ts`, `components/{home,inbox,settings}/**`, routes `/`, `/your-work`, `/agents`, `/inbox`, `/stickies`, `/settings/**` | P1 day 4 |
 | C Work items UI | `components/work-items/**`, `components/dnd/**`, `projects/page.tsx`, `projects/[projectId]/{layout,work-items}/**`, `actions/{projects,states-labels,work-items}.ts` | P1 day 4 |
 | D Detail, editor, pages | `components/editor/**`, `components/detail/**`, `components/pages/**`, `work-items/[workItemId]/**`, `browse/**`, `pages/**`, `wiki/**`, `projects/[projectId]/pages/**`, `api/{work-items,pages,search}/**`, `actions/{relations-comments,pages}.ts` | P2a |
 | E Planning | `components/{planning,intake,drafts,estimates}/**`, `projects/[projectId]/{cycles,modules,archives,intake}/**`, `/drafts`, `/active-cycles`, `actions/{cycles,modules,drafts-intake,estimates}.ts` | P3 |

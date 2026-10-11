@@ -3,7 +3,7 @@
  * Render smoke test of the detail panel (src/components/detail) under jsdom:
  * WorkItemDetail mounts inside ProjectProvider with fake data for every host,
  * shows the header, title, property wrappers, sub-items, links and activity,
- * registers the command context and the tab label, and turns the title into
+ * registers the command context and the recents label, and turns the title into
  * an input on click. The Server Action wrappers and the router are mocked so
  * no database or Next runtime is involved.
  */
@@ -307,7 +307,7 @@ describe("WorkItemDetail", () => {
     ]);
   });
 
-  it("registers the command context and the tab label", async () => {
+  it("registers the command context and the recents label", async () => {
     const el = await render(tree("page", createElement(Probe)));
     const probe = el.querySelector('[data-testid="probe"]');
     expect(probe?.getAttribute("data-item")).toBe("WEB-1");

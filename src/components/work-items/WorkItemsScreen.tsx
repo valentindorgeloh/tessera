@@ -416,6 +416,7 @@ export function WorkItemsScreen({ projectId, result, display, filters, createOnO
           <PanelHeader label="Work items">
             <PanelBar
               size="subheader"
+              canWrap
               start={
                 <>
                   <Text weight="medium" maxLines={1}>
@@ -436,7 +437,7 @@ export function WorkItemsScreen({ projectId, result, display, filters, createOnO
           </PanelHeader>
         }
         content={
-          <LayoutContent padding={0} isScrollable label="Work items list">
+          <LayoutContent padding={0} isScrollable label="Work items list" className="tessera-wi-scroller">
             {display.layout === "list" ? (
               <ListLayout {...layoutProps} />
             ) : display.layout === "board" ? (

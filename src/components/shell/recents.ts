@@ -132,22 +132,63 @@ export function isRecordable(path: string): boolean {
   return key !== "/" && key !== "/home" && !isTransientPath(key);
 }
 
+/** The work item a detail route shows (`/projects/<p>/work-items/<id>` or `/work-items/<id>`), else null. */
+function workItemIdOf(path: string): string | null {
+  const match = /^(?:\/projects\/[^/]+)?\/work-items\/([^/]+)$/.exec(normalizePath(path));
+  return match ? match[1] : null;
+}
+
+/** Whether two recents lead to the same page: the same path, or the project and global routes of one work item. */
+export function isSameRecent(a: string, b: string): boolean {
+  if (normalizePath(a) === normalizePath(b)) return true;
+  const item = workItemIdOf(a);
+  return item !== null && item === workItemIdOf(b);
+}
+
 /**
- * `recents` with `path` moved to the front (added when new), trimmed to `max`.
- * Returns `recents` itself when nothing changes (the path is already first, or
- * it is not recordable), so callers can skip the write and the re-render.
+ * `recents` with `path` moved to the front (added when new, replacing the
+ * other route of the same work item), trimmed to `max`. Returns `recents`
+ * itself when nothing changes (the path is already first, or it is not
+ * recordable), so callers can skip the write and the re-render.
  */
 export function addRecent(recents: readonly string[], path: string, max: number = MAX_RECENTS): readonly string[] {
   const key = normalizePath(path);
   if (!isRecordable(key)) return recents;
   if (recents[0] === key) return recents;
-  return [key, ...recents.filter((entry) => entry !== key)].slice(0, max);
+  return [key, ...recents.filter((entry) => !isSameRecent(entry, key))].slice(0, max);
+}
+
+/**
+ * `recents` without `path` and the routes under it (a deleted work item, a
+ * page that showed not-found). Returns `recents` itself when none is there.
+ */
+export function removeRecentsUnder(recents: readonly string[], path: string): readonly string[] {
+  const key = normalizePath(path);
+  const next = recents.filter((entry) => entry !== key && !entry.startsWith(`${key}/`));
+  return next.length === recents.length ? recents : next;
+}
+
+/**
+ * The recents the screen shows right now: the page at `pathname` and, with a
+ * work item open in the peek (`?peek=<id>`, any route inside a project), that
+ * item's full page. Power K leaves them out of its "Recent" group.
+ */
+export function onScreenPaths(pathname: string, peekId: string | null): readonly string[] {
+  const path = normalizePath(pathname);
+  const projectId = projectIdFromPath(path);
+  return peekId && projectId ? [path, `/projects/${projectId}/work-items/${encodeURIComponent(peekId)}`] : [path];
+}
+
+/** The newest `limit` recents that do not lead to a page on screen (`onScreenPaths`, `isSameRecent`). */
+export function otherRecents<T extends { path: string }>(recents: readonly T[], onScreen: readonly string[], limit: number): T[] {
+  return recents.filter((recent) => !onScreen.some((path) => isSameRecent(path, recent.path))).slice(0, limit);
 }
 
 /**
  * Validates a stored value (localStorage `tessera.recents.v1`): an array of
  * paths, newest first. Anything else yields an empty list; malformed,
- * duplicate and unrecordable entries are dropped and the list is capped.
+ * duplicate (`isSameRecent`) and unrecordable entries are dropped and the
+ * list is capped.
  */
 export function parseRecents(raw: unknown, max: number = MAX_RECENTS): readonly string[] {
   if (!Array.isArray(raw)) return [];
@@ -155,7 +196,7 @@ export function parseRecents(raw: unknown, max: number = MAX_RECENTS): readonly 
   for (const entry of raw) {
     if (typeof entry !== "string" || !entry.startsWith("/")) continue;
     const key = normalizePath(entry);
-    if (!isRecordable(key) || recents.includes(key)) continue;
+    if (!isRecordable(key) || recents.some((kept) => isSameRecent(kept, key))) continue;
     recents.push(key);
     if (recents.length === max) break;
   }
