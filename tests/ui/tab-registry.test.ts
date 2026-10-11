@@ -11,8 +11,11 @@ import {
   closeOtherTabs,
   closeTab,
   isTypingTarget,
+  labelTabs,
+  lookupFromNames,
   normalizePath,
   parseTabsState,
+  projectNameMap,
   reorderTab,
   resolveTab,
   type TabLookup,
@@ -205,5 +208,49 @@ describe("isTypingTarget", () => {
     expect(isTypingTarget({ tagName: "DIV", isContentEditable: false })).toBe(false);
     expect(isTypingTarget(null)).toBe(false);
     expect(isTypingTarget(undefined)).toBe(false);
+  });
+});
+
+describe("projectNameMap and lookupFromNames", () => {
+  it("builds a lookup from project rows", () => {
+    const names = projectNameMap([
+      { id: PROJECT, name: "Website" },
+      { id: "p2", name: "Mobile app" },
+    ]);
+    expect(names).toEqual({ [PROJECT]: "Website", p2: "Mobile app" });
+    const fromNames = lookupFromNames(names);
+    expect(fromNames.projectName(PROJECT)).toBe("Website");
+    expect(fromNames.projectName("p2")).toBe("Mobile app");
+  });
+
+  it("resolves ids the map does not hold to undefined, including inherited keys", () => {
+    const fromNames = lookupFromNames(projectNameMap([]));
+    expect(fromNames.projectName("missing")).toBeUndefined();
+    expect(fromNames.projectName("constructor")).toBeUndefined();
+    expect(resolveTab("/projects/missing/work-items", fromNames).label).toBe("Project · Work items");
+  });
+});
+
+describe("labelTabs", () => {
+  const stored = state(["/home", `/projects/${PROJECT}/work-items`, `/projects/${PROJECT}/work-items/${ITEM}`]);
+
+  it("labels stored tabs from the current lookup, keeping their paths and order", () => {
+    const labelled = labelTabs(stored, lookup);
+    expect(labelled.map((tab) => tab.path)).toEqual(stored.tabs.map((tab) => tab.path));
+    expect(labelled.map((tab) => tab.label)).toEqual(["Home", "Website · Work items", "Website · Work item"]);
+    expect(labelled.map((tab) => tab.icon)).toEqual(["home", "work-items", "work-item"]);
+  });
+
+  it("relabels the same stored tabs when the lookup changes", () => {
+    expect(labelTabs(stored, lookupFromNames({})).map((tab) => tab.label)).toEqual(["Home", "Project · Work items", "Project · Work item"]);
+    expect(labelTabs(stored, lookupFromNames({ [PROJECT]: "Marketing site" })).map((tab) => tab.label)).toEqual([
+      "Home",
+      "Marketing site · Work items",
+      "Marketing site · Work item",
+    ]);
+  });
+
+  it("returns no tabs for an empty state", () => {
+    expect(labelTabs(EMPTY_TABS, lookup)).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon, type IconType } from "@astryxdesign/core/Icon";
@@ -139,7 +139,7 @@ function rememberProject(projectId: string) {
 export function Sidebar({ projects }: { projects: Project[] }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isNavCollapsed, setNavCollapsed, registerProjectNames } = useShell();
+  const { isNavCollapsed, setNavCollapsed } = useShell();
   const { expanded, lastProjectId } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const activeProjectId = projectIdFromPath(pathname);
 
@@ -150,11 +150,6 @@ export function Sidebar({ projects }: { projects: Project[] }) {
   useEffect(() => {
     if (activeProjectId && projects.some((project) => project.id === activeProjectId)) rememberProject(activeProjectId);
   }, [activeProjectId, projects]);
-
-  const names = useMemo(() => Object.fromEntries(projects.map((project) => [project.id, project.name])), [projects]);
-  useEffect(() => {
-    registerProjectNames(names);
-  }, [names, registerProjectNames]);
 
   const createTarget = projects.find((project) => project.id === lastProjectId) ?? projects[0] ?? null;
   const createTooltip = createTarget === null ? "Create a project first" : "Create a work item";

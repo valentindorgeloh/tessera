@@ -13,6 +13,7 @@ import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { FieldStatus } from "@astryxdesign/core/FieldStatus";
 import { FormLayout } from "@astryxdesign/core/FormLayout";
 import { Icon } from "@astryxdesign/core/Icon";
+import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import { Selector, type SelectorOptionData } from "@astryxdesign/core/Selector";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { TextArea } from "@astryxdesign/core/TextArea";
@@ -62,7 +63,7 @@ export function suggestIdentifier(name: string): string {
 
 export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialogProps) {
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={520} padding={0}>
+    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={520}>
       {isOpen ? <CreateProjectForm onOpenChange={onOpenChange} /> : null}
     </Dialog>
   );
@@ -106,10 +107,14 @@ function CreateProjectForm({ onOpenChange }: Pick<CreateProjectDialogProps, "onO
     });
   };
 
+  // The Dialog's Layout slots: header, body and footer take the dialog's own padding, so the
+  // title sits inside the padded header instead of on the dialog's edge.
   return (
-    <VStack gap={0}>
-      <DialogHeader title="New project" onOpenChange={() => !isPending && onOpenChange(false)} hasDivider />
-      <VStack gap={4} padding={5}>
+    <Layout
+      header={<DialogHeader title="New project" onOpenChange={() => !isPending && onOpenChange(false)} hasDivider />}
+      content={
+        <LayoutContent>
+          <VStack gap={4}>
         <FormLayout>
           <TextInput
             label="Name"
@@ -164,13 +169,19 @@ function CreateProjectForm({ onOpenChange }: Pick<CreateProjectDialogProps, "onO
             <Token label={identifier || "KEY"} icon={<Icon icon={resolveLogoIcon(icon)} />} color={color} />
           </HStack>
         </FormLayout>
-        {error?.field === "form" ? <FieldStatus type="error" message={error.message} /> : null}
-      </VStack>
-      <HStack gap={3} hAlign="end" padding={4} paddingBlockStart={0}>
-        <Button variant="ghost" label="Cancel" onClick={() => onOpenChange(false)} isDisabled={isPending} />
-        <Button variant="primary" label="Create project" onClick={submit} isLoading={isPending} isDisabled={!canSubmit} />
-      </HStack>
-    </VStack>
+            {error?.field === "form" ? <FieldStatus type="error" message={error.message} /> : null}
+          </VStack>
+        </LayoutContent>
+      }
+      footer={
+        <LayoutFooter>
+          <HStack gap={3} hAlign="end">
+            <Button variant="ghost" label="Cancel" onClick={() => onOpenChange(false)} isDisabled={isPending} />
+            <Button variant="primary" label="Create project" onClick={submit} isLoading={isPending} isDisabled={!canSubmit} />
+          </HStack>
+        </LayoutFooter>
+      }
+    />
   );
 }
 

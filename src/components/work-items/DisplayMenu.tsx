@@ -38,6 +38,13 @@ export type DisplayMenuProps = {
 
 const NONE = "__none__";
 
+/**
+ * Popover width. The layout control hugs its five labelled segments (about
+ * 340px at size sm, "Calendar" being the widest); anything narrower made the
+ * Popover size itself to its trigger and truncated the labels to one letter.
+ */
+const MENU_WIDTH = 400;
+
 const FIELD_LABELS: Record<GroupBy, string> = {
   state: "State",
   state_group: "State group",
@@ -162,7 +169,7 @@ export function DisplayMenu({ projectId, display, urlState }: DisplayMenuProps) 
   const content = (
     <VStack gap={4} padding={4} className="tessera-wi-display">
       <VStack gap={1}>
-        <SegmentedControl label="Layout" size="sm" layout="fill" value={display.layout} onChange={(value) => isLayout(value) && apply({ layout: value })}>
+        <SegmentedControl label="Layout" size="sm" layout="hug" value={display.layout} onChange={(value) => isLayout(value) && apply({ layout: value })}>
           <SegmentedControlItem value="list" label="List" icon={<RowsIcon />} />
           <SegmentedControlItem value="board" label="Board" icon={<KanbanIcon />} />
           <SegmentedControlItem value="table" label="Table" icon={<TableIcon />} />
@@ -213,7 +220,7 @@ export function DisplayMenu({ projectId, display, urlState }: DisplayMenuProps) 
   );
 
   return (
-    <Popover isOpen={isOpen} onOpenChange={setOpen} content={content} label="Display options" placement="below" alignment="end" hasAutoFocus>
+    <Popover isOpen={isOpen} onOpenChange={setOpen} content={content} label="Display options" placement="below" alignment="end" width={MENU_WIDTH} hasAutoFocus>
       <Button variant="secondary" size="sm" label="Display" icon={<SlidersIcon />} />
     </Popover>
   );

@@ -14,13 +14,13 @@ import {
   closeOtherTabs,
   closeTab,
   isTypingTarget,
+  labelTabs,
+  lookupFromNames,
   parseTabsState,
-  resolveTab,
+  type ProjectNameMap,
   type TabIconKey,
-  type TabLookup,
   type TabsState,
 } from "./tab-registry";
-import { useShell } from "./TesseraShell";
 
 const HOME_PATH = "/home";
 const CLOSE_CLASS = "tessera-tab-close";
@@ -101,12 +101,13 @@ function tabPathOf(target: EventTarget | null): string | null {
  * Path-based tabs above the content (docs/PLAN.md section 6). Every visited
  * route gets a tab; the active tab follows the pathname. Close with the
  * decorative icon inside the tab, a middle click, `alt+w` for the active tab,
- * or the right-click menu (Close, Close others).
+ * or the right-click menu (Close, Close others). `projectNames` comes from the
+ * Tessera layout's server read, so the labels are right on the first client
+ * render instead of waiting for another component's effect.
  */
-export function TabBar() {
+export function TabBar({ projectNames }: { projectNames: ProjectNameMap }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { projectNames } = useShell();
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [menuTarget, setMenuTarget] = useState<string | null>(null);
 
@@ -118,7 +119,7 @@ export function TabBar() {
     commit(addTab(getSnapshot(), pathname));
   }, [pathname]);
 
-  const lookup = useMemo<TabLookup>(() => ({ projectName: (id) => projectNames[id] }), [projectNames]);
+  const lookup = useMemo(() => lookupFromNames(projectNames), [projectNames]);
 
   const close = useCallback(
     (path: string) => {
@@ -163,6 +164,7 @@ export function TabBar() {
     { label: "Close others", onClick: () => menuTarget && closeOthers(menuTarget) },
   ];
 
+  const tabs = labelTabs(snapshot, lookup);
   const current = snapshot.tabs.some((tab) => tab.path === pathname) ? pathname : (snapshot.active ?? "");
 
   return (
@@ -179,16 +181,14 @@ export function TabBar() {
             }}
             onMouseDown={onStripMouseDown}
           >
-            {snapshot.tabs.map((tab) => {
-              const info = resolveTab(tab.path, lookup);
-              return (
+            {tabs.map((tab) => (
                 <Tab
                   key={tab.path}
                   value={tab.path}
                   href={tab.path}
-                  label={info.label}
+                  label={tab.label}
                   data-tab-path={tab.path}
-                  icon={<Icon icon={TAB_ICONS[info.icon]} size="xsm" />}
+                  icon={<Icon icon={TAB_ICONS[tab.icon]} size="xsm" />}
                   endContent={<Icon icon={XIcon} size="xsm" className={CLOSE_CLASS} />}
                   onClick={(event) => {
                     if (!isCloseTarget(event.target)) return;
@@ -206,8 +206,7 @@ export function TabBar() {
                     close(tab.path);
                   }}
                 />
-              );
-            })}
+            ))}
           </TabList>
         </ContextMenu>
       ) : null}

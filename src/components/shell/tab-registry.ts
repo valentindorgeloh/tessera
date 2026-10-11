@@ -50,6 +50,19 @@ export type TabLookup = {
   workItemLabel?: (workItemId: string) => string | undefined;
 };
 
+/** Project names by id, read by the Tessera layout and server-rendered into the TabBar. */
+export type ProjectNameMap = Readonly<Record<string, string>>;
+
+/** `{ id: name }` for the project rows the layout loads. */
+export function projectNameMap(projects: readonly { id: string; name: string }[]): ProjectNameMap {
+  return Object.fromEntries(projects.map((project) => [project.id, project.name]));
+}
+
+/** A lookup over a name map; ids it does not hold resolve to undefined so `resolveTab` falls back to "Project". */
+export function lookupFromNames(names: ProjectNameMap): TabLookup {
+  return { projectName: (projectId) => (Object.hasOwn(names, projectId) ? names[projectId] : undefined) };
+}
+
 /** Pathname without query, hash or trailing slash; "/" stays "/". */
 export function normalizePath(pathname: string): string {
   const bare = pathname.split(/[?#]/, 1)[0] ?? "";
@@ -99,6 +112,18 @@ export function resolveTab(pathname: string, lookup: TabLookup): TabInfo {
   }
 
   return { label: titleCase(root), icon: "page" };
+}
+
+/** A stored tab with the label and icon it shows right now. */
+export type LabelledTab = TabEntry & TabInfo;
+
+/**
+ * Labels every stored tab for rendering. Labels are derived here on each
+ * render and never persisted, so tabs stored before the project names were
+ * known, or under an old name, read correctly as soon as the lookup does.
+ */
+export function labelTabs(state: TabsState, lookup: TabLookup): LabelledTab[] {
+  return state.tabs.map((tab) => ({ ...tab, ...resolveTab(tab.path, lookup) }));
 }
 
 /** Adds a tab for `path` (or activates the existing one). */

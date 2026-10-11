@@ -12,6 +12,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { FieldStatus } from "@astryxdesign/core/FieldStatus";
 import { FormLayout } from "@astryxdesign/core/FormLayout";
+import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Switch } from "@astryxdesign/core/Switch";
 import { TextArea } from "@astryxdesign/core/TextArea";
@@ -53,20 +54,54 @@ export function CreateWorkItemDialog({ projectId, isOpen, onOpenChange, defaults
   // Escape reaches the Dialog as onOpenChange(false); routing it through the form's
   // requestClose keeps the "discard this work item?" prompt for a dirty draft.
   const requestCloseRef = useRef<(() => void) | null>(null);
+  const [isDiscardOpen, setDiscardOpen] = useState(false);
   const handleOpenChange = (open: boolean) => {
     if (open) onOpenChange(true);
     else if (requestCloseRef.current) requestCloseRef.current();
     else onOpenChange(false);
   };
   return (
-    <Dialog isOpen={isOpen} onOpenChange={handleOpenChange} purpose="form" width={600} padding={0}>
-      {/* Mounted only while open so every session starts from a fresh draft. */}
-      {isOpen ? <CreateWorkItemForm projectId={projectId} onOpenChange={onOpenChange} defaults={defaults} onCreated={onCreated} requestCloseRef={requestCloseRef} /> : null}
-    </Dialog>
+    <>
+      <Dialog isOpen={isOpen} onOpenChange={handleOpenChange} purpose="form" width={600}>
+        {/* Mounted only while open so every session starts from a fresh draft. */}
+        {isOpen ? (
+          <CreateWorkItemForm
+            projectId={projectId}
+            onOpenChange={onOpenChange}
+            defaults={defaults}
+            onCreated={onCreated}
+            requestCloseRef={requestCloseRef}
+            onDiscardRequest={() => setDiscardOpen(true)}
+          />
+        ) : null}
+      </Dialog>
+      {/* A sibling of the form dialog rather than a child: a nested <dialog> inherits the outer
+          dialog's padding tokens, which pushed this prompt's heading onto its edge, and Astryx
+          advises against nesting dialogs. */}
+      <AlertDialog
+        isOpen={isDiscardOpen}
+        onOpenChange={setDiscardOpen}
+        title="Discard this work item?"
+        description="The name and description you typed will be lost."
+        cancelLabel="Keep editing"
+        actionLabel="Discard"
+        actionVariant="destructive"
+        onAction={() => {
+          setDiscardOpen(false);
+          onOpenChange(false);
+        }}
+      />
+    </>
   );
 }
 
-function CreateWorkItemForm({ projectId, onOpenChange, defaults, onCreated, requestCloseRef }: Omit<CreateWorkItemDialogProps, "isOpen"> & { requestCloseRef: RequestCloseRef }) {
+type CreateWorkItemFormProps = Omit<CreateWorkItemDialogProps, "isOpen"> & {
+  requestCloseRef: RequestCloseRef;
+  /** The draft has text and the user wants to close: the dialog shows the discard prompt. */
+  onDiscardRequest: () => void;
+};
+
+function CreateWorkItemForm({ projectId, onOpenChange, defaults, onCreated, requestCloseRef, onDiscardRequest }: CreateWorkItemFormProps) {
   const { bundle } = useProject();
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
@@ -85,7 +120,6 @@ function CreateWorkItemForm({ projectId, onOpenChange, defaults, onCreated, requ
   });
   const [createMore, setCreateMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isDiscardOpen, setDiscardOpen] = useState(false);
 
   const patch = (changes: Partial<Draft>) => setDraft((previous) => ({ ...previous, ...changes }));
   const isDirty = draft.name.trim() !== "" || draft.description.trim() !== "";
@@ -93,7 +127,7 @@ function CreateWorkItemForm({ projectId, onOpenChange, defaults, onCreated, requ
 
   const requestClose = () => {
     if (isPending) return;
-    if (isDirty) setDiscardOpen(true);
+    if (isDirty) onDiscardRequest();
     else onOpenChange(false);
   };
 
@@ -135,44 +169,41 @@ function CreateWorkItemForm({ projectId, onOpenChange, defaults, onCreated, requ
     });
   };
 
+  // The Dialog's Layout slots: header, body and footer take the dialog's own padding, so the
+  // title sits inside the padded header instead of on the dialog's edge.
   return (
-    <VStack gap={0}>
-      <DialogHeader title="New work item" subtitle={bundle.project.name} onOpenChange={requestClose} hasDivider />
-      <VStack gap={4} padding={5}>
-        <FormLayout>
-          <TextInput label="Name" value={draft.name} onChange={(name) => patch({ name })} hasAutoFocus isRequired placeholder="What needs to be done?" onEnter={submit} />
-          <TextArea label="Description" value={draft.description} onChange={(description) => patch({ description })} rows={4} isOptional placeholder="Add context, links or acceptance criteria" />
-          <HStack gap={4} wrap="wrap">
-            <StateControl value={draft.state_id} onChange={(state_id) => patch({ state_id })} />
-            <PriorityControl value={draft.priority} onChange={(priority) => patch({ priority })} />
-            <AssigneeControl value={draft.assignee_ids} onChange={(assignee_ids) => patch({ assignee_ids })} />
-            <LabelControl value={draft.label_ids} onChange={(label_ids) => patch({ label_ids })} />
-            {bundle.project.cycles_enabled ? <CycleControl value={draft.cycle_id} onChange={(cycle_id) => patch({ cycle_id })} /> : null}
-            {bundle.project.modules_enabled ? <ModuleControl value={draft.module_ids} onChange={(module_ids) => patch({ module_ids })} /> : null}
-            <DateControl label="Start date" value={draft.start_date} max={draft.target_date} onChange={(start_date) => patch({ start_date })} />
-            <DateControl label="Target date" value={draft.target_date} min={draft.start_date} onChange={(target_date) => patch({ target_date })} />
+    <Layout
+      header={<DialogHeader title="New work item" subtitle={bundle.project.name} onOpenChange={requestClose} hasDivider />}
+      content={
+        <LayoutContent>
+          <VStack gap={4}>
+            <FormLayout>
+              <TextInput label="Name" value={draft.name} onChange={(name) => patch({ name })} hasAutoFocus isRequired placeholder="What needs to be done?" onEnter={submit} />
+              <TextArea label="Description" value={draft.description} onChange={(description) => patch({ description })} rows={4} isOptional placeholder="Add context, links or acceptance criteria" />
+              <HStack gap={4} wrap="wrap">
+                <StateControl value={draft.state_id} onChange={(state_id) => patch({ state_id })} />
+                <PriorityControl value={draft.priority} onChange={(priority) => patch({ priority })} />
+                <AssigneeControl value={draft.assignee_ids} onChange={(assignee_ids) => patch({ assignee_ids })} />
+                <LabelControl value={draft.label_ids} onChange={(label_ids) => patch({ label_ids })} />
+                {bundle.project.cycles_enabled ? <CycleControl value={draft.cycle_id} onChange={(cycle_id) => patch({ cycle_id })} /> : null}
+                {bundle.project.modules_enabled ? <ModuleControl value={draft.module_ids} onChange={(module_ids) => patch({ module_ids })} /> : null}
+                <DateControl label="Start date" value={draft.start_date} max={draft.target_date} onChange={(start_date) => patch({ start_date })} />
+                <DateControl label="Target date" value={draft.target_date} min={draft.start_date} onChange={(target_date) => patch({ target_date })} />
+              </HStack>
+            </FormLayout>
+            {error ? <FieldStatus type="error" message={error} /> : null}
+          </VStack>
+        </LayoutContent>
+      }
+      footer={
+        <LayoutFooter>
+          <HStack gap={3} vAlign="center" hAlign="end">
+            <Switch label="Create more" size="sm" value={createMore} onChange={setCreateMore} labelPosition="start" />
+            <Button variant="ghost" label="Cancel" onClick={requestClose} />
+            <Button variant="primary" label="Create" onClick={submit} isLoading={isPending} isDisabled={!canSubmit} />
           </HStack>
-        </FormLayout>
-        {error ? <FieldStatus type="error" message={error} /> : null}
-      </VStack>
-      <HStack gap={3} vAlign="center" hAlign="end" padding={4} paddingBlockStart={0}>
-        <Switch label="Create more" size="sm" value={createMore} onChange={setCreateMore} labelPosition="start" />
-        <Button variant="ghost" label="Cancel" onClick={requestClose} />
-        <Button variant="primary" label="Create" onClick={submit} isLoading={isPending} isDisabled={!canSubmit} />
-      </HStack>
-      <AlertDialog
-        isOpen={isDiscardOpen}
-        onOpenChange={setDiscardOpen}
-        title="Discard this work item?"
-        description="The name and description you typed will be lost."
-        cancelLabel="Keep editing"
-        actionLabel="Discard"
-        actionVariant="destructive"
-        onAction={() => {
-          setDiscardOpen(false);
-          onOpenChange(false);
-        }}
-      />
-    </VStack>
+        </LayoutFooter>
+      }
+    />
   );
 }

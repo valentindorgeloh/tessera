@@ -1,7 +1,7 @@
 /*
  * Tessera work items (lane C): list layout, toolbar, dialogs and property
- * rows beyond what Astryx props cover. Tokens only; the structural widths on
- * the key column and the display popover are the only raw px.
+ * rows beyond what Astryx props cover. Tokens only; the structural widths
+ * (key column, reading columns) are the only raw px.
  */
 
 .tessera-wi-screen {
@@ -62,10 +62,10 @@
   padding-inline-start: var(--spacing-3);
 }
 
-/* Display menu popover body. */
+/* Display menu popover body: the Popover's width prop (DisplayMenu.tsx) sizes the surface; the body fills it. */
 .tessera-wi-display {
-  width: 320px;
-  max-width: 100%;
+  width: 100%;
+  min-width: 0;
 }
 
 /* Full-page detail (P2a): capped reading column; the description keeps its line breaks. */
