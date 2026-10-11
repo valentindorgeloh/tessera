@@ -10,7 +10,7 @@
  * two ids are left to it here, and Escape belongs to PeekHost. Nothing fires
  * from a typing surface (input, textarea, select, the contenteditable editor)
  * or from inside an open picker, menu or the delete confirmation
- * (`isQuietTarget`, a superset of the TabBar's `isTypingTarget`).
+ * (`isQuietTarget`, a superset of `isTypingTarget`).
  *
  * Also holds the single-key preference (`tessera.shortcuts.v1`,
  * `{ "singleKeys": boolean }`) that the help dialog's switch writes, the
@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provider";
 import { useCommandContext, type CommandContextValue } from "./command-context";
+import { projectIdFromPath } from "./recents";
 import { isQuietTarget, resolveShortcut, SHORTCUT_BY_ID, type ChordState, type ShortcutId } from "./shortcuts";
 
 // ---------------------------------------------------------------------------
@@ -110,12 +111,6 @@ export type ShortcutRunner = (id: ShortcutId) => void;
 
 /** Ids CommandBar dispatches through Astryx `useHotkeys`; the keydown path never fires them twice. */
 const DELEGATED: ReadonlySet<ShortcutId> = new Set<ShortcutId>(["palette.open", "shortcuts.help"]);
-
-/** Project id from `/projects/[id]/...`, else null (same rule as the Sidebar). */
-function projectIdFromPath(pathname: string): string | null {
-  const match = /^\/projects\/([^/]+)/.exec(pathname);
-  return match ? match[1] : null;
-}
 
 /** The project of the current route, else the last visited one (`tessera.lastProject.v1`), else null. */
 function currentOrLastProjectId(): string | null {

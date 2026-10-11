@@ -16,7 +16,7 @@ import type { Project } from "@/lib/tessera/types";
  */
 export default function HomePage() {
   return (
-    <VStack className="tessera-home" gap={6} padding={6}>
+    <VStack className="tessera-reading" gap={6} padding={6}>
       <Heading level={1}>Home</Heading>
       <Card>
         <VStack gap={1}>

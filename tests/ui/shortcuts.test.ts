@@ -1,7 +1,8 @@
 /**
  * Power K and shortcuts (lane D4): the pure shortcut registry
- * (src/components/shell/shortcuts.ts), its quiet-target check and the
- * palette's search source (src/components/shell/command-source.ts).
+ * (src/components/shell/shortcuts.ts), its typing and quiet-target checks and
+ * the palette's search source (src/components/shell/command-source.ts),
+ * including the "Recent" group.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SearchHit } from "@/lib/tessera/types";
@@ -14,6 +15,8 @@ import {
   matchesCommand,
   parseHitId,
   parseHits,
+  RECENT_PREFIX,
+  recentToItem,
   searchUrl,
   shortcutHint,
   sortBySection,
@@ -28,6 +31,7 @@ import {
   formatKeys,
   isQuietTarget,
   isShortcutId,
+  isTypingTarget,
   physicalCode,
   QUIET_POPUP_SELECTOR,
   resolveShortcut,
@@ -159,7 +163,7 @@ describe("resolveShortcut: work item keys", () => {
     expect(resolveShortcut(key("Backspace"), null, NOW, MAC)).toBeNull();
   });
 
-  it("never matches alt combos, so alt+w stays with the tab bar", () => {
+  it("never matches alt combos, which stay with the browser and the system", () => {
     expect(resolveShortcut(key("KeyS", { altKey: true }), null, NOW, MAC)).toBeNull();
     expect(resolveShortcut(key("KeyK", { metaKey: true, altKey: true }), null, NOW, MAC)).toBeNull();
     expect(resolveShortcut(key("KeyW", { altKey: true }), null, NOW, MAC)).toBeNull();
@@ -310,6 +314,22 @@ function target(self: FakeNode, ...ancestors: FakeNode[]): ShortcutTargetLike {
     closest: (selector: string) => chain.find((node) => selector.split(",").some((part) => matches(part.trim(), node))) ?? null,
   };
 }
+
+describe("isTypingTarget", () => {
+  it("is true for typing surfaces", () => {
+    expect(isTypingTarget({ tagName: "INPUT" })).toBe(true);
+    expect(isTypingTarget({ tagName: "textarea" })).toBe(true);
+    expect(isTypingTarget({ tagName: "SELECT" })).toBe(true);
+    expect(isTypingTarget({ tagName: "DIV", isContentEditable: true })).toBe(true);
+  });
+
+  it("is false for everything else", () => {
+    expect(isTypingTarget({ tagName: "BUTTON" })).toBe(false);
+    expect(isTypingTarget({ tagName: "DIV", isContentEditable: false })).toBe(false);
+    expect(isTypingTarget(null)).toBe(false);
+    expect(isTypingTarget(undefined)).toBe(false);
+  });
+});
 
 describe("isQuietTarget", () => {
   it("is quiet in inputs, textareas, selects and the contenteditable editor", () => {
@@ -490,7 +510,8 @@ describe("matchesCommand and sortBySection", () => {
     const sorted = sortBySection(mixed);
     expect(groupsOf(sorted)).toEqual(["Work items", "Projects", "Create", "Navigate"]);
     expect(sorted.filter((item) => item.auxiliaryData?.group === "Navigate").map((item) => item.id)).toEqual(["nav.home", "nav.projects"]);
-    expect(SECTION_ORDER[0]).toBe("Work items");
+    expect(SECTION_ORDER[0]).toBe("Recent");
+    expect(SECTION_ORDER[1]).toBe("Work items");
   });
 });
 
@@ -605,5 +626,38 @@ describe("createCommandSource", () => {
     const items = await source.search("   ");
     expect(groupsOf(items)).toEqual(["Create", "Navigate", "Settings"]);
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  describe("the Recent group", () => {
+    const recents = [
+      recentToItem({ path: `/projects/${PROJECT}/work-items/i1`, label: "Website · WEB-1 Hero", icon: "work-item" }),
+      recentToItem({ path: `/projects/${PROJECT}/work-items`, label: "Website · Work items", icon: "work-items" }),
+    ];
+
+    it("turns a labelled recent into a palette item that carries its path", () => {
+      expect(recents[0]).toEqual({
+        id: `${RECENT_PREFIX}/projects/${PROJECT}/work-items/i1`,
+        label: "Website · WEB-1 Hero",
+        auxiliaryData: { group: "Recent", kind: "recent", path: `/projects/${PROJECT}/work-items/i1`, icon: "work-item" },
+      });
+    });
+
+    it("leads the bootstrap and a blank query, above the commands", async () => {
+      const fetchImpl = vi.fn<FetchLike>(async () => ok({ hits: [] }));
+      const source = createCommandSource({ commands: () => buildCommands(null), recents: () => recents, scope: () => null, fetchImpl });
+      const boot = await source.bootstrap();
+      expect(groupsOf(boot)).toEqual(["Recent", "Create", "Navigate", "Settings"]);
+      expect(boot.slice(0, 2).map((item) => item.label)).toEqual(["Website · WEB-1 Hero", "Website · Work items"]);
+      expect(groupsOf(await source.search(""))).toEqual(["Recent", "Create", "Navigate", "Settings"]);
+      expect(fetchImpl).not.toHaveBeenCalled();
+    });
+
+    it("leaves a typed query to the hits and the commands", async () => {
+      const fetchImpl = vi.fn<FetchLike>(async () => ok({ hits: [WEB_1] }));
+      const source = createCommandSource({ commands: () => buildCommands(null), recents: () => recents, scope: () => null, fetchImpl });
+      const pending = source.search("website");
+      await vi.advanceTimersByTimeAsync(200);
+      expect(groupsOf(await pending)).not.toContain("Recent");
+    });
   });
 });

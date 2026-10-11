@@ -6,13 +6,15 @@
  * debounced client fetch through ./command-source.ts, never a Server Action),
  * the static commands of the current context (actions on the open work item
  * from ./command-context.ts, create and navigate chords, settings and the
- * colour scheme), an "All projects" footer toggle inside a project, an "Ask"
- * tab placeholder for the assistant (P5) and the keyboard shortcuts dialog on
- * `mod+/`. Mounts the
- * shortcut dispatcher once. The open state and the scope live here; the
- * shell reaches `open()` through the `CommandBarHandle` ref, so the sidebar's
- * search item (`useShell().openCommandBar()`) and `mod+k` take the same path
- * and both read the project of the current route when the palette opens.
+ * colour scheme), the "Recent" group of visited routes while the query is
+ * empty (./recents-store.ts), an "All projects" footer toggle inside a
+ * project, an "Ask" tab placeholder for the assistant (P5) and the keyboard
+ * shortcuts dialog on `mod+/`. Mounts the shortcut dispatcher and the Create
+ * project dialog once. The open state and the scope live here; the shell
+ * reaches `open()`, `openHelp()` and `openCreateProject()` through the
+ * `CommandBarHandle` ref, so the top bar's search field
+ * (`useShell().openCommandBar()`) and `mod+k` take the same path and both
+ * read the project of the current route when the palette opens.
  * The scope is the route's project, not `useOptionalProject()`: the bar is
  * mounted by the shell, above every ProjectProvider.
  *
@@ -49,31 +51,35 @@ import {
   LightningIcon,
   ListBulletsIcon,
   ModuleIcon,
-  MonitorIcon,
-  MoonIcon,
   PageIcon,
   PlusIcon,
   SearchIcon,
   SparkleIcon,
-  SunIcon,
 } from "@/themes/catppuccin/icons";
-import { setColorScheme, type ColorScheme } from "./color-scheme";
+import { setColorScheme } from "./color-scheme";
 import { useCommandContext, type CommandContextValue } from "./command-context";
 import {
   buildCommands,
   createCommandSource,
   OPEN_ITEM_PREFIX,
+  recentToItem,
   shortcutHint,
   themeCommandScheme,
   type CommandSearchItem,
   type CommandSection,
   type CommandSource,
 } from "./command-source";
+import { projectIdFromPath, RECENTS_IN_PALETTE } from "./recents";
+import { readRecents } from "./recents-store";
+import { COLOR_SCHEME_ICONS, ROUTE_ICONS } from "./shell-icons";
 import { isShortcutId, SHORTCUTS, type ShortcutGroup } from "./shortcuts";
 import { setSingleKeys, useShortcutPrefs, useShortcuts } from "./useShortcuts";
 
-/** What the shell calls: `open()` behaves exactly like `mod+k`. */
-export type CommandBarHandle = { open: () => void };
+/**
+ * What the shell calls: `open()` behaves exactly like `mod+k`, `openHelp()`
+ * like `mod+/` and `openCreateProject()` like `n p`.
+ */
+export type CommandBarHandle = { open: () => void; openHelp: () => void; openCreateProject: () => void };
 
 export type CommandBarProps = {
   ref?: Ref<CommandBarHandle>;
@@ -99,12 +105,6 @@ type PaletteState = {
 };
 
 const ASK_PLACEHOLDER = "The assistant arrives in P5";
-
-/** Project id from `/projects/[id]/...`, else null (same rule as the Sidebar). */
-function projectIdFromPath(pathname: string): string | null {
-  const match = /^\/projects\/([^/]+)/.exec(pathname);
-  return match ? match[1] : null;
-}
 
 export function CommandBar({ ref }: CommandBarProps) {
   const router = useRouter();
@@ -161,14 +161,14 @@ export function CommandBar({ ref }: CommandBarProps) {
     setScope(CLOSED_SCOPE);
   }, []);
 
-  useImperativeHandle(ref, () => ({ open }), [open]);
-
   // The help dialog replaces the palette instead of stacking on it.
   const openHelp = useCallback(() => {
     onOpenChange(false);
     setHelpOpen(true);
   }, [onOpenChange]);
   const openCreateProject = useCallback(() => setCreateProjectOpen(true), []);
+
+  useImperativeHandle(ref, () => ({ open, openHelp, openCreateProject }), [open, openHelp, openCreateProject]);
 
   const run = useShortcuts({
     isDisabled: isOpen || isHelpOpen || isCreateProjectOpen,
@@ -192,6 +192,7 @@ export function CommandBar({ ref }: CommandBarProps) {
       const current = state();
       current.inner ??= createCommandSource({
         commands: () => (state().scope.mode === "ask" ? [] : buildCommands(state().context)),
+        recents: () => (state().scope.mode === "ask" ? [] : readRecents(RECENTS_IN_PALETTE).map(recentToItem)),
         scope: () => (state().scope.allProjects ? null : state().scope.projectId),
       });
       return current.inner;
@@ -257,6 +258,10 @@ export function CommandBar({ ref }: CommandBarProps) {
       const aux = item.auxiliaryData;
       if (aux?.kind === "hit") {
         openHit(aux.hit);
+        return;
+      }
+      if (aux?.kind === "recent") {
+        router.push(aux.path);
         return;
       }
       if (id.startsWith(OPEN_ITEM_PREFIX)) {
@@ -428,23 +433,26 @@ const SECTION_ICONS: Partial<Record<CommandSection, IconType>> = {
   Settings: GearIcon,
 };
 
-/** The glyphs of the sidebar's colour scheme menu. */
-const THEME_ICONS: Readonly<Record<ColorScheme, IconType>> = {
-  dark: MoonIcon,
-  light: SunIcon,
-  system: MonitorIcon,
-};
-
 function commandIcon(item: CommandSearchItem): IconType {
   if (item.id === "shortcuts.help") return KeyboardIcon;
   const scheme = themeCommandScheme(item.id);
-  if (scheme) return THEME_ICONS[scheme];
+  if (scheme) return COLOR_SCHEME_ICONS[scheme];
   const group = item.auxiliaryData?.group;
   return (group && SECTION_ICONS[group]) || CompassIcon;
 }
 
 function CommandRow({ item }: { item: CommandSearchItem }) {
   const aux = item.auxiliaryData;
+  if (aux?.kind === "recent") {
+    return (
+      <HStack gap={2} vAlign="center" width="100%" className="tessera-cmd-row">
+        <Icon icon={ROUTE_ICONS[aux.icon]} size="sm" color="secondary" />
+        <Text maxLines={1} className="tessera-cmd-label">
+          {item.label}
+        </Text>
+      </HStack>
+    );
+  }
   if (aux?.kind === "hit") {
     const { hit } = aux;
     return (
@@ -513,10 +521,7 @@ function ShortcutKeys({ keys }: { keys: string }) {
 const GROUP_ORDER: readonly ShortcutGroup[] = ["Global", "Work item", "Create", "Navigate"];
 
 /** Shell shortcuts owned by other components; listed here so the dialog is complete. */
-const EXTRA_GLOBAL: readonly { label: string; keys: string }[] = [
-  { label: "Collapse the sidebar", keys: "mod+b" },
-  { label: "Close the tab", keys: "alt+w" },
-];
+const EXTRA_GLOBAL: readonly { label: string; keys: string }[] = [{ label: "Collapse the sidebar", keys: "mod+b" }];
 
 function ShortcutsDialog({ isOpen, onOpenChange, singleKeys }: { isOpen: boolean; onOpenChange: (isOpen: boolean) => void; singleKeys: boolean }) {
   return (

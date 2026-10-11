@@ -1,18 +1,19 @@
 import { Suspense, cache, type ReactNode } from "react";
 import { io } from "next/cache";
 import { ChangesPoller } from "@/components/shell/ChangesPoller";
+import { projectNameMap } from "@/components/shell/recents";
+import { RecentsTracker } from "@/components/shell/RecentsTracker";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { SidebarSkeleton } from "@/components/shell/SidebarSkeleton";
-import { projectNameMap } from "@/components/shell/tab-registry";
-import { TabBar } from "@/components/shell/TabBar";
 import { TesseraShell } from "@/components/shell/TesseraShell";
 import { latestSeq, listProjects, readTessera } from "@/lib/tessera/server";
 
 /**
  * Tessera frame (docs/contracts/ui.md "Shell"): the client shell renders the
- * AppShell, SideNav, TabBar and ToastViewport; the sidebar's data and the tab
- * bar's project names stream in as server-rendered children under Suspense
- * so the shell itself stays in the static prerender.
+ * AppShell, TopBar, SideNav and ToastViewport; the sidebar's data and the
+ * recents tracker (with the project names its labels need) stream in as
+ * server-rendered children under Suspense so the shell itself stays in the
+ * static prerender.
  */
 export default function TesseraLayout({ children }: { children: ReactNode }) {
   return (
@@ -22,17 +23,19 @@ export default function TesseraLayout({ children }: { children: ReactNode }) {
           <SidebarData />
         </Suspense>
       }
-      tabBar={<TabBarData />}
     >
+      <Suspense fallback={null}>
+        <RecentsData />
+      </Suspense>
       {children}
     </TesseraShell>
   );
 }
 
-/** One projects read per request, shared by the sidebar tree and the tab bar labels. */
+/** One projects read per request, shared by the sidebar and the recents labels. */
 const loadProjects = cache(() => readTessera((ctx) => listProjects(ctx, {})));
 
-/** Projects for the sidebar tree and the change cursor the poller starts from. */
+/** Projects for the sidebar and the change cursor the poller starts from. */
 async function SidebarData() {
   await io();
   const [projects, cursor] = await Promise.all([loadProjects(), readTessera((ctx) => latestSeq(ctx))]);
@@ -45,13 +48,12 @@ async function SidebarData() {
 }
 
 /**
- * Project names for the tab labels. Server-rendered into the TabBar (which
- * the shell wraps in its own Suspense boundary) so the first client render
- * already labels "/projects/[id]/..." tabs with the project's name instead
- * of waiting for the sidebar to register them from an effect.
+ * Records visits for Home's and Power K's recents. The tracker reads the
+ * request-bound pathname and search params, so it streams in its own
+ * Suspense boundary with the project names its labels need.
  */
-async function TabBarData() {
+async function RecentsData() {
   await io();
   const projects = await loadProjects();
-  return <TabBar projectNames={projectNameMap(projects)} />;
+  return <RecentsTracker projectNames={projectNameMap(projects)} />;
 }

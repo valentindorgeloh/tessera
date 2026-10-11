@@ -11,7 +11,7 @@ import { listProjects, readTessera } from "@/lib/tessera/server";
 /** Projects list at `/projects` (docs/contracts/ui.md "Projects"): one row per project linking to its work items. */
 export default function ProjectsPage() {
   return (
-    <VStack className="tessera-projects" gap={5} padding={6}>
+    <VStack className="tessera-reading" gap={5} padding={6}>
       <HStack vAlign="center" hAlign="between">
         <Heading level={1}>Projects</Heading>
         <NewProjectButton />

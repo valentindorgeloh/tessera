@@ -1,6 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   ACCENT_TOKENS,
@@ -20,8 +17,6 @@ import {
  */
 
 type Rgb = [r: number, g: number, b: number];
-
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const MODES = [
   ["Latte", 0],
@@ -68,17 +63,6 @@ function luminance(rgb: Rgb): number {
 function ratio(a: Rgb, b: Rgb): number {
   const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (light + 0.05) / (dark + 0.05);
-}
-
-/** `opacity` of a rule in an app stylesheet, as the alpha suffix of an 8-digit hex. */
-function cssOpacityHex(file: string, selector: string): string {
-  const css = fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = new RegExp(`${escaped}\\s*\\{[^}]*?opacity:\\s*([\\d.]+)`).exec(css);
-  expect(match, `${selector} sets an opacity in ${file}`).not.toBeNull();
-  return Math.round(Number(match![1]) * 255)
-    .toString(16)
-    .padStart(2, "0");
 }
 
 describe("catppuccin palette contrast", () => {
@@ -217,14 +201,6 @@ describe("catppuccin palette contrast", () => {
       const { label, ring } = mediaContent(background);
       expect(ratio(label, background), "label").toBeGreaterThanOrEqual(TEXT);
       expect(ratio(ring, background), "focus ring").toBeGreaterThanOrEqual(ICON);
-    });
-
-    it("the tab close glyph is visible on the tab bar", () => {
-      const tabBar = SURFACES.surface[mode];
-      const glyph = SEMANTIC_TOKENS["--color-icon-secondary"][mode] + cssOpacityHex("src/components/styles/shell.css", ".tessera-tab-close");
-      expect(ratio(paint(tabBar, glyph), paint(tabBar))).toBeGreaterThanOrEqual(ICON);
-      const hovered = paint(tabBar, SEMANTIC_TOKENS["--color-overlay-hover"][mode]);
-      expect(ratio(paint(tabBar, SEMANTIC_TOKENS["--color-overlay-hover"][mode], glyph), hovered), "hovered tab").toBeGreaterThanOrEqual(ICON);
     });
 
     it.each([

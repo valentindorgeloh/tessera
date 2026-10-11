@@ -3,70 +3,32 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
-import { DropdownMenu, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@astryxdesign/core/DropdownMenu";
-import { Icon, type IconType } from "@astryxdesign/core/Icon";
+import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { Kbd } from "@astryxdesign/core/Kbd";
-import { NavIcon } from "@astryxdesign/core/NavIcon";
 import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
+import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provider";
 import type { Project } from "@/lib/tessera/types";
-import {
-  FolderIcon,
-  HouseIcon,
-  KanbanIcon,
-  MonitorIcon,
-  MoonIcon,
-  PlusIcon,
-  SearchIcon,
-  SquaresFourIcon,
-  SunIcon,
-} from "@/themes/catppuccin/icons";
-import {
-  COLOR_SCHEME_LABELS,
-  isColorScheme,
-  setColorScheme,
-  useColorScheme,
-  type ColorScheme,
-} from "./color-scheme";
+import { FolderIcon, HouseIcon, PlusIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { projectIdFromPath } from "./recents";
 import { useShell } from "./TesseraShell";
 
-export const SIDEBAR_STORAGE_KEY = "tessera.sidebar.v1";
-export const LAST_PROJECT_STORAGE_KEY = "tessera.lastProject.v1";
+export { LAST_PROJECT_STORAGE_KEY };
 
-export type ProjectNavItem = { key: string; label: string; href: string; icon: IconType };
-
-/**
- * Sub-items under a project in the tree. Extension point for later lanes:
- * append Cycles, Modules, Views, Pages, Intake and Settings here according to
- * the project's feature toggles, in the order of docs/PLAN.md section 6.
- */
-export function projectNavItems(project: Project): ProjectNavItem[] {
-  return [{ key: "work-items", label: "Work items", href: `/projects/${project.id}/work-items`, icon: KanbanIcon }];
-}
-
-/** Project id from `/projects/[id]/...`, else null. */
-export function projectIdFromPath(pathname: string): string | null {
-  const match = /^\/projects\/([^/]+)/.exec(pathname);
-  return match ? match[1] : null;
-}
-
-function isUnder(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+/** Width of the sidebar (docs/contracts/ui.md "Shell"): 250px by default, resizable from 236 to 350px. */
+export const SIDEBAR_WIDTH = { defaultWidth: 250, minWidth: 236, maxWidth: 350 } as const;
+export const SIDEBAR_WIDTH_STORAGE_KEY = "tessera.sidebarWidth.v1";
 
 // ---------------------------------------------------------------------------
-// Preferences store (localStorage), read after mount so server and client
-// render the same markup during hydration.
+// Preferences (localStorage), read after mount so server and client render the
+// same markup during hydration: the last visited project (ProjectProvider
+// writes the same key) and the sidebar width. Astryx's own `autoSaveId` reads
+// the width during the first render, which would not match the server's.
 // ---------------------------------------------------------------------------
 
-type SidebarPrefs = {
-  /** Project id → expanded; a missing id uses the default (expanded while active). */
-  expanded: Readonly<Record<string, boolean>>;
-  lastProjectId: string | null;
-};
+type SidebarPrefs = { lastProjectId: string | null; width: number | null };
 
-const EMPTY_PREFS: SidebarPrefs = { expanded: {}, lastProjectId: null };
+const EMPTY_PREFS: SidebarPrefs = { lastProjectId: null, width: null };
 
 let prefs: SidebarPrefs = EMPTY_PREFS;
 let loaded = false;
@@ -91,18 +53,12 @@ function getServerSnapshot(): SidebarPrefs {
   return EMPTY_PREFS;
 }
 
-function readExpanded(): Readonly<Record<string, boolean>> {
+function readWidth(): number | null {
   try {
-    const raw = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : null;
-    if (typeof parsed !== "object" || parsed === null) return {};
-    const stored = (parsed as { expanded?: unknown }).expanded;
-    if (typeof stored !== "object" || stored === null) return {};
-    const expanded: Record<string, boolean> = {};
-    for (const [id, value] of Object.entries(stored)) if (typeof value === "boolean") expanded[id] = value;
-    return expanded;
+    const width = Number(window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY));
+    return Number.isFinite(width) && width >= SIDEBAR_WIDTH.minWidth && width <= SIDEBAR_WIDTH.maxWidth ? width : null;
   } catch {
-    return {};
+    return null;
   }
 }
 
@@ -117,17 +73,7 @@ function readLastProject(): string | null {
 function loadPrefs() {
   if (loaded) return;
   loaded = true;
-  prefs = { expanded: readExpanded(), lastProjectId: readLastProject() };
-  emit();
-}
-
-function setExpanded(projectId: string, expanded: boolean) {
-  prefs = { ...prefs, expanded: { ...prefs.expanded, [projectId]: expanded } };
-  try {
-    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify({ expanded: prefs.expanded }));
-  } catch {
-    // Not persisted in private mode; the session still works.
-  }
+  prefs = { lastProjectId: readLastProject(), width: readWidth() };
   emit();
 }
 
@@ -142,100 +88,80 @@ function rememberProject(projectId: string) {
   emit();
 }
 
+/**
+ * Stores a width the user dragged to. The snapshot keeps the width it loaded,
+ * so the SideNav is not remounted in the middle of a drag.
+ */
+function saveWidth(width: number) {
+  if (width < SIDEBAR_WIDTH.minWidth || width > SIDEBAR_WIDTH.maxWidth) return;
+  try {
+    window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(Math.round(width)));
+  } catch {
+    // Not persisted in private mode.
+  }
+}
+
+/**
+ * The SideNav `resizable` config and a `key` for it. The stored width arrives
+ * after mount; the key changes with it, so the SideNav remounts once with the
+ * stored width as its default instead of hydrating with a different one.
+ */
+export function useSidebarResize(): { key: string; resizable: { defaultWidth: number; minWidth: number; maxWidth: number; onWidthChange: (width: number) => void } } {
+  const { width } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  useEffect(() => {
+    loadPrefs();
+  }, []);
+  return {
+    key: width === null ? "default" : `w${width}`,
+    resizable: { ...SIDEBAR_WIDTH, defaultWidth: width ?? SIDEBAR_WIDTH.defaultWidth, onWidthChange: saveWidth },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-const COLOR_SCHEME_ICONS: Readonly<Record<ColorScheme, IconType>> = {
-  dark: MoonIcon,
-  light: SunIcon,
-  system: MonitorIcon,
-};
-
-/** Footer switch between Catppuccin Frappé, Latte and the OS setting. */
-function ColorSchemeMenu() {
-  const scheme = useColorScheme();
-  return (
-    <DropdownMenu
-      placement="above"
-      hasChevron={false}
-      renderTrigger={(triggerProps) => (
-        <IconButton
-          {...triggerProps}
-          label="Colour scheme"
-          variant="ghost"
-          icon={<Icon icon={COLOR_SCHEME_ICONS[scheme]} />}
-          tooltip={`Colour scheme: ${COLOR_SCHEME_LABELS[scheme]}`}
-        />
-      )}
-    >
-      <DropdownMenuRadioGroup
-        label="Colour scheme"
-        value={scheme}
-        onChange={(value) => {
-          if (isColorScheme(value)) setColorScheme(value);
-        }}
-      >
-        {(Object.keys(COLOR_SCHEME_LABELS) as ColorScheme[]).map((value) => (
-          <DropdownMenuRadioItem
-            key={value}
-            value={value}
-            label={COLOR_SCHEME_LABELS[value]}
-            icon={COLOR_SCHEME_ICONS[value]}
-          />
-        ))}
-      </DropdownMenuRadioGroup>
-    </DropdownMenu>
-  );
-}
-
 /**
- * SideNav of the Tessera shell (docs/contracts/ui.md "Shell"): Tessera
- * heading, "New work item" for the last visited (else first) project, Home
- * and Projects, and the projects tree with per-project children from
- * `projectNavItems`. Workspace items that arrive in later phases are added
- * here when their routes exist. Collapse state comes from the shell
- * (`mod+b`); expanded projects and the last visited project are remembered
- * in localStorage. The footer holds the colour scheme menu.
+ * SideNav of the Tessera shell (docs/contracts/ui.md "Shell"), on the wash
+ * beside the content panel: the "Work" heading, a quiet "New work item"
+ * button for the last visited (else first) project, Home, the workspace
+ * items that exist (Projects) and the projects as flat rows (logo, name,
+ * count; the current one selected) under a "Projects" section whose "+"
+ * opens Create project. A project's own pages are the tabs in its panel
+ * header (`ProjectFrame`), not children here. Collapse state comes from the
+ * shell (`mod+b`, the top bar's toggle); the width and the last visited
+ * project are remembered in localStorage.
  */
 export function Sidebar({ projects }: { projects: Project[] }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isNavCollapsed, setNavCollapsed, openCommandBar } = useShell();
-  const { expanded, lastProjectId } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const { isNavCollapsed, setNavCollapsed, openCreateProject } = useShell();
+  const { lastProjectId: lastProject } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const resize = useSidebarResize();
   const activeProjectId = projectIdFromPath(pathname);
-
-  useEffect(() => {
-    loadPrefs();
-  }, []);
 
   useEffect(() => {
     if (activeProjectId && projects.some((project) => project.id === activeProjectId)) rememberProject(activeProjectId);
   }, [activeProjectId, projects]);
 
-  const createTarget = projects.find((project) => project.id === lastProjectId) ?? projects[0] ?? null;
-  const createTooltip = createTarget === null ? "Create a project first" : "Create a work item";
+  const createTarget = projects.find((project) => project.id === lastProject) ?? projects[0] ?? null;
+  const createTooltip = createTarget === null ? "Create a project first" : "Create a work item (c)";
   const openCreate = () => {
     if (createTarget) router.push(`/projects/${createTarget.id}/work-items?create=1`);
   };
 
   return (
     <SideNav
-      aria-label="Tessera"
-      collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed, hasButton: true }}
-      footerIcons={<ColorSchemeMenu />}
-      header={
-        <SideNavHeading
-          heading="Tessera"
-          headingHref="/home"
-          icon={<NavIcon icon={<Icon icon={SquaresFourIcon} size="sm" />} />}
-        />
-      }
+      key={resize.key}
+      aria-label="Work"
+      collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed, hasButton: false }}
+      resizable={resize.resizable}
+      header={<SideNavHeading heading="Work" headingHref="/home" />}
       topContent={
         isNavCollapsed ? (
           <IconButton
             label="New work item"
-            variant="primary"
+            variant="secondary"
             size="sm"
             icon={<Icon icon={PlusIcon} />}
             isDisabled={createTarget === null}
@@ -245,9 +171,10 @@ export function Sidebar({ projects }: { projects: Project[] }) {
         ) : (
           <Button
             label="New work item"
-            variant="primary"
+            variant="secondary"
             size="sm"
             width="100%"
+            className="tessera-sidebar-new"
             icon={<Icon icon={PlusIcon} />}
             isDisabled={createTarget === null}
             tooltip={createTooltip}
@@ -257,49 +184,32 @@ export function Sidebar({ projects }: { projects: Project[] }) {
       }
     >
       <SideNavSection title="Workspace" isHeaderHidden>
-        <SideNavItem label="Search" icon={SearchIcon} onClick={openCommandBar} endContent={isNavCollapsed ? undefined : <Kbd keys="mod+k" />} />
         <SideNavItem label="Home" icon={HouseIcon} href="/home" isSelected={pathname === "/home"} />
         <SideNavItem label="Projects" icon={FolderIcon} href="/projects" isSelected={pathname === "/projects"} />
       </SideNavSection>
-      <SideNavSection title="Projects">
+      <SideNavSection
+        title="Projects"
+        endContent={<IconButton label="Create project" variant="ghost" size="sm" icon={<Icon icon={PlusIcon} />} tooltip="Create project" onClick={openCreateProject} />}
+      >
         {projects.length === 0 ? (
           <Text type="supporting" color="secondary" as="p">
             No projects yet.
           </Text>
         ) : (
-          projects.map((project) => {
-            const items = projectNavItems(project);
-            const isActive = project.id === activeProjectId;
-            const isExpanded = expanded[project.id] ?? isActive;
-            return (
-              <SideNavItem
-                key={project.id}
-                label={project.name}
-                icon={FolderIcon}
-                href={items[0]?.href}
-                isSelected={isActive && !items.some((item) => isUnder(pathname, item.href))}
-                endContent={
-                  <Text type="supporting" color="secondary" hasTabularNumbers>
-                    {project.counts.total}
-                  </Text>
-                }
-                collapsible={{
-                  isCollapsed: !isExpanded,
-                  onCollapsedChange: (collapsed) => setExpanded(project.id, !collapsed),
-                }}
-              >
-                {items.map((item) => (
-                  <SideNavItem
-                    key={item.key}
-                    label={item.label}
-                    icon={item.icon}
-                    href={item.href}
-                    isSelected={isUnder(pathname, item.href)}
-                  />
-                ))}
-              </SideNavItem>
-            );
-          })
+          projects.map((project) => (
+            <SideNavItem
+              key={project.id}
+              label={project.name}
+              icon={resolveLogoIcon(project.logo?.icon)}
+              href={`/projects/${project.id}/work-items`}
+              isSelected={project.id === activeProjectId}
+              endContent={
+                <Text type="supporting" color="secondary" hasTabularNumbers>
+                  {project.counts.total}
+                </Text>
+              }
+            />
+          ))
         )}
       </SideNavSection>
     </SideNav>

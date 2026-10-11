@@ -93,13 +93,6 @@
   overflow-wrap: anywhere;
 }
 
-/* Project list rows. */
-.tessera-projects {
-  width: 100%;
-  max-width: 960px;
-  margin-inline: auto;
-}
-
 /* Quick-add placeholder rows: visible at once, inert until the server item replaces them. */
 .tessera-wi-row-pending {
   opacity: 0.6;

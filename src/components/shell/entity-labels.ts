@@ -1,17 +1,17 @@
 "use client";
 
 /**
- * Entity labels for the tab bar (docs/contracts/ui.md "Routes and modes", tab
- * labels). A detail screen registers the label of the entity it shows
- * (`WEB-1 Set up hosting`) and the TabBar's lookup reads it, so a tab for
+ * Entity labels for the recents lists (docs/contracts/ui.md "Shell"). A
+ * detail screen registers the label of the entity it shows
+ * (`WEB-1 Set up hosting`) and the recents lookup reads it, so a visit to
  * `/work-items/<id>` names the item instead of saying "Work item". The store
- * is never cleared: a tab keeps its label after the user navigates away.
+ * is never cleared: a recent keeps its label after the user navigates away.
  * Module state behind `useSyncExternalStore`; the server snapshot is empty.
  *
  * The labels are also mirrored to localStorage (`tessera.entityLabels.v1`,
  * newest last, at most MAX_ENTITY_LABELS entries) and read back after mount,
- * like the TabBar's own tabs, so every stored tab still reads "WEB-1 <title>"
- * right after a hard reload instead of "Work item" until it is visited again.
+ * like the recents themselves, so every stored recent still reads
+ * "WEB-1 <title>" right after a hard reload instead of "Work item".
  */
 import { useEffect, useSyncExternalStore } from "react";
 
@@ -127,6 +127,12 @@ export function registerEntityLabel(id: string, label: string): void {
   labels = next;
   persist();
   emit();
+}
+
+/** The labels right now, for event handlers (Power K reads them when it opens); loads the stored ones first. */
+export function readEntityLabels(): ReadonlyMap<string, string> {
+  loadStoredLabels();
+  return labels;
 }
 
 /** Every registered label by entity id; a new map instance after each change. */
