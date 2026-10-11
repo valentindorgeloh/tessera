@@ -7,6 +7,19 @@
   width: 100%;
 }
 
+/*
+ * The first column lines up with the panel header's text (16px in): the
+ * header cell pads to it, the key cell less, since its open button brings
+ * its own inset.
+ */
+.tessera-table th:first-child {
+  padding-inline-start: var(--spacing-4);
+}
+
+.tessera-table td:first-child {
+  padding-inline-start: var(--spacing-1);
+}
+
 /* Rows open the item, so they read as clickable; editable cells keep the default cursor. */
 .tessera-table-row {
   cursor: pointer;

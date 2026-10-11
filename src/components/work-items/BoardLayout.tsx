@@ -44,7 +44,7 @@ import type { LayoutProps, MoveInput, ProjectBundle } from "./types";
 /** Id of the synthetic "no value" group (`NONE_GROUP_ID` in the engine's filters.ts). */
 const NONE_GROUP = "none";
 /** Structural column width in px; board.css repeats the number for the flex basis. */
-const COLUMN_WIDTH = 300;
+const COLUMN_WIDTH = 350;
 
 const STATE_GROUPS: ReadonlySet<string> = new Set<StateGroup>(["backlog", "unstarted", "started", "completed", "cancelled", "triage"]);
 
@@ -215,7 +215,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
   return (
     <VStack className="tessera-board" gap={0}>
       {lanes === null ? (
-        <HStack gap={3} vAlign="stretch" className="tessera-board-strip" ref={registerScroller} aria-label="Board columns">
+        <HStack gap={4} vAlign="stretch" className="tessera-board-strip" ref={registerScroller} aria-label="Board columns">
           {columns.map((column) => (
             <Card key={column.id} variant="muted" padding={0} width={COLUMN_WIDTH} className="tessera-board-column">
               <Layout
@@ -237,7 +237,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
         </HStack>
       ) : (
         <VStack gap={4} className="tessera-board-strip tessera-board-lanes" ref={registerScroller} aria-label="Board swimlanes">
-          <HStack gap={3} className="tessera-board-lane-row">
+          <HStack gap={4} className="tessera-board-lane-row">
             {columns.map((column) => (
               <Card key={column.id} variant="muted" padding={3} width={COLUMN_WIDTH} className="tessera-board-column-head">
                 <VStack gap={2}>
@@ -253,7 +253,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
                 <GroupTitle name={lane.name} color={lane.color} id={lane.id} field={display.sub_group_by} bundle={bundle} level={5} />
                 <Badge label={lane.count} variant="neutral" />
               </HStack>
-              <HStack gap={3} vAlign="stretch" className="tessera-board-lane-row">
+              <HStack gap={4} vAlign="stretch" className="tessera-board-lane-row">
                 {columns.map((column) => {
                   const cell = containerId(column.id, lane.id);
                   return (
