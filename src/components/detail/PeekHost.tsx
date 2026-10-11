@@ -3,8 +3,10 @@
 /**
  * Peek host (docs/contracts/ui.md "Routes and modes"): wraps the work items
  * screen and shows the item named by `?peek=<id>` next to it. `side` (the
- * default) is a resizable end panel of a nested Layout, 360–720 px wide;
- * `modal` is a Dialog over the list; both remember width and mode in
+ * default) is a resizable end panel of a nested Layout, 360–720 px wide,
+ * holding an inset card (4px inside the content panel, so the corners stay
+ * concentric) that scrolls the detail under its pinned header; `modal` is a
+ * Dialog over the list; both remember width and mode in
  * localStorage (./peek-prefs.ts). Open and close only change the `peek`
  * search param (./peek-url.ts keeps `q`), so a reload restores the panel.
  * Escape closes the side panel; the Dialog closes itself on Escape. The
@@ -27,6 +29,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Re
 import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
+import { Card } from "@astryxdesign/core/Card";
 import { Dialog } from "@astryxdesign/core/Dialog";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { useHotkeys } from "@astryxdesign/core/hooks";
@@ -206,9 +209,11 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
   const sidePanel =
     isOpen && !isModal ? (
       <>
-        <ResizeHandle resizable={panel.props} direction="horizontal" isReversed hasDivider label="Resize the work item panel" />
-        <LayoutPanel resizable={panel.props} hasDivider={false} padding={0} isScrollable label="Work item" role="complementary">
-          <PeekSlot node={slotNode} />
+        <ResizeHandle resizable={panel.props} direction="horizontal" isReversed hasDivider={false} label="Resize the work item panel" />
+        <LayoutPanel resizable={panel.props} hasDivider={false} padding={1} isScrollable={false} label="Work item" role="complementary">
+          <Card padding={0} height="100%" elevation="low" className="tessera-peek-card">
+            <PeekSlot node={slotNode} />
+          </Card>
         </LayoutPanel>
       </>
     ) : undefined;

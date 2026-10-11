@@ -29,14 +29,24 @@ const BAR_CLASS: Readonly<Record<PanelBarSize, string>> = {
   filters: "tessera-panel-bar tessera-panel-bar--filters",
 };
 
+export type PanelBarProps = {
+  size?: PanelBarSize;
+  start: ReactNode;
+  end?: ReactNode;
+  hasDivider?: boolean;
+  /** Extra class for a bar that is not in a PanelHeader (the detail header pins itself). */
+  className?: string;
+};
+
 /**
  * One row of a panel header: `start` (title, tabs, filters) grows and may
  * shrink, `end` (actions) keeps its size. A row after the first one draws a
  * hairline above itself (`hasDivider`).
  */
-export function PanelBar({ size = "header", start, end, hasDivider = false }: { size?: PanelBarSize; start: ReactNode; end?: ReactNode; hasDivider?: boolean }) {
+export function PanelBar({ size = "header", start, end, hasDivider = false, className }: PanelBarProps) {
+  const classes = [BAR_CLASS[size], hasDivider ? "tessera-panel-bar--divided" : null, className ?? null].filter(Boolean).join(" ");
   return (
-    <HStack gap={3} vAlign="center" paddingInline={4} className={hasDivider ? `${BAR_CLASS[size]} tessera-panel-bar--divided` : BAR_CLASS[size]}>
+    <HStack gap={3} vAlign="center" paddingInline={4} className={classes}>
       <HStack gap={2} vAlign="center" className="tessera-panel-bar-start">
         {start}
       </HStack>

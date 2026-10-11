@@ -291,11 +291,20 @@ describe("WorkItemDetail", () => {
     expect(el.querySelector(`a[href="https://docs.example.com/spec"][target="_blank"]`)).not.toBeNull();
   });
 
-  it("shows the close control for the peek only when a close handler exists, and the mode switcher", async () => {
+  it("shows the close control for the peek only when a close handler exists, and the mode menu", async () => {
     const el = await render(tree("peek"));
     expect(el.querySelector('button[aria-label="Close"]')).not.toBeNull();
-    expect(el.querySelector('button[aria-label="Full page"]')).not.toBeNull();
-    expect(el.querySelector('button[aria-label="Side panel"]')?.getAttribute("aria-pressed")).toBe("true");
+    const trigger = el.querySelector<HTMLButtonElement>('button[aria-label="Open as"]');
+    expect(trigger?.getAttribute("aria-haspopup")).toBe("menu");
+    await act(async () => {
+      trigger?.click();
+    });
+    const modes = [...document.querySelectorAll('[role="menuitemradio"]')].map((row) => [row.textContent?.trim(), row.getAttribute("aria-checked")]);
+    expect(modes).toEqual([
+      ["Side panel", "true"],
+      ["Modal", "false"],
+      ["Full page", "false"],
+    ]);
   });
 
   it("registers the command context and the tab label", async () => {
@@ -593,29 +602,35 @@ describe("PeekHost", () => {
     const detail = document.querySelector(".tessera-detail");
     expect(detail?.classList.contains("tessera-detail--peek")).toBe(true);
     expect(detail?.closest('[role="complementary"]')).not.toBeNull();
+    expect(detail?.closest(".tessera-peek-card")).not.toBeNull();
     const nextFrame = () => new Promise((resolve) => window.requestAnimationFrame(() => resolve(null)));
-    const modal = document.querySelector<HTMLButtonElement>('button[aria-label="Modal"]');
-    await act(async () => {
-      modal?.focus();
-      modal?.click();
-      await nextFrame();
-    });
+    // Picks a mode from the header's "Open as" menu, as a pointer user would.
+    const chooseMode = async (label: string) => {
+      const trigger = document.querySelector<HTMLButtonElement>('button[aria-label="Open as"]');
+      await act(async () => {
+        trigger?.focus();
+        trigger?.click();
+      });
+      const row = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find((element) => element.textContent?.trim() === label);
+      await act(async () => {
+        row?.focus();
+        row?.click();
+        await nextFrame();
+      });
+      return trigger;
+    };
+    const modalTrigger = await chooseMode("Modal");
     // Same element: React kept the instance (a remount would build a new one), only the chrome around it changed.
     expect(document.querySelector(".tessera-detail")).toBe(detail);
     expect(detail?.classList.contains("tessera-detail--modal")).toBe(true);
     expect(detail?.closest("dialog")).not.toBeNull();
-    // Focus stays on the button that switched the mode.
-    expect(document.activeElement).toBe(modal);
-    const side = document.querySelector<HTMLButtonElement>('button[aria-label="Side panel"]');
-    await act(async () => {
-      side?.focus();
-      side?.click();
-      await nextFrame();
-    });
+    // Focus goes back to the menu's trigger, which moved with the detail.
+    expect(document.activeElement).toBe(modalTrigger);
+    const sideTrigger = await chooseMode("Side panel");
     expect(document.querySelector(".tessera-detail")).toBe(detail);
     expect(detail?.closest("dialog")).toBeNull();
     expect(detail?.closest('[role="complementary"]')).not.toBeNull();
-    expect(document.activeElement).toBe(side);
+    expect(document.activeElement).toBe(sideTrigger);
   });
 
   it("closes with Back when the list pushed the peek entry, and with a replace otherwise", async () => {

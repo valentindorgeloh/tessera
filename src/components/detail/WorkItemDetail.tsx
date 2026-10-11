@@ -2,12 +2,13 @@
 
 /**
  * Work item detail (docs/contracts/ui.md "Detail components (D2)"): one
- * component for the peek panel, the modal and the full page. Header, title,
- * property rail (a right column from 960px on page and modal, compact and
- * above the description in the peek), description, sub-items, links and
- * activity. Registers the entity label for the tab bar and the command
- * context for Power K and the item shortcuts; both go away on unmount.
- * Must mount inside ProjectProvider.
+ * component for the peek card, the modal and the full page. The pinned
+ * header bar, then the title, the property rail (a column behind a hairline
+ * from 960px on page and modal, compact and above the description in the
+ * peek), description, sub-items, links and the activity timeline. Registers
+ * the entity label (recents, Power K) and the command context for Power K
+ * and the item shortcuts; both go away on unmount. Must mount inside
+ * ProjectProvider.
  */
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -43,8 +44,9 @@ type TitleProps = {
 
 /**
  * The name as a heading (it keeps its heading role, so the page has its h1 and
- * the peek its h2); an "Edit title" button next to it, or a click on the
- * text, turns it into an input that saves on blur or Enter.
+ * the peek its h2, both at the same size, detail.css); an "Edit title" button
+ * next to it, or a click on the text, turns it into an input that saves on
+ * blur or Enter.
  */
 function DetailTitle({ item, host, readOnly, actions }: TitleProps) {
   const [editing, setEditing] = useState(false);
@@ -140,7 +142,7 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
     );
   };
 
-  // Tab label and command context for the open item; the label store is never cleared by design.
+  // Recents label and command context for the open item; the label store is never cleared by design.
   const label = `${item.key} ${item.name}`;
   const { id: itemId, key: itemKey, name: itemName, project_id: projectId } = item;
   const { toggleSubscribe, assignMe, isSubscribed } = actions;
