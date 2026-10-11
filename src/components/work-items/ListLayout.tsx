@@ -198,6 +198,19 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowPr
   );
 }
 
+/**
+ * The row title: one line with an ellipsis and the full title in a tooltip when it is cut. Its class lets
+ * work-items.css give Astryx's label slot a minimum width, so the properties wrap below the title instead of
+ * squeezing it (narrow windows, the peek panel open).
+ */
+function RowTitle({ name }: { name: string }) {
+  return (
+    <Text className="tessera-wi-title" maxLines={1}>
+      {name}
+    </Text>
+  );
+}
+
 function WorkItemRow({ item, display, onUpdate, onOpen }: RowProps) {
   // The key button owns the row's action: surface clicks delegate to it and it is the row's only tab stop.
   const openRef = useRef<HTMLButtonElement>(null);
@@ -205,7 +218,7 @@ function WorkItemRow({ item, display, onUpdate, onOpen }: RowProps) {
     // Placeholder from quick-add: nothing to open or edit until the server item arrives.
     return (
       <ListItem
-        label={item.name}
+        label={<RowTitle name={item.name} />}
         className="tessera-wi-row tessera-wi-row-pending"
         startContent={
           <Text type="supporting" color="secondary" className="tessera-wi-pending-key">
@@ -218,7 +231,7 @@ function WorkItemRow({ item, display, onUpdate, onOpen }: RowProps) {
   }
   return (
     <ListItem
-      label={item.name}
+      label={<RowTitle name={item.name} />}
       className="tessera-wi-row"
       interactiveRef={openRef}
       startContent={

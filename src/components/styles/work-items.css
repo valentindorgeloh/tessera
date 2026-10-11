@@ -24,6 +24,19 @@
 /* Rows: the key button opens the item; the properties hug the end edge. */
 .tessera-wi-row {
   min-width: 0;
+  /* When the title would get less than its minimum, the properties wrap onto a second line under it. */
+  flex-wrap: wrap;
+  row-gap: var(--spacing-1);
+}
+
+/* Astryx's label slot (it holds the row title): a minimum share before the properties wrap. */
+.tessera-wi-row > :has(.tessera-wi-title) {
+  min-width: min(16rem, 100%);
+}
+
+/* Astryx's end slot (it holds the properties): stays at the end of the row, also on the wrapped line. */
+.tessera-wi-row > :has(> .tessera-wi-props) {
+  margin-inline-start: auto;
 }
 
 .tessera-wi-open {

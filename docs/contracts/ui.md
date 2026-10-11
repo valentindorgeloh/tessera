@@ -63,6 +63,8 @@ type LayoutProps = {
 
 Files: `ListLayout.tsx` (List/ListItem rows grouped with collapsible headers), `BoardLayout.tsx` (columns per group, sub-groups as swimlanes, pointer DnD through `src/components/dnd/use-pointer-drag.ts`), `TableLayout.tsx` (Astryx `Table` with `useTableGroupedRows`, `useTableSortable`, `useTableColumnResize`, inline edit via `renderCell` returning ghost controls). `CalendarLayout` and `GanttLayout` arrive in P10 with the same props.
 
+List rows (`ListLayout`): the title is `RowTitle` (Astryx `Text maxLines={1}`, class `tessera-wi-title`) inside `ListItem`'s label; `work-items.css` gives the label slot `min-width: min(16rem, 100%)` and lets the row wrap, so properties move to a second line (kept at the end) instead of squeezing the title. Selectors reach Astryx's slots only through our own classes (`:has(.tessera-wi-title)`, `:has(> .tessera-wi-props)`).
+
 Property controls live in `src/components/work-items/properties/` and are reused by the detail panel (lane D) and bulk bar (lane E): `StateControl`, `PriorityControl`, `AssigneeControl`, `LabelControl`, `DateControl` (start or target), `CycleControl`, `ModuleControl`, `EstimateControl` (P8). Each takes `{ value, onChange, bundle?, compact?, readOnly? }` and renders a ghost `Selector` / `MultiSelector` / `DateInput`; state shows a `StatusDot` by group, labels and cycles show `Token` with the palette colour, priority shows the Phosphor priority icon.
 
 Create dialog: `CreateWorkItemDialog` (Astryx `Dialog` + `FormLayout`): name, description (plain `TextArea` until the editor lands in P2b), state, priority, assignees, labels, cycle, modules, dates; "Create more" keeps it open; closing with a dirty form asks "Save this draft?" (P8 wires drafts; until then the dialog just confirms discard). Quick-add: inline row at the bottom of a group / column that creates with that group's value.
@@ -75,7 +77,7 @@ Filter bar: Astryx `PowerSearch` tokens for state, priority, labels, assignees, 
 - Sidebar data: `listProjects` (with counts) and the sidebar's expanded state in `localStorage` key `tessera.sidebar.v1`.
 - `TabBar` + `tab-registry.ts`: path-based tabs, storage key `tessera.tabs.v1`, `resolveTab(pathname, lookup) → { label, icon }`, close via decorative `Icon` inside the `Tab` (no nested button), `alt+w`, middle-click, context menu. Pure functions in `tab-registry.ts` have Vitest coverage.
 - `QuickCreate`: global create dialog host so the sidebar button and `n i` shortcut open the same dialog as lane C's screen (lane C exports `CreateWorkItemDialog`; lane B mounts it).
-- Home at `/home`: project cards from `listProjects`, "Since you were last here" placeholder card (P5/P9 fill it), recent items (P9).
+- Home at `/home`: project rows from `listProjects` in a `List` with `edgeCompensation="inline"` (no Section around it: Section bleeds outward and would shift the heading), "Since you were last here" placeholder card (P5/P9 fill it), recent items (P9).
 - Keyboard: `useHotkeys` from `@astryxdesign/core/hooks` (verify the call form in `node_modules/@astryxdesign/core/hooks`); shortcut list per docs/PLAN.md §6.
 - Colour scheme: the SideNav `footerIcons` slot holds the "Colour scheme" menu (Frappé (dark), Latte (light), Match system) next to the collapse button. State lives in `src/components/shell/color-scheme.ts` (`useColorScheme`, `setColorScheme`, `localStorage` key `tessera.scheme.v1`); its values are the Astryx `<Theme mode>` values, which `src/app/providers.tsx` passes through.
 

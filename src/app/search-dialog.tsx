@@ -129,6 +129,7 @@ export function SearchDialog({
     <Dialog
       isOpen={isOpen}
       onOpenChange={onOpenChange}
+      aria-label="Search the handbook"
       width={920}
       maxHeight="72vh"
       padding={0}

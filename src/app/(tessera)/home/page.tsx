@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { io } from "next/cache";
 import { Card } from "@astryxdesign/core/Card";
-import { Section } from "@astryxdesign/core/Section";
 import { VStack } from "@astryxdesign/core/Stack";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Skeleton } from "@astryxdesign/core/Skeleton";
@@ -27,11 +26,9 @@ export default function HomePage() {
           </Text>
         </VStack>
       </Card>
-      <Section padding={0}>
-        <Suspense fallback={<ProjectRowsSkeleton />}>
-          <ProjectRows />
-        </Suspense>
-      </Section>
+      <Suspense fallback={<ProjectRowsSkeleton />}>
+        <ProjectRows />
+      </Suspense>
     </VStack>
   );
 }
@@ -46,7 +43,7 @@ async function ProjectRows() {
   await io();
   const projects = await readTessera((ctx) => listProjects(ctx, {}));
   return (
-    <List header={<Heading level={2}>Projects</Heading>} hasDividers>
+    <List header={<Heading level={2}>Projects</Heading>} hasDividers edgeCompensation="inline">
       {projects.length === 0 ? (
         <ListItem label="No projects yet" description="Create a project to start tracking work." />
       ) : (

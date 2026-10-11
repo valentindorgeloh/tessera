@@ -6,13 +6,14 @@ import {Icon} from "@astryxdesign/core/Icon";
 import {IconButton} from "@astryxdesign/core/IconButton";
 import {HStack} from "@astryxdesign/core/Layout";
 import {Tab, TabList} from "@astryxdesign/core/TabList";
-import {CaretLeft, CaretRight, Plus, X} from "@phosphor-icons/react";
+import {CaretLeft, CaretRight, Plus} from "@phosphor-icons/react";
 import {WORKSPACE_NAME, findNode, type WorkspaceNode} from "../lib/workspace-model";
-import {FolderIcon, PageIcon} from "../themes/catppuccin/icons";
+import {FolderIcon, PageIcon, XIcon} from "../themes/catppuccin/icons";
 
 export const HOME_TAB = "/";
 const STORAGE_KEY = "handbook.tabs";
 const NEW_TAB = "__new__";
+const CLOSE_CLASS = "handbook-tab-close";
 
 type OpenTab = {key: string; page: string};
 
@@ -210,22 +211,17 @@ export function PageTabs({nodes}: {nodes: WorkspaceNode[]}) {
             value={tab.key}
             label={label}
             icon={icon}
-            endContent={
-              <IconButton
-                label="Close tab"
-                tooltip="Close tab"
-                variant="ghost"
-                size="sm"
-                icon={<X weight="bold" size={12} aria-hidden />}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  const wasActive = tab.key === snapshot.active;
-                  const nextPage = closeTab(tab.key);
-                  if (wasActive) router.push(tabHref(nextPage));
-                }}
-              />
-            }
+            // A decorative close glyph: a button inside the tab's own button is invalid HTML (and a hydration
+            // error). The tab's click handler closes when the click lands on the glyph, like the Tessera tab bar.
+            endContent={<Icon icon={XIcon} size="xsm" className={CLOSE_CLASS} />}
+            onClick={(event) => {
+              if (!(event.target instanceof Element) || event.target.closest(`.${CLOSE_CLASS}`) === null) return;
+              event.preventDefault();
+              event.stopPropagation();
+              const wasActive = tab.key === snapshot.active;
+              const nextPage = closeTab(tab.key);
+              if (wasActive) router.push(tabHref(nextPage));
+            }}
           />
         );
       })}
