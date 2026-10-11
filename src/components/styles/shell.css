@@ -30,6 +30,58 @@
   justify-content: flex-start;
 }
 
+/*
+ * Panel header rows (PanelHeader.tsx): 52px page header, 44px sub-header and
+ * filters row. The start group takes the room and may shrink (the tabs scroll,
+ * the filter field narrows); the end group keeps its actions whole.
+ */
+.tessera-panel-bar {
+  width: 100%;
+  min-width: 0;
+}
+
+.tessera-panel-bar--header {
+  min-height: 52px;
+}
+
+.tessera-panel-bar--subheader,
+.tessera-panel-bar--filters {
+  min-height: 44px;
+}
+
+.tessera-panel-bar--divided {
+  border-block-start: var(--border-width) solid var(--color-border);
+}
+
+.tessera-panel-bar-start {
+  flex: 1;
+  min-width: 0;
+}
+
+.tessera-panel-bar-end {
+  flex-shrink: 0;
+}
+
+/* A short vertical hairline between groups in a row (the project name and its tabs). */
+.tessera-panel-bar-divider {
+  align-self: center;
+  height: calc(var(--size-element-sm) - var(--spacing-2));
+}
+
+/*
+ * The project's tabs dock on the header's bottom hairline: the start group
+ * fills the row's height and the tab strip sits at its bottom edge, while the
+ * token and the title stay centred.
+ */
+.tessera-panel-bar--header > .tessera-panel-bar-start {
+  align-self: stretch;
+}
+
+.tessera-project-tabs {
+  align-self: flex-end;
+  min-width: 0;
+}
+
 /* Reading pages (Home, Projects, not found): a capped column centred in the panel. */
 .tessera-reading {
   width: 100%;

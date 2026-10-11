@@ -21,9 +21,9 @@ import {
   type ProjectNameMap,
 } from "./recents";
 
-type RecentsState = { recents: readonly string[]; projectNames: ProjectNameMap };
+type RecentsState = { recents: readonly string[]; projectNames: ProjectNameMap; isLoaded: boolean };
 
-const EMPTY_STATE: RecentsState = { recents: [], projectNames: {} };
+const EMPTY_STATE: RecentsState = { recents: [], projectNames: {}, isLoaded: false };
 
 let state: RecentsState = EMPTY_STATE;
 let loaded = false;
@@ -61,7 +61,7 @@ function loadStoredRecents() {
   }
   let merged = stored;
   for (const path of [...state.recents].reverse()) merged = addRecent(merged, path);
-  state = { ...state, recents: merged };
+  state = { ...state, recents: merged, isLoaded: true };
   emit();
 }
 
@@ -101,12 +101,16 @@ export function readRecents(limit?: number): LabelledRecent[] {
   return label(state, readEntityLabels(), limit);
 }
 
-/** The labelled recents, newest first; empty during the server render and hydration. */
-export function useRecents(limit?: number): LabelledRecent[] {
+/**
+ * The labelled recents, newest first, and whether the stored list has been
+ * read; empty and not loaded during the server render and hydration.
+ */
+export function useRecents(limit?: number): { recents: LabelledRecent[]; isLoaded: boolean } {
   useEffect(() => {
     loadStoredRecents();
   }, []);
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const entityLabels = useEntityLabels();
-  return useMemo(() => label(snapshot, entityLabels, limit), [snapshot, entityLabels, limit]);
+  const recents = useMemo(() => label(snapshot, entityLabels, limit), [snapshot, entityLabels, limit]);
+  return { recents, isLoaded: snapshot.isLoaded };
 }

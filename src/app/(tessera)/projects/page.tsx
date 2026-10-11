@@ -2,24 +2,33 @@ import { Suspense } from "react";
 import { io } from "next/cache";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Skeleton } from "@astryxdesign/core/Skeleton";
-import { HStack, VStack } from "@astryxdesign/core/Stack";
-import { Heading, Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
 import { NewProjectButton } from "@/components/projects/CreateProjectDialog";
+import { PanelBar, PanelHeader, PanelPage, PanelTitle } from "@/components/shell/PanelHeader";
 import { ProjectToken } from "@/components/work-items/ProjectFrame";
 import { listProjects, readTessera } from "@/lib/tessera/server";
 
-/** Projects list at `/projects` (docs/contracts/ui.md "Projects"): one row per project linking to its work items. */
+/**
+ * Projects list at `/projects` (docs/contracts/ui.md "Projects"): one row per
+ * project linking to its work items, under a panel header with "New project".
+ */
 export default function ProjectsPage() {
   return (
-    <VStack className="tessera-reading" gap={5} padding={6}>
-      <HStack vAlign="center" hAlign="between">
-        <Heading level={1}>Projects</Heading>
-        <NewProjectButton />
-      </HStack>
-      <Suspense fallback={<RowsSkeleton />}>
-        <ProjectRows />
-      </Suspense>
-    </VStack>
+    <PanelPage
+      width="reading"
+      header={
+        <PanelHeader label="Projects">
+          <PanelBar start={<PanelTitle>Projects</PanelTitle>} end={<NewProjectButton />} />
+        </PanelHeader>
+      }
+    >
+      <VStack gap={5} padding={6}>
+        <Suspense fallback={<RowsSkeleton />}>
+          <ProjectRows />
+        </Suspense>
+      </VStack>
+    </PanelPage>
   );
 }
 

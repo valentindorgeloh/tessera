@@ -1,8 +1,10 @@
 "use client";
 
 /**
- * Work items screen (docs/contracts/ui.md "Work items screen"): filter bar,
- * display menu, "New work item" button and the layout the display picks.
+ * Work items screen (docs/contracts/ui.md "Work items screen"): a pinned
+ * header with the sub-header (the view's name and count, the layout switch,
+ * the display menu and "New work item") and the filters row, above the layout
+ * the display picks, which scrolls on its own.
  * Mutations go through the action wrappers inside transitions with an
  * optimistic copy of the list, so a move or an inline edit shows at once and
  * the server's re-render (the action's `refresh()`) settles it. Layout moves
@@ -11,20 +13,23 @@
  */
 import { startTransition, useEffect, useOptimistic, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { useHotkeys } from "@astryxdesign/core/hooks";
-import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { createWorkItemAction, moveWorkItemAction, updateWorkItemAction } from "@/app/actions/work-items";
 import { notePeekPush } from "@/components/detail/peek-history";
 import { currentHref, peekHref } from "@/components/detail/peek-url";
+import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
 import { isMultiValuedGroup } from "@/lib/tessera/core/group";
 import type { CreateWorkItemInputType, Display, Filters, Group, GroupBy, State, StateGroup, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 import { PlusIcon } from "@/themes/catppuccin/icons";
 import { BoardLayout } from "./BoardLayout";
 import { CreateWorkItemDialog } from "./CreateWorkItemDialog";
-import { DisplayMenu } from "./DisplayMenu";
+import { DisplayMenu, LayoutSwitch } from "./DisplayMenu";
 import { FilterBar } from "./FilterBar";
 import { ListLayout } from "./ListLayout";
 import { toEngineMove } from "./moves";
@@ -404,24 +409,47 @@ export function WorkItemsScreen({ projectId, result, display, filters, createOnO
   const layoutProps = { result: optimistic, display, bundle, onMove, onUpdate, onOpen, onQuickAdd };
 
   return (
-    <VStack gap={0} className="tessera-wi-screen">
-      <HStack gap={2} vAlign="center" paddingInline={5} paddingBlock={3}>
-        <FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} />
-        <HStack gap={2} vAlign="center" className="tessera-wi-actions">
-          <DisplayMenu projectId={projectId} display={display} urlState={urlState} />
-          <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" />
-        </HStack>
-      </HStack>
-      {display.layout === "list" ? (
-        <ListLayout {...layoutProps} />
-      ) : display.layout === "board" ? (
-        <BoardLayout {...layoutProps} />
-      ) : display.layout === "table" ? (
-        <TableLayout {...layoutProps} />
-      ) : (
-        <EmptyState title={display.layout === "calendar" ? "Calendar arrives in P10" : "Gantt arrives in P10"} description="Switch back to list, board or table from the Display menu." />
-      )}
+    <>
+      <Layout
+        height="fill"
+        header={
+          <PanelHeader label="Work items">
+            <PanelBar
+              size="subheader"
+              start={
+                <>
+                  <Text weight="medium" maxLines={1}>
+                    Work items
+                  </Text>
+                  <Badge variant="purple" label={String(optimistic.total)} />
+                </>
+              }
+              end={
+                <>
+                  <LayoutSwitch projectId={projectId} display={display} urlState={urlState} />
+                  <DisplayMenu projectId={projectId} display={display} urlState={urlState} />
+                  <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" />
+                </>
+              }
+            />
+            <PanelBar size="filters" hasDivider start={<FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} />} />
+          </PanelHeader>
+        }
+        content={
+          <LayoutContent padding={0} isScrollable label="Work items list">
+            {display.layout === "list" ? (
+              <ListLayout {...layoutProps} />
+            ) : display.layout === "board" ? (
+              <BoardLayout {...layoutProps} />
+            ) : display.layout === "table" ? (
+              <TableLayout {...layoutProps} />
+            ) : (
+              <EmptyState title={display.layout === "calendar" ? "Calendar arrives in P10" : "Gantt arrives in P10"} description="Switch back to list, board or table with the layout switch." />
+            )}
+          </LayoutContent>
+        }
+      />
       <CreateWorkItemDialog projectId={projectId} isOpen={isCreateOpen} onOpenChange={setCreateOpen} defaults={createDefaults} />
-    </VStack>
+    </>
   );
 }

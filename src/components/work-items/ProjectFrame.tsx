@@ -1,18 +1,21 @@
 "use client";
 
 /**
- * Project frame (docs/contracts/ui.md "Project routes"): header with the
- * project's logo, name and identifier, and the tab strip under it. `TABS`
- * grows as later phases add cycles, modules, views, pages and settings.
+ * Project frame (docs/contracts/ui.md "Project routes"): the project's panel
+ * header, one 52px row with the project's token and name, a hairline and the
+ * project's pages as tabs (the tab under the current route is selected, its
+ * indicator sitting on the header's hairline). The tabs are the project's
+ * only navigation: the sidebar lists projects, not their pages. `TABS` grows
+ * as later phases add cycles, modules, views, pages and settings.
  */
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Layout, LayoutContent, LayoutHeader } from "@astryxdesign/core/Layout";
-import { HStack } from "@astryxdesign/core/Stack";
+import { Divider } from "@astryxdesign/core/Divider";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
-import { Heading } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Token } from "@astryxdesign/core/Token";
+import { PanelBar, PanelHeader, PanelTitle } from "@/components/shell/PanelHeader";
 import type { Project } from "@/lib/tessera/types";
 import { KanbanIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { useProject } from "./project-provider";
@@ -50,19 +53,22 @@ export function ProjectFrame({ children }: { children: ReactNode }) {
     <Layout
       height="fill"
       header={
-        <LayoutHeader hasDivider padding={0} label={project.name}>
-          <HStack gap={3} vAlign="center" paddingInline={5} paddingBlockStart={4} paddingBlockEnd={2}>
-            <ProjectToken project={project} />
-            <Heading level={1} maxLines={1}>
-              {project.name}
-            </Heading>
-          </HStack>
-          <TabList value={active.key} onChange={() => {}} size="sm" layout="hug" isFullBleed>
-            {TABS.map((tab) => (
-              <Tab key={tab.key} value={tab.key} label={tab.label} icon={tab.icon} href={`/projects/${project.id}/${tab.segment}`} />
-            ))}
-          </TabList>
-        </LayoutHeader>
+        <PanelHeader label={project.name}>
+          <PanelBar
+            start={
+              <>
+                <ProjectToken project={project} size="sm" />
+                <PanelTitle>{project.name}</PanelTitle>
+                <Divider orientation="vertical" className="tessera-panel-bar-divider" />
+                <TabList value={active.key} onChange={() => {}} size="sm" layout="hug" aria-label={`${project.name} pages`} className="tessera-project-tabs">
+                  {TABS.map((tab) => (
+                    <Tab key={tab.key} value={tab.key} label={tab.label} icon={tab.icon} href={`/projects/${project.id}/${tab.segment}`} />
+                  ))}
+                </TabList>
+              </>
+            }
+          />
+        </PanelHeader>
       }
       content={
         <LayoutContent padding={0} isScrollable label={active.label}>

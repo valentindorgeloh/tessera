@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * Display menu (docs/contracts/ui.md "Work items screen"): layout, grouping,
+ * Display menu and layout switch (docs/contracts/ui.md "Work items screen"):
+ * the switch in the sub-header picks the layout; the menu holds grouping,
  * ordering, toggles and visible properties. Every change is written twice:
  * to the URL (`q`, display half) so the page re-renders with it, and to the
  * project's view settings through `saveViewSettingsAction` so it survives a
@@ -17,14 +18,13 @@ import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/Segme
 import { Selector, type SelectorOptionData } from "@astryxdesign/core/Selector";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Switch } from "@astryxdesign/core/Switch";
-import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { resetViewSettingsAction, saveViewSettingsAction } from "@/app/actions/views";
 import { withSearchParam } from "@/components/detail/peek-url";
 import { GROUPABLE_FIELDS, ORDER_BY_VALUES, type OrderableField } from "@/lib/tessera/core/group";
 import { LayoutSchema, SubGroupBySchema } from "@/lib/tessera/schemas";
 import type { Display, DisplayProperties, GroupBy, Layout, OrderBy, SubGroupBy } from "@/lib/tessera/types";
-import { CalendarIcon, GanttIcon, KanbanIcon, RowsIcon, SlidersIcon, TableIcon } from "@/themes/catppuccin/icons";
+import { KanbanIcon, RowsIcon, SlidersIcon, TableIcon } from "@/themes/catppuccin/icons";
 import { useProject } from "./project-provider";
 import type { UrlState } from "./types";
 import { encodeUrlState } from "./url-state";
@@ -39,13 +39,8 @@ export type DisplayMenuProps = {
 
 const NONE = "__none__";
 
-/**
- * Popover width. The layout control hugs its five labelled segments (about
- * 346px at size sm, "Calendar" being the widest), inside the 16px stack padding,
- * the 12px popover padding and the theme's 1px popover border: about 404px,
- * below which the labels truncate to an ellipsis. 416 leaves some slack.
- */
-const MENU_WIDTH = 416;
+/** Popover width: the selectors and the property list at a comfortable reading width. */
+const MENU_WIDTH = 320;
 
 const FIELD_LABELS: Record<GroupBy, string> = {
   state: "State",
@@ -113,13 +108,16 @@ function orderLabel(value: OrderBy): string {
   return `${ORDER_LABELS[field]} (${descending ? "newest first" : "oldest first"})`;
 }
 
-export function DisplayMenu({ projectId, display, urlState }: DisplayMenuProps) {
+/**
+ * Writes a display patch to the URL and the saved view settings (`apply`), or
+ * drops both back to the defaults (`reset`). Shared by the layout switch and
+ * the display menu.
+ */
+function useDisplayWriter(projectId: string, urlState: UrlState) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const toast = useToast();
-  const { bundle } = useProject();
-  const [isOpen, setOpen] = useState(false);
 
   const writeUrl = (nextDisplay: Partial<Display> | undefined) => {
     const state: UrlState = {};
@@ -144,6 +142,29 @@ export function DisplayMenu({ projectId, display, urlState }: DisplayMenuProps) 
       if (!result.ok) toast({ type: "error", body: `Could not reset the view settings: ${result.message}` });
     });
   };
+
+  return { apply, reset };
+}
+
+/**
+ * The layout switch of the work items sub-header: list, board and table as
+ * icon segments. Calendar and Gantt join it in P10.
+ */
+export function LayoutSwitch({ projectId, display, urlState }: DisplayMenuProps) {
+  const { apply } = useDisplayWriter(projectId, urlState);
+  return (
+    <SegmentedControl label="Layout" size="sm" value={display.layout} onChange={(value) => isLayout(value) && apply({ layout: value })}>
+      <SegmentedControlItem value="list" label="List" isLabelHidden icon={<RowsIcon />} />
+      <SegmentedControlItem value="board" label="Board" isLabelHidden icon={<KanbanIcon />} />
+      <SegmentedControlItem value="table" label="Table" isLabelHidden icon={<TableIcon />} />
+    </SegmentedControl>
+  );
+}
+
+export function DisplayMenu({ projectId, display, urlState }: DisplayMenuProps) {
+  const { bundle } = useProject();
+  const [isOpen, setOpen] = useState(false);
+  const { apply, reset } = useDisplayWriter(projectId, urlState);
 
   const groupOptions: SelectorOptionData[] = [
     { value: NONE, label: "None" },
@@ -171,18 +192,6 @@ export function DisplayMenu({ projectId, display, urlState }: DisplayMenuProps) 
 
   const content = (
     <VStack gap={4} padding={4} className="tessera-wi-display">
-      <VStack gap={1}>
-        <SegmentedControl label="Layout" size="sm" layout="hug" value={display.layout} onChange={(value) => isLayout(value) && apply({ layout: value })}>
-          <SegmentedControlItem value="list" label="List" icon={<RowsIcon />} />
-          <SegmentedControlItem value="board" label="Board" icon={<KanbanIcon />} />
-          <SegmentedControlItem value="table" label="Table" icon={<TableIcon />} />
-          <SegmentedControlItem value="calendar" label="Calendar" icon={<CalendarIcon />} isDisabled />
-          <SegmentedControlItem value="gantt" label="Gantt" icon={<GanttIcon />} isDisabled />
-        </SegmentedControl>
-        <Text type="supporting" color="secondary">
-          Calendar and Gantt arrive in P10.
-        </Text>
-      </VStack>
       <Selector
         label="Group by"
         size="sm"

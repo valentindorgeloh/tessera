@@ -4,11 +4,6 @@
  * (key column, reading columns) are the only raw px.
  */
 
-.tessera-wi-screen {
-  width: 100%;
-  min-height: 100%;
-}
-
 .tessera-wi-filter {
   flex: 1;
   min-width: 0;
