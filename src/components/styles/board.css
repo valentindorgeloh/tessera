@@ -1,0 +1,116 @@
+/*
+ * Board layout (src/components/work-items/BoardLayout.tsx) and the pointer
+ * drag overlay (src/components/dnd/use-pointer-drag.ts). Tokens only; the
+ * column width is the one structural px value and matches COLUMN_WIDTH in
+ * BoardLayout.tsx.
+ */
+
+.tessera-board {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+/* The horizontal strip scrolls on its own; columns keep their width and fill the height. */
+.tessera-board-strip {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+  padding: var(--spacing-4);
+  align-items: stretch;
+}
+
+.tessera-board-strip > * {
+  flex-shrink: 0;
+}
+
+.tessera-board-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+  flex: 0 0 300px;
+}
+
+.tessera-board-column > * {
+  min-height: 0;
+}
+
+.tessera-board-column-title {
+  min-width: 0;
+  flex: 1;
+}
+
+.tessera-board-column-body {
+  min-height: var(--spacing-12);
+}
+
+/* Swimlanes: a header row of column titles, then one row of cells per sub-group. */
+.tessera-board-lanes {
+  align-items: stretch;
+}
+
+.tessera-board-lane-row > * {
+  flex-shrink: 0;
+}
+
+.tessera-board-lane-title {
+  position: sticky;
+  inset-inline-start: 0;
+  padding-inline: var(--spacing-1);
+}
+
+.tessera-board-cell {
+  min-height: calc(var(--spacing-12) * 2);
+  flex: 0 0 300px;
+}
+
+/* Cards are the drag handles: no text selection, no touch panning, a lift on hover. */
+.tessera-board-card {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.tessera-board-card:hover {
+  box-shadow: var(--shadow-med);
+}
+
+/* Landing slot while a card is dragged; the height follows the dragged card (Card height prop). */
+.tessera-board-placeholder {
+  border: var(--border-width) dashed var(--color-border-emphasized);
+  background: var(--color-background-muted);
+  border-radius: var(--radius-container);
+}
+
+/*
+ * Pointer drag overlay: the dragged card's clone, lifted out of flow and
+ * following the pointer. The hook writes --tessera-drag-x/y/w on the element
+ * so pointer moves never re-render the layout; pointer events pass through so
+ * hit-testing reads the containers underneath.
+ */
+.tessera-drag-overlay {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: var(--tessera-drag-w);
+  transform: translate(var(--tessera-drag-x, 0px), var(--tessera-drag-y, 0px));
+  pointer-events: none;
+  cursor: grabbing;
+  z-index: 1000;
+  will-change: transform;
+}
+
+/* Set on <body> by the hook while a drag runs. */
+.tessera-dragging,
+.tessera-dragging * {
+  user-select: none;
+  cursor: grabbing;
+}
+
+/* Quick-add placeholder cards: shown at once, not draggable or openable until the server item replaces them. */
+.tessera-board-card-pending {
+  opacity: 0.6;
+}

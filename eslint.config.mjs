@@ -2,37 +2,35 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
-// Server-only parts of the engine. Only the engine itself, Server Actions,
-// route handlers, scripts and tests may import them. Client code imports
-// `@/lib/tessera/types`, `@/lib/tessera/schemas` or `@/lib/tessera/core/*`.
-const serverOnlyEngineImports = [
-  "@/lib/tessera/db",
-  "@/lib/tessera/db/*",
-  "@/lib/tessera/server",
-  "better-sqlite3",
-  "drizzle-orm",
-  "drizzle-orm/*",
+// Import boundary for the engine (docs/contracts/ui.md, "Import boundary").
+// Server Components, Server Actions and route handlers read through
+// `@/lib/tessera/server`; client code imports only `@/lib/tessera/types`,
+// `@/lib/tessera/schemas` and `@/lib/tessera/core/{keys,time,group}`.
+// Whether a file is a "use client" file is checked by
+// scripts/check-conventions.ts; `server-only` guards the server entry at
+// bundle time. The patterns below are regexes (gitignore-style groups cannot
+// allow a child of a blocked parent).
+const databaseImports = [
+  {
+    regex: "^@/lib/tessera(/index|/db(/.*)?)?$",
+    message:
+      "Engine database modules and the engine barrel are server-only. Import from '@/lib/tessera/server' in Server Components, or use a Server Action.",
+  },
+  {
+    regex: "^(better-sqlite3|drizzle-orm)(/.*)?$",
+    message:
+      "Database drivers are server-only. Import from '@/lib/tessera/server' in Server Components, or use a Server Action.",
+  },
 ];
 
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    files: ["src/components/**/*.{ts,tsx}", "src/app/**/*.{ts,tsx}"],
+    files: ["src/app/**/*.{ts,tsx}"],
     ignores: ["src/app/actions/**", "src/app/api/**"],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: serverOnlyEngineImports,
-              message:
-                "Engine database modules are server-only. Import from '@/lib/tessera/server' in Server Components, or use a Server Action.",
-            },
-          ],
-        },
-      ],
+      "no-restricted-imports": ["error", { patterns: databaseImports }],
     },
   },
   {
@@ -42,10 +40,11 @@ const eslintConfig = defineConfig([
         "error",
         {
           patterns: [
+            ...databaseImports,
             {
-              group: [...serverOnlyEngineImports, "@/lib/tessera", "@/lib/tessera/!(types|schemas|core)/**"],
+              regex: "^@/lib/tessera(?!/(types|schemas|core/(keys|time|group))$)",
               message:
-                "Components may import only '@/lib/tessera/types', '@/lib/tessera/schemas' and '@/lib/tessera/core/*'.",
+                "Components may import only '@/lib/tessera/types', '@/lib/tessera/schemas' and '@/lib/tessera/core/{keys,time,group}'. Read through a Server Component and write through a Server Action.",
             },
           ],
         },

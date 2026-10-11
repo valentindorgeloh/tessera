@@ -1,5 +1,5 @@
 import {Suspense} from "react";
-import {ItemScreen} from "../../item-screen";
+import {ItemScreen} from "../../../item-screen";
 
 export default function ItemPage({params}: PageProps<"/items/[id]">) {
   return (

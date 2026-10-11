@@ -15,6 +15,7 @@ import {
   Checks,
   Clock,
   Columns,
+  Compass,
   Copy,
   DotsThree,
   EyeSlash,
@@ -22,16 +23,51 @@ import {
   Folder,
   FolderPlus,
   Funnel,
+  House,
   Info,
+  Kanban,
   List,
+  ListBullets,
   MagnifyingGlass,
   Microphone,
   Plus,
+  SquaresFour,
   Stop,
   Warning,
   Wrench,
   X,
   XCircle,
+  // Lane C (work items): priority glyphs, display menu, property and project logo icons.
+  ArrowsClockwise,
+  ArrowsOutLineHorizontal,
+  Book,
+  Briefcase,
+  Bug,
+  CellSignalFull,
+  CellSignalHigh,
+  CellSignalLow,
+  CellSignalMedium,
+  Cube,
+  Diamond,
+  Fire,
+  Flag,
+  Gear,
+  Globe,
+  Hash,
+  Leaf,
+  Lightning,
+  Package,
+  Prohibit,
+  Rocket,
+  Rows,
+  Sliders,
+  Star,
+  Table,
+  Tag,
+  Target,
+  Trash,
+  User,
+  Users,
   type Icon as PhosphorIcon,
   type IconProps,
 } from "@phosphor-icons/react";
@@ -61,6 +97,18 @@ export const PageIcon = duotoneIcon(FileText);
 export const PlusIcon = duotoneIcon(Plus);
 export const FolderPlusIcon = duotoneIcon(FolderPlus);
 export const SearchIcon = duotoneIcon(MagnifyingGlass);
+
+// Tessera shell (lane B): navigation, tab bar and boundary glyphs.
+export const HouseIcon = duotoneIcon(House);
+export const KanbanIcon = duotoneIcon(Kanban);
+export const ListBulletsIcon = duotoneIcon(ListBullets);
+export const SquaresFourIcon = duotoneIcon(SquaresFour);
+export const CompassIcon = duotoneIcon(Compass);
+export const WarningIcon = duotoneIcon(Warning);
+export const XIcon = duotoneIcon(X);
+export const CaretRightIcon = duotoneIcon(CaretRight);
+export const CaretDownIcon = duotoneIcon(CaretDown);
+export const DotsThreeIcon = duotoneIcon(DotsThree);
 
 export const paperIconRegistry: IconRegistry = {
   close: glyph(X),
@@ -92,3 +140,62 @@ export const paperIconRegistry: IconRegistry = {
   stop: glyph(Stop),
   microphone: glyph(Microphone),
 };
+
+// Tessera work items (lane C): priority glyphs, display menu and property icons.
+export const PriorityUrgentIcon = duotoneIcon(CellSignalFull);
+export const PriorityHighIcon = duotoneIcon(CellSignalHigh);
+export const PriorityMediumIcon = duotoneIcon(CellSignalMedium);
+export const PriorityLowIcon = duotoneIcon(CellSignalLow);
+export const PriorityNoneIcon = duotoneIcon(Prohibit);
+export const SlidersIcon = duotoneIcon(Sliders);
+export const RowsIcon = duotoneIcon(Rows);
+export const TableIcon = duotoneIcon(Table);
+export const CalendarIcon = duotoneIcon(CalendarBlank);
+export const GanttIcon = duotoneIcon(ArrowsOutLineHorizontal);
+export const TagIcon = duotoneIcon(Tag);
+export const UserIcon = duotoneIcon(User);
+export const UsersIcon = duotoneIcon(Users);
+export const CycleIcon = duotoneIcon(ArrowsClockwise);
+export const ModuleIcon = duotoneIcon(Package);
+export const TargetIcon = duotoneIcon(Target);
+export const HashIcon = duotoneIcon(Hash);
+export const TrashIcon = duotoneIcon(Trash);
+export const CheckIcon = duotoneIcon(Check);
+
+/**
+ * Icons a project logo may use (`Logo.icon` holds the Phosphor name). The
+ * create dialog offers exactly these; `resolveLogoIcon` falls back to the
+ * folder glyph for unknown or missing names so old rows keep rendering.
+ */
+export const PROJECT_LOGO_ICONS = {
+  Folder: FolderIcon,
+  Rocket: duotoneIcon(Rocket),
+  Cube: duotoneIcon(Cube),
+  Kanban: KanbanIcon,
+  Star: duotoneIcon(Star),
+  Flag: duotoneIcon(Flag),
+  Briefcase: duotoneIcon(Briefcase),
+  Globe: duotoneIcon(Globe),
+  Book: duotoneIcon(Book),
+  Fire: duotoneIcon(Fire),
+  Leaf: duotoneIcon(Leaf),
+  Diamond: duotoneIcon(Diamond),
+  Target: TargetIcon,
+  Package: ModuleIcon,
+  Lightning: duotoneIcon(Lightning),
+  Bug: duotoneIcon(Bug),
+  Gear: duotoneIcon(Gear),
+} as const;
+
+export type ProjectLogoIconName = keyof typeof PROJECT_LOGO_ICONS;
+
+export const PROJECT_LOGO_ICON_NAMES = Object.keys(PROJECT_LOGO_ICONS) as ProjectLogoIconName[];
+
+function isLogoIconName(name: string): name is ProjectLogoIconName {
+  return Object.prototype.hasOwnProperty.call(PROJECT_LOGO_ICONS, name);
+}
+
+/** Component for a stored logo icon name; the folder glyph when the name is unknown. */
+export function resolveLogoIcon(name: string | null | undefined): (typeof PROJECT_LOGO_ICONS)[ProjectLogoIconName] {
+  return name && isLogoIconName(name) ? PROJECT_LOGO_ICONS[name] : FolderIcon;
+}

@@ -1,0 +1,33 @@
+/*
+ * Table layout (src/components/work-items/TableLayout.tsx). Tokens only;
+ * column widths are set through the Table column definitions (pixel()).
+ */
+
+.tessera-table {
+  width: 100%;
+}
+
+/* Rows open the item, so they read as clickable; editable cells keep the default cursor. */
+.tessera-table-row {
+  cursor: pointer;
+}
+
+.tessera-table-row:focus-visible {
+  outline: var(--border-width) solid var(--color-accent);
+  outline-offset: calc(-1 * var(--border-width));
+}
+
+.tessera-table-cell-edit {
+  cursor: default;
+  padding-block: var(--spacing-0-5);
+}
+
+/* The key cell is the row's accessible open control; the row click is a pointer convenience. */
+.tessera-table-open {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Quick-add placeholder rows: shown at once, inert until the server item replaces them. */
+.tessera-table-row-pending {
+  opacity: 0.6;
+}

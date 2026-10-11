@@ -56,7 +56,7 @@ export const WORK_ITEM_KEY_PATTERN = /^([A-Z][A-Z0-9]{1,11})-(\d+)$/;
 export const IsoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expected YYYY-MM-DD");
 
 /** ISO-8601 UTC timestamp as stored in every *_at column. */
-export const IsoTimestampSchema = z.string().datetime({ offset: false });
+export const IsoTimestampSchema = z.iso.datetime({ offset: false });
 
 /** UUIDv7 text id used by every entity table. */
 export const IdSchema = z.uuid();

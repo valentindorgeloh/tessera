@@ -1,5 +1,5 @@
 import {Suspense} from "react";
-import {WorkspaceScreen} from "./workspace-screen";
+import {WorkspaceScreen} from "../workspace-screen";
 
 export default function HomePage() {
   return (

@@ -177,3 +177,61 @@ export type WebhookDeliveryRow = typeof tables.webhook_delivery.$inferSelect;
 export type WebhookDeliveryInsert = typeof tables.webhook_delivery.$inferInsert;
 export type AutomationLeaseRow = typeof tables.automation_lease.$inferSelect;
 export type AutomationLeaseInsert = typeof tables.automation_lease.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// View models and input types, re-exported type-only so client code can import
+// every engine type from "@/lib/tessera/types" without touching the modules
+// that load the database. Type re-exports are erased at compile time.
+// ---------------------------------------------------------------------------
+export type {
+  Project,
+  ProjectCounts,
+  ListProjectsInputType,
+  ProjectFeaturesInputType,
+  CreateProjectInputType,
+  UpdateProjectInputType,
+} from "./projects";
+export type { State, CreateStateInputType, UpdateStateInputType, ReorderStateInputType, DeleteStateInputType } from "./states";
+export type { Label, CreateLabelInputType, UpdateLabelInputType, ReorderLabelInputType } from "./labels";
+export type {
+  WorkItem,
+  WorkItemDetail,
+  WorkItemIntake,
+  ListResult,
+  WorkItemListResult,
+  ListScope,
+  ListWorkItemsInputType,
+  CreateWorkItemInputType,
+  UpdateWorkItemInputType,
+  UpdateWorkItemDescriptionInputType,
+  MoveWorkItemInputType,
+  CopyWorkItemInputType,
+  MoveWorkItemToProjectInputType,
+} from "./work-items";
+export type { Group, GroupableItem, GroupOptions } from "./filters";
+export type {
+  Cycle,
+  CycleDetail,
+  CycleProgressSummary,
+  CycleProgressMode,
+  ListCyclesInputType,
+  CreateCycleInputType,
+  UpdateCycleInputType,
+  TransferCycleWorkItemsInputType,
+} from "./cycles";
+export type {
+  Module,
+  ModuleDetail,
+  ModuleProgress,
+  ListModulesInputType,
+  CreateModuleInputType,
+  UpdateModuleInputType,
+} from "./modules";
+export type { Link, LinkParentType, AddLinkInputType, UpdateLinkInputType } from "./links";
+export type { View, ListViewsInputType, CreateViewInputType, UpdateViewInputType } from "./views";
+export type { ViewSettings, DisplayPatch, DisplayPatchInput, DisplayPropertyKey } from "./view-settings";
+export type { Counts, CountsScope } from "./counts";
+export type { SearchHit, SearchType } from "./search";
+export type { Change, ChangesResult, ActivityLogEntry } from "./changes";
+export type { ActivityVerb } from "./activity";
+export type { ToolName, ToolInput, ToolOutput } from "./tools/registry";

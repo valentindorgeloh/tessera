@@ -1,0 +1,98 @@
+/*
+ * Tessera work items (lane C): list layout, toolbar, dialogs and property
+ * rows beyond what Astryx props cover. Tokens only; the structural widths on
+ * the key column and the display popover are the only raw px.
+ */
+
+.tessera-wi-screen {
+  width: 100%;
+  min-height: 100%;
+}
+
+.tessera-wi-filter {
+  flex: 1;
+  min-width: 0;
+}
+
+/* PowerSearch wraps its field in a block element; let that wrapper take the free toolbar width. */
+.tessera-wi-filter > .astryx-power-search,
+.tessera-wi-search {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Rows: the key button opens the item; the properties hug the end edge. */
+.tessera-wi-row {
+  min-width: 0;
+}
+
+.tessera-wi-open {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+  min-width: 72px;
+  justify-content: flex-start;
+}
+
+/* Properties keep their natural width on one line; the compact controls are chips, so the label keeps its share. */
+.tessera-wi-props {
+  flex: 0 0 auto;
+}
+
+.tessera-wi-prop-text {
+  white-space: nowrap;
+}
+
+/* Group headers sit on the surface colour so collapsed groups still read as sections. */
+.tessera-wi-group-header {
+  min-width: 0;
+  padding-inline: var(--spacing-2);
+  padding-block: var(--spacing-1);
+}
+
+.tessera-wi-group-name {
+  min-width: 0;
+}
+
+.tessera-wi-quickadd {
+  padding-inline: var(--spacing-2);
+  padding-block: var(--spacing-1);
+}
+
+.tessera-wi-quickadd-active {
+  padding-inline-start: var(--spacing-3);
+}
+
+/* Display menu popover body. */
+.tessera-wi-display {
+  width: 320px;
+  max-width: 100%;
+}
+
+/* Full-page detail (P2a): capped reading column; the description keeps its line breaks. */
+.tessera-wi-detail {
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+}
+
+.tessera-wi-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Project list rows. */
+.tessera-projects {
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+}
+
+/* Quick-add placeholder rows: visible at once, inert until the server item replaces them. */
+.tessera-wi-row-pending {
+  opacity: 0.6;
+}
+
+.tessera-wi-pending-key {
+  min-width: 72px;
+  white-space: nowrap;
+}
