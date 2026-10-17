@@ -5,7 +5,7 @@ import { TrackerError } from "@/lib/tessera/core/errors";
 import { newId } from "@/lib/tessera/core/ids";
 import { firstSortOrder } from "@/lib/tessera/core/order";
 import { activity, view } from "@/lib/tessera/db/schema";
-import { archiveProject, createProject } from "@/lib/tessera/projects";
+import { archiveProject, createProject, updateProjectFeatures } from "@/lib/tessera/projects";
 import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
 import type { Display, Filters, RichFilters } from "@/lib/tessera/types";
 import {
@@ -16,10 +16,12 @@ import {
   getView,
   listViews,
   lockView,
+  reorderView,
   unlockView,
   updateView,
   type View,
 } from "@/lib/tessera/views";
+import { createWorkItem, listWorkItems } from "@/lib/tessera/work-items";
 import { createTestContext, createTestDb, type TesseraContext } from "./helpers/db";
 
 type Fixture = { ctx: TesseraContext; projectId: string };
@@ -460,5 +462,97 @@ describe("archived project", () => {
     expect(errorCode(() => deleteView(ctx, v.id))).toBe("ARCHIVED");
     expect(listViews(ctx, { project_id: projectId })).toHaveLength(2);
     expect(updateView(ctx, w.id, { name: "W2" }).name).toBe("W2");
+  });
+});
+
+describe("round-trip (A1)", () => {
+  it("a partial display and filters round-trip through create, get, update and the view scope", () => {
+    const { ctx, projectId } = setup();
+    for (const [name, priority] of [
+      ["one", "high"],
+      ["two", "low"],
+      ["three", "high"],
+    ] as const) {
+      createWorkItem(ctx, { project_id: projectId, name, priority });
+    }
+    createWorkItem(ctx, { project_id: projectId, name: "four", priority: "urgent" });
+    const created = createView(ctx, {
+      project_id: projectId,
+      name: "Mixed",
+      display: { layout: "board", order_by: "-priority" },
+      filters: { priority: ["high", "urgent"] },
+    });
+    const read = getView(ctx, created.id);
+    expect(read.display).toEqual({ ...DEFAULT_DISPLAY, layout: "board", order_by: "-priority" });
+    expect(read.filters).toEqual({ priority: ["high", "urgent"] });
+
+    const updated = updateView(ctx, created.id, { display: { group_by: "labels" }, filters: { priority: ["high"] } });
+    expect(updated.display).toEqual({ ...DEFAULT_DISPLAY, layout: "board", order_by: "-priority", group_by: "labels" });
+    expect(getView(ctx, created.id).filters).toEqual({ priority: ["high"] });
+
+    const viaView = listWorkItems(ctx, { scope: { type: "view", view_id: created.id } });
+    const viaProject = listWorkItems(ctx, {
+      scope: { type: "project", project_id: projectId },
+      filters: { priority: ["high"] },
+      display: { order_by: "-priority" },
+    });
+    expect(viaView.items.map((item) => item.id)).toEqual(viaProject.items.map((item) => item.id));
+    expect(viaView.total).toBe(viaProject.total);
+    expect(viaView.items.map((item) => item.name).sort()).toEqual(["one", "three"]);
+  });
+});
+
+describe("reorderView (A3)", () => {
+  const names = (ctx: TesseraContext, projectId: string) => listViews(ctx, { project_id: projectId }).map((v) => v.name);
+
+  it("reorderView moves a view within its scope", () => {
+    const { ctx, projectId } = setup();
+    const a = createView(ctx, { project_id: projectId, name: "A" });
+    const b = createView(ctx, { project_id: projectId, name: "B" });
+    const c = createView(ctx, { project_id: projectId, name: "C" });
+    const d = createView(ctx, { project_id: projectId, name: "D" });
+    const w = createView(ctx, { project_id: null, name: "W" });
+    const seq = latestSeq(ctx);
+    // after_id: A comes directly after the moved view.
+    expect(reorderView(ctx, c.id, { after_id: a.id }).id).toBe(c.id);
+    expect(names(ctx, projectId)).toEqual(["C", "A", "B", "D"]);
+    const rows = activityRows(ctx, c.id).filter((row) => row.seq > seq);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ verb: "updated", field: "sort_order", new_identifier: "C", project_id: projectId });
+    // A neighbour in another scope is NOT_FOUND, in both directions.
+    expect(errorCode(() => reorderView(ctx, c.id, { before_id: w.id }))).toBe("NOT_FOUND");
+    expect(errorCode(() => reorderView(ctx, w.id, { before_id: a.id }))).toBe("NOT_FOUND");
+    expect(errorCode(() => reorderView(ctx, newId(), { before_id: a.id }))).toBe("NOT_FOUND");
+    // C, A, B stay once D leaves: C and B are not adjacent.
+    expect(errorCode(() => reorderView(ctx, d.id, { before_id: c.id, after_id: b.id }))).toBe("VALIDATION");
+    expect(errorCode(() => reorderView(ctx, c.id, {}))).toBe("VALIDATION");
+    // Locked views move: sort_order is placement, not view content.
+    lockView(ctx, b.id);
+    reorderView(ctx, b.id, { after_id: c.id });
+    expect(names(ctx, projectId)).toEqual(["B", "C", "A", "D"]);
+    expect(getView(ctx, b.id).is_locked).toBe(true);
+    // Allowed while views are turned off (decision 31 refuses creates only).
+    updateProjectFeatures(ctx, projectId, { views_enabled: false });
+    reorderView(ctx, d.id, { after_id: b.id });
+    expect(names(ctx, projectId)).toEqual(["D", "B", "C", "A"]);
+    archiveProject(ctx, projectId);
+    expect(errorCode(() => reorderView(ctx, a.id, { before_id: c.id }))).toBe("ARCHIVED");
+  });
+});
+
+describe("feature toggle (A7, decision 31)", () => {
+  it("create refuses while the feature is off", () => {
+    const { ctx, projectId } = setup();
+    const v = createView(ctx, { project_id: projectId, name: "V" });
+    updateProjectFeatures(ctx, projectId, { views_enabled: false });
+    expect(ruleName(() => createView(ctx, { project_id: projectId, name: "X" }))).toBe("feature_disabled");
+    expect(ruleName(() => duplicateView(ctx, v.id))).toBe("feature_disabled");
+    // Reads and edits of existing views still work; workspace views are not project views.
+    expect(listViews(ctx, { project_id: projectId }).map((x) => x.id)).toEqual([v.id]);
+    expect(getView(ctx, v.id).name).toBe("V");
+    expect(createView(ctx, { project_id: null, name: "W" }).project_id).toBeNull();
+    updateProjectFeatures(ctx, projectId, { views_enabled: true });
+    expect(createView(ctx, { project_id: projectId, name: "X" }).name).toBe("X");
+    expect(duplicateView(ctx, v.id).name).toBe("Copy of V");
   });
 });

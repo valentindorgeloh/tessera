@@ -124,8 +124,13 @@ function applyGroupValue(item: WorkItem, field: GroupBy, value: string | null | 
     case "assignees":
     case "module": {
       const key = field === "labels" ? "label_ids" : field === "assignees" ? "assignee_ids" : "module_ids";
+      // A drop on the None group empties the field (decision 30); any other drop swaps `fromValue` for `value`.
+      if (!value || value === NONE_GROUP_ID) {
+        next[key] = [];
+        break;
+      }
       const current = next[key].filter((entry) => entry !== fromValue);
-      next[key] = value && !current.includes(value) ? [...current, value] : current;
+      next[key] = !current.includes(value) ? [...current, value] : current;
       break;
     }
     default:
@@ -155,12 +160,15 @@ export function reduceOptimisticList(
       return { ...state, items, groups };
     }
     case "move": {
-      const { id, group_by, value, from_value, before_id, after_id } = action.input;
+      const { id, group_by, value, from_value, before_id, after_id, sub_group_by, sub_value, sub_from_value } = action.input;
       let moved: WorkItem | undefined;
       const items = state.items.map((item) => {
         if (item.id !== id) return item;
-        moved = group_by ? applyGroupValue(item, group_by, value, from_value, firstStateByGroup) : item;
-        return moved;
+        let next = group_by ? applyGroupValue(item, group_by, value, from_value, firstStateByGroup) : item;
+        // The sub axis of a two-axis board drop (decision 30).
+        if (sub_group_by) next = applyGroupValue(next, sub_group_by, sub_value, sub_from_value, firstStateByGroup);
+        moved = next;
+        return next;
       });
       if (!moved) return state;
       const orderedIds = reorder(
@@ -174,7 +182,7 @@ export function reduceOptimisticList(
         const item = byId.get(entry);
         return item ? [item] : [];
       });
-      let groups = group_by ? regroupItem(state.groups, moved, display, stateGroupOf) : state.groups;
+      let groups = group_by || sub_group_by ? regroupItem(state.groups, moved, display, stateGroupOf) : state.groups;
       if (groups && (before_id || after_id)) {
         groups = groups.map((group) => ({
           ...group,

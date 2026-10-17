@@ -38,6 +38,8 @@ export type CycleHeaderProps = {
   isEditOpen: boolean;
   onEditOpenChange: (open: boolean) => void;
   onDeleted: () => void;
+  /** True in an archived project (F3.4): the engine refuses restoring a cycle there, so the archived Banner offers no Restore. */
+  readOnly?: boolean;
 };
 
 const STATUS_TOKEN: Record<CycleStatus, TokenColor> = { current: "blue", upcoming: "gray", completed: "green", draft: "gray" };
@@ -53,6 +55,7 @@ export function CycleHeader({
   isEditOpen,
   onEditOpenChange,
   onDeleted,
+  readOnly: projectReadOnly = false,
 }: CycleHeaderProps) {
   const toast = useToast();
   const [isRestoring, startRestore] = useTransition();
@@ -83,7 +86,7 @@ export function CycleHeader({
               <HStack gap={4} vAlign="center" wrap="wrap">
                 <HStack gap={1.5} vAlign="center">
                   <Icon icon={CalendarDotsIcon} size="sm" color="secondary" />
-                  <Text type="supporting">{formatCycleRange(cycle.start_date, cycle.end_date)}</Text>
+                  <Text type="supporting">{formatCycleRange(cycle.start_date, cycle.end_date, today)}</Text>
                 </HStack>
                 {cycle.status === "current" && cycle.end_date && !isArchived ? (
                   <HStack gap={1.5} vAlign="center">
@@ -117,7 +120,9 @@ export function CycleHeader({
             status="info"
             title="This cycle is archived"
             description="Restore it to change it or add work items."
-            endContent={<Button variant="secondary" size="sm" label="Restore" icon={<RestoreIcon />} onClick={restore} isLoading={isRestoring} />}
+            endContent={
+              projectReadOnly ? undefined : <Button variant="secondary" size="sm" label="Restore" icon={<RestoreIcon />} onClick={restore} isLoading={isRestoring} />
+            }
           />
         </VStack>
       ) : null}

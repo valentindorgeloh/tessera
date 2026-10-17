@@ -128,7 +128,7 @@ describe("tools/list", () => {
     for (const name of ["tessera_create_view", "tessera_update_view"]) {
       const tool = tools.find((candidate) => candidate.name === name);
       const properties = tool?.inputSchema.properties as Record<string, { description?: string; anyOf?: { $ref?: string }[] }> | undefined;
-      expect(properties?.rich_filters?.description, name).toMatch(/filter tree/);
+      expect(properties?.rich_filters?.description, name).toBe("Stored only; lists and counts do not apply it until P10. Use filters.");
       const ref = properties?.rich_filters?.anyOf?.find((branch) => branch.$ref)?.$ref;
       expect(ref, name).toMatch(/^#\/\$defs\//);
       const defs = (tool?.inputSchema as { $defs?: Record<string, unknown> }).$defs ?? {};
@@ -138,7 +138,7 @@ describe("tools/list", () => {
     const properties = createView?.inputSchema.properties as Record<string, { type?: string; description?: string }> | undefined;
     expect(Object.keys(properties ?? {}).sort()).toEqual(["description", "display", "filters", "logo", "name", "project_id", "rich_filters"]);
     expect(properties?.name?.type).toBe("string");
-    expect(properties?.rich_filters?.description).toContain("AND/OR/NOT");
+    expect(properties?.rich_filters?.description).toBe("Stored only; lists and counts do not apply it until P10. Use filters.");
     expect(createView?.inputSchema.required).toEqual(["project_id", "name"]);
     expect(createView?.inputSchema.additionalProperties).toBe(false);
     const project = await createProject(harness);

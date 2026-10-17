@@ -62,7 +62,7 @@ export const cycleTools = [
     name: "create_cycle",
     title: "Create cycle",
     description:
-      "Creates a cycle in a project. Set start_date and end_date together (end on or after start) or leave both empty for a draft; the date range may not overlap another active cycle of the project (CONFLICT). Names need not be unique.",
+      "Creates a cycle in a project. Set start_date and end_date together (end on or after start) or leave both empty for a draft; the date range may not overlap another active cycle of the project (CONFLICT). Names need not be unique. RULE feature_disabled while the project has the feature turned off.",
     input: CreateCycleInput,
     mutates: true,
     phase: "P3",
@@ -108,7 +108,7 @@ export const cycleTools = [
   defineTool({
     name: "delete_cycle",
     title: "Delete cycle",
-    description: "Soft-deletes a cycle and detaches its work items (one activity row each), which stay in the project with no cycle. Allowed on archived cycles; a completed cycle must be archived first (LOCKED). Destructive.",
+    description: "Soft-deletes a cycle and detaches its work items (one activity row each), which stay in the project with no cycle. Allowed on archived cycles; a completed cycle must be archived first (LOCKED). Destructive. Its id is removed from every saved view and remembered view setting that filters on it.",
     input: CycleIdInput,
     mutates: true,
     destructive: true,

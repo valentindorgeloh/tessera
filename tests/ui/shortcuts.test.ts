@@ -9,6 +9,7 @@ import type { SearchHit } from "@/lib/tessera/types";
 import type { CommandContextValue } from "@/components/shell/command-context";
 import {
   buildCommands,
+  buildProjectSettingsCommands,
   createCommandSource,
   hitItemId,
   hitToItem,
@@ -16,6 +17,7 @@ import {
   matchesCommand,
   parseHitId,
   parseHits,
+  projectSettingsTab,
   RECENT_PREFIX,
   recentToItem,
   searchUrl,
@@ -27,6 +29,14 @@ import {
   type CommandSearchItem,
   type FetchLike,
 } from "@/components/shell/command-source";
+import {
+  isShortcutHidden,
+  projectFeatureMap,
+  readProjectFeatures,
+  setProjectFeatures,
+  shortcutOffMessage,
+  type ProjectFeatures,
+} from "@/components/shell/project-features";
 import {
   CHORD_WINDOW_MS,
   formatKeys,
@@ -419,6 +429,13 @@ describe("hit ids", () => {
     expect(hitToItem(WEB_1)).toMatchObject({ id: `hit:work_item:${ITEM}`, label: "WEB-1 Set up hosting", auxiliaryData: { group: "Work items", kind: "hit" } });
     expect(hitToItem(WEBSITE).auxiliaryData?.group).toBe("Projects");
   });
+
+  it("groups a view hit under Views and parses its id", () => {
+    const viewHit: SearchHit = { type: "view", id: ITEM, project_id: PROJECT, title: "Open bugs", score: 5 };
+    expect(hitToItem(viewHit)).toMatchObject({ id: `hit:view:${ITEM}`, label: "Open bugs", auxiliaryData: { group: "Views", kind: "hit" } });
+    expect(parseHitId(hitItemId(viewHit))).toEqual({ type: "view", id: ITEM });
+    expect(parseHits({ hits: [viewHit] })).toEqual([viewHit]);
+  });
 });
 
 describe("buildCommands", () => {
@@ -462,12 +479,12 @@ describe("buildCommands", () => {
   it("carries the keys and the arrival hint of a command", () => {
     const items = buildCommands(null);
     const view = items.find((item) => item.id === "create.view");
-    expect(view?.auxiliaryData).toMatchObject({ kind: "command", keys: "n v", hint: "Arrives in P4" });
+    expect(view?.auxiliaryData).toMatchObject({ kind: "command", keys: "n v", hint: undefined });
     const home = items.find((item) => item.id === "nav.home");
     expect(home?.auxiliaryData).toMatchObject({ kind: "command", keys: "g h", hint: undefined });
   });
 
-  it("ships cycles, modules and archives in P3: no arrival hint, views arrive in P4", () => {
+  it("ships cycles, modules, archives, views and settings: no arrival hint", () => {
     const items = buildCommands(null);
     const hintOf = (id: string) => items.find((item) => item.id === id)?.auxiliaryData;
     expect(hintOf("create.cycle")).toMatchObject({ kind: "command", keys: "n c", hint: undefined });
@@ -475,8 +492,29 @@ describe("buildCommands", () => {
     expect(hintOf("nav.cycles")).toMatchObject({ kind: "command", keys: "g c", hint: undefined });
     expect(hintOf("nav.modules")).toMatchObject({ kind: "command", keys: "g m", hint: undefined });
     expect(hintOf("nav.archives")).toMatchObject({ kind: "command", keys: "g r", hint: undefined });
-    expect(hintOf("nav.views")).toMatchObject({ kind: "command", keys: "g v", hint: "Arrives in P4" });
+    expect(hintOf("nav.views")).toMatchObject({ kind: "command", keys: "g v", hint: undefined });
+    expect(hintOf("nav.settings")).toMatchObject({ kind: "command", keys: "g s", hint: undefined });
+    expect(hintOf("create.view")).toMatchObject({ kind: "command", keys: "n v", hint: undefined });
+    expect(SHORTCUTS.filter((def) => def.arrives === "P4")).toEqual([]);
     expect(SHORTCUTS.some((def) => (def.arrives as string | undefined) === "P3")).toBe(false);
+  });
+
+  it("leaves out the create and navigate commands of a feature the project has off (decision 31)", () => {
+    const ids = (features?: ProjectFeatures | null) => buildCommands(null, features).map((item) => item.id);
+    const FEATURE_IDS = ["create.cycle", "create.module", "create.view", "nav.cycles", "nav.modules", "nav.views"];
+    const all: ProjectFeatures = { cycles: true, modules: true, views: true };
+    // Outside a project (no features) and with everything on, all six stay.
+    for (const features of [undefined, null, all]) expect(ids(features)).toEqual(expect.arrayContaining(FEATURE_IDS));
+    expect(ids({ ...all, cycles: false })).toEqual(expect.not.arrayContaining(["create.cycle", "nav.cycles"]));
+    expect(ids({ ...all, cycles: false })).toEqual(expect.arrayContaining(["create.module", "nav.modules", "create.view", "nav.views"]));
+    expect(ids({ ...all, modules: false })).toEqual(expect.not.arrayContaining(["create.module", "nav.modules"]));
+    expect(ids({ ...all, modules: false })).toEqual(expect.arrayContaining(["create.cycle", "nav.cycles", "create.view", "nav.views"]));
+    expect(ids({ ...all, views: false })).toEqual(expect.not.arrayContaining(["create.view", "nav.views"]));
+    expect(ids({ ...all, views: false })).toEqual(expect.arrayContaining(["create.cycle", "nav.cycles", "create.module", "nav.modules"]));
+    const none = ids({ cycles: false, modules: false, views: false });
+    for (const id of FEATURE_IDS) expect(none).not.toContain(id);
+    // Everything else stays: work item, home, settings, theme commands.
+    expect(none).toEqual(expect.arrayContaining(["create.workItem", "create.project", "nav.home", "nav.workItems", "nav.archives", "nav.settings", "theme.dark"]));
   });
 
   it("shows the subscribe note: the subscription works, notifications arrive in P7", () => {
@@ -505,6 +543,50 @@ describe("buildCommands", () => {
   });
 });
 
+describe("project features (decision 31)", () => {
+  const OFF: ProjectFeatures = { cycles: false, modules: false, views: false };
+  const ON: ProjectFeatures = { cycles: true, modules: true, views: true };
+  const FEATURE_SHORTCUTS: [ShortcutId, string][] = [
+    ["nav.cycles", "Cycles are turned off for this project"],
+    ["create.cycle", "Cycles are turned off for this project"],
+    ["nav.modules", "Modules are turned off for this project"],
+    ["create.module", "Modules are turned off for this project"],
+    ["nav.views", "Views are turned off for this project"],
+    ["create.view", "Views are turned off for this project"],
+  ];
+
+  it("names a message for each shortcut of a feature that is off, and none otherwise", () => {
+    for (const [id, message] of FEATURE_SHORTCUTS) {
+      expect(isShortcutHidden(id, OFF)).toBe(true);
+      expect(shortcutOffMessage(id, OFF)).toBe(message);
+      expect(shortcutOffMessage(id, ON)).toBeNull();
+      expect(shortcutOffMessage(id, null)).toBeNull();
+      expect(shortcutOffMessage(id, undefined)).toBeNull();
+    }
+    expect(shortcutOffMessage("nav.cycles", { ...ON, modules: false })).toBeNull();
+    expect(shortcutOffMessage("nav.modules", { ...ON, modules: false })).toBe("Modules are turned off for this project");
+    for (const id of ["nav.home", "nav.workItems", "nav.settings", "nav.archives", "create.workItem", "item.cycle"] as const) {
+      expect(isShortcutHidden(id, OFF)).toBe(false);
+      expect(shortcutOffMessage(id, OFF)).toBeNull();
+    }
+  });
+
+  it("builds the map from project rows and reads a project's flags, or null for no or an unknown project", () => {
+    const map = projectFeatureMap([
+      { id: PROJECT, cycles_enabled: false, modules_enabled: true, views_enabled: false },
+      { id: ITEM, cycles_enabled: true, modules_enabled: true, views_enabled: true },
+    ]);
+    expect(map[PROJECT]).toEqual({ cycles: false, modules: true, views: false });
+    setProjectFeatures(map);
+    expect(readProjectFeatures(PROJECT)).toEqual({ cycles: false, modules: true, views: false });
+    expect(readProjectFeatures(ITEM)).toEqual(ON);
+    expect(readProjectFeatures("unknown")).toBeNull();
+    expect(readProjectFeatures(null)).toBeNull();
+    setProjectFeatures({});
+    expect(readProjectFeatures(PROJECT)).toBeNull();
+  });
+});
+
 describe("matchesCommand and sortBySection", () => {
   const items = buildCommands(null);
   const byId = (id: string) => items.find((item) => item.id === id) as CommandSearchItem;
@@ -525,6 +607,38 @@ describe("matchesCommand and sortBySection", () => {
     expect(sorted.filter((item) => item.auxiliaryData?.group === "Navigate").map((item) => item.id)).toEqual(["nav.home", "nav.projects"]);
     expect(SECTION_ORDER[0]).toBe("Recent");
     expect(SECTION_ORDER[1]).toBe("Work items");
+    expect(SECTION_ORDER.indexOf("Views")).toBe(SECTION_ORDER.indexOf("Modules") + 1);
+  });
+});
+
+describe("buildProjectSettingsCommands", () => {
+  it("returns nothing without a project", () => {
+    expect(buildProjectSettingsCommands(null)).toEqual([]);
+  });
+
+  it("returns the five settings tabs of a project in the Settings section", () => {
+    const items = buildProjectSettingsCommands(PROJECT);
+    expect(items.map((item) => item.id)).toEqual([
+      "projectSettings.general",
+      "projectSettings.features",
+      "projectSettings.states",
+      "projectSettings.labels",
+      "projectSettings.agents",
+    ]);
+    expect(items.map((item) => item.label)).toEqual(["Settings: General", "Settings: Features", "Settings: States", "Settings: Labels", "Settings: Agents"]);
+    expect(items.every((item) => item.auxiliaryData?.group === "Settings" && item.auxiliaryData.kind === "command")).toBe(true);
+    expect(items.some((item) => isShortcutId(item.id))).toBe(false);
+  });
+
+  it("maps a command id to its tab and nothing else", () => {
+    expect(projectSettingsTab("projectSettings.states")).toBe("states");
+    expect(projectSettingsTab("projectSettings.nope")).toBeNull();
+    expect(projectSettingsTab("nav.settings")).toBeNull();
+  });
+
+  it("is found by its label in the palette's own narrowing", () => {
+    const items = buildProjectSettingsCommands(PROJECT);
+    expect(items.filter((item) => matchesCommand(item, "labels")).map((item) => item.id)).toEqual(["projectSettings.labels"]);
   });
 });
 

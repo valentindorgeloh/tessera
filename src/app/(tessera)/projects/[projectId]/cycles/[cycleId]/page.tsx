@@ -44,7 +44,7 @@ async function CycleData({ params, searchParams }: Props) {
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();
     throw err;
   }
-  if (data === null) return <FeatureOffState feature="cycles" />;
+  if (data === null) return <FeatureOffState feature="cycles" projectId={projectId} />;
   if (data.cycle.project_id !== projectId) notFound();
   const takesItems = data.cycle.archived_at === null && data.cycle.status !== "completed";
   return (

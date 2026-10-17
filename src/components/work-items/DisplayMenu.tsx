@@ -9,6 +9,11 @@
  * list, decision 23) through `saveViewSettingsAction` so it survives a plain
  * navigation. Properties are always written as the full object; the engine
  * merges nested objects one level deep.
+ *
+ * A saved view's page passes `settingsScope={null}` (decision 32): its changes
+ * live in the URL alone until "Update view", nothing is saved here and the
+ * menu's reset reads "Reset to view" and only drops the URL's display half.
+ * The option lists and the Group by patch come from ./display-options.ts.
  */
 import { startTransition, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -22,10 +27,11 @@ import { Switch } from "@astryxdesign/core/Switch";
 import { useToast } from "@astryxdesign/core/Toast";
 import { resetViewSettingsAction, saveViewSettingsAction } from "@/app/actions/views";
 import { withSearchParam } from "@/components/detail/peek-url";
-import { GROUPABLE_FIELDS, ORDER_BY_VALUES, type OrderableField } from "@/lib/tessera/core/group";
+import { GROUPABLE_FIELDS, ORDER_BY_VALUES } from "@/lib/tessera/core/group";
 import { LayoutSchema, SubGroupBySchema } from "@/lib/tessera/schemas";
 import type { Display, DisplayProperties, GroupBy, Layout, OrderBy, SubGroupBy } from "@/lib/tessera/types";
 import { KanbanIcon, RowsIcon, SlidersIcon, TableIcon } from "@/themes/catppuccin/icons";
+import { groupByChoices, groupByPatch, orderByChoices, orderBySelectValue, subGroupChoices } from "./display-options";
 import { useProject } from "./project-provider";
 import type { SettingsScope, UrlState } from "./types";
 import { encodeUrlState } from "./url-state";
@@ -39,8 +45,9 @@ export type LayoutSwitchProps = {
    * View settings row that save and reset write: the project's, or the cycle's
    * or module's of a scoped list (decision 23). Never derived from the project
    * id here, so a cycle's or module's layout never lands on the project.
+   * `null`: URL only (a saved view's page, decision 32); nothing is saved.
    */
-  settingsScope: SettingsScope;
+  settingsScope: SettingsScope | null;
 };
 
 export type DisplayMenuProps = LayoutSwitchProps & {
@@ -54,33 +61,6 @@ const NONE = "__none__";
 
 /** Popover width: the selectors and the property list at a comfortable reading width. */
 const MENU_WIDTH = 320;
-
-const FIELD_LABELS: Record<GroupBy, string> = {
-  state: "State",
-  state_group: "State group",
-  priority: "Priority",
-  labels: "Labels",
-  cycle: "Cycle",
-  module: "Module",
-  assignees: "Assignees",
-  created_by: "Created by",
-  start_date: "Start date",
-  target_date: "Target date",
-  created_at: "Created",
-  project: "Project",
-};
-
-const ORDER_LABELS: Record<OrderableField, string> = {
-  sort_order: "Manual",
-  created_at: "Created",
-  updated_at: "Updated",
-  priority: "Priority",
-  start_date: "Start date",
-  target_date: "Target date",
-  name: "Name",
-  sequence_id: "Key",
-  estimate: "Estimate",
-};
 
 const PROPERTY_LABELS: Record<keyof DisplayProperties, string> = {
   key: "Key",
@@ -114,19 +94,13 @@ function isLayout(value: string): value is Layout {
   return (LayoutSchema.options as readonly string[]).includes(value);
 }
 
-function orderLabel(value: OrderBy): string {
-  const descending = value.startsWith("-");
-  const field = (descending ? value.slice(1) : value) as OrderableField;
-  if (field === "sort_order") return ORDER_LABELS[field];
-  return `${ORDER_LABELS[field]} (${descending ? "newest first" : "oldest first"})`;
-}
-
 /**
  * Writes a display patch to the URL and the saved view settings of
  * `settingsScope` (`apply`), or drops both back to the defaults (`reset`).
- * Shared by the layout switch and the display menu.
+ * With a null scope only the URL changes. Shared by the layout switch and the
+ * display menu.
  */
-function useDisplayWriter(settingsScope: SettingsScope, urlState: UrlState) {
+function useDisplayWriter(settingsScope: SettingsScope | null, urlState: UrlState) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -142,6 +116,7 @@ function useDisplayWriter(settingsScope: SettingsScope, urlState: UrlState) {
 
   const apply = (patch: Partial<Display>) => {
     writeUrl({ ...(urlState.display ?? {}), ...patch });
+    if (settingsScope === null) return;
     startTransition(async () => {
       const result = await saveViewSettingsAction({ ...settingsScope, display: patch });
       if (!result.ok) toast({ type: "error", body: `Could not save the view settings: ${result.message}` });
@@ -150,6 +125,7 @@ function useDisplayWriter(settingsScope: SettingsScope, urlState: UrlState) {
 
   const reset = () => {
     writeUrl(undefined);
+    if (settingsScope === null) return;
     startTransition(async () => {
       const result = await resetViewSettingsAction(settingsScope);
       if (!result.ok) toast({ type: "error", body: `Could not reset the view settings: ${result.message}` });
@@ -179,22 +155,10 @@ export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupField
   const [isOpen, setOpen] = useState(false);
   const { apply, reset } = useDisplayWriter(settingsScope, urlState);
 
-  const isShown = (field: GroupBy) => !hiddenGroupFields.includes(field);
-  const groupOptions: SelectorOptionData[] = [
-    { value: NONE, label: "None" },
-    ...GROUPABLE_FIELDS.filter((field) => field !== "project" && isShown(field))
-      .filter((field) => (field === "cycle" ? bundle.project.cycles_enabled : field === "module" ? bundle.project.modules_enabled : true))
-      .map((field) => ({ value: field, label: FIELD_LABELS[field] })),
-  ];
-  const subGroupOptions: SelectorOptionData[] = [
-    { value: NONE, label: "None" },
-    ...SubGroupBySchema.options.filter(isShown)
-      .filter((field) => (field === "cycle" ? bundle.project.cycles_enabled : field === "module" ? bundle.project.modules_enabled : true))
-      .map((field) => ({ value: field, label: FIELD_LABELS[field] })),
-  ];
-  const orderOptions: SelectorOptionData[] = ORDER_BY_VALUES.filter((value) => bundle.project.estimates_enabled || !value.endsWith("estimate")).map(
-    (value) => ({ value, label: orderLabel(value) }),
-  );
+  const toOption = (choice: { value: string | null; label: string }): SelectorOptionData => ({ value: choice.value ?? NONE, label: choice.label });
+  const groupOptions = groupByChoices(bundle.project, hiddenGroupFields).map(toOption);
+  const subGroupOptions = subGroupChoices(display, bundle.project, hiddenGroupFields).map(toOption);
+  const orderOptions: SelectorOptionData[] = orderByChoices().filter((choice) => bundle.project.estimates_enabled || !choice.value.endsWith("estimate"));
 
   const visibleProperties = PROPERTY_KEYS.filter((key) => {
     if (key === "cycle") return bundle.project.cycles_enabled;
@@ -204,15 +168,14 @@ export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupField
   });
   const checkedProperties = visibleProperties.filter((key) => display.properties[key]);
 
+  const changeGroup = (value: string) => {
+    const { group_by, sub_group_by } = groupByPatch(display, isGroupBy(value) ? value : null);
+    apply(sub_group_by === undefined ? { group_by } : { group_by, sub_group_by });
+  };
+
   const content = (
     <VStack gap={4} padding={4} className="tessera-wi-display">
-      <Selector
-        label="Group by"
-        size="sm"
-        options={groupOptions}
-        value={display.group_by ?? NONE}
-        onChange={(value) => apply({ group_by: isGroupBy(value) ? value : null })}
-      />
+      <Selector label="Group by" size="sm" options={groupOptions} value={display.group_by ?? NONE} onChange={changeGroup} />
       {display.layout === "board" ? (
         <Selector
           label="Sub-group by"
@@ -222,7 +185,13 @@ export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupField
           onChange={(value) => apply({ sub_group_by: isSubGroupBy(value) ? value : null })}
         />
       ) : null}
-      <Selector label="Order by" size="sm" options={orderOptions} value={display.order_by} onChange={(value) => isOrderBy(value) && apply({ order_by: value })} />
+      <Selector
+        label="Order by"
+        size="sm"
+        options={orderOptions}
+        value={orderBySelectValue(display.order_by)}
+        onChange={(value) => isOrderBy(value) && apply({ order_by: value })}
+      />
       <Switch label="Show empty groups" size="sm" value={display.show_empty_groups} onChange={(checked) => apply({ show_empty_groups: checked })} />
       <Switch label="Show sub-items" size="sm" value={display.sub_items} onChange={(checked) => apply({ sub_items: checked })} />
       <CheckboxList
@@ -240,7 +209,7 @@ export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupField
         ))}
       </CheckboxList>
       <HStack hAlign="end">
-        <Button variant="ghost" size="sm" label="Reset to defaults" onClick={reset} />
+        <Button variant="ghost" size="sm" label={settingsScope === null ? "Reset to view" : "Reset to defaults"} onClick={reset} />
       </HStack>
     </VStack>
   );

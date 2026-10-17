@@ -4,8 +4,10 @@ import { latestSeq } from "@/lib/tessera/activity";
 import { TrackerError } from "@/lib/tessera/core/errors";
 import { newId } from "@/lib/tessera/core/ids";
 import { firstSortOrder } from "@/lib/tessera/core/order";
-import { activity, state, work_item } from "@/lib/tessera/db/schema";
+import { activity, state, view, work_item } from "@/lib/tessera/db/schema";
+import { getTaxonomyUsage } from "@/lib/tessera/counts";
 import { archiveProject, createProject, updateProjectFeatures } from "@/lib/tessera/projects";
+import { DEFAULT_DISPLAY, FiltersSchema } from "@/lib/tessera/schemas";
 import {
   DEFAULT_STATES,
   createState,
@@ -16,7 +18,8 @@ import {
   setDefaultState,
   updateState,
 } from "@/lib/tessera/states";
-import type { StateRow } from "@/lib/tessera/types";
+import type { Filters, StateRow } from "@/lib/tessera/types";
+import { getViewSettings, saveViewSettings } from "@/lib/tessera/view-settings";
 import { createTestContext, createTestDb, type TesseraContext } from "./helpers/db";
 
 type Fixture = { ctx: TesseraContext; projectId: string; states: StateRow[] };
@@ -51,6 +54,46 @@ function byName(states: StateRow[], name: string): StateRow {
   const found = states.find((s) => s.name === name);
   if (!found) throw new Error(`state ${name} missing`);
   return found;
+}
+
+/** Saved filters on `key`: a project view, a locked one, a workspace view and a view_settings row hold [id, other]; one view holds only `id`. */
+function seedSavedFilters(ctx: TesseraContext, projectId: string, key: "state" | "cycle" | "module", id: string, other: string) {
+  const insertView = (scope: string | null, name: string, filters: Filters, isLocked = false) => {
+    const now = ctx.now();
+    return ctx.db
+      .insert(view)
+      .values({
+        id: newId(),
+        project_id: scope,
+        name,
+        name_key: name.toLowerCase(),
+        filters,
+        display: DEFAULT_DISPLAY,
+        is_locked: isLocked,
+        sort_order: firstSortOrder(),
+        created_at: now,
+        updated_at: now,
+        created_by: ctx.actor.id,
+        updated_by: ctx.actor.id,
+      })
+      .returning()
+      .get();
+  };
+  const both = { [key]: [id, other] } as Filters;
+  const views = {
+    project: insertView(projectId, "Project view", both),
+    locked: insertView(projectId, "Locked view", both, true),
+    workspace: insertView(null, "Workspace view", both),
+    only: insertView(projectId, "Only view", { [key]: [id] } as Filters),
+  };
+  saveViewSettings(ctx, "project", projectId, { filters: both });
+  return views;
+}
+
+function storedFilters(ctx: TesseraContext, viewId: string): Filters {
+  const row = ctx.db.select().from(view).where(eq(view.id, viewId)).get();
+  if (!row) throw new Error("view missing");
+  return FiltersSchema.parse(row.filters);
 }
 
 let sequence = 0;
@@ -362,6 +405,46 @@ describe("deleteState", () => {
     expect(rows[0].verb).toBe("deleted");
     expect(rows[0].old_identifier).toBe("QA");
     expect(errorCode(() => deleteState(ctx, qa.id))).toBe("NOT_FOUND");
+  });
+});
+
+
+describe("deleteState and saved filters", () => {
+  it("delete strips the id from saved filters", () => {
+    const { ctx, projectId } = setup();
+    const target = createState(ctx, { project_id: projectId, name: "QA", state_group: "started" });
+    const keep = createState(ctx, { project_id: projectId, name: "Review", state_group: "started" });
+    const views = seedSavedFilters(ctx, projectId, "state", target.id, keep.id);
+    const seqBefore = latestSeq(ctx);
+    deleteState(ctx, target.id);
+    const keptOnly = { state: [keep.id] };
+    expect(storedFilters(ctx, views.project.id)).toEqual(keptOnly);
+    expect(storedFilters(ctx, views.locked.id)).toEqual(keptOnly);
+    expect(storedFilters(ctx, views.workspace.id)).toEqual(keptOnly);
+    expect(storedFilters(ctx, views.only.id)).toEqual({});
+    expect(getViewSettings(ctx, "project", projectId).filters).toEqual(keptOnly);
+    const rows = ctx.db.select().from(activity).all().filter((r) => r.seq > seqBefore && r.field === "filters");
+    expect(rows.map((r) => r.entity_type).sort()).toEqual(["view", "view", "view", "view", "view_settings"]);
+  });
+});
+
+describe("getTaxonomyUsage", () => {
+  it("usage counts archived items", () => {
+    const { ctx, projectId, states } = setup();
+    const qa = createState(ctx, { project_id: projectId, name: "QA", state_group: "started" });
+    const todo = byName(states, "Todo");
+    expect(getTaxonomyUsage(ctx, projectId).states[qa.id]).toBeUndefined();
+    insertWorkItem(ctx, projectId, qa.id, "only archived", { archived_at: ctx.now() });
+    insertWorkItem(ctx, projectId, qa.id, "deleted", { deleted_at: ctx.now() });
+    expect(getTaxonomyUsage(ctx, projectId).states[qa.id]).toBe(1);
+    expect(ruleName(() => deleteState(ctx, qa.id))).toBe("state_not_empty");
+    deleteState(ctx, qa.id, { move_to_state_id: todo.id });
+    expect(getTaxonomyUsage(ctx, projectId).states[todo.id]).toBe(1);
+    expect(getTaxonomyUsage(ctx, projectId).states[qa.id]).toBeUndefined();
+    const empty = createState(ctx, { project_id: projectId, name: "Empty", state_group: "started" });
+    expect(getTaxonomyUsage(ctx, projectId).states[empty.id]).toBeUndefined();
+    deleteState(ctx, empty.id);
+    expect(errorCode(() => getTaxonomyUsage(ctx, newId()))).toBe("NOT_FOUND");
   });
 });
 

@@ -3,7 +3,7 @@
  * a board may move between and how a state_group drop reaches the engine.
  */
 import { describe, expect, it } from "vitest";
-import { isMovableGroup, toEngineMove } from "@/components/work-items/moves";
+import { isMovableGroup, moveToolInput, toEngineMove } from "@/components/work-items/moves";
 import type { MoveInput } from "@/components/work-items/types";
 import type { State, StateGroup } from "@/lib/tessera/types";
 
@@ -65,5 +65,83 @@ describe("toEngineMove", () => {
   it("returns null when there is no group change and no placement", () => {
     expect(toEngineMove({ id: ITEM }, firstStateByGroup)).toBeNull();
     expect(toEngineMove({ id: ITEM, group_by: null }, firstStateByGroup)).toBeNull();
+  });
+});
+
+describe("toEngineMove, sub axis (decision 30)", () => {
+  it("forwards a two-axis drop with both axes and the placement", () => {
+    const input: MoveInput = {
+      id: ITEM,
+      group_by: "labels",
+      value: "col-b",
+      from_value: "col-a",
+      sub_group_by: "assignees",
+      sub_value: "lane-b",
+      sub_from_value: "lane-a",
+      before_id: OTHER,
+    };
+    expect(toEngineMove(input, firstStateByGroup)).toEqual(input);
+  });
+
+  it("translates a state_group on the sub axis to the group's first state", () => {
+    const result = toEngineMove({ id: ITEM, group_by: "priority", value: "high", sub_group_by: "state_group", sub_value: "started", sub_from_value: "backlog" }, firstStateByGroup);
+    expect(result).toEqual({ id: ITEM, group_by: "priority", value: "high", sub_group_by: "state", sub_value: STARTED_STATE });
+  });
+
+  it("translates a state_group on the main axis while the sub axis stays", () => {
+    const result = toEngineMove({ id: ITEM, group_by: "state_group", value: "started", sub_group_by: "priority", sub_value: "high" }, firstStateByGroup);
+    expect(result).toEqual({ id: ITEM, group_by: "state", value: STARTED_STATE, sub_group_by: "priority", sub_value: "high" });
+  });
+
+  it("returns null, no request, for a non-movable field on either axis", () => {
+    expect(toEngineMove({ id: ITEM, group_by: "priority", value: "high", sub_group_by: "created_by", sub_value: OTHER }, firstStateByGroup)).toBeNull();
+    expect(toEngineMove({ id: ITEM, group_by: "project", value: OTHER, sub_group_by: "priority", sub_value: "high" }, firstStateByGroup)).toBeNull();
+    expect(toEngineMove({ id: ITEM, group_by: "priority", value: "high", sub_group_by: "created_at", sub_value: "2026-10-11" }, firstStateByGroup)).toBeNull();
+  });
+
+  it("returns null for a sub-axis state_group without a state", () => {
+    expect(toEngineMove({ id: ITEM, group_by: "priority", value: "high", sub_group_by: "state_group", sub_value: "completed" }, firstStateByGroup)).toBeNull();
+  });
+
+  it("passes a one-axis lane drop through as an ordinary move", () => {
+    const input: MoveInput = { id: ITEM, group_by: "assignees", value: "lane-b", from_value: "lane-a", after_id: OTHER };
+    expect(toEngineMove(input, firstStateByGroup)).toEqual(input);
+  });
+});
+
+describe("moveToolInput (F3.6)", () => {
+  it("sends both axes of a board drop, with from values only for multi-valued fields", () => {
+    const input: MoveInput = { id: ITEM, group_by: "labels", value: "col-b", from_value: "col-a", sub_group_by: "assignees", sub_value: "lane-b", sub_from_value: "lane-a", before_id: OTHER };
+    expect(moveToolInput(input)).toEqual({
+      work_item_id: ITEM,
+      group_by: "labels",
+      value: "col-b",
+      from_value: "col-a",
+      sub_group_by: "assignees",
+      sub_value: "lane-b",
+      sub_from_value: "lane-a",
+      before_id: OTHER,
+      after_id: undefined,
+    });
+  });
+
+  it("drops from values of single-valued fields on either axis", () => {
+    const input: MoveInput = { id: ITEM, group_by: "priority", value: "high", from_value: "low", sub_group_by: "state", sub_value: STARTED_STATE, sub_from_value: "old" };
+    const tool = moveToolInput(input);
+    expect(tool).not.toHaveProperty("from_value");
+    expect(tool).not.toHaveProperty("sub_from_value");
+    expect(tool).toMatchObject({ group_by: "priority", value: "high", sub_group_by: "state", sub_value: STARTED_STATE });
+  });
+
+  it("sends a one-axis move and a pure reorder without sub fields", () => {
+    expect(moveToolInput({ id: ITEM, group_by: "assignees", value: "lane-b", from_value: "lane-a" })).toEqual({
+      work_item_id: ITEM,
+      group_by: "assignees",
+      value: "lane-b",
+      from_value: "lane-a",
+      before_id: undefined,
+      after_id: undefined,
+    });
+    expect(moveToolInput({ id: ITEM, after_id: OTHER })).toEqual({ work_item_id: ITEM, before_id: undefined, after_id: OTHER });
   });
 });

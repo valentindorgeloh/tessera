@@ -109,6 +109,10 @@ The repo today is a small handbook app (markdown pages under `content/`, 4,172 l
 | 26 | **Tool registry is the single enumeration of operations**; Server Actions are generated wrappers; a Vitest asserts every mutating service export is bound by exactly one tool. |
 | 27 | **Intake policy**: `project.agent_intake_required` (default off). When on, MCP clients' `create_work_item` lands in Intake (triage) and the inbox announces it; the user accepts, declines, snoozes or marks duplicate. |
 | 28 | **Automations** (auto-archive closed after N months, auto-close inactive after N months) run from `instrumentation.ts` on server start and hourly, and from `scripts/automations.ts`; they act as actor `system` and log Plane-style system activities. |
+| 29 | **Retired identifiers**: after a project identifier changes, `/browse/OLD-n`, `work:OLD-n` links and `get_project("OLD")` resolve through the newest `identifier` activity row whose old value is `OLD`, unless a non-deleted project holds `OLD` now (the live holder wins). No alias table. |
+| 30 | **Multi-valued group moves**: for labels, assignees and modules a move removes `from_value` and adds `value`, keeping the other values; a drop into None clears the field. On the board each copy of an item shown in several columns or lanes is its own drag source. |
+| 31 | **Feature toggles**: turning cycles, modules or views off hides their tab, Power K entries, grouping and filter options, and the engine refuses `create_cycle`, `create_module`, `create_view` and `duplicate_view` (project views) with `RULE feature_disabled`; reads, data and memberships stay. |
+| 32 | **Saved views**: changes on a view's page live in the URL until "Update view"; views have no `view_settings` scope (decision 23 does not apply to them). Deleting a state, label, cycle or module strips its id from every saved view, locked ones included, and every `view_settings` row. |
 
 **Confirmed by the user on Oct 10, 2026**
 | # | Decision |
@@ -225,13 +229,13 @@ types.ts  schemas.ts  core/{keys,time,group}.ts         client-safe (types, zod,
 core/{errors,ids,order,context,tx}.ts                   TrackerError, uuid v7, fractional keys, TesseraContext, withTx(...).immediate()
 db/{schema,client,fts}.ts
 activity.ts  notifications.ts  versions.ts
-actors.ts  projects.ts  states.ts  labels.ts  work-items.ts  assignees.ts  relations.ts  comments.ts  links.ts
+actors.ts  projects.ts  states.ts  labels.ts  work-items/  assignees.ts  relations.ts  comments.ts  links.ts
 cycles.ts  modules.ts  views.ts  view-settings.ts  pages.ts  drafts.ts  intake.ts  estimates.ts
 favorites.ts  recents.ts  stickies.ts  home.ts  analytics.ts  automations.ts  exports.ts  webhooks.ts
-filters.ts  counts.ts  search.ts  changes.ts  seed.ts  import-handbook.ts
+filters.ts  saved-filters.ts  counts.ts  search.ts  changes.ts  seed.ts  import-handbook.ts
 index.ts                                                barrel of everything except db/client (NO server-only)
 server.ts                                               import 'server-only'; export * from './index'; export { getDb }
-tools/{registry,mcp,anthropic}.ts
+tools/registry/ (folder, one file per domain)  tools/{mcp,anthropic}.ts
 ai/{client,assistant,view-from-prompt,digest,narrative,prompts}.ts
 ```
 
@@ -283,9 +287,10 @@ Destructive: every `delete_*`, `transfer_cycle_work_items`, `bulk_update_work_it
 /projects, /projects/archives            /projects/archives = archived projects (lane E, P3; a static segment beside [projectId])
 /projects/[projectId]/layout.tsx          ProjectFrame + ProjectProvider (states, labels, cycles, modules, estimates, actors)
 /projects/[projectId]/work-items(/[workItemId])
-/projects/[projectId]/cycles(/[cycleId])  /modules(/[moduleId])  /views(/[viewId]|/new)
+/projects/[projectId]/cycles(/[cycleId])  /modules(/[moduleId])  /views(/[viewId])
 /projects/[projectId]/pages(/[pageId])    /intake   /archives/(work-items|cycles|modules)
 /projects/[projectId]/settings/(general|features|states|labels|estimates|automations|agents)
+                                           /projects/[projectId]/settings redirects to settings/general; P4 builds general, features, states, labels and agents; estimates is P8, automations P10. "New view" is a dialog on the views list (`?create=1`, what `n v` pushes), so there is no `/views/new` route.
 /wiki, /pages/[pageId]                     workspace pages
 /work-items/[workItemId]                   global full-screen detail (loads its own project bundle)
 /browse/[key]                              Suspense → parseKey → lookup → redirect
@@ -302,7 +307,7 @@ api/exports/[id]/route.ts                  GET file
 api/mcp/route.ts
 ```
 
-**Components** (`src/components/`): `shell/` (TopBar, Sidebar, FavoritesSection, PanelHeader, RecentsTracker, RecentsList, CommandBar, CommandBarAsk, QuickCreate), `work-items/` (WorkItemsScreen, FilterBar, DisplayMenu, ListLayout, BoardLayout, TableLayout, CalendarLayout, GanttLayout, CreateWorkItemDialog, QuickAdd, BulkBar), `detail/` (WorkItemDetail, PeekPanel, PropertyRail, DescriptionEditor, SubItems, Relations, Links, Comments, ActivityFeed, VersionHistory), `planning/` (Cycles*, Modules*, TransferDialog, BurndownChart, Archives*), `views/`, `pages/` (PagesList, PageTree, PageEditor, PageSidebar), `intake/`, `drafts/`, `estimates/`, `home/` (widgets), `inbox/`, `analytics/` (Recharts wrappers), `settings/`, `ai/` (AssistantPanel, ProposalList, DigestCard, Narrative), `editor/` (MarkdownEditor + extensions), `dnd/use-pointer-drag.ts`, `styles/*.css` (one per area, imported once from `globals.css`).
+**Components** (`src/components/`): `shell/` (TopBar, Sidebar, FavoritesSection, PanelHeader, RecentsTracker, RecentsList, CommandBar, CommandBarAsk, QuickCreate), `work-items/` (WorkItemsScreen, FilterBar, DisplayMenu, ListLayout, BoardLayout, TableLayout, CalendarLayout, GanttLayout, CreateWorkItemDialog, QuickAdd, BulkBar), `detail/` (WorkItemDetail, PeekPanel, PropertyRail, DescriptionEditor, SubItems, Relations, Links, Comments, ActivityFeed, VersionHistory), `planning/` (Cycles*, Modules*, TransferDialog, BurndownChart, Archives*), `views/` (ViewsScreen, ViewRow, ViewMenu, ViewDialog, ViewBar, SaveViewButton), `project-settings/` (SettingsTabs and one screen per tab), `pages/` (PagesList, PageTree, PageEditor, PageSidebar), `intake/`, `drafts/`, `estimates/`, `home/` (widgets), `inbox/`, `analytics/` (Recharts wrappers), `settings/`, `ai/` (AssistantPanel, ProposalList, DigestCard, Narrative), `editor/` (MarkdownEditor + extensions), `dnd/use-pointer-drag.ts`, `styles/*.css` (one per area, imported once from `globals.css`).
 
 **Editor** (`src/components/editor/`): `MarkdownEditor.tsx` on `@tiptap/react` `useEditor` with `StarterKit`, `Markdown`, `TaskList`, `Table`, `Link`, `Placeholder`, `DragHandle`, `CodeBlockLowlight`, `Mention` + `Suggestion` (`#` work items via `/api/search`, `@` actors, `[[` pages), slash menu, `BubbleMenu`, source toggle (plain `textarea` bound to the same markdown). Custom nodes declare `renderMarkdown` / `parseMarkdown`. Interface: `{ value, onChange(md), onFlush, readOnly, compact, placeholder, linkSchemes }`.
 
@@ -314,6 +319,7 @@ api/mcp/route.ts
 
 - New `(tessera)` route group with Astryx `AppShell variant="wash"` (layout rework, 2026-10-11; docs/contracts/ui.md "Shell"): the top bar and the sidebar sit on the wash and the content sits in one rounded panel 8px in from it. Top bar: collapse button, brand, the search field (opens Power K, `mod+k`), help (`mod+/`) and the account menu (colour scheme). Left `SideNav` = "Work" heading, a quiet "New work item" button, workspace items (Home, Your work, Inbox with unread `Badge`, Drafts, Workspace views, Active cycles, Analytics, Projects, Archives — each when it exists), Favorites (folders, drag to reorder), Projects as flat rows (logo, name, count; a "+" creates one; `…` menu Settings, Archives, Copy link, Favorite, Draft work item). A project's pages (Work items, Cycles, Modules, Views, Pages, Intake per feature toggles) are tabs in its panel header (`project-tabs.projectTabs`), not sidebar children. Resizable 236–350px; `mod+b` collapses it. The app rail (Work / Wiki / AI) arrives with P6.
 - As built in P3 and kept by the layout rework merge (deviation, §13): a project's Archives is a permanent tab in its panel header (Work items, Cycles, Modules, Archives; Cycles and Modules follow the feature toggles) plus `g r`, and archived projects are reached through the "Archived projects" link at the end of the Projects panel header on `/projects` (→ `/projects/archives`). The sidebar has no project `…` menu and no workspace "Archives" entry yet; both arrive with the P9 sidebar pass.
+- From P4 the project panel header tabs are Work items, Cycles, Modules, Views (each following its toggle), Archives and Settings; the project's "Project actions" menu starts with "Project settings". `g s` opens the current project's settings (outside a project: "Open a project first"); `n v` opens the New view dialog, `g v` the views list.
 - Screens open with slim panel headers: a 52px header (title, tabs, page actions), a 44px sub-header (view name and count, layout switch, display, the primary action) and a 44px filters row.
 - Recents (decision 15) instead of a tab bar: `recents.ts` resolves label and icon from the path for every route above.
 - Power K (`CommandPalette`): search work items, cycles, modules, pages (toggle all projects); contextual actions on an open item (state, priority, assignee, copy link); create actions (`n` then `i/c/m/v/d/p`); navigate (`g` then `h/i/c/m/v/d/k/r/s/j/a/p/x/y`); settings; shortcut list (`mod+/`); "Ask" tab for the assistant.
@@ -350,14 +356,14 @@ api/mcp/route.ts
 | **P2a Work items core** | 2 | Tessera shell and sidebar, tab bar (replaced by recents in the layout rework), projects list and frame, list + board + table, create dialog, quick-add, filter bar, display menu | **User acceptance**: create → drag across board → set priority and due date → reload survives |
 | **P2b Detail, editor, Power K** | 3 | Peek / modal / full detail, property rail, `MarkdownEditor` with CAS and Banner, sub-items, `/browse/[key]`, Power K search and actions, shortcuts, hydration-clean tab bar | Browser steps 1–6; markdown round-trip tests; no hydration warnings |
 | **P3 Cycles, modules, archives** | 2 | Cycles list and detail, active cycle summary, burndown/burnup (Recharts 3.10.1 and `react-is` 19.3.0 are added here), transfer, modules list and detail, module links, archives with restore | Cycle rules Vitest; transfer keeps the snapshot; restore works in the browser |
-| **P4 Views, settings, counts** | 1.5 | Project views, save/update/duplicate/lock, sidebar counts, project settings (general, features, states, labels, agents tab), multi-valued grouping, sub-groups | Views round-trip; counts match `getCounts`; identifier rename keeps `/browse` |
+| **P4 Views, settings, counts** | 1.5 | Project views (list, save from the work items list, update, save as new, duplicate, lock, delete, Move up/down), sidebar counts proven against `getCounts`, project settings (general with identifier rename, features, states, labels, agents: intake policy, default assignee, actor names), multi-valued grouping and board sub-groups (one-call two-axis drops), read-only archived projects; lane 0 splits the registry and work-items files first | Views round-trip; counts match `getCounts`; identifier rename keeps `/browse` |
 | **P5 AI** | 2 | Assistant panel, Power K Ask with proposals and Apply, view from prompt, cycle and module digests, status route, http guard | `propose_*` writes nothing until Apply; destructive Apply confirms; no key in the client bundle |
-| **P6 Pages and handbook retirement** | 2 | Pages in SQLite (tree, lock, access, archive, labels, versions, embeds, favourites hook), wiki and project pages, `scripts/import-handbook.ts` for `content/*.md`, remove handbook code, Milkdown and its MCP tools; Home moves to `/` | Import test on the 12 files; page round-trip; `grep -r milkdown src` empty |
+| **P6 Pages and handbook retirement** | 2 | Pages in SQLite (tree, lock, access, archive, labels, versions, embeds, favourites hook), wiki and project pages, `scripts/import-handbook.ts` for `content/*.md`, remove handbook code, Milkdown and its MCP tools; Home moves to `/`; also the Pages feature switch | Import test on the 12 files; page round-trip; `grep -r milkdown src` empty |
 | **P7 Collaboration** | 2 | Relations with inverse display, comments (threaded) and reactions, links, subscriptions, mentions, notifications inbox (read, archive, snooze), inbox digest | Notification generated for an MCP state change on a subscribed item; relation shown on both items |
-| **P8 Intake, drafts, estimates, bulk** | 2 | Intake two-pane with accept/decline/snooze/duplicate and agent intake policy, drafts with Move to project, estimates (systems, templates, points-mode progress), bulk bar, copy and move across projects | Intake policy test: MCP create lands in triage when required; bulk archive refuses mixed groups |
-| **P9 Workspace surfaces** | 2.5 | Home widgets (quick links, recents, stickies, your work summary, "Since you were last here"), stickies page, favourites with folders, Your work, agent profiles, workspace views and static views, active cycles, analytics with Recharts (added in P3) and narrative | Home renders from one `getHomeSummary`; analytics numbers equal `getCounts` |
-| **P10 Layouts and operations** | 2.5 | Calendar and gantt (dependency connectors from relations), rich filter tree, automations, version history with restore, CSV and JSON export, webhooks, remaining settings | Gantt date drag writes both dates; automation run logs `system` activity; export opens in a spreadsheet |
-| **P11 Hardening** | 2 | `"use cache"` + tags, Playwright acceptance suite, backup rotation, performance pass on 10k items, undo last assistant action | `next build` with no blocking-route insight; Playwright green; p95 list render < 300 ms on 10k items |
+| **P8 Intake, drafts, estimates, bulk** | 2 | Intake two-pane with accept/decline/snooze/duplicate and agent intake policy, drafts with Move to project, estimates (systems, templates, points-mode progress), bulk bar, copy and move across projects; also per-agent write permission (`actor.access`, a migration after splitting `db/schema.ts`), the Estimates tab, the Intake and Estimates switches, filters, display and layouts on Archives › Work items | Intake policy test: MCP create lands in triage when required; bulk archive refuses mixed groups |
+| **P9 Workspace surfaces** | 2.5 | Home widgets (quick links, recents, stickies, your work summary, "Since you were last here"), stickies page, favourites with folders, Your work, agent profiles, workspace views and static views, active cycles, analytics with Recharts (added in P3) and narrative; also workspace and static views, view favourites, the view logo picker, views list sort and filters, search/sort/filter on the cycles and modules lists, the actor activity feed (agent profiles), the sidebar project "…" menu and drag order, Power K key search by a retired identifier | Home renders from one `getHomeSummary`; analytics numbers equal `getCounts` |
+| **P10 Layouts and operations** | 2.5 | Calendar and gantt (dependency connectors from relations), rich filter tree, automations, version history with restore, CSV and JSON export, webhooks, remaining settings; also pointer drag reorder for views, states and labels, changing a state's group, the automations tab, timezone, rich filter evaluation, view export | Gantt date drag writes both dates; automation run logs `system` activity; export opens in a spreadsheet |
+| **P11 Hardening** | 2 | `"use cache"` + tags, Playwright acceptance suite, backup rotation, performance pass on 10k items, undo last assistant action; also group counts beyond the loaded page and list paging | `next build` with no blocking-route insight; Playwright green; p95 list render < 300 ms on 10k items |
 
 MCP tools ship in P1, so external agents operate Tessera from week 2. AI lands in P5 and grows in P7–P10 (digests, triage proposals, narratives).
 
@@ -371,10 +377,12 @@ One owner per file, recorded in `docs/contracts/OWNERS.md`; each lane in its own
 | B Shell and workspace | `(tessera)/layout.tsx`, `components/shell/**`, `providers.tsx`, `globals.css`, `src/themes/catppuccin/**`, `src/astryx-themes.ts`, `components/{home,inbox,settings}/**`, routes `/`, `/your-work`, `/agents`, `/inbox`, `/stickies`, `/settings/**` | P1 day 4 |
 | C Work items UI | `components/work-items/**`, `components/dnd/**`, `projects/page.tsx`, `projects/[projectId]/{layout,work-items}/**`, `actions/{projects,states-labels,work-items}.ts` | P1 day 4 |
 | D Detail, editor, pages | `components/editor/**`, `components/detail/**`, `components/pages/**`, `work-items/[workItemId]/**`, `browse/**`, `pages/**`, `wiki/**`, `projects/[projectId]/pages/**`, `api/{work-items,pages,search}/**`, `actions/{relations-comments,pages}.ts` | P2a |
-| E Planning | `components/{planning,intake,drafts,estimates}/**`, `projects/[projectId]/{cycles,modules,archives,intake}/**`, `/drafts`, `/active-cycles`, `actions/{cycles,modules,drafts-intake,estimates}.ts` | P3 |
-| F Views, analytics, settings | `components/{views,analytics}/**`, `projects/[projectId]/{views,settings}/**`, `/workspace-views/**`, `/analytics/**`, `actions/{views,settings,workspace}.ts` | P4 |
+| E Planning | `components/{planning,intake,drafts,estimates}/**`, `projects/[projectId]/{cycles,modules,archives,intake}/**`, `/projects/archives`, `/drafts`, `/active-cycles`, the alias routes `/cycles/[cycleId]`, `/modules/[moduleId]`, `actions/{cycles,modules,drafts-intake,estimates}.ts` | P3 |
+| F Views, analytics, settings | `components/{views,analytics,project-settings}/**` (lane B keeps `components/settings/**` for workspace settings), `projects/[projectId]/{views,settings}/**`, `/workspace-views/**`, `/analytics/**`, `actions/{views,settings,workspace}.ts` | P4 |
 | G Integrations and AI | `tools/{mcp,anthropic}.ts`, `ai/**`, `api/{mcp,ai,exports}/**`, `components/ai/**`, `CommandBarAsk`, `actions/ai.ts`, `.mcp.json`, `instrumentation.ts` | P1 week 2 (MCP), P5 |
 | Q QA | `tests/**`, `scripts/check-*.ts`, `THIRD_PARTY_NOTICES.md`, `docs/PLAN-STATUS.md` | P1 |
+
+From P4 a phase may start with a lane 0 that splits files on the file budget (`scripts/file-budget.json`) before other lanes add to them; it moves code verbatim and commits on its own (docs/process/swarm.md).
 
 Merge gate per branch: `npm run check` (tsc, eslint, vitest, `check-conventions.ts`, `check-licenses.ts`), then no-mistakes once the remote exists. Convention script: no `'use client'` import outside the allowed tessera entry points, no hex colours or `xstyle` in our CSS/TSX, no `server-only` under `src/lib/tessera/**`, no Plane-specific identifiers or strings. Status lives in `docs/PLAN-STATUS.md`. Agents navigate the repo with ProjectAtlas.
 
@@ -418,6 +426,11 @@ Merge gate per branch: `npm run check` (tsc, eslint, vitest, `check-conventions.
 - Attachments, publish-to-web, members, billing excluded (user decision).
 - Known Plane quirks deliberately fixed: parent acyclicity enforced; completed-cycle edit guard applied; favourites deduplicated; `work_item_label` has a primary key.
 - Project archives (P3) are reached through a tab in the project panel header, `g r` and a link on `/projects`, not through the project `…` menu and a workspace "Archives" sidebar entry (§6): there is no project `…` menu before the P9 sidebar pass, and the panel header tabs are the project navigation (the layout rework removed the per-project sidebar children).
+- Views are created from a dialog on the views list or with Save view on the work items list (no `/views/new` page).
+- Former project identifiers keep resolving (decision 29); Plane re-derives keys without aliases.
+- Views, states and labels reorder through Move up / Move down in P4; pointer drag follows in P10.
+- A drop into None on a multi-valued grouping clears the field (decision 30); Plane documents only label relabelling on the board.
+- Settings is a project panel tab plus a Project actions menu item, not a sidebar project … menu (P9 sidebar pass).
 
 **Risks**
 | Risk | Mitigation |

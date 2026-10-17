@@ -6,6 +6,7 @@ import { DateInput } from "@astryxdesign/core/DateInput";
 import { Popover } from "@astryxdesign/core/Popover";
 import { VStack } from "@astryxdesign/core/Stack";
 import { CalendarIcon } from "@/themes/catppuccin/icons";
+import { useProject } from "../project-provider";
 import { formatShortDate } from "./date-format";
 
 // Moved to the directive-free date-format.ts (P3); re-exported so current importers keep working.
@@ -39,6 +40,7 @@ function asIsoDate(value: string | null | undefined): IsoDate {
 /** Date picker for start or target dates; clearing sends null so the field is unset. */
 export function DateControl({ value, onChange, compact = false, readOnly = false, label = "Date", min, max }: DateControlProps) {
   const [isOpen, setOpen] = useState(false);
+  const { bundle } = useProject();
   const picker = (
     <DateInput
       label={label}
@@ -66,7 +68,7 @@ export function DateControl({ value, onChange, compact = false, readOnly = false
         size="sm"
         className="tessera-wi-chip"
         icon={<CalendarIcon />}
-        label={value ? `${short} ${formatShortDate(value)}` : label}
+        label={value ? `${short} ${formatShortDate(value, bundle.today)}` : label}
         isIconOnly={!value}
         tooltip={value ? `${label}: ${value}` : `Set ${label.toLowerCase()}`}
         isDisabled={readOnly}

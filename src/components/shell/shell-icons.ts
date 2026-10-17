@@ -3,6 +3,7 @@ import {
   ArchiveIcon,
   CycleIcon,
   FolderIcon,
+  GearIcon,
   HouseIcon,
   KanbanIcon,
   ListBulletsIcon,
@@ -11,6 +12,7 @@ import {
   MoonIcon,
   PageIcon,
   SunIcon,
+  ViewIcon,
 } from "@/themes/catppuccin/icons";
 import type { ColorScheme } from "./color-scheme";
 import type { RouteIconKey } from "./recents";
@@ -26,6 +28,9 @@ export const ROUTE_ICONS: Readonly<Record<RouteIconKey, IconType>> = {
   cycle: CycleIcon,
   modules: ModuleIcon,
   module: ModuleIcon,
+  views: ViewIcon,
+  view: ViewIcon,
+  settings: GearIcon,
   archives: ArchiveIcon,
 };
 

@@ -15,6 +15,7 @@ import { nameKey } from "./core/keys";
 import { lastSortOrder, sortOrderAfter, sortOrderForMove } from "./core/order";
 import { assertInTransaction, withTx } from "./core/tx";
 import { project, state, work_item } from "./db/schema";
+import { stripIdsFromSavedFilters } from "./saved-filters";
 import { IdSchema, PaletteColorSchema, StateGroupSchema } from "./schemas";
 import type { PaletteColor, ProjectRow, StateGroup, StateRow } from "./types";
 
@@ -429,5 +430,6 @@ export function deleteState(ctx: TesseraContext, id: string, options: DeleteStat
     const now = ctx.now();
     ctx.db.update(state).set({ deleted_at: now, updated_at: now, updated_by: ctx.actor.id }).where(eq(state.id, id)).run();
     logActivity(ctx, { project_id: target.project_id, entity_type: "state", entity_id: id, verb: "deleted", old_identifier: target.name });
+    stripIdsFromSavedFilters(ctx, { key: "state", ids: new Set([id]), project_id: target.project_id });
   });
 }

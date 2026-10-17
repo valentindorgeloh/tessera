@@ -30,6 +30,7 @@ import { createLabel } from "@/lib/tessera/labels";
 import { archiveProject, createProject, updateProject, updateProjectFeatures, type Project } from "@/lib/tessera/projects";
 import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
 import { createState, listStates } from "@/lib/tessera/states";
+import { createView } from "@/lib/tessera/views";
 import type { Display, Filters, StateRow } from "@/lib/tessera/types";
 import {
   archiveWorkItem,
@@ -716,6 +717,16 @@ describe("moveWorkItem", () => {
     expect(errorCode(() => moveWorkItem(ctx, c.id, {}))).toBe("VALIDATION");
   });
 
+  it("a priority move to the none column sets priority none instead of failing validation", () => {
+    const { ctx, project: p, states } = setup();
+    const item = createWorkItem(ctx, { project_id: p.id, name: "A" });
+    moveWorkItem(ctx, item.id, { group_by: "priority", value: "urgent" });
+    expect(moveWorkItem(ctx, item.id, { group_by: "priority", value: "none" }).priority).toBe("none");
+    moveWorkItem(ctx, item.id, { group_by: "priority", value: "high" });
+    const sub = moveWorkItem(ctx, item.id, { group_by: "state", value: states.Todo.id, sub_group_by: "priority", sub_value: "none" });
+    expect(sub.priority).toBe("none");
+  });
+
   it("changes the grouped field for state, priority, cycle and dates (null = none)", () => {
     const { ctx, project: p, states } = setup();
     const sprint = insertCycle(ctx, p.id, "Sprint");
@@ -743,13 +754,96 @@ describe("moveWorkItem", () => {
     const relabelled = moveWorkItem(ctx, item.id, { group_by: "labels", value: ux.id, from_value: bug.id });
     expect(relabelled.label_ids).toEqual([ux.id]);
     expect(moveWorkItem(ctx, item.id, { group_by: "labels", value: bug.id }).label_ids.sort()).toEqual([bug.id, ux.id].sort());
-    expect(moveWorkItem(ctx, item.id, { group_by: "labels", value: null, from_value: ux.id }).label_ids).toEqual([bug.id]);
+    // A drop into none clears the field (decision 30), whatever from_value says.
+    expect(moveWorkItem(ctx, item.id, { group_by: "labels", value: null, from_value: ux.id }).label_ids).toEqual([]);
     expect(moveWorkItem(ctx, item.id, { group_by: "module", value: api.id, from_value: core.id }).module_ids).toEqual([api.id]);
     expect(moveWorkItem(ctx, item.id, { group_by: "assignees", value: ASSISTANT_ACTOR_ID, from_value: USER_ACTOR_ID }).assignee_ids).toEqual([ASSISTANT_ACTOR_ID]);
     expect(moveWorkItem(ctx, item.id, { group_by: "assignees", value: "none", from_value: ASSISTANT_ACTOR_ID }).assignee_ids).toEqual([]);
     const labelRows = activityRows(ctx, item.id).filter((r) => r.field === "labels");
-    expect(labelRows.map((r) => r.verb)).toEqual(["removed", "added", "added", "removed"]);
+    expect(labelRows.map((r) => r.verb)).toEqual(["removed", "added", "added", "removed", "removed"]);
     expect(labelRows[1].new_identifier).toBe("UX");
+  });
+
+  it("a drop into none clears a multi-valued field", () => {
+    const { ctx, project: p } = setup();
+    const bug = createLabel(ctx, { project_id: p.id, name: "Bug" });
+    const ux = createLabel(ctx, { project_id: p.id, name: "UX" });
+    const core = insertModule(ctx, p.id, "Core");
+    const api = insertModule(ctx, p.id, "API");
+    const item = createWorkItem(ctx, {
+      project_id: p.id,
+      name: "A",
+      label_ids: [bug.id, ux.id],
+      module_ids: [core.id, api.id],
+      assignee_ids: [USER_ACTOR_ID, ASSISTANT_ACTOR_ID],
+    });
+    expect(moveWorkItem(ctx, item.id, { group_by: "labels", value: "none" }).label_ids).toEqual([]);
+    expect(moveWorkItem(ctx, item.id, { group_by: "module", value: null }).module_ids).toEqual([]);
+    expect(moveWorkItem(ctx, item.id, { group_by: "assignees", value: null, from_value: USER_ACTOR_ID }).assignee_ids).toEqual([]);
+    // Non-none values keep the others and add the target.
+    expect(moveWorkItem(ctx, item.id, { group_by: "labels", value: bug.id }).label_ids).toEqual([bug.id]);
+  });
+
+  it("a board drop across column state and swimlane labels changes both in one call", () => {
+    const { ctx, project: p, states } = setup();
+    const bug = createLabel(ctx, { project_id: p.id, name: "Bug" });
+    const ux = createLabel(ctx, { project_id: p.id, name: "UX" });
+    const item = createWorkItem(ctx, { project_id: p.id, name: "A", label_ids: [bug.id] });
+    const seq = latestSeq(ctx);
+    const moved = moveWorkItem(ctx, item.id, {
+      group_by: "state",
+      value: states.Done.id,
+      sub_group_by: "labels",
+      sub_value: ux.id,
+      sub_from_value: bug.id,
+    });
+    expect(moved.state_id).toBe(states.Done.id);
+    expect(moved.completed_at).not.toBeNull();
+    expect(moved.label_ids).toEqual([ux.id]);
+    const rows = activityRows(ctx, item.id).filter((r) => r.seq > seq);
+    expect(rows.filter((r) => r.field === "state_id")).toHaveLength(1);
+    expect(rows.filter((r) => r.field === "labels").map((r) => r.verb)).toEqual(["removed", "added"]);
+    // Two applyPatch axes in one call: the second patch starts from the first's result.
+    const sprint = insertCycle(ctx, p.id, "Sprint");
+    const both = moveWorkItem(ctx, item.id, { group_by: "state", value: states.Todo.id, sub_group_by: "cycle", sub_value: sprint.id });
+    expect(both.state_id).toBe(states.Todo.id);
+    expect(both.cycle_id).toBe(sprint.id);
+  });
+
+  it("a two-axis drop is atomic", () => {
+    const { ctx, project: p, states } = setup();
+    const item = createWorkItem(ctx, { project_id: p.id, name: "A" });
+    const old = insertModule(ctx, p.id, "Old");
+    archiveModuleRow(ctx, old.id);
+    const seq = latestSeq(ctx);
+    expect(
+      errorCode(() => moveWorkItem(ctx, item.id, { group_by: "state", value: states.Done.id, sub_group_by: "module", sub_value: old.id })),
+    ).toBe("ARCHIVED");
+    expect(getWorkItem(ctx, item.id).state_id).toBe(item.state_id);
+    expect(latestSeq(ctx)).toBe(seq);
+    expect(
+      ruleName(() => moveWorkItem(ctx, item.id, { group_by: "state", value: states.Done.id, sub_group_by: "created_by", sub_value: "x" })),
+    ).toBe("group_not_movable");
+    expect(getWorkItem(ctx, item.id).state_id).toBe(item.state_id);
+  });
+
+  it("sub_group_by needs group_by and must differ", () => {
+    const { ctx, project: p, states } = setup();
+    const item = createWorkItem(ctx, { project_id: p.id, name: "A" });
+    const bad = (input: Parameters<typeof moveWorkItem>[2]) => {
+      try {
+        moveWorkItem(ctx, item.id, input);
+      } catch (err) {
+        if (err instanceof TrackerError && err.code === "VALIDATION") return JSON.stringify(err.details);
+        throw err;
+      }
+      return undefined;
+    };
+    expect(bad({ before_id: item.id, sub_group_by: "labels", sub_value: null })).toContain("sub_group_by");
+    expect(errorCode(() => moveWorkItem(ctx, item.id, { sub_group_by: "labels", sub_value: null, after_id: newId() }))).toBe("VALIDATION");
+    expect(bad({ group_by: "state", value: states.Done.id, sub_group_by: "state", sub_value: states.Done.id })).toContain("must differ");
+    expect(bad({ group_by: "state", value: states.Done.id, sub_group_by: "labels" })).toContain("sub_value is required");
+    expect(getWorkItem(ctx, item.id).state_id).toBe(item.state_id);
   });
 
   it("refuses groups that are not a settable field", () => {
@@ -1173,6 +1267,28 @@ describe("listWorkItems scopes", () => {
     const workspaceView = insertView(ctx, null, "All high", { priority: ["high"], project: [p.id] });
     expect(listWorkItems(ctx, { scope: { type: "view", view_id: workspaceView.id } }).total).toBe(2);
     expect(errorCode(() => listWorkItems(ctx, { scope: { type: "view", view_id: newId() } }))).toBe("NOT_FOUND");
+  });
+
+  it("view scope keeps saved display keys the caller omits", () => {
+    const { ctx, project: p } = setup();
+    createWorkItem(ctx, { project_id: p.id, name: "A", priority: "low" });
+    createWorkItem(ctx, { project_id: p.id, name: "B", priority: "urgent" });
+    const saved = createView(ctx, {
+      project_id: p.id,
+      name: "Board",
+      display: { layout: "board", order_by: "priority", properties: { key: false } },
+    });
+    const result = listWorkItems(ctx, { scope: { type: "view", view_id: saved.id }, display: { group_by: "state" } });
+    const saidOrder = listWorkItems(ctx, { scope: { type: "project", project_id: p.id }, display: { order_by: "priority" } });
+    const defaultOrder = listWorkItems(ctx, { scope: { type: "project", project_id: p.id } });
+    expect(saidOrder.items.map((i) => i.id)).not.toEqual(defaultOrder.items.map((i) => i.id));
+    expect(result.items.map((i) => i.id)).toEqual(saidOrder.items.map((i) => i.id));
+    expect(result.groups?.length).toBeGreaterThan(0);
+    expect(result.groups?.every((g) => g.field === "state")).toBe(true);
+    // Non-view scopes fill the defaults for omitted keys and accept a full Display too.
+    const plain = listWorkItems(ctx, { scope: { type: "project", project_id: p.id }, display: { group_by: "priority" } });
+    expect(plain.groups?.map((g) => g.field)).toContain("priority");
+    expect(listWorkItems(ctx, { scope: { type: "view", view_id: saved.id }, display: { ...DEFAULT_DISPLAY, order_by: "name" } }).items[0].name).toBe("A");
   });
 
   it("workspace scope spans live projects and narrows with filters.project", () => {

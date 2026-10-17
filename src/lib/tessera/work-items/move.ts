@@ -8,7 +8,7 @@ import { withTx } from "../core/tx";
 import { work_item } from "../db/schema";
 import { NONE_GROUP_ID } from "../filters";
 import { GroupBySchema, IdSchema, IsoDateSchema, PrioritySchema } from "../schemas";
-import type { WorkItemRow } from "../types";
+import type { GroupBy, WorkItemRow } from "../types";
 import { ENTITY, type LoadedWorkItem, type WorkItem, getWorkItemRow, itemKey, loadWritableWorkItem } from "./model";
 import { loadWorkItem } from "./hydrate";
 import { currentAssigneeIds, currentLabelIds, currentModuleIds, syncAssignees, syncLabels, syncModules } from "./membership";
@@ -23,13 +23,20 @@ import { applyPatch } from "./update";
  * into. `group_by` + `value` change the grouped field: a state, priority,
  * cycle or date value (null = the "none" group). For labels, assignees and
  * modules the item gains `value` and loses `from_value` (the group it was
- * dragged out of) instead of being replaced.
+ * dragged out of) instead of being replaced; a `value` of null or "none"
+ * clears the field (decision 30). `sub_group_by` + `sub_value` +
+ * `sub_from_value` change a second axis (a board swimlane) in the same
+ * transaction. They are checked in `moveWorkItem`, not in a schema refine, so
+ * the tool's `.extend` keeps working.
  */
 export const MoveWorkItemInput = z
   .object({
     group_by: GroupBySchema.optional().describe("Grouped field to change; omit for a pure reorder."),
     value: z.string().nullable().optional().describe("Target group value (id, priority, date); null for the none group."),
     from_value: z.string().nullable().optional().describe("For labels, assignees and modules: the group value the item left."),
+    sub_group_by: GroupBySchema.optional().describe("Second grouping axis changed by the same drop (a board swimlane). Needs group_by and must differ from it."),
+    sub_value: z.string().nullable().optional().describe('Target value on sub_group_by; null or "none" = the none group.'),
+    sub_from_value: z.string().nullable().optional().describe("For labels, assignees and module on sub_group_by: the value the item leaves."),
     before_id: IdSchema.optional().describe("Item that will come directly before this one."),
     after_id: IdSchema.optional().describe("Item that will come directly after this one."),
   })
@@ -86,18 +93,19 @@ function parseGroupValue<S extends z.ZodType>(schema: S, value: string | null | 
 const NULLABLE_ID = IdSchema.nullable();
 const NULLABLE_DATE = IsoDateSchema.nullable();
 
-/** Applies a group change; returns true when something was written. */
-function applyGroupChange(ctx: TesseraContext, loaded: LoadedWorkItem, data: z.output<typeof MoveWorkItemInput>): void {
-  const field = data.group_by;
-  if (field === undefined) return;
-  const value = data.value === NONE_GROUP_ID ? null : (data.value ?? null);
-  const fromValue = data.from_value === NONE_GROUP_ID ? null : (data.from_value ?? null);
+type GroupAxis = { group_by: GroupBy; value: string | null | undefined; from_value: string | null | undefined };
+
+/** Applies a group change on one axis (decision 30). Writes through the caller's transaction. */
+function applyGroupChange(ctx: TesseraContext, loaded: LoadedWorkItem, axis: GroupAxis): void {
+  const field = axis.group_by;
+  const value = axis.value === NONE_GROUP_ID ? null : (axis.value ?? null);
+  const fromValue = axis.from_value === NONE_GROUP_ID ? null : (axis.from_value ?? null);
   switch (field) {
     case "state":
       applyPatch(ctx, loaded, { state_id: parseGroupValue(IdSchema, value, field) });
       return;
     case "priority":
-      applyPatch(ctx, loaded, { priority: parseGroupValue(PrioritySchema, value, field) });
+      applyPatch(ctx, loaded, { priority: parseGroupValue(PrioritySchema, axis.value, field) });
       return;
     case "cycle":
       applyPatch(ctx, loaded, { cycle_id: parseGroupValue(NULLABLE_ID, value, field) });
@@ -131,18 +139,39 @@ function applyGroupChange(ctx: TesseraContext, loaded: LoadedWorkItem, data: z.o
   }
 }
 
-/** Multi-valued group move: gain `value`, lose `fromValue`, keep the rest. */
+/** Multi-valued group move: a drop into none (`value` null) clears the field; otherwise gain `value`, lose `fromValue`, keep the rest. */
 function withValue(current: string[], value: string | null, fromValue: string | null): string[] {
+  if (value === null) return [];
   const next = current.filter((id) => id !== fromValue);
-  if (value !== null && !next.includes(value)) next.push(value);
+  if (!next.includes(value)) next.push(value);
   return next;
+}
+
+function subAxisError(message: string): ReturnType<typeof validation> {
+  return validation([{ code: "custom", path: ["sub_group_by"], message }], `Invalid input: sub_group_by: ${message}`);
+}
+
+/** The sub-axis rules of the input; at path `sub_group_by`. */
+function assertSubAxis(data: z.output<typeof MoveWorkItemInput>): void {
+  if (data.sub_group_by === undefined) return;
+  if (data.group_by === undefined) throw subAxisError("sub_group_by needs group_by");
+  if (data.sub_group_by === data.group_by) throw subAxisError("sub_group_by must differ from group_by");
+  if (data.sub_value === undefined) throw subAxisError("sub_value is required with sub_group_by");
 }
 
 export function moveWorkItem(ctx: TesseraContext, id: string, input: MoveWorkItemInputType): WorkItem {
   const data = validateInput(MoveWorkItemInput, input);
+  assertSubAxis(data);
   return withTx(ctx, () => {
     const loaded = loadWritableWorkItem(ctx, id);
-    applyGroupChange(ctx, loaded, data);
+    if (data.group_by !== undefined) {
+      applyGroupChange(ctx, loaded, { group_by: data.group_by, value: data.value, from_value: data.from_value });
+      if (data.sub_group_by !== undefined) {
+        // The main axis may have rewritten the row; the sub axis must patch from its current state, not the loaded snapshot.
+        const fresh: LoadedWorkItem = { ...loaded, item: getWorkItemRow(ctx, id) };
+        applyGroupChange(ctx, fresh, { group_by: data.sub_group_by, value: data.sub_value, from_value: data.sub_from_value });
+      }
+    }
     if (data.before_id !== undefined || data.after_id !== undefined) {
       const before = getWorkItemRow(ctx, id);
       const sortOrder = sortOrderForDrop(ctx, loaded, data.before_id, data.after_id);

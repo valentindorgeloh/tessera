@@ -117,7 +117,8 @@ function labelIcon(icon: typeof StateIcon) {
 export function PropertyRailFields({ actions, compact = false, parent = null, subItems = [] }: PropertyRailFieldsProps) {
   const { bundle } = useProject();
   const item = actions.view;
-  const readOnly = item.archived_at !== null;
+  // Core change (P4 F3.4): the rail is read-only in an archived project too; this is where the rail decides it.
+  const readOnly = item.archived_at !== null || bundle.project.archived_at !== null;
   const label = { position: "start" as const, width: compact ? 104 : 120 };
 
   const groups: { id: string; items: ReactNode }[] = [

@@ -29,6 +29,8 @@ import { addDays, isIsoDate, localDateOf } from "./core/time";
 import { withTx } from "./core/tx";
 import { assertNoOverlap, checkDates, dateIssue } from "./cycle-dates";
 import { cycle, estimate_point, project, state, work_item, work_item_assignee, work_item_label } from "./db/schema";
+import { assertFeatureEnabled } from "./projects";
+import { stripIdsFromSavedFilters } from "./saved-filters";
 import { CycleProgressSchema, CycleStatusSchema, IdSchema, IsoDateSchema, ProgressModeSchema } from "./schemas";
 import type { CycleProgress, CycleRow, CycleStatus, PointsCounts, ProgressBreakdownRow, ProgressCounts, ProgressMode, ProjectRow, StateGroup } from "./types";
 
@@ -506,7 +508,7 @@ export function createCycle(ctx: TesseraContext, input: CreateCycleInputType): C
   const range: DateRange = { start_date: data.start_date ?? null, end_date: data.end_date ?? null };
   checkDates(range);
   return withTx(ctx, () => {
-    loadWritableProject(ctx, data.project_id);
+    assertFeatureEnabled(loadWritableProject(ctx, data.project_id), "cycles");
     assertNoOverlap(ctx, data.project_id, range, null);
     const now = ctx.now();
     const row = ctx.db
@@ -680,6 +682,7 @@ export function deleteCycle(ctx: TesseraContext, id: string): void {
     const now = ctx.now();
     ctx.db.update(cycle).set({ deleted_at: now, updated_at: now, updated_by: ctx.actor.id }).where(eq(cycle.id, id)).run();
     logActivity(ctx, { project_id: target.project_id, entity_type: "cycle", entity_id: id, verb: "deleted", old_identifier: target.name });
+    stripIdsFromSavedFilters(ctx, { key: "cycle", ids: new Set([id]), project_id: target.project_id });
   });
 }
 

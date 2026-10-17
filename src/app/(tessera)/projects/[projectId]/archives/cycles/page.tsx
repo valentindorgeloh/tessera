@@ -38,7 +38,7 @@ async function ArchivedCyclesData({ params }: Props) {
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();
     throw err;
   }
-  if (!data.enabled) return <FeatureOffState feature="cycles" />;
+  if (!data.enabled) return <FeatureOffState feature="cycles" projectId={projectId} />;
   return <ArchivedCycles projectId={projectId} cycles={data.cycles} />;
 }
 

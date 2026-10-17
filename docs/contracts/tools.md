@@ -29,7 +29,7 @@ export type DeleteResult = { id: string; deleted: true }; export type RemoveResu
 ```
 
 Rules
-- Names are stable public API; renaming is a contract change. The registry holds 90 tools (P1, P3 and P4 rows below); later rows are not implemented yet.
+- Names are stable public API; renaming is a contract change. The registry holds 91 tools (P1, P3 and P4 rows below; `reorder_view` joined in P4); later rows are not implemented yet.
 - Inputs use ids, never keys, except tools that explicitly take a `key` (`get_work_item_by_key`). Id fields end in `_id` and are UUIDs, with two exceptions: `get_project.project_id` is a non-empty string that also accepts the project identifier such as `WEB`, and `scope_id` on the view-settings tools is a plain string (`"workspace"` for the workspace scope).
 - Read tools are exactly the `list_*`, `get_*`, `search_*` and `describe_*` tools; every `delete_*` tool is destructive; destructive tools mutate.
 - Outputs are the view models from `docs/contracts/service-api.md`; list tools return `ListResult` (the registry wraps array-returning services). `delete_*` tools return `{ id, deleted: true }`, `remove_*` tools `{ id, removed: true }`; `transfer_cycle_work_items` returns `{ moved }`.
@@ -53,7 +53,7 @@ Destructive tools are marked with †. `core` tools (assistant default set) with
 | Relations, comments (P7) | `add_relation`, `remove_relation`, `list_relations`, ★`list_comments`, ★`create_comment`, `update_comment`, †`delete_comment`, `add_reaction`, `remove_reaction` |
 | Cycles (P3, built in P1) | ★`list_cycles`, ★`get_cycle`, `create_cycle`, `update_cycle`, `reorder_cycle`, `archive_cycle`, `unarchive_cycle`, †`delete_cycle`, `add_work_items_to_cycle`, `remove_work_items_from_cycle`, †`transfer_cycle_work_items`, ★`get_cycle_progress`, `list_active_cycles` |
 | Modules (P3, built in P1) | ★`list_modules`, `get_module`, `create_module`, `update_module`, `reorder_module`, `archive_module`, `unarchive_module`, †`delete_module`, `add_work_items_to_module`, `remove_work_items_from_module`, `set_module_members`, `add_module_link`, `update_module_link`, `remove_module_link`, `get_module_progress` |
-| Views and settings (P4, built in P1) | ★`list_views`, `get_view`, `create_view`, `update_view`, `duplicate_view`, `lock_view`, `unlock_view`, †`delete_view`, `get_view_settings`, `save_view_settings`, `reset_view_settings`; ~~`get_project_settings`, `update_project_settings`, `get_automations`, `update_automations`~~ are served by `get_project` / `update_project` (`default_assignee_id`, `archive_in_months`, `close_in_months`, `close_state_id` are fields of `UpdateProjectInput`) and are not separate tools |
+| Views and settings (P4, built in P1) | ★`list_views`, `get_view`, `create_view`, `update_view`, `duplicate_view`, `lock_view`, `unlock_view`, `reorder_view`, †`delete_view`, `get_view_settings`, `save_view_settings`, `reset_view_settings`; ~~`get_project_settings`, `update_project_settings`, `get_automations`, `update_automations`~~ are served by `get_project` / `update_project` (`default_assignee_id`, `archive_in_months`, `close_in_months`, `close_state_id` are fields of `UpdateProjectInput`) and are not separate tools |
 | Pages (P6) | ★`list_pages`, ★`get_page`, ★`create_page`, `update_page`, ★`update_page_body`, `move_page`, `lock_page`, `unlock_page`, `archive_page`, `unarchive_page`, †`delete_page`, `duplicate_page`, `list_page_versions`, †`restore_page_version`, `list_page_embeds`, `list_backlinks` |
 | Drafts, intake, estimates (P8) | `list_drafts`, `create_draft`, `update_draft`, †`delete_draft`, `move_draft_to_project`, ★`list_intake_items`, †`accept_intake_item`, †`decline_intake_item`, `snooze_intake_item`, `mark_intake_duplicate`, `get_estimate`, `create_estimate`, `update_estimate_points`, `archive_estimate`, `set_estimate_point` |
 | Workspace (P9) | `list_favorites`, `add_favorite`, `remove_favorite`, `move_favorite`, `create_favorite_folder`, `rename_favorite_folder`, †`delete_favorite_folder`, `list_recents`, `list_stickies`, `create_sticky`, `update_sticky`, †`delete_sticky`, `list_quick_links`, `add_quick_link`, †`remove_quick_link`, ★`list_notifications`, `mark_notification_read`, `mark_notification_unread`, `archive_notification`, `snooze_notification`, ★`get_home_summary`, ★`get_analytics`, `get_workspace_settings`, `update_workspace_settings` |
@@ -140,3 +140,69 @@ export function toolAction<N extends ToolName>(name: N): (input: ToolInput<N>) =
 - Registry test: unchanged; the description changes keep every rule in "Registry test".
 - Acceptance client `scripts/mcp-call.ts` (lane A, docs/contracts/ui.md "Lane A: engine additions" item 9): `npx tsx scripts/mcp-call.ts <tool> ['<json>']` calls one tool by registry name over stdio (it spawns `npx tsx scripts/mcp-stdio.ts` without `--db`, so it uses the dev server's database; client name `p3-acceptance`) and prints the structured result. As built: exit 0 on success, 1 when the result `isError` (the error text, e.g. `"NOT_FOUND: …"`, is printed as a JSON string), when the call itself is refused, or when the command line is unusable (unknown registry name, arguments that are not one JSON object; no server is started then), and 2 when the connection fails (for example the server's exit 2 on pending migrations).
 - As built (lane A): the `mode` input field of `get_cycle_progress` now reads "issues counts items; points also returns estimate point totals and the series in points when the project has an active estimate (chart_mode says which unit the series uses)." The old text promised a points chart unconditionally, which the P3 points rules no longer give.
+
+## P4 changes (lane A, consumed by docs/contracts/ui.md "P4: views, settings, counts")
+
+Draft by the phase planner, 2026-10-17; lane A appends it to
+docs/contracts/tools.md. Service details: docs/drafts/p4-service-api.md.
+
+- One new tool; the registry goes from 90 to 91. Tool definitions now live in
+  `src/lib/tessera/tools/registry/<domain>.ts` (lane 0 split), `TOOLS` in
+  `registry/index.ts`.
+- `reorder_view` (`registry/views.ts`):
+  - title "Reorder view"; description (exact): "Moves a view directly before or
+    after another view of the same scope (the same project, or the workspace);
+    before_id or after_id is required. Works on locked views: the order is not
+    view content."
+  - input `ReorderViewInput.extend({ view_id: ViewId })` (the `reorder_state`
+    pattern); `mutates: true`; `phase: "P4"`; not core, not destructive;
+    `run: (ctx, { view_id, ...input }) => reorderView(ctx, view_id, input)`.
+  - Row in "Tools by domain", Views and settings: insert `reorder_view` after
+    `unlock_view`.
+- Changed inputs (picked up from the service schemas, no tool code change):
+  - `list_work_items` / `list_archived_work_items`: `display` is a patch; omitted
+    keys keep the saved view's (scope view) or the defaults.
+  - `move_work_item`: `sub_group_by`, `sub_value`, `sub_from_value` (a drop that
+    changes column and swimlane in one call); for labels, assignees and module a
+    `value` of null or `"none"` now clears the field (decision 30).
+  - `search_all`: `types` accepts `"view"`; hits of type `view`.
+- Description text (exact), replacing the current one:
+  - `move_work_item`: "Reorders a work item (before_id / after_id) and, with
+    group_by and value, changes the grouped field as a board or list drop does. For
+    labels, assignees and module, from_value is the value the item leaves and the
+    others are kept; value null or \"none\" clears the field. sub_group_by,
+    sub_value and sub_from_value change a second axis (a board swimlane) in the same
+    call; both changes or neither are written."
+  - `get_work_item_by_key`: the current text plus " A key with a project's former
+    identifier (before a rename) still resolves, unless another project uses that
+    identifier now."
+  - `get_project`: the current text plus " A former identifier resolves the same
+    way."
+  - `create_cycle`, `create_module`, `create_view`, `duplicate_view`: the current
+    text plus " RULE feature_disabled while the project has the feature turned off."
+  - `delete_state`, `delete_label`, `delete_cycle`, `delete_module`: the current
+    text plus " Its id is removed from every saved view and remembered view
+    setting that filters on it."
+  - `search_all`: unchanged; its text already names views, which it now returns.
+- Errors: `RULE feature_disabled` (above); `move_work_item` `VALIDATION` at
+  `sub_group_by` (needs group_by, must differ, needs sub_value).
+- Registry test: `CONTRACT_PHASES` gains `reorder_view: "P4"`; any tool-count
+  assertion becomes 91; "service coverage" binds `reorderView` to `reorder_view`.
+  `stripIdsFromSavedFilters`, `resolveRetiredIdentifier`, `assertFeatureEnabled`
+  and `getTaxonomyUsage` match no mutation prefix.
+- Server Action wrappers added in P4 (file-level `"use server"`,
+  `export const xAction = toolAction("tool_name")`):
+  - `src/app/actions/views.ts` (lane F1): `createViewAction` (`create_view`),
+    `updateViewAction` (`update_view`), `duplicateViewAction` (`duplicate_view`),
+    `lockViewAction` (`lock_view`), `unlockViewAction` (`unlock_view`),
+    `deleteViewAction` (`delete_view`), `reorderViewAction` (`reorder_view`).
+  - `src/app/actions/settings.ts` (lane F2, new): `updateProjectFeaturesAction`
+    (`update_project_features`), `updateActorAction` (`update_actor`).
+  - `src/app/actions/states-labels.ts` (lane F2, additive): `updateStateAction`,
+    `reorderStateAction`, `setDefaultStateAction`, `deleteStateAction`,
+    `updateLabelAction`, `reorderLabelAction`, `deleteLabelAction`.
+  - `updateProjectAction` (`projects.ts`) already exists; General uses it.
+  The UI confirms destructive tools itself and never passes `confirm` (as
+  `DeleteProjectDialog` calls `deleteProjectAction({ project_id })`).
+- Not added: a tool for `getTaxonomyUsage` (server read only), `reorder_project`
+  (P9), `list_activity` by actor (P9), an actor permission field (P8).

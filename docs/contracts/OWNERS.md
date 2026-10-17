@@ -10,12 +10,12 @@ Each lane works in its own branch and `git worktree` (`../tessera-<lane>`), star
 | **B Shell and workspace** | `src/app/(tessera)/layout.tsx`, `src/components/shell/**`, `src/app/providers.tsx` (additive until P6), `src/app/globals.css` (additive until P6), `src/themes/catppuccin/**` and the generated `src/astryx-themes.ts` (icons additive for others), `src/components/{home,inbox,settings}/**`, routes `/home` (then `/`), `/your-work/**`, `/agents/**`, `/inbox`, `/stickies`, `/settings/**` | P1 day 4 |
 | **C Work items UI** | `src/components/work-items/**`, `src/components/dnd/**`, `src/app/(tessera)/projects/page.tsx`, `src/app/(tessera)/projects/[projectId]/{layout.tsx,work-items/**}`, `src/app/actions/{_run,projects,states-labels,work-items}.ts` | P1 day 4 |
 | **D Detail, editor, pages** | `src/components/editor/**`, `src/components/detail/**`, `src/components/pages/**`, routes `work-items/[workItemId]/**`, `browse/**`, `pages/**`, `wiki/**`, `projects/[projectId]/pages/**`, `src/app/api/{work-items,pages,search}/**`, `src/app/actions/{relations-comments,pages}.ts` | P2a |
-| **E Planning** | `src/components/{planning,intake,drafts,estimates}/**`, routes `projects/[projectId]/{cycles,modules,archives,intake}/**`, `/drafts`, `/active-cycles`, `src/app/actions/{cycles,modules,drafts-intake,estimates}.ts` | P3 |
-| **F Views, analytics, settings** | `src/components/{views,analytics}/**`, routes `projects/[projectId]/{views,settings}/**`, `/workspace-views/**`, `/analytics/**`, `src/app/actions/{views,settings,workspace}.ts` | P4 |
+| **E Planning** | `src/components/{planning,intake,drafts,estimates}/**`, routes `projects/[projectId]/{cycles,modules,archives,intake}/**`, `/projects/archives`, `/cycles/[cycleId]` and `/modules/[moduleId]` (aliases), `/drafts`, `/active-cycles`, `src/app/actions/{cycles,modules,drafts-intake,estimates}.ts` | P3 |
+| **F Views, analytics, settings** | `src/components/{views,analytics}/**`, `src/components/project-settings/**`, routes `projects/[projectId]/{views,settings}/**`, `/workspace-views/**`, `/analytics/**`, `src/app/actions/{views,settings,workspace}.ts` | P4 |
 | **G Integrations and AI** | `src/lib/tessera/tools/{mcp,anthropic}.ts`, `src/lib/tessera/ai/**`, `src/app/api/{mcp,ai,exports}/**`, `src/components/ai/**`, `src/components/shell/CommandBarAsk.tsx`, `src/app/actions/ai.ts`, `.mcp.json`, `src/instrumentation.ts` | P1 week 2 (MCP), P5 |
 | **Q QA** | `tests/**`, `scripts/check-*.ts`, `THIRD_PARTY_NOTICES.md`, `docs/PLAN-STATUS.md` | P1 |
 
-Lane G's files under `src/lib/tessera/` are the only exception to lane A owning that tree.
+Lane G's files under `src/lib/tessera/` are the only exception to lane A owning that tree. `src/lib/tessera/tools/registry/**` and `src/lib/tessera/work-items/**` (folders since P4) stay lane A's like the rest of `src/lib/tessera/**`.
 
 ## Shared files and how to touch them
 
@@ -28,6 +28,7 @@ Lane G's files under `src/lib/tessera/` are the only exception to lane A owning 
 | `src/app/providers.tsx` | B | append a provider |
 | `src/lib/tessera/schemas.ts`, `types.ts` | A | nothing; request the change from lane A |
 | `docs/contracts/*.md` | A | nothing; a contract change is a lane A commit that other lanes then follow |
+| `scripts/file-budget.json` | Q (gate) | a split (lane 0) removes or lowers entries; any lane lowers its own file's entry after shrinking it; nobody raises one |
 
 ## Legacy handbook files
 

@@ -8,6 +8,8 @@ import {
   listViews,
   ListViewsInput,
   lockView,
+  reorderView,
+  ReorderViewInput,
   unlockView,
   updateView,
   UpdateViewInput,
@@ -45,7 +47,7 @@ export const viewTools = [
     name: "create_view",
     title: "Create view",
     description:
-      "Saves a view in a project or, with project_id null, in the workspace. Names are unique within the project or among workspace views (case-insensitive, CONFLICT otherwise); display is merged over the defaults and workspace views accept only the table layout. Use describe_filters for the filter and display vocabulary.",
+      "Saves a view in a project or, with project_id null, in the workspace. Names are unique within the project or among workspace views (case-insensitive, CONFLICT otherwise); display is merged over the defaults and workspace views accept only the table layout. Use describe_filters for the filter and display vocabulary. RULE feature_disabled while the project has the feature turned off.",
     input: CreateViewInput,
     mutates: true,
     phase: "P4",
@@ -63,7 +65,7 @@ export const viewTools = [
   defineTool({
     name: "duplicate_view",
     title: "Duplicate view",
-    description: "Creates an unlocked copy at the end of the same scope with a derived unique name and the same filters, rich filters, display and logo; the source may be locked.",
+    description: "Creates an unlocked copy at the end of the same scope with a derived unique name and the same filters, rich filters, display and logo; the source may be locked. RULE feature_disabled while the project has the feature turned off.",
     input: ViewIdInput,
     mutates: true,
     phase: "P4",
@@ -86,6 +88,16 @@ export const viewTools = [
     mutates: true,
     phase: "P4",
     run: (ctx, { view_id }) => unlockView(ctx, view_id),
+  }),
+  defineTool({
+    name: "reorder_view",
+    title: "Reorder view",
+    description:
+      "Moves a view directly before or after another view of the same scope (the same project, or the workspace); before_id or after_id is required. Works on locked views: the order is not view content.",
+    input: ReorderViewInput.extend({ view_id: ViewId }),
+    mutates: true,
+    phase: "P4",
+    run: (ctx, { view_id, ...input }) => reorderView(ctx, view_id, input),
   }),
   defineTool({
     name: "delete_view",

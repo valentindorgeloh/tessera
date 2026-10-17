@@ -1,1 +1,26 @@
 /* Tessera P4 project settings styles (lane F2): settings tabs and the general, features, states, labels and agents screens. Classes are prefixed tessera-settings-. Tokens only. */
+
+/*
+ * Settings › tabs in the settings' panel sub-header: they dock on the header's
+ * bottom hairline exactly like the archives tabs (archives.css).
+ */
+.tessera-panel-bar-start:has(> .tessera-settings-tabs) {
+  align-self: stretch;
+}
+
+.tessera-settings-tabs {
+  align-self: flex-end;
+  min-width: 0;
+  /* The first tab's text lines up with the panel's 16px inset (a tab brings its own 12px). */
+  margin-inline-start: calc(-1 * var(--spacing-3));
+}
+
+/* The 960px reading column holds every tab's content; the body adds the vertical room. */
+.tessera-settings-body {
+  padding-block: var(--spacing-5) var(--spacing-8);
+}
+
+/* A sub-label row sits one step in from its parent. */
+.tessera-settings-child {
+  padding-inline-start: var(--spacing-6);
+}

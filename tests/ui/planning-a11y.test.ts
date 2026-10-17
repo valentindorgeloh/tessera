@@ -57,6 +57,7 @@ const { CycleHeader } = await import("@/components/planning/CycleHeader");
 const { CyclesScreen } = await import("@/components/planning/CyclesScreen");
 const { ModulesScreen } = await import("@/components/planning/ModulesScreen");
 const { ModuleHeader } = await import("@/components/planning/ModuleHeader");
+const { ModuleSidePanel } = await import("@/components/planning/ModuleSidePanel");
 const { ArchivedProjects } = await import("@/components/planning/ArchivedProjects");
 
 const PROJECT = "11111111-1111-7111-8111-111111111111";
@@ -150,6 +151,14 @@ async function render(node: ReactNode) {
     root?.render(node);
   });
   return container;
+}
+
+/** Renders another tree into the current root (after `render`), so one test can compare two states. */
+async function swap(node: ReactNode) {
+  await act(async () => {
+    root?.render(node);
+  });
+  return container as HTMLDivElement;
 }
 
 /**
@@ -443,17 +452,83 @@ describe("panel headers", () => {
     expect(el.textContent).not.toContain("read-only");
   });
 
-  const moduleHeader = (overrides: Partial<Module>) =>
+  const buttonLabels = (el: HTMLElement) => [...el.querySelectorAll("button")].map((button) => button.textContent?.trim());
+
+  it("offers Restore on an archived cycle, and not once the project is archived too (F3.4)", async () => {
+    const el = await render(cycleHeader({ archived_at: NOW }));
+    expect(buttonLabels(el)).toContain("Restore");
+    const readOnly = await swap(
+      inProject(
+        createElement(CycleHeader, {
+          projectId: PROJECT,
+          cycle: cycle({ archived_at: NOW }),
+          today: "2026-10-11",
+          isPanelOpen: false,
+          onTogglePanel: noop,
+          isEditOpen: false,
+          onEditOpenChange: noop,
+          onDeleted: noop,
+          readOnly: true,
+        }),
+      ),
+    );
+    expect(readOnly.textContent).toContain("This cycle is archived");
+    expect(buttonLabels(readOnly)).not.toContain("Restore");
+  });
+
+  it("keeps a completed cycle's read-only line in an archived project", async () => {
+    const el = await render(
+      inProject(
+        createElement(CycleHeader, {
+          projectId: PROJECT,
+          cycle: cycle({ status: "completed", open_count: 0 }),
+          today: "2026-10-11",
+          isPanelOpen: false,
+          onTogglePanel: noop,
+          isEditOpen: false,
+          onEditOpenChange: noop,
+          onDeleted: noop,
+          readOnly: true,
+        }),
+      ),
+    );
+    expect(el.textContent).toContain("Completed cycles are read-only.");
+  });
+
+  const moduleHeader = (overrides: Partial<Module>, readOnly = false) =>
     inProject(
       createElement(ModuleHeader, {
         projectId: PROJECT,
         module: moduleDetail(overrides),
         writer: { update: noop, setMembers: noop },
+        readOnly,
         candidates: [],
         isPanelOpen: true,
         onTogglePanel: noop,
       }),
     );
+
+  it("takes Add existing out of an active module's header in an archived project (F3.4)", async () => {
+    expect(buttonLabels(await render(moduleHeader({})))).toContain("Add existing");
+    const el = await swap(moduleHeader({}, true));
+    expect(buttonLabels(el)).not.toContain("Add existing");
+    expect(el.querySelector('dialog[aria-label="Add work items to Launch"]')).toBeNull();
+  });
+
+  it("offers Restore on an archived module, and not once the project is archived too (F3.4)", async () => {
+    const el = await render(moduleHeader({ archived_at: NOW }));
+    expect(buttonLabels(el)).toContain("Restore");
+    const readOnly = await swap(moduleHeader({ archived_at: NOW }, true));
+    expect(readOnly.textContent).toContain("This module is archived");
+    expect(buttonLabels(readOnly)).not.toContain("Restore");
+  });
+
+  it("renders the module side panel's controls and links read-only in an archived project (F3.4)", async () => {
+    const panel = (readOnly: boolean) => inProject(createElement(ModuleSidePanel, { module: moduleDetail({}), writer: { update: noop, setMembers: noop }, readOnly }));
+    expect(buttonLabels(await render(panel(false)))).toContain("Add link");
+    const el = await swap(panel(true));
+    expect(buttonLabels(el)).not.toContain("Add link");
+  });
 
   it("titles the module detail with the module's h2 and keeps the add dialog out of the header", async () => {
     const el = await render(moduleHeader({}));

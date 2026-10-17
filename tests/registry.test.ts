@@ -322,6 +322,7 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   duplicate_view: "P4",
   lock_view: "P4",
   unlock_view: "P4",
+  reorder_view: "P4",
   delete_view: "P4",
   get_view_settings: "P4",
   save_view_settings: "P4",

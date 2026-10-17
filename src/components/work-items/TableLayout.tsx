@@ -78,9 +78,12 @@ function buildColumns(
   bundle: ProjectBundle,
   onUpdate: (id: string, patch: UpdateWorkItemPatch) => void,
   onOpen: (id: string) => void,
+  readOnly: boolean,
 ): TableColumn<TableRow>[] {
   const columns: TableColumn<TableRow>[] = [];
   const pending = (row: TableRow) => isOptimisticId(row.item.id);
+  // An archived project passes `readOnly` to every property control (F3.4); a placeholder row is always locked.
+  const locked = (row: TableRow) => pending(row) || readOnly;
   // The key column stays even when the key property is off: it is the row's keyboard-reachable open control.
   columns.push({
     key: "key",
@@ -123,7 +126,7 @@ function buildColumns(
       header: "State",
       width: pixel(176),
       sortable: true,
-      renderCell: (row) => <StateControl compact readOnly={pending(row)} value={row.item.state_id} onChange={(stateId) => onUpdate(row.item.id, { state_id: stateId })} />,
+      renderCell: (row) => <StateControl compact readOnly={locked(row)} value={row.item.state_id} onChange={(stateId) => onUpdate(row.item.id, { state_id: stateId })} />,
     });
   }
   if (properties.priority) {
@@ -132,7 +135,7 @@ function buildColumns(
       header: "Priority",
       width: pixel(148),
       sortable: true,
-      renderCell: (row) => <PriorityControl compact readOnly={pending(row)} value={row.item.priority} onChange={(priority) => onUpdate(row.item.id, { priority })} />,
+      renderCell: (row) => <PriorityControl compact readOnly={locked(row)} value={row.item.priority} onChange={(priority) => onUpdate(row.item.id, { priority })} />,
     });
   }
   if (properties.assignees) {
@@ -156,7 +159,7 @@ function buildColumns(
       key: "cycle",
       header: "Cycle",
       width: pixel(168),
-      renderCell: (row) => <CycleControl compact readOnly={pending(row)} value={row.item.cycle_id} onChange={(cycleId) => onUpdate(row.item.id, { cycle_id: cycleId })} />,
+      renderCell: (row) => <CycleControl compact readOnly={locked(row)} value={row.item.cycle_id} onChange={(cycleId) => onUpdate(row.item.id, { cycle_id: cycleId })} />,
     });
   }
   if (properties.modules) {
@@ -174,7 +177,7 @@ function buildColumns(
       width: pixel(156),
       sortable: true,
       renderCell: (row) => (
-        <DateControl compact readOnly={pending(row)} label="Start date" value={row.item.start_date} max={row.item.target_date} onChange={(date) => onUpdate(row.item.id, { start_date: date })} />
+        <DateControl compact readOnly={locked(row)} label="Start date" value={row.item.start_date} max={row.item.target_date} onChange={(date) => onUpdate(row.item.id, { start_date: date })} />
       ),
     });
   }
@@ -185,7 +188,7 @@ function buildColumns(
       width: pixel(156),
       sortable: true,
       renderCell: (row) => (
-        <DateControl compact readOnly={pending(row)} label="Target date" value={row.item.target_date} min={row.item.start_date} onChange={(date) => onUpdate(row.item.id, { target_date: date })} />
+        <DateControl compact readOnly={locked(row)} label="Target date" value={row.item.target_date} min={row.item.start_date} onChange={(date) => onUpdate(row.item.id, { target_date: date })} />
       ),
     });
   }
@@ -241,7 +244,7 @@ function GroupHeading({ group, field, bundle }: { group: Group | undefined; fiel
   return <Text weight="semibold">{group.name}</Text>;
 }
 
-export function TableLayout({ result, display, bundle, onUpdate, onOpen }: LayoutProps) {
+export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false }: LayoutProps) {
   const groups = useMemo(() => result.groups ?? [], [result.groups]);
   const grouped = display.group_by !== null && groups.length > 0;
 
@@ -261,7 +264,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen }: Layou
 
   const stateRank = useMemo(() => new Map(bundle.states.map((state, index) => [state.id, index])), [bundle.states]);
 
-  const columns = useMemo(() => buildColumns(display.properties, bundle, onUpdate, onOpen), [bundle, display.properties, onOpen, onUpdate]);
+  const columns = useMemo(() => buildColumns(display.properties, bundle, onUpdate, onOpen, readOnly), [bundle, display.properties, onOpen, onUpdate, readOnly]);
 
   const { sortedData, sortConfig } = useTableSortableState<TableRow>({
     data: rows,
@@ -369,7 +372,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen }: Layou
       hasHover
       textOverflow="truncate"
       rowCount={result.total}
-      emptyState={<EmptyState isCompact title="No work items" description="Create a work item or change the filters." />}
+      emptyState={<EmptyState isCompact title="No work items" description={readOnly ? "Change the filters to see more." : "Create a work item or change the filters."} />}
     />
   );
 }

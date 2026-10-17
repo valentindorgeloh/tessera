@@ -15,6 +15,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { addWorkItemsToCycleAction } from "@/app/actions/cycles";
 import { peekIdOf } from "@/components/detail/peek-url";
 import { registerEntityLabel } from "@/components/shell/entity-labels";
+import { useProject } from "@/components/work-items/project-provider";
 import { AddExistingItemsDialog } from "./AddExistingItemsDialog";
 import { CycleHeader } from "./CycleHeader";
 import { CycleSidePanel } from "./CycleSidePanel";
@@ -38,7 +39,10 @@ export function CycleDetailScreen({ projectId, data, children }: CycleDetailScre
 
   const peekOpen = peekIdOf(searchParams) !== null;
   const isArchived = cycle.archived_at !== null;
-  const isOpenCycle = !isArchived && cycle.status !== "completed";
+  // An archived project is read-only (F3.4): no adding items or dates; the cycle menu disables itself (CycleMenu).
+  const { bundle } = useProject();
+  const isReadOnly = bundle.project.archived_at !== null;
+  const isOpenCycle = !isArchived && cycle.status !== "completed" && !isReadOnly;
 
   useEffect(() => {
     registerEntityLabel(cycle.id, cycle.name);
@@ -70,6 +74,7 @@ export function CycleDetailScreen({ projectId, data, children }: CycleDetailScre
             isEditOpen={isEditOpen}
             onEditOpenChange={setEditOpen}
             onDeleted={() => router.push(`/projects/${projectId}/cycles`)}
+            readOnly={isReadOnly}
           />
         }
         content={

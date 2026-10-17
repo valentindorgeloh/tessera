@@ -25,6 +25,8 @@ export type ModuleSidePanelProps = {
   /** The module with the writes in flight applied. */
   module: ModuleDetail;
   writer: ModuleWriter;
+  /** True in an archived project (F3.4): every control and the links are read-only, like an archived module's. */
+  readOnly?: boolean;
 };
 
 type IsoDate = Parameters<typeof DateInput>[0]["value"];
@@ -36,8 +38,8 @@ function asIsoDate(value: string | null): IsoDate {
   return value && ISO_DATE.test(value) ? (value as NonNullable<IsoDate>) : undefined;
 }
 
-export function ModuleSidePanel({ module, writer }: ModuleSidePanelProps) {
-  const readOnly = module.archived_at !== null;
+export function ModuleSidePanel({ module, writer, readOnly: projectReadOnly = false }: ModuleSidePanelProps) {
+  const readOnly = projectReadOnly || module.archived_at !== null;
   const { progress } = module;
   return (
     <LayoutPanel width={360} hasDivider padding={4} isScrollable label="Module details" role="complementary" className="tessera-planning-side-panel">

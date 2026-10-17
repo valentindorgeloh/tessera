@@ -8,10 +8,11 @@ import { upsertPageFts } from "@/lib/tessera/db/fts";
 import { page } from "@/lib/tessera/db/schema";
 import { archiveCycle, createCycle } from "@/lib/tessera/cycles";
 import { archiveModule, createModule, updateModule } from "@/lib/tessera/modules";
-import { archiveProject, createProject, type Project } from "@/lib/tessera/projects";
+import { archiveProject, createProject, updateProjectFeatures, type Project } from "@/lib/tessera/projects";
 import { EXACT_NAME_SCORE, KEY_MATCH_SCORE, SEARCH_TYPES, searchAll, type SearchHit } from "@/lib/tessera/search";
 import { listStates } from "@/lib/tessera/states";
 import type { StateRow } from "@/lib/tessera/types";
+import { createView, deleteView } from "@/lib/tessera/views";
 import { archiveWorkItem, createWorkItem, deleteWorkItem, type WorkItem } from "@/lib/tessera/work-items";
 import { createTestDb, type DbHandles } from "./helpers/db";
 
@@ -227,6 +228,51 @@ describe("searchAll over cycles, modules and projects", () => {
   });
 });
 
+describe("searchAll over views", () => {
+  it("search_all finds views", () => {
+    const { ctx, project } = setup();
+    const mine = createView(ctx, { project_id: project.id, name: "Roadmap" });
+    const shared = createView(ctx, { project_id: null, name: "Roadmap overview" });
+    const gone = createView(ctx, { project_id: project.id, name: "Roadmap old" });
+    deleteView(ctx, gone.id);
+    const archivedProject = createProject(ctx, { name: "Archive", identifier: "ARC" });
+    createView(ctx, { project_id: archivedProject.id, name: "Roadmap archived" });
+    archiveProject(ctx, archivedProject.id);
+    const off = createProject(ctx, { name: "Quiet", identifier: "QUI" });
+    createView(ctx, { project_id: off.id, name: "Roadmap quiet" });
+    updateProjectFeatures(ctx, off.id, { views_enabled: false });
+    const hits = searchAll(ctx, "roadmap", { types: ["view"] });
+    expect(ids(hits).sort()).toEqual([mine.id, shared.id].sort());
+    expect(hits.find((hit) => hit.id === mine.id)).toMatchObject({ type: "view", project_id: project.id, title: "Roadmap" });
+    expect(hits.find((hit) => hit.id === shared.id)).toMatchObject({ type: "view", project_id: null, title: "Roadmap overview" });
+    expect(hits[0].id).toBe(mine.id);
+    expect(ids(searchAll(ctx, "roadmap", { types: ["view"], scope: { project_id: project.id } }))).toEqual([mine.id]);
+    expect(ids(searchAll(ctx, "roadmap")).sort()).toEqual([mine.id, shared.id].sort());
+  });
+});
+
+describe("searchAll with cycles or modules off (decision 31)", () => {
+  it("omits cycle hits of a project with cycles off and module hits of one with modules off, scoped or not", () => {
+    const { ctx, project } = setup();
+    const liveCycle = createCycle(ctx, { project_id: project.id, name: "Sprint live" });
+    const liveModule = createModule(ctx, { project_id: project.id, name: "Sprint module live" });
+    const quiet = createProject(ctx, { name: "Quiet", identifier: "QUI" });
+    createCycle(ctx, { project_id: quiet.id, name: "Sprint quiet" });
+    createModule(ctx, { project_id: quiet.id, name: "Sprint module quiet" });
+    updateProjectFeatures(ctx, quiet.id, { cycles_enabled: false });
+    expect(ids(searchAll(ctx, "sprint", { types: ["cycle"] }))).toEqual([liveCycle.id]);
+    expect(ids(searchAll(ctx, "sprint", { types: ["module"] })).length).toBe(2);
+    updateProjectFeatures(ctx, quiet.id, { cycles_enabled: true, modules_enabled: false });
+    expect(ids(searchAll(ctx, "sprint", { types: ["cycle"] })).length).toBe(2);
+    expect(ids(searchAll(ctx, "sprint", { types: ["module"] }))).toEqual([liveModule.id]);
+    expect(searchAll(ctx, "sprint", { types: ["module"], scope: { project_id: quiet.id } })).toEqual([]);
+    expect(ids(searchAll(ctx, "sprint", { types: ["cycle"], scope: { project_id: quiet.id } })).length).toBe(1);
+    updateProjectFeatures(ctx, quiet.id, { cycles_enabled: false, modules_enabled: false });
+    expect(searchAll(ctx, "sprint", { scope: { project_id: quiet.id } })).toEqual([]);
+    expect(ids(searchAll(ctx, "sprint")).sort()).toEqual([liveCycle.id, liveModule.id].sort());
+  });
+});
+
 describe("searchAll over pages", () => {
   it("finds project pages and wiki pages through the page FTS table", () => {
     const { ctx, project } = setup();
@@ -269,7 +315,7 @@ describe("searchAll options", () => {
     expect(new Set(all.map((hit) => hit.type))).toEqual(new Set(["work_item", "cycle", "module", "page"]));
     expect(all).toHaveLength(8);
     expect(searchAll(ctx, "common", { limit: 3 })).toHaveLength(3);
-    expect(SEARCH_TYPES).toEqual(["work_item", "page", "cycle", "module", "project"]);
+    expect(SEARCH_TYPES).toEqual(["work_item", "page", "cycle", "module", "project", "view"]);
   });
 
   it("orders hits by score, then type order, then title", () => {

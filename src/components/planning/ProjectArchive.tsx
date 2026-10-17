@@ -13,13 +13,14 @@ import { useRouter } from "next/navigation";
 import { AlertDialog } from "@/components/shell/dialogs";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
+import { List, ListItem } from "@astryxdesign/core/List";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { useToast } from "@astryxdesign/core/Toast";
 import type { DropdownMenuOption } from "@astryxdesign/core/DropdownMenu";
 import { archiveProjectAction, unarchiveProjectAction } from "@/app/actions/projects";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import type { Project } from "@/lib/tessera/types";
-import { ArchiveIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
+import { ArchiveIcon, GearIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { failureText } from "./archive-rules";
 import { DeleteProjectDialog } from "./DeleteProjectDialog";
 
@@ -47,8 +48,13 @@ export function useRestoreProject(project: Pick<Project, "id" | "identifier">): 
 
 export type ProjectMenuProps = { project: ArchivableProject };
 
-/** "Project actions" overflow menu: Archive project… (active) or Restore project (archived), and Delete project…. */
-export function ProjectMenu({ project }: ProjectMenuProps) {
+/**
+ * Archive, restore and delete of one project (P4 F2: the project menu and the
+ * settings' danger zone share them): the pending state, the two confirmations
+ * and their side effects. `dialogs` renders the AlertDialog and the delete
+ * dialog next to whichever control opens them.
+ */
+function useProjectActions(project: ArchivableProject) {
   const router = useRouter();
   const toast = useToast();
   const { restore, isRestoring } = useRestoreProject(project);
@@ -79,9 +85,8 @@ export function ProjectMenu({ project }: ProjectMenuProps) {
     { id: "delete", label: "Delete project…", icon: TrashIcon, variant: "destructive", onClick: () => setConfirmDelete(true) },
   ];
 
-  return (
+  const dialogs = (
     <>
-      <MoreMenu label="Project actions" size="sm" items={items} alignment="end" />
       <AlertDialog
         isOpen={confirmArchive}
         onOpenChange={(open) => !isArchiving && setConfirmArchive(open)}
@@ -93,6 +98,64 @@ export function ProjectMenu({ project }: ProjectMenuProps) {
         onAction={archive}
       />
       <DeleteProjectDialog project={project} isOpen={confirmDelete} onOpenChange={setConfirmDelete} />
+    </>
+  );
+
+  return {
+    isArchived,
+    isRestoring,
+    items,
+    dialogs,
+    restore,
+    requestArchive: () => setConfirmArchive(true),
+    requestDelete: () => setConfirmDelete(true),
+  };
+}
+
+/** "Project actions" overflow menu: Project settings, then Archive project… (active) or Restore project (archived) and Delete project…. */
+export function ProjectMenu({ project }: ProjectMenuProps) {
+  const { items, dialogs } = useProjectActions(project);
+  const menuItems: DropdownMenuOption[] = [
+    { id: "settings", label: "Project settings", icon: GearIcon, href: `/projects/${project.id}/settings/general` },
+    { type: "divider" },
+    ...items,
+  ];
+  return (
+    <>
+      <MoreMenu label="Project actions" size="sm" items={menuItems} alignment="end" />
+      {dialogs}
+    </>
+  );
+}
+
+/**
+ * Danger zone of the General settings tab: Archive (Restore when archived) and
+ * Delete project…, with the dialogs and side effects of the menu. Both stay
+ * enabled on an archived project.
+ */
+export function ProjectDangerZone({ project }: ProjectMenuProps) {
+  const { isArchived, isRestoring, restore, requestArchive, requestDelete, dialogs } = useProjectActions(project);
+  return (
+    <>
+      <List hasDividers>
+        <ListItem
+          label="Archive project"
+          description="It leaves the sidebar and becomes read-only until restored."
+          endContent={
+            isArchived ? (
+              <Button variant="secondary" size="sm" label="Restore" isLoading={isRestoring} onClick={restore} />
+            ) : (
+              <Button variant="secondary" size="sm" label="Archive" onClick={requestArchive} />
+            )
+          }
+        />
+        <ListItem
+          label="Delete project"
+          description="Deletes its work items, cycles, modules and views."
+          endContent={<Button variant="destructive" size="sm" label="Delete project…" onClick={requestDelete} />}
+        />
+      </List>
+      {dialogs}
     </>
   );
 }

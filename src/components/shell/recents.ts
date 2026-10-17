@@ -27,6 +27,9 @@ export type RouteIconKey =
   | "cycle"
   | "modules"
   | "module"
+  | "views"
+  | "view"
+  | "settings"
   | "archives";
 
 export type RouteInfo = { label: string; icon: RouteIconKey };
@@ -113,11 +116,13 @@ function decodeSegment(segment: string): string {
  * `/projects/[id]/work-items`, `/projects/[id]/work-items/[workItemId]`,
  * `/projects/[id]/cycles(/[cycleId])` and `/projects/[id]/modules(/[moduleId])`
  * (the entity's registered name, else "Cycle" / "Module"),
+ * `/projects/[id]/views(/[viewId])` (the view's registered name, else "View"),
+ * `/projects/[id]/settings(/<tab>)` ("Settings · General", ...),
  * `/projects/[id]/archives(/...)` ("Archived work items", "Archived cycles"
  * or "Archived modules" by tab), `/work-items/[workItemId]` (the global
  * detail, labelled by `workItemLabel` once the screen registers it),
  * `/browse/[key]` (the key, upper-cased) and the aliases `/cycles/[id]` and
- * `/modules/[id]`. Any other project section (`/settings`, ...) resolves to
+ * `/modules/[id]`. Any other project section (`/intake`, ...) resolves to
  * "<project> · <Section>" with the page icon, so later lanes get sensible
  * labels without editing this file; unknown top-level paths use their first
  * segment.
@@ -158,6 +163,14 @@ export function resolveRoute(pathname: string, lookup: RouteLookup): RouteInfo {
       if (entityId === undefined) return { label: `${name} · Modules`, icon: "modules" };
       return { label: `${name} · ${lookup.entityLabel?.(entityId) ?? "Module"}`, icon: "module" };
     }
+    if (section === "views") {
+      if (entityId === undefined) return { label: `${name} · Views`, icon: "views" };
+      return { label: `${name} · ${lookup.entityLabel?.(entityId) ?? "View"}`, icon: "view" };
+    }
+    if (section === "settings") {
+      // `/settings/<tab>` names its tab; any other path under `/settings` reads as "Settings".
+      return { label: entityId === undefined ? `${name} · Settings` : `${name} · Settings · ${titleCase(entityId)}`, icon: "settings" };
+    }
     if (section === "archives") {
       // One label per archives tab, so the three tabs never read as one repeated recent.
       const tab = entityId === undefined ? undefined : ARCHIVE_TAB_LABELS.get(entityId);
@@ -171,9 +184,10 @@ export function resolveRoute(pathname: string, lookup: RouteLookup): RouteInfo {
 
 /**
  * Redirect aliases (`/browse/[key]`, `/cycles/[id]`, `/modules/[id]`), the
- * project index `/projects/[id]` (it lands on the work items) and the
+ * project index `/projects/[id]` (it lands on the work items), the
  * archives index `/projects/[id]/archives` (it lands on the archived work
- * items): the route either redirects to another page or shows not-found, so
+ * items) and the settings index `/projects/[id]/settings` (it lands on
+ * General): the route either redirects to another page or shows not-found, so
  * it is never a recent. `/projects/archives` is a page of its own.
  */
 export function isTransientPath(path: string): boolean {
@@ -181,7 +195,7 @@ export function isTransientPath(path: string): boolean {
   if (key.startsWith("/browse/") || key.startsWith("/cycles/") || key.startsWith("/modules/")) return true;
   // The project index `/projects/[id]` only redirects to its work items.
   if (/^\/projects\/(?!archives$)[^/]+$/.test(key)) return true;
-  return /^\/projects\/(?!archives\/)[^/]+\/archives$/.test(key);
+  return /^\/projects\/(?!archives\/)[^/]+\/(?:archives|settings)$/.test(key);
 }
 
 /** Routes that never become recents: Home (where the list lives), the root and the redirect aliases. */

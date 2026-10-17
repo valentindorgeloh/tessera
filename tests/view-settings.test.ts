@@ -251,6 +251,15 @@ describe("merge helpers", () => {
     expect(mergeDisplay(DEFAULT_DISPLAY, {})).toEqual(DEFAULT_DISPLAY);
   });
 
+  it("mergeDisplay drops a sub-group equal to the group or without a group", () => {
+    expect(mergeDisplay(DEFAULT_DISPLAY, { group_by: "state", sub_group_by: "state" }).sub_group_by).toBeNull();
+    expect(mergeDisplay(DEFAULT_DISPLAY, { group_by: null, sub_group_by: "priority" }).sub_group_by).toBeNull();
+    expect(mergeDisplay(DEFAULT_DISPLAY, { group_by: "state", sub_group_by: "priority" })).toMatchObject({ group_by: "state", sub_group_by: "priority" });
+    const stored: Display = { ...DEFAULT_DISPLAY, group_by: "state", sub_group_by: "priority" };
+    expect(mergeDisplay(stored, { group_by: "priority" }).sub_group_by).toBeNull();
+    expect(mergeDisplay(stored, { group_by: null }).sub_group_by).toBeNull();
+  });
+
   it("mergeFilters overrides key by key and drops unknown keys", () => {
     expect(mergeFilters({ priority: ["high"], search: "a" }, { search: "b", bogus: 1 } as never)).toEqual({ priority: ["high"], search: "b" });
   });

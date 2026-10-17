@@ -19,7 +19,7 @@
  * way to create an item. The sub-header's title and count are props too
  * (default "Work items" and the list's total).
  */
-import { startTransition, useEffect, useOptimistic, useState } from "react";
+import { startTransition, useEffect, useOptimistic, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
@@ -32,6 +32,8 @@ import { createWorkItemAction, moveWorkItemAction, updateWorkItemAction } from "
 import { notePeekPush } from "@/components/detail/peek-history";
 import { currentHref, peekHref } from "@/components/detail/peek-url";
 import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
+import { SaveViewButton } from "@/components/views/SaveViewButton";
+import { normalizeFilters } from "@/components/views/view-state";
 import { isMultiValuedGroup } from "@/lib/tessera/core/group";
 import type { CreateWorkItemInputType, Display, Filters, GroupBy, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 import { PlusIcon } from "@/themes/catppuccin/icons";
@@ -44,7 +46,7 @@ import { toEngineMove } from "./moves";
 import { isOptimisticId, optimisticId } from "./optimistic";
 import { realNeighbour, reduceOptimisticList, type OptimisticAction, type StateGroupOf } from "./optimistic-list";
 import { useProject } from "./project-provider";
-import { openMemberships, quickAddAllowed, quickAddInput, withScopeDefaults, type QuickAddContext } from "./quick-add";
+import { createDefaultsFromScope, openMemberships, quickAddAllowed, quickAddInput, withScopeDefaults, type QuickAddContext } from "./quick-add";
 import { TableLayout } from "./TableLayout";
 import type { LayoutProps, MoveInput, QuickAddGroup, ScopeDefaults, SettingsScope, UpdateWorkItemPatch } from "./types";
 import { decodeUrlState } from "./url-state";
@@ -59,9 +61,13 @@ export type WorkItemsScreenProps = {
   settingsDisplay: Display;
   /** Open the create dialog (`?create=1`, the sidebar's "New work item"). */
   createOnOpen: boolean;
-  /** View settings row the layout switch and the display menu save to; default `{ "project", projectId }`. */
-  settingsScope?: SettingsScope;
-  /** Memberships new items join (a cycle's or a module's list). */
+  /**
+   * View settings row the layout switch and the display menu save to; undefined
+   * means `{ "project", projectId }`, null means URL only (a saved view's page,
+   * decision 32: nothing is saved until "Update view").
+   */
+  settingsScope?: SettingsScope | null;
+  /** Memberships and fields new items start with (a cycle's or a module's list, a view's filters). */
   scopeDefaults?: ScopeDefaults;
   /** Default true; false hides "New work item", the `c` hotkey, `?create=1` and quick-add. */
   canCreate?: boolean;
@@ -79,6 +85,14 @@ export type WorkItemsScreenProps = {
    * Badge (a scope header that shows its own count).
    */
   count?: number | null;
+  /** After the count Badge in the sub-header's start (a view's lock icon). */
+  titleAdornment?: ReactNode;
+  /** Last item of the sub-header's end, after "New work item" (a view's menu). */
+  subheaderEnd?: ReactNode;
+  /** The filters row's end slot (a view's ViewBar); wins over `saveView`. */
+  filtersEnd?: ReactNode;
+  /** Show "Save view" in the filters row's end while filters or display are set in the URL (the project list). */
+  saveView?: boolean;
 };
 
 const DEFAULT_TITLE = "Work items";
@@ -97,6 +111,10 @@ export function WorkItemsScreen({
   hiddenGroupFields = NO_HIDDEN_FIELDS,
   title = DEFAULT_TITLE,
   count,
+  titleAdornment,
+  subheaderEnd,
+  filtersEnd,
+  saveView = false,
 }: WorkItemsScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -104,9 +122,12 @@ export function WorkItemsScreen({
   const toast = useToast();
   const { bundle, statesById, firstStateByGroup } = useProject();
   const urlState = decodeUrlState(searchParams.get("q"));
-  const settingsScope: SettingsScope = settingsScopeProp ?? { scope_type: "project", scope_id: projectId };
-  // A closed scope (completed or archived cycle, archived module) ignores `?create=1`.
-  const createOnOpen = canCreate && createRequested;
+  const settingsScope: SettingsScope | null = settingsScopeProp === undefined ? { scope_type: "project", scope_id: projectId } : settingsScopeProp;
+  // An archived project is read-only: no create, no drag, no inline edit (P3 leftover).
+  const readOnly = bundle.project.archived_at !== null;
+  const canCreateItems = canCreate && !readOnly;
+  // A closed scope (completed or archived cycle, archived module) or an archived project ignores `?create=1`.
+  const createOnOpen = canCreateItems && createRequested;
   // Open modules and cycles: groups of an archived module or a completed or archived cycle get no quick-add row.
   const quickAddContext: QuickAddContext = { projectId, states: bundle.states, ...openMemberships(bundle), scopeDefaults };
   const stateGroupOf: StateGroupOf = (stateId) => statesById.get(stateId)?.state_group;
@@ -124,7 +145,7 @@ export function WorkItemsScreen({
   const [createRequestSeen, setCreateRequestSeen] = useState(false);
   if (createOnOpen && !createRequestSeen) {
     setCreateRequestSeen(true);
-    setCreateDefaults(undefined);
+    setCreateDefaults(createDefaultsFromScope(scopeDefaults));
     setCreateOpen(true);
   } else if (!createOnOpen && createRequestSeen) {
     setCreateRequestSeen(false);
@@ -141,15 +162,15 @@ export function WorkItemsScreen({
   }, [createOnOpen]);
 
   const openCreate = () => {
-    setCreateDefaults(undefined);
+    setCreateDefaults(createDefaultsFromScope(scopeDefaults));
     setCreateOpen(true);
   };
-  useHotkeys([{ keys: "c", onPress: openCreate, isDisabled: isCreateOpen || !canCreate }]);
+  useHotkeys([{ keys: "c", onPress: openCreate, isDisabled: isCreateOpen || !canCreateItems }]);
 
   const fail = (what: string, message: string) => toast({ type: "error", body: `${what}: ${message}` });
 
   const onUpdate = (id: string, patch: UpdateWorkItemPatch) => {
-    if (isOptimisticId(id)) return;
+    if (readOnly || isOptimisticId(id)) return;
     startTransition(async () => {
       applyOptimistic({ type: "update", id, patch });
       const result = await updateWorkItemAction({ work_item_id: id, ...patch });
@@ -158,7 +179,7 @@ export function WorkItemsScreen({
   };
 
   const onMove = (input: MoveInput) => {
-    if (isOptimisticId(input.id)) return;
+    if (readOnly || isOptimisticId(input.id)) return;
     const move: MoveInput = { ...input, before_id: realNeighbour(input.before_id), after_id: realNeighbour(input.after_id) };
     const engineMove = toEngineMove(move, firstStateByGroup);
     if (!engineMove) return;
@@ -169,6 +190,10 @@ export function WorkItemsScreen({
         group_by: engineMove.group_by ?? undefined,
         value: engineMove.value,
         from_value: engineMove.group_by && isMultiValuedGroup(engineMove.group_by) ? engineMove.from_value : undefined,
+        // A two-axis board drop (swimlanes, decision 30): the sub axis rides along, its from_value only for multi-valued fields.
+        sub_group_by: engineMove.sub_group_by,
+        sub_value: engineMove.sub_value,
+        sub_from_value: engineMove.sub_group_by && isMultiValuedGroup(engineMove.sub_group_by) ? engineMove.sub_from_value : undefined,
         before_id: engineMove.before_id,
         after_id: engineMove.after_id,
       });
@@ -177,6 +202,7 @@ export function WorkItemsScreen({
   };
 
   const onQuickAdd = (group: QuickAddGroup, name: string) => {
+    if (readOnly) return;
     const input = quickAddInput(group, name, quickAddContext);
     if (!input) {
       setCreateDefaults({ name });
@@ -242,12 +268,15 @@ export function WorkItemsScreen({
     onMove,
     onUpdate,
     onOpen,
-    onQuickAdd: canCreate ? onQuickAdd : undefined,
+    onQuickAdd: canCreateItems ? onQuickAdd : undefined,
     canQuickAdd: (group) => quickAddAllowed(group, quickAddContext),
+    readOnly,
   };
   // The dialog starts in the scope: `{ ...scopeDefaults, ...createDefaults }` with module ids united.
   const dialogDefaults = scopeDefaults ? withScopeDefaults(createDefaults ?? {}, scopeDefaults) : createDefaults;
   const shownCount = count === undefined ? optimistic.total : count;
+  const showSaveView =
+    saveView && bundle.project.views_enabled && !readOnly && (Object.keys(normalizeFilters(filters)).length > 0 || urlState.display !== undefined);
 
   return (
     <>
@@ -264,17 +293,24 @@ export function WorkItemsScreen({
                     {title}
                   </Text>
                   {shownCount === null ? null : <Badge variant="purple" label={String(shownCount)} />}
+                  {titleAdornment}
                 </>
               }
               end={
                 <>
                   <LayoutSwitch display={display} urlState={urlState} settingsScope={settingsScope} />
                   <DisplayMenu display={display} urlState={urlState} settingsScope={settingsScope} hiddenGroupFields={hiddenGroupFields} />
-                  {canCreate ? <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" /> : null}
+                  {canCreateItems ? <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" /> : null}
+                  {subheaderEnd}
                 </>
               }
             />
-            <PanelBar size="filters" hasDivider start={<FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} />} />
+            <PanelBar
+              size="filters"
+              hasDivider
+              start={<FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} />}
+              end={filtersEnd ?? (showSaveView ? <SaveViewButton projectId={projectId} filters={filters} display={display} /> : undefined)}
+            />
           </PanelHeader>
         }
         content={

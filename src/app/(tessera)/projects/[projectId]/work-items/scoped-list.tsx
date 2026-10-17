@@ -110,6 +110,7 @@ export async function ScopedWorkItems({
         hiddenGroupFields={hiddenGroupFields}
         title={title}
         count={count}
+        saveView={scope.type === "project"}
       />
     </PeekHost>
   );

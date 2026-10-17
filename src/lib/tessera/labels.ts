@@ -2,12 +2,10 @@
  * Labels (docs/contracts/service-api.md, schema.md "Labels"). Names are unique
  * per project (name_key); the hierarchy is one level deep: a label with a
  * parent can never be a parent itself. Deleting a parent deletes its children;
- * deleting any label removes it from work items, from the saved filters of
- * the project's views and of workspace views, and from remembered list
- * settings (view_settings), all in one transaction, so no filter keeps an id
- * that can never resolve again.
+ * deleting any label removes it from work items and from saved filters
+ * (saved-filters.ts, decision 32), all in one transaction.
  */
-import { and, asc, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { diffFields, logActivity } from "./activity";
 import type { TesseraContext } from "./core/context";
@@ -16,10 +14,10 @@ import { newId } from "./core/ids";
 import { nameKey } from "./core/keys";
 import { lastSortOrder, sortOrderAfter, sortOrderForMove } from "./core/order";
 import { withTx } from "./core/tx";
-import { label, page_label, project, view, view_settings, work_item_label } from "./db/schema";
-import { FiltersSchema, IdSchema, PaletteColorSchema } from "./schemas";
-import type { Filters, LabelRow, ProjectRow } from "./types";
-import { viewSettingsEntityId } from "./view-settings";
+import { label, page_label, project, work_item_label } from "./db/schema";
+import { stripIdsFromSavedFilters } from "./saved-filters";
+import { IdSchema, PaletteColorSchema } from "./schemas";
+import type { LabelRow, ProjectRow } from "./types";
 
 export type Label = LabelRow;
 
@@ -242,62 +240,6 @@ export function reorderLabel(ctx: TesseraContext, id: string, input: ReorderLabe
   });
 }
 
-/** Removes `removed` from `filters.labels`; null when the filters do not reference any of them. */
-function stripLabelsFromFilters(filters: Filters, removed: ReadonlySet<string>): Filters | null {
-  const labels = filters.labels;
-  if (!labels || !labels.some((labelId) => removed.has(labelId))) return null;
-  const remaining = labels.filter((labelId) => !removed.has(labelId));
-  const next: Filters = { ...filters };
-  if (remaining.length > 0) {
-    next.labels = remaining;
-  } else {
-    delete next.labels;
-  }
-  return next;
-}
-
-/** Rewrites every view of the project, and every workspace view (they may filter by any project's labels), whose saved filters mention a deleted label. */
-function stripLabelsFromViews(ctx: TesseraContext, projectId: string, removed: ReadonlySet<string>): void {
-  const views = ctx.db
-    .select()
-    .from(view)
-    .where(and(or(eq(view.project_id, projectId), isNull(view.project_id)), isNull(view.deleted_at)))
-    .all();
-  const now = ctx.now();
-  for (const row of views) {
-    const parsed = FiltersSchema.safeParse(row.filters);
-    if (!parsed.success) continue;
-    const next = stripLabelsFromFilters(parsed.data, removed);
-    if (next === null) continue;
-    ctx.db.update(view).set({ filters: next, updated_at: now, updated_by: ctx.actor.id }).where(eq(view.id, row.id)).run();
-    diffFields(ctx, { project_id: projectId, entity_type: "view", entity_id: row.id }, { filters: parsed.data }, { filters: next }, ["filters"]);
-  }
-}
-
-/** Rewrites the remembered list settings of every scope whose filters mention a deleted label; the table holds one small row per scope. */
-function stripLabelsFromViewSettings(ctx: TesseraContext, projectId: string, removed: ReadonlySet<string>): void {
-  const rows = ctx.db.select().from(view_settings).all();
-  const now = ctx.now();
-  for (const row of rows) {
-    const parsed = FiltersSchema.safeParse(row.filters);
-    if (!parsed.success) continue;
-    const next = stripLabelsFromFilters(parsed.data, removed);
-    if (next === null) continue;
-    ctx.db
-      .update(view_settings)
-      .set({ filters: next, updated_at: now })
-      .where(and(eq(view_settings.scope_type, row.scope_type), eq(view_settings.scope_id, row.scope_id)))
-      .run();
-    diffFields(
-      ctx,
-      { project_id: projectId, entity_type: "view_settings", entity_id: viewSettingsEntityId(row.scope_type, row.scope_id) },
-      { filters: parsed.data },
-      { filters: next },
-      ["filters"],
-    );
-  }
-}
-
 /**
  * Soft-deletes a label and its children, removes the junction rows that
  * reference them and strips their ids from the filters of the project's
@@ -317,7 +259,6 @@ export function deleteLabel(ctx: TesseraContext, id: string): void {
       logActivity(ctx, { project_id: row.project_id, entity_type: "label", entity_id: row.id, verb: "deleted", old_identifier: row.name });
     }
     const removed = new Set(ids);
-    stripLabelsFromViews(ctx, target.project_id, removed);
-    stripLabelsFromViewSettings(ctx, target.project_id, removed);
+    stripIdsFromSavedFilters(ctx, { key: "labels", ids: removed, project_id: target.project_id });
   });
 }

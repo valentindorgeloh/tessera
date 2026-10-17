@@ -1,1 +1,5 @@
 /* Tessera P4 saved views styles (lane F1): views list, view bar and dialogs. Classes are prefixed tessera-views-. Tokens only. */
+
+.tessera-views-search {
+  width: min(calc(var(--spacing-12) * 4), 40vw);
+}

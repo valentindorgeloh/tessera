@@ -64,9 +64,11 @@ describe("labels and sections", () => {
 
 describe("dates", () => {
   it("formats a range through formatShortDate, and drafts as No dates", () => {
-    expect(formatCycleRange("2026-03-01", "2026-03-14")).toBe(`${formatShortDate("2026-03-01")} – ${formatShortDate("2026-03-14")}`);
-    expect(formatCycleRange(null, null)).toBe("No dates");
-    expect(formatCycleRange("2026-03-01", null)).toBe("No dates");
+    expect(formatCycleRange("2026-03-01", "2026-03-14", TODAY)).toBe(`${formatShortDate("2026-03-01", TODAY)} – ${formatShortDate("2026-03-14", TODAY)}`);
+    expect(formatCycleRange(null, null, TODAY)).toBe("No dates");
+    expect(formatCycleRange("2026-03-01", null, TODAY)).toBe("No dates");
+    // The year shows for a date outside today's year.
+    expect(formatCycleRange("2026-12-28", "2027-01-10", TODAY)).toBe("Dec 28 – Jan 10, 2027");
   });
 
   it("counts the days left to the end date", () => {

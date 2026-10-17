@@ -56,10 +56,10 @@ export function canArchiveModule(status: ModuleStatus): boolean {
 }
 
 /** "Mar 1 – Mar 14", "From Mar 1", "Until Mar 14" or "No dates". */
-export function formatModuleRange(start: string | null, target: string | null): string {
-  if (start && target) return `${formatShortDate(start)} – ${formatShortDate(target)}`;
-  if (start) return `From ${formatShortDate(start)}`;
-  if (target) return `Until ${formatShortDate(target)}`;
+export function formatModuleRange(start: string | null, target: string | null, today: string): string {
+  if (start && target) return `${formatShortDate(start, today)} – ${formatShortDate(target, today)}`;
+  if (start) return `From ${formatShortDate(start, today)}`;
+  if (target) return `Until ${formatShortDate(target, today)}`;
   return "No dates";
 }
 

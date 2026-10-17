@@ -43,10 +43,10 @@ export function groupCycles<C extends Pick<Cycle, "status">>(cycles: readonly C[
   );
 }
 
-/** "Mar 1 – Mar 14", or "No dates" for a draft. */
-export function formatCycleRange(start: string | null, end: string | null): string {
+/** "Mar 1 – Mar 14", or "No dates" for a draft; the year shows for a date outside `today`'s year. */
+export function formatCycleRange(start: string | null, end: string | null, today: string): string {
   if (start === null || end === null) return "No dates";
-  return `${formatShortDate(start)} – ${formatShortDate(end)}`;
+  return `${formatShortDate(start, today)} – ${formatShortDate(end, today)}`;
 }
 
 /** "Ends today", "1 day left", "N days left" (counted from `today` to the end date); "Ended" once the end date has passed. */

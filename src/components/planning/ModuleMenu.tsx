@@ -16,6 +16,7 @@ import type { ButtonSize } from "@astryxdesign/core/Button";
 import { useToast } from "@astryxdesign/core/Toast";
 import { archiveModuleAction, deleteModuleAction, unarchiveModuleAction } from "@/app/actions/modules";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
+import { useOptionalProject } from "@/components/work-items/project-provider";
 import { ArchiveIcon, PencilIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { ModuleDialog, type EditableModule } from "./ModuleDialog";
 import { DELETE_MODULE_DESCRIPTION, deleteModuleTitle, moduleActions, type ModuleActionId } from "./module-format";
@@ -39,6 +40,8 @@ type Outcome = { ok: true } | { ok: false; message: string };
 
 export function ModuleMenu({ projectId, module, size = "sm", onDeleted }: ModuleMenuProps) {
   const toast = useToast();
+  // Core change (P4 F3.4): the menu of a module in an archived project is disabled, in the list row and the detail header alike.
+  const projectArchived = (useOptionalProject()?.bundle.project.archived_at ?? null) !== null;
   const [isEditOpen, setEditOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, startDelete] = useTransition();
@@ -85,7 +88,7 @@ export function ModuleMenu({ projectId, module, size = "sm", onDeleted }: Module
 
   return (
     <>
-      <MoreMenu label={`Actions for ${module.name}`} size={size} items={items} placement="below" alignment="end" />
+      <MoreMenu label={`Actions for ${module.name}`} size={size} items={items} placement="below" alignment="end" isDisabled={projectArchived} />
       {module.archived_at === null ? <ModuleDialog projectId={projectId} isOpen={isEditOpen} onOpenChange={setEditOpen} module={module} /> : null}
       <AlertDialog
         isOpen={isDeleteOpen}

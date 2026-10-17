@@ -125,9 +125,12 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
   const clipboard = useClipboard({ announce: "Copied" });
   const rootRef = useRef<HTMLDivElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const readOnly = item.archived_at !== null;
+  const { statesById, bundle } = useProject();
+  // An archived project makes its items read-only as an archived item does (F3.4); the item's own Banner and Restore stay for archived items only.
+  const itemArchived = item.archived_at !== null;
+  const projectArchived = bundle.project.archived_at !== null;
+  const readOnly = itemArchived || projectArchived;
   const listPath = `/projects/${item.project_id}/work-items`;
-  const { statesById } = useProject();
   const canArchive = canArchiveWorkItem(statesById.get(item.state_id)?.state_group);
 
   const copyItem = () => {
@@ -223,17 +226,18 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
         onDelete={() => setConfirmDelete(true)}
         onArchive={readOnly ? undefined : archiveItem}
         archiveBlockedReason={readOnly || canArchive ? undefined : ARCHIVE_OPEN_ITEM_REASON}
-        onRestore={readOnly ? restoreItem : undefined}
+        onRestore={itemArchived && !projectArchived ? restoreItem : undefined}
       />
       {/* Grid areas (detail.css): title, rail and main stack in one column; the page host from 960px puts the rail in a right column. */}
       <VStack gap={0} className="tessera-detail-body" as="section" aria-label={label}>
         <VStack gap={3} className="tessera-detail-heading">
-          {readOnly ? (
+          {itemArchived ? (
+            // The engine refuses unarchive while the project is archived (loadWritableProject throws ARCHIVED), so no Restore then.
             <Banner
               status="info"
               title="This work item is archived"
-              description="Restore it to edit it."
-              endContent={<Button variant="secondary" size="sm" label="Restore" icon={<RestoreIcon />} isLoading={isArchiving} onClick={restoreItem} />}
+              description={projectArchived ? "Restore the project to edit it." : "Restore it to edit it."}
+              endContent={projectArchived ? undefined : <Button variant="secondary" size="sm" label="Restore" icon={<RestoreIcon />} isLoading={isArchiving} onClick={restoreItem} />}
             />
           ) : null}
           <DetailTitle item={item} host={host} readOnly={readOnly} actions={actions} />

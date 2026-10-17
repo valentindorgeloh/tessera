@@ -82,8 +82,8 @@ function unite(a: readonly string[] | undefined, b: readonly string[] | undefine
 
 /**
  * Create input for a quick-add row: the group's field carries the group's
- * value, then the scope's memberships apply (`cycle_id` when the group set
- * none, `module_ids` united). Null when the group's value cannot be turned
+ * value, then the scope's defaults apply (`withScopeDefaults`: a cycle, a
+ * module, or a view's filters). Null when the group's value cannot be turned
  * into a field (the caller opens the create dialog instead).
  */
 export function quickAddInput(group: QuickAddGroup, name: string, context: QuickAddContext): CreateWorkItemInputType | null {
@@ -132,15 +132,41 @@ export function quickAddInput(group: QuickAddGroup, name: string, context: Quick
   return withScopeDefaults(input, context.scopeDefaults);
 }
 
-/** `input` joined to the scope: the scope's cycle unless the input names one, the union of module ids. */
+/**
+ * `input` joined to the scope. A cycle's or module's list and a view's filters
+ * both supply defaults: `state_id`, `priority` and `cycle_id` only when the
+ * input did not set them (the group's own field wins); label, assignee and
+ * module ids are united with the input's.
+ */
 export function withScopeDefaults<T extends ScopeDefaults>(input: T, scopeDefaults: ScopeDefaults | undefined): T {
   if (!scopeDefaults) return input;
-  const cycleId = input.cycle_id ?? scopeDefaults.cycle_id;
-  const moduleIds = unite(input.module_ids, scopeDefaults.module_ids);
   const next: T = { ...input };
+  const stateId = input.state_id ?? scopeDefaults.state_id;
+  const priority = input.priority ?? scopeDefaults.priority;
+  const cycleId = input.cycle_id ?? scopeDefaults.cycle_id;
+  const labelIds = unite(input.label_ids, scopeDefaults.label_ids);
+  const assigneeIds = unite(input.assignee_ids, scopeDefaults.assignee_ids);
+  const moduleIds = unite(input.module_ids, scopeDefaults.module_ids);
+  if (stateId !== undefined) next.state_id = stateId;
+  if (priority !== undefined) next.priority = priority;
   if (cycleId !== undefined) next.cycle_id = cycleId;
+  if (labelIds !== undefined) next.label_ids = labelIds;
+  if (assigneeIds !== undefined) next.assignee_ids = assigneeIds;
   if (moduleIds !== undefined) next.module_ids = moduleIds;
   return next;
+}
+
+/** Create-dialog defaults of a scope (a cycle, a module, a view's filters), one field to one; undefined for an empty or missing scope. */
+export function createDefaultsFromScope(scope: ScopeDefaults | undefined): Partial<Omit<CreateWorkItemInputType, "project_id">> | undefined {
+  if (!scope) return undefined;
+  const defaults: Partial<Omit<CreateWorkItemInputType, "project_id">> = {};
+  if (scope.state_id !== undefined) defaults.state_id = scope.state_id;
+  if (scope.priority !== undefined) defaults.priority = scope.priority;
+  if (scope.cycle_id !== undefined) defaults.cycle_id = scope.cycle_id;
+  if (scope.label_ids?.length) defaults.label_ids = [...scope.label_ids];
+  if (scope.assignee_ids?.length) defaults.assignee_ids = [...scope.assignee_ids];
+  if (scope.module_ids?.length) defaults.module_ids = [...scope.module_ids];
+  return Object.keys(defaults).length > 0 ? defaults : undefined;
 }
 
 /**

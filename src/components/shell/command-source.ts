@@ -16,6 +16,7 @@ import type { SearchSource, SearchableItem } from "@astryxdesign/core/Typeahead"
 import type { SearchHit, SearchType } from "@/lib/tessera/types";
 import { COLOR_SCHEME_LABELS, isColorScheme, type ColorScheme } from "./color-scheme";
 import type { CommandContextValue } from "./command-context";
+import { isShortcutHidden, type ProjectFeatures } from "./project-features";
 import type { LabelledRecent, RouteIconKey } from "./recents";
 import { SHORTCUTS, type CommandId, type ShortcutDef, type ShortcutId } from "./shortcuts";
 
@@ -24,7 +25,7 @@ export const SEARCH_DEBOUNCE_MS = 150;
 export const SEARCH_LIMIT = 20;
 export const SEARCH_ENDPOINT = "/api/search";
 
-export const SECTION_ORDER = ["Recent", "Work items", "Projects", "Cycles", "Modules", "Pages", "Actions", "Create", "Navigate", "Settings"] as const;
+export const SECTION_ORDER = ["Recent", "Work items", "Projects", "Cycles", "Modules", "Views", "Pages", "Actions", "Create", "Navigate", "Settings"] as const;
 
 export type CommandSection = (typeof SECTION_ORDER)[number];
 
@@ -33,6 +34,7 @@ export const HIT_SECTION: Readonly<Record<SearchType, CommandSection>> = {
   project: "Projects",
   cycle: "Cycles",
   module: "Modules",
+  view: "Views",
   page: "Pages",
 };
 
@@ -71,7 +73,7 @@ export function hitItemId(hit: Pick<SearchHit, "type" | "id">): string {
   return `${HIT_PREFIX}${hit.type}:${hit.id}`;
 }
 
-const SEARCH_TYPES: ReadonlySet<string> = new Set<SearchType>(["work_item", "page", "cycle", "module", "project"]);
+const SEARCH_TYPES: ReadonlySet<string> = new Set<SearchType>(["work_item", "page", "cycle", "module", "project", "view"]);
 
 function isSearchType(value: string): value is SearchType {
   return SEARCH_TYPES.has(value);
@@ -178,6 +180,39 @@ function themeCommand(scheme: ColorScheme): CommandSearchItem {
  */
 export const THEME_COMMANDS: readonly CommandSearchItem[] = (Object.keys(COLOR_SCHEME_LABELS) as ColorScheme[]).map(themeCommand);
 
+export const PROJECT_SETTINGS_PREFIX = "projectSettings.";
+
+/** The project settings tabs the palette opens (F2's tabs in settings-tabs.ts), with their palette label. */
+const PROJECT_SETTINGS_TABS: readonly { tab: string; label: string }[] = [
+  { tab: "general", label: "General" },
+  { tab: "features", label: "Features" },
+  { tab: "states", label: "States" },
+  { tab: "labels", label: "Labels" },
+  { tab: "agents", label: "Agents" },
+];
+
+/**
+ * "Settings: General" ... "Settings: Agents" for the project in scope, in the
+ * Settings section next to the theme commands; none outside a project. The id
+ * is `projectSettings.<tab>`, which the command bar routes to
+ * `/projects/<projectId>/settings/<tab>`.
+ */
+export function buildProjectSettingsCommands(projectId: string | null): CommandSearchItem[] {
+  if (projectId === null) return [];
+  return PROJECT_SETTINGS_TABS.map(({ tab, label }) => ({
+    id: `${PROJECT_SETTINGS_PREFIX}${tab}`,
+    label: `Settings: ${label}`,
+    auxiliaryData: { group: "Settings", kind: "command", keywords: ["project", "configuration", "preferences", tab] },
+  }));
+}
+
+/** The settings tab of a `projectSettings.<tab>` command id, or null for any other id. */
+export function projectSettingsTab(itemId: string): string | null {
+  if (!itemId.startsWith(PROJECT_SETTINGS_PREFIX)) return null;
+  const tab = itemId.slice(PROJECT_SETTINGS_PREFIX.length);
+  return PROJECT_SETTINGS_TABS.some((entry) => entry.tab === tab) ? tab : null;
+}
+
 /** The colour scheme a `theme.<scheme>` command sets, or null for any other id. */
 export function themeCommandScheme(itemId: string): ColorScheme | null {
   if (!itemId.startsWith(THEME_COMMAND_PREFIX)) return null;
@@ -204,15 +239,18 @@ export function commandItem(def: ShortcutDef, section: CommandSection): CommandS
  * only while a work item is open and only for the actions it registered
  * (labelled by the context's `labels` where it gives one, e.g. "Unsubscribe"),
  * with "Open full page" and "Delete…" closing it; then Create, Navigate and
- * Settings, which ends with the theme commands.
+ * Settings, which ends with the theme commands. The create and navigate
+ * commands of a feature the project in scope has off (`features`, decision 31:
+ * cycles, modules, views) are left out; without `features` all are listed.
  */
-export function buildCommands(context: CommandContextValue | null): CommandSearchItem[] {
+export function buildCommands(context: CommandContextValue | null, features?: ProjectFeatures | null): CommandSearchItem[] {
   const actions: CommandSearchItem[] = [];
   const rest: CommandSearchItem[] = [];
   let deleteItem: CommandSearchItem | null = null;
   for (const def of SHORTCUTS) {
     const section = paletteSection(def);
     if (!section) continue;
+    if (isShortcutHidden(def.id, features)) continue;
     if (section !== "Actions") {
       rest.push(commandItem(def, section));
       continue;

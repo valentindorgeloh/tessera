@@ -22,6 +22,7 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { PanelBar, PanelHeader, PanelPage } from "@/components/shell/PanelHeader";
 import type { Cycle } from "@/lib/tessera/types";
+import { useProject } from "@/components/work-items/project-provider";
 import { CycleIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { ActiveCycleSummary } from "./ActiveCycleSummary";
 import { CycleDialog } from "./CycleDialog";
@@ -44,12 +45,15 @@ export function CyclesScreen({ projectId, cycles, active, today, createOnOpen }:
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isCreateOpen, setCreateOpen] = useState(false);
+  // An archived project takes no new cycles and its row menus are disabled (F3.4, see CycleMenu).
+  const { bundle } = useProject();
+  const isReadOnly = bundle.project.archived_at !== null;
 
   // React to the flag rather than the mount, so `n c` while this page is open opens the dialog too.
   const [createRequestSeen, setCreateRequestSeen] = useState(false);
   if (createOnOpen && !createRequestSeen) {
     setCreateRequestSeen(true);
-    setCreateOpen(true);
+    setCreateOpen(!isReadOnly);
   } else if (!createOnOpen && createRequestSeen) {
     setCreateRequestSeen(false);
   }
@@ -64,7 +68,7 @@ export function CyclesScreen({ projectId, cycles, active, today, createOnOpen }:
   }, [createOnOpen]);
 
   const sections = groupCycles(cycles);
-  const newButton = <Button variant="primary" size="sm" label="New cycle" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />;
+  const newButton = isReadOnly ? null : <Button variant="primary" size="sm" label="New cycle" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />;
 
   // A row's text sits 8px inside the row (Astryx's item inset), so the content column is inset 8px and the
   // card and the section labels another 8px: everything lines up with the panel header's 16px.
@@ -95,7 +99,7 @@ export function CyclesScreen({ projectId, cycles, active, today, createOnOpen }:
               icon={<Icon icon={CycleIcon} size="lg" color="secondary" />}
               title="No cycles yet"
               description="A cycle is a dated window of work. Create one and add work items to it."
-              actions={newButton}
+              actions={newButton ?? undefined}
             />
           ) : (
             <>
@@ -125,7 +129,7 @@ export function CyclesScreen({ projectId, cycles, active, today, createOnOpen }:
           )}
         </VStack>
       </PanelPage>
-      <CycleDialog projectId={projectId} isOpen={isCreateOpen} onOpenChange={setCreateOpen} />
+      {isReadOnly ? null : <CycleDialog projectId={projectId} isOpen={isCreateOpen} onOpenChange={setCreateOpen} />}
     </>
   );
 }

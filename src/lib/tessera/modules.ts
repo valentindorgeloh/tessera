@@ -26,6 +26,8 @@ import { withTx } from "./core/tx";
 import { activeEstimateId, loadBreakdowns, parsePointValue } from "./cycles";
 import { actor, estimate_point, moduleTable, module_member, project, state, work_item, work_item_module } from "./db/schema";
 import { countLinks, listLinks, type Link } from "./links";
+import { assertFeatureEnabled } from "./projects";
+import { stripIdsFromSavedFilters } from "./saved-filters";
 import { IdListSchema, IdSchema, IsoDateSchema, ModuleStatusSchema } from "./schemas";
 import type { ActorRow, ModuleRow, ModuleStatus, PointsCounts, ProgressBreakdownRow, ProgressCounts, ProjectRow, StateGroup } from "./types";
 
@@ -381,7 +383,7 @@ export function createModule(ctx: TesseraContext, input: CreateModuleInputType):
   const targetDate = data.target_date ?? null;
   checkDateOrder(startDate, targetDate);
   return withTx(ctx, () => {
-    loadWritableProject(ctx, data.project_id);
+    assertFeatureEnabled(loadWritableProject(ctx, data.project_id), "modules");
     const key = assertNameFree(ctx, data.project_id, data.name, null);
     const leadId = data.lead_actor_id ?? null;
     if (leadId !== null) getActor(ctx, leadId);
@@ -560,6 +562,7 @@ export function deleteModule(ctx: TesseraContext, id: string): void {
     const now = ctx.now();
     ctx.db.update(moduleTable).set({ deleted_at: now, updated_at: now, updated_by: ctx.actor.id }).where(eq(moduleTable.id, id)).run();
     logActivity(ctx, { ...moduleTarget(before), verb: "deleted", old_identifier: before.name });
+    stripIdsFromSavedFilters(ctx, { key: "module", ids: new Set([id]), project_id: before.project_id });
   });
 }
 

@@ -23,11 +23,13 @@ import {
   unarchiveCycle,
   updateCycle,
 } from "@/lib/tessera/cycles";
-import { activity, cycle, estimate, estimate_point, project, work_item, work_item_assignee, work_item_label } from "@/lib/tessera/db/schema";
+import { activity, cycle, estimate, estimate_point, project, view, work_item, work_item_assignee, work_item_label } from "@/lib/tessera/db/schema";
 import { createLabel } from "@/lib/tessera/labels";
 import { archiveProject, createProject, deleteProject, updateProjectFeatures } from "@/lib/tessera/projects";
 import { listStates } from "@/lib/tessera/states";
-import type { CycleProgress, StateRow } from "@/lib/tessera/types";
+import { DEFAULT_DISPLAY, FiltersSchema } from "@/lib/tessera/schemas";
+import type { CycleProgress, Filters, StateRow } from "@/lib/tessera/types";
+import { getViewSettings, saveViewSettings } from "@/lib/tessera/view-settings";
 import { createWorkItem, deleteWorkItem, listWorkItems, updateWorkItem } from "@/lib/tessera/work-items";
 import { createTestDb, type DbHandles, type TesseraContext } from "./helpers/db";
 import { withTimeZone } from "./helpers/time-zone";
@@ -1072,12 +1074,84 @@ describe("deleteCycle", () => {
 });
 
 /** A work item created open in the (current) cycle and then moved to Done: completed items cannot join a cycle directly. */
+/** Saved filters on `key`: a project view, a locked one, a workspace view and a view_settings row hold [id, other]; one view holds only `id`. */
+function seedSavedFilters(ctx: TesseraContext, projectId: string, key: "state" | "cycle" | "module", id: string, other: string) {
+  const insertView = (scope: string | null, name: string, filters: Filters, isLocked = false) => {
+    const now = ctx.now();
+    return ctx.db
+      .insert(view)
+      .values({
+        id: newId(),
+        project_id: scope,
+        name,
+        name_key: name.toLowerCase(),
+        filters,
+        display: DEFAULT_DISPLAY,
+        is_locked: isLocked,
+        sort_order: firstSortOrder(),
+        created_at: now,
+        updated_at: now,
+        created_by: ctx.actor.id,
+        updated_by: ctx.actor.id,
+      })
+      .returning()
+      .get();
+  };
+  const both = { [key]: [id, other] } as Filters;
+  const views = {
+    project: insertView(projectId, "Project view", both),
+    locked: insertView(projectId, "Locked view", both, true),
+    workspace: insertView(null, "Workspace view", both),
+    only: insertView(projectId, "Only view", { [key]: [id] } as Filters),
+  };
+  saveViewSettings(ctx, "project", projectId, { filters: both });
+  return views;
+}
+
+function storedFilters(ctx: TesseraContext, viewId: string): Filters {
+  const row = ctx.db.select().from(view).where(eq(view.id, viewId)).get();
+  if (!row) throw new Error("view missing");
+  return FiltersSchema.parse(row.filters);
+}
+
 function finishInCycle(ctx: TesseraContext, projectId: string, states: StateRow[], cycleId: string, name: string) {
   const item = createWorkItem(ctx, { project_id: projectId, name, cycle_id: cycleId });
   return updateWorkItem(ctx, item.id, { state_id: byName(states, "Done").id });
 }
 
 // D1: deleting a member is the fourth exception to "completed cycles are read-only" (next to reorder, archive and transfer).
+describe("deleteCycle and saved filters", () => {
+  it("delete strips the id from saved filters", () => {
+    const { ctx, projectId } = setup();
+    const target = createCycle(ctx, { project_id: projectId, name: "Target" });
+    const keep = createCycle(ctx, { project_id: projectId, name: "Keep" });
+    const views = seedSavedFilters(ctx, projectId, "cycle", target.id, keep.id);
+    const seqBefore = latestSeq(ctx);
+    deleteCycle(ctx, target.id);
+    const keptOnly = { cycle: [keep.id] };
+    expect(storedFilters(ctx, views.project.id)).toEqual(keptOnly);
+    expect(storedFilters(ctx, views.locked.id)).toEqual(keptOnly);
+    expect(storedFilters(ctx, views.workspace.id)).toEqual(keptOnly);
+    expect(storedFilters(ctx, views.only.id)).toEqual({});
+    expect(getViewSettings(ctx, "project", projectId).filters).toEqual(keptOnly);
+    const rows = ctx.db.select().from(activity).all().filter((r) => r.seq > seqBefore && r.field === "filters");
+    expect(rows.map((r) => r.entity_type).sort()).toEqual(["view", "view", "view", "view", "view_settings"]);
+  });
+});
+
+describe("Cycles feature toggle", () => {
+  it("create refuses while the feature is off", () => {
+    const { ctx, projectId } = setup();
+    const existing = createCycle(ctx, { project_id: projectId, name: "Existing", ...CURRENT });
+    updateProjectFeatures(ctx, projectId, { cycles_enabled: false });
+    expect(ruleName(() => createCycle(ctx, { project_id: projectId, name: "Blocked", ...UPCOMING }))).toBe("feature_disabled");
+    expect(listCycles(ctx, projectId).map((row) => row.id)).toEqual([existing.id]);
+    expect(getCycle(ctx, existing.id).id).toBe(existing.id);
+    updateProjectFeatures(ctx, projectId, { cycles_enabled: true });
+    expect(createCycle(ctx, { project_id: projectId, name: "Blocked", ...UPCOMING }).id).toBeTruthy();
+  });
+});
+
 describe("deleteWorkItem on cycle members", () => {
   it("is allowed in a completed cycle: live progress drops, a frozen snapshot does not move", () => {
     const { ctx, handles, projectId, states } = setup();

@@ -130,6 +130,34 @@ export function registerEntityLabel(id: string, label: string): void {
   emit();
 }
 
+/**
+ * `labels` with every `<old>-<digits> ` prefix rewritten to `<new>-` (P4 F2: the
+ * project identifier changed, decision 29), order kept. Returns `labels` itself
+ * when no label carries the old key. Pure; identifiers are `A-Z0-9`, so no escaping.
+ */
+export function withRenamedKeys(labels: ReadonlyMap<string, string>, oldIdentifier: string, newIdentifier: string): ReadonlyMap<string, string> {
+  if (oldIdentifier === newIdentifier) return labels;
+  const prefix = new RegExp(`^${oldIdentifier}-(\\d+) `);
+  let changed = false;
+  const next = new Map<string, string>();
+  for (const [id, label] of labels) {
+    const renamed = label.replace(prefix, `${newIdentifier}-$1 `);
+    if (renamed !== label) changed = true;
+    next.set(id, renamed);
+  }
+  return changed ? next : labels;
+}
+
+/** Rewrites the stored work-item labels after a project identifier change; other browser tabs keep the old ones until they navigate. */
+export function renameEntityLabelKeys(oldIdentifier: string, newIdentifier: string): void {
+  loadStoredLabels();
+  const next = withRenamedKeys(labels, oldIdentifier, newIdentifier);
+  if (next === labels) return;
+  labels = next;
+  persist();
+  emit();
+}
+
 /** The labels right now, for event handlers (Power K reads them when it opens); loads the stored ones first. */
 export function readEntityLabels(): ReadonlyMap<string, string> {
   loadStoredLabels();

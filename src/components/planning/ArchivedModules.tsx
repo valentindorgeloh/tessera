@@ -17,6 +17,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { deleteModuleAction, unarchiveModuleAction } from "@/app/actions/modules";
 import { RelativeTime } from "@/components/detail/RelativeTime";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
+import { useProject } from "@/components/work-items/project-provider";
 import type { Module } from "@/lib/tessera/types";
 import { ModuleIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { failureText } from "./archive-rules";
@@ -81,6 +82,7 @@ type RowProps = { projectId: string; module: Module; onDelete: (module: Module) 
 
 function ArchivedModuleRow({ projectId, module: item, onDelete }: RowProps) {
   const toast = useToast();
+  const { bundle } = useProject();
   const [isRestoring, startRestore] = useTransition();
 
   const restore = () => {
@@ -98,7 +100,7 @@ function ArchivedModuleRow({ projectId, module: item, onDelete }: RowProps) {
       description={
         // No hover card: the time sits inside the row's link or button, which holds no second control or tab stop.
         <>
-          {`${MODULE_STATUS_LABEL[item.status]} · ${formatModuleRange(item.start_date, item.target_date)}`}
+          {`${MODULE_STATUS_LABEL[item.status]} · ${formatModuleRange(item.start_date, item.target_date, bundle.today)}`}
           {item.archived_at === null ? null : (
             <>
               {" · Archived "}

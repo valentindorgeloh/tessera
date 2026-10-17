@@ -42,7 +42,7 @@ async function CyclesData({ params, searchParams }: Props) {
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();
     throw err;
   }
-  if (data === null) return <FeatureOffState feature="cycles" />;
+  if (data === null) return <FeatureOffState feature="cycles" projectId={projectId} />;
   return <CyclesScreen projectId={projectId} cycles={data.cycles} active={data.active} today={data.today} createOnOpen={createOnOpen} />;
 }
 

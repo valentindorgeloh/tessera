@@ -81,15 +81,23 @@ function definedEntries<T extends object>(patch: T): Partial<T> {
   return out;
 }
 
-/** `patch` over `base`; calendar and properties merge one level deep. The result is a complete Display. */
+/**
+ * `patch` over `base`; calendar and properties merge one level deep. The result
+ * is a complete Display whose `sub_group_by` is null when there is no
+ * `group_by` or it equals `group_by` (a swimlane axis needs a different column axis).
+ */
 export function mergeDisplay(base: Display, patch: DisplayPatch): Display {
   const { calendar, properties, ...top } = patch;
-  return DisplaySchema.parse({
+  const merged = DisplaySchema.parse({
     ...base,
     ...definedEntries(top),
     calendar: { ...base.calendar, ...definedEntries(calendar ?? {}) },
     properties: { ...base.properties, ...definedEntries(properties ?? {}) },
   });
+  if (merged.sub_group_by !== null && (merged.group_by === null || merged.group_by === merged.sub_group_by)) {
+    return { ...merged, sub_group_by: null };
+  }
+  return merged;
 }
 
 /** `patch` keys over `base`; an empty list under a key clears that filter. */

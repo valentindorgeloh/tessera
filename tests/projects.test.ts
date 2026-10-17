@@ -27,6 +27,7 @@ import {
   deleteProject,
   getProject,
   listProjects,
+  resolveRetiredIdentifier,
   unarchiveProject,
   updateProject,
   updateProjectFeatures,
@@ -207,8 +208,33 @@ describe("identifier", () => {
     expect(getWorkItem(ctx, item.id).key).toBe("SITE-1");
     expect(getWorkItemByKey(ctx, "SITE-1").id).toBe(item.id);
     expect(getWorkItemByKey(ctx, "site-1").id).toBe(item.id);
-    expect(errorCode(() => getWorkItemByKey(ctx, "WEB-1"))).toBe("NOT_FOUND");
     expect(listWorkItems(ctx, { scope: { type: "project", project_id: p.id } }).items.map((row) => row.key)).toEqual(["SITE-1"]);
+  });
+
+  it("retired identifier keeps old keys", () => {
+    const ctx = setup();
+    const p = createProject(ctx, { name: "Web", identifier: "WEB" });
+    const item = createWorkItem(ctx, { project_id: p.id, name: "First" });
+    updateProject(ctx, p.id, { identifier: "SITE" });
+    expect(getWorkItemByKey(ctx, "WEB-1").key).toBe("SITE-1");
+    expect(getProject(ctx, "WEB").id).toBe(p.id);
+    expect(getProject(ctx, "web").id).toBe(p.id);
+    expect(resolveRetiredIdentifier(ctx, "WEB")?.id).toBe(p.id);
+    // Chained renames: every former identifier resolves to the current key.
+    updateProject(ctx, p.id, { identifier: "WEB2" });
+    expect(getWorkItemByKey(ctx, "WEB-1").id).toBe(item.id);
+    expect(getWorkItemByKey(ctx, "SITE-1").key).toBe("WEB2-1");
+    expect(errorCode(() => getWorkItemByKey(ctx, "WEB-2"))).toBe("NOT_FOUND");
+    // The live holder always wins: a new project WEB (no items) takes the key.
+    const fresh = createProject(ctx, { name: "Fresh", identifier: "WEB" });
+    expect(resolveRetiredIdentifier(ctx, "WEB")).toBeUndefined();
+    expect(getProject(ctx, "WEB").id).toBe(fresh.id);
+    expect(errorCode(() => getWorkItemByKey(ctx, "WEB-1"))).toBe("NOT_FOUND");
+    expect(getWorkItemByKey(ctx, "SITE-1").key).toBe("WEB2-1");
+    // A deleted project's identifiers stop resolving.
+    deleteProject(ctx, p.id);
+    expect(errorCode(() => getWorkItemByKey(ctx, "SITE-1"))).toBe("NOT_FOUND");
+    expect(errorCode(() => getProject(ctx, "SITE"))).toBe("NOT_FOUND");
   });
 });
 

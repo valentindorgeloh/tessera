@@ -11,7 +11,7 @@ import { listCycles } from "@/lib/tessera/cycles";
 import { estimate, estimate_point, project } from "@/lib/tessera/db/schema";
 import { listLabels } from "@/lib/tessera/labels";
 import { listModules } from "@/lib/tessera/modules";
-import { archiveProject, createProject, updateProjectFeatures } from "@/lib/tessera/projects";
+import { archiveProject, createProject, listProjects, updateProjectFeatures } from "@/lib/tessera/projects";
 import { PrioritySchema, StateGroupSchema } from "@/lib/tessera/schemas";
 import { seedDemo } from "@/lib/tessera/seed";
 import { listStates } from "@/lib/tessera/states";
@@ -208,6 +208,26 @@ describe("getCounts population rules", () => {
     const counts = getCounts(ctx, { type: "project", project_id: p.id });
     expect(counts.total).toBe(1);
     expect(counts.by_state_group.triage).toBe(0);
+  });
+
+  it("listProjects counts equal getCounts", () => {
+    const { handles, ctx } = setup();
+    const p = createProject(ctx, { name: "Web", identifier: "WEB", features: { intake_enabled: true, agent_intake_required: true } });
+    const live = createWorkItem(ctx, { project_id: p.id, name: "Live" });
+    createWorkItem(ctx, { project_id: p.id, name: "Sub", parent_id: live.id });
+    const done = listStates(ctx, p.id).find((row) => row.state_group === "completed");
+    const old = createWorkItem(ctx, { project_id: p.id, name: "Archived", state_id: done?.id });
+    const gone = createWorkItem(ctx, { project_id: p.id, name: "Deleted" });
+    archiveWorkItem(ctx, old.id);
+    deleteWorkItem(ctx, gone.id);
+    const agent = registerActor(ctx, { kind: "agent", name: "mcp:parity" });
+    createWorkItem(contextFor(handles, agent.id), { project_id: p.id, name: "Via intake" });
+    const listed = listProjects(ctx, {}).find((row) => row.id === p.id);
+    const counts = getCounts(ctx, { type: "project", project_id: p.id });
+    expect(counts.total).toBe(2);
+    expect(listed?.counts.total).toBe(counts.total);
+    expect(listed?.counts.by_state_group).toEqual(counts.by_state_group);
+    expect(listWorkItems(ctx, { scope: { type: "project", project_id: p.id } }).total).toBe(counts.total);
   });
 
   it("workspace and profile scopes skip archived projects", () => {

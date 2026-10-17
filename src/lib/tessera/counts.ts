@@ -283,6 +283,35 @@ function sumPoints(ctx: TesseraContext, where: SQL): { total_points: number; com
 }
 
 // ---------------------------------------------------------------------------
+// Taxonomy usage (P4 A6)
+// ---------------------------------------------------------------------------
+
+/** Work items per state and per label of one project, for the settings screens. */
+export type TaxonomyUsage = { states: Record<string, number>; labels: Record<string, number> };
+
+/**
+ * Counts the project's non-deleted work items, archived and triage ones
+ * included: the population `deleteState` moves and `deleteLabel` strips. An id
+ * with no items is absent. NOT_FOUND for an unknown project.
+ */
+export function getTaxonomyUsage(ctx: TesseraContext, projectId: string): TaxonomyUsage {
+  getProjectRow(ctx, projectId);
+  const live = and(eq(work_item.project_id, projectId), isNull(work_item.deleted_at));
+  const stateRows = ctx.db.select({ id: work_item.state_id, n: count() }).from(work_item).where(live).groupBy(work_item.state_id).all();
+  const labelRows = ctx.db
+    .select({ id: work_item_label.label_id, n: count() })
+    .from(work_item_label)
+    .innerJoin(work_item, eq(work_item_label.work_item_id, work_item.id))
+    .where(live)
+    .groupBy(work_item_label.label_id)
+    .all();
+  return {
+    states: Object.fromEntries(stateRows.map((row) => [row.id, row.n])),
+    labels: Object.fromEntries(labelRows.map((row) => [row.id, row.n])),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Public read
 // ---------------------------------------------------------------------------
 

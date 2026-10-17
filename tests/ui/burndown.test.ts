@@ -38,6 +38,9 @@ function progress(overrides: Partial<CycleProgress> = {}): CycleProgress {
   };
 }
 
+/** The `today` of the fixtures below. */
+const TODAY = "2026-03-03";
+
 /** A five-day cycle Mar 1–5 with today on Mar 3: pending 8, 6, 5 on the first three days. */
 function input(overrides: Partial<BuildChartInput> = {}): BuildChartInput {
   return {
@@ -184,18 +187,23 @@ describe("text", () => {
 
   it("summarizes the burndown in one sentence", () => {
     const behind = buildChartModel(input({ progress: progress({ completion_chart: { "2026-03-01": 8, "2026-03-02": 8, "2026-03-03": 7 } }) }));
-    expect(summarizeChart(behind, "Sprint 1")).toBe(`Burndown of Sprint 1: 7 of 8 work items pending on ${formatShortDate("2026-03-03")}, ideal 4. Behind by 3.`);
-    expect(summarizeChart(buildChartModel(input()), "Sprint 1")).toBe(`Burndown of Sprint 1: 5 of 8 work items pending on ${formatShortDate("2026-03-03")}, ideal 4. On track.`);
+    expect(summarizeChart(behind, TODAY, "Sprint 1")).toBe(`Burndown of Sprint 1: 7 of 8 work items pending on ${formatShortDate("2026-03-03", TODAY)}, ideal 4. Behind by 3.`);
+    expect(summarizeChart(buildChartModel(input()), TODAY, "Sprint 1")).toBe(`Burndown of Sprint 1: 5 of 8 work items pending on ${formatShortDate("2026-03-03", TODAY)}, ideal 4. On track.`);
   });
 
   it("summarizes the burnup as work done", () => {
     const model = buildChartModel(input({ kind: "burnup" }));
-    expect(summarizeChart(model, "Sprint 1")).toBe(`Burnup of Sprint 1: 3 of 8 work items done on ${formatShortDate("2026-03-03")}, ideal 4. On track.`);
+    expect(summarizeChart(model, TODAY, "Sprint 1")).toBe(`Burnup of Sprint 1: 3 of 8 work items done on ${formatShortDate("2026-03-03", TODAY)}, ideal 4. On track.`);
+  });
+
+  it("shows the year of a start date outside today's year", () => {
+    const model = buildChartModel(input({ start_date: "2027-01-04", end_date: "2027-01-18", status: "upcoming" }));
+    expect(summarizeChart(model, TODAY)).toBe("Burndown: starts Jan 4, 2027.");
   });
 
   it("names the empty states", () => {
-    expect(summarizeChart(buildChartModel(input({ start_date: null, end_date: null, status: "draft" })), "Draft")).toBe("Burndown of Draft: add dates to see the chart.");
-    expect(summarizeChart(buildChartModel(input({ status: "upcoming", today: "2026-02-20" })))).toBe(`Burndown: starts ${formatShortDate("2026-03-01")}.`);
+    expect(summarizeChart(buildChartModel(input({ start_date: null, end_date: null, status: "draft" })), TODAY, "Draft")).toBe("Burndown of Draft: add dates to see the chart.");
+    expect(summarizeChart(buildChartModel(input({ status: "upcoming", today: "2026-02-20" })), TODAY)).toBe(`Burndown: starts ${formatShortDate("2026-03-01", TODAY)}.`);
   });
 });
 

@@ -58,12 +58,17 @@ describe("mountsPeek", () => {
     expect(mountsPeek(`/projects/${PROJECT}/cycles/${OTHER}`, PROJECT)).toBe(true);
     expect(mountsPeek(`/projects/${PROJECT}/modules/${OTHER}/`, PROJECT)).toBe(true);
     expect(mountsPeek(`/projects/${PROJECT}/archives/work-items`, PROJECT)).toBe(true);
+    expect(mountsPeek(`/projects/${PROJECT}/views/${OTHER}`, PROJECT)).toBe(true);
+    expect(mountsPeek(`/projects/${PROJECT}/views/${OTHER}/`, PROJECT)).toBe(true);
   });
 
   it("is false for other screens of the project and for other projects", () => {
     expect(mountsPeek(`${LIST}/${ITEM}`, PROJECT)).toBe(false);
     expect(mountsPeek(`/projects/${PROJECT}/cycles`, PROJECT)).toBe(false);
     expect(mountsPeek(`/projects/${PROJECT}/modules`, PROJECT)).toBe(false);
+    expect(mountsPeek(`/projects/${PROJECT}/views`, PROJECT)).toBe(false);
+    expect(mountsPeek(`/projects/${PROJECT}/views/${OTHER}/extra`, PROJECT)).toBe(false);
+    expect(mountsPeek(`/projects/${PROJECT}/settings/general`, PROJECT)).toBe(false);
     expect(mountsPeek(`/projects/${PROJECT}/archives`, PROJECT)).toBe(false);
     expect(mountsPeek(`/projects/${PROJECT}/archives/cycles`, PROJECT)).toBe(false);
     expect(mountsPeek(`/projects/${PROJECT}`, PROJECT)).toBe(false);
@@ -80,6 +85,8 @@ describe("workItemHitTarget (Power K)", () => {
   it("opens a peek on a list of the item's project while its host is mounted, keeping the other params", () => {
     expect(workItemHitTarget(LIST, "?q=abc", PROJECT, ITEM, true)).toEqual({ href: `${LIST}?q=abc&peek=${ITEM}`, isPeek: true });
     expect(workItemHitTarget(CYCLE, "", PROJECT, ITEM, true)).toEqual({ href: `${CYCLE}?peek=${ITEM}`, isPeek: true });
+    const VIEW = `/projects/${PROJECT}/views/${OTHER}`;
+    expect(workItemHitTarget(VIEW, "", PROJECT, ITEM, true)).toEqual({ href: `${VIEW}?peek=${ITEM}`, isPeek: true });
   });
 
   it("opens the full page on a cycle or module route with no host (feature off, not found)", () => {

@@ -78,7 +78,7 @@ function ChartLegend({ kind }: { kind: ChartKind }) {
   );
 }
 
-function ChartSvg({ model, height }: { model: ChartModel; height: number }) {
+function ChartSvg({ model, height, today }: { model: ChartModel; height: number; today: string }) {
   const colors = useChartColors();
   const actualName = model.kind === "burndown" ? "Pending" : "Done";
   return (
@@ -93,7 +93,7 @@ function ChartSvg({ model, height }: { model: ChartModel; height: number }) {
       <XAxis
         dataKey="date"
         type="category"
-        tickFormatter={(value) => formatShortDate(String(value))}
+        tickFormatter={(value) => formatShortDate(String(value), today)}
         tick={{ fill: colors.axis }}
         stroke={colors.grid}
         interval="preserveStartEnd"
@@ -111,7 +111,7 @@ function ChartSvg({ model, height }: { model: ChartModel; height: number }) {
         }}
         labelStyle={{ color: colors.tooltipText }}
         itemStyle={{ color: colors.tooltipText }}
-        labelFormatter={(label) => formatShortDate(String(label))}
+        labelFormatter={(label) => formatShortDate(String(label), today)}
         formatter={(value) => (typeof value === "number" ? formatNumber(value) : String(value))}
       />
       {model.kind === "burnup" ? (
@@ -134,16 +134,16 @@ function ChartSvg({ model, height }: { model: ChartModel; height: number }) {
 
 type TableRow = { date: string; day: string; actual: string; ideal: string };
 
-function DataTable({ model }: { model: ChartModel }) {
+function DataTable({ model, today }: { model: ChartModel; today: string }) {
   const rows = useMemo<TableRow[]>(
     () =>
       model.rows.map((row) => ({
         date: row.date,
-        day: formatShortDate(row.date),
+        day: formatShortDate(row.date, today),
         actual: row.actual === null ? "–" : formatNumber(row.actual),
         ideal: formatNumber(row.ideal),
       })),
-    [model.rows],
+    [model.rows, today],
   );
   return (
     // The class stops the Table's container bleed on the block axis, which pulled its header up over the trigger.
@@ -179,21 +179,21 @@ export function BurndownChart({ cycle, progress, kind, today, height = 240, hasD
     );
   }
   if (model.empty === "upcoming") {
-    return <EmptyState isCompact title={cycle.start_date ? `Starts ${formatShortDate(cycle.start_date)}` : "Not started"} />;
+    return <EmptyState isCompact title={cycle.start_date ? `Starts ${formatShortDate(cycle.start_date, today)}` : "Not started"} />;
   }
   if (model.empty === "no_items") {
     return <EmptyState isCompact title="Add work items to see the chart" />;
   }
 
-  const summary = summarizeChart(model, cycle.name);
+  const summary = summarizeChart(model, today, cycle.name);
   return (
     <VStack gap={2} className="tessera-planning-chart">
       <VStack role="img" aria-label={summary} className="tessera-planning-chart-frame">
-        {hydrated ? <ChartSvg model={model} height={height} /> : <Skeleton height={height} />}
+        {hydrated ? <ChartSvg model={model} height={height} today={today} /> : <Skeleton height={height} />}
       </VStack>
       {hydrated ? <ChartLegend kind={kind} /> : null}
       <Text type="supporting">{summary}</Text>
-      {hasDataTable ? <DataTable model={model} /> : null}
+      {hasDataTable ? <DataTable model={model} today={today} /> : null}
     </VStack>
   );
 }

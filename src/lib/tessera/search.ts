@@ -1,7 +1,7 @@
 /**
  * Global search (docs/contracts/service-api.md "search.ts"): one ranked list
- * over work items and pages (FTS5 through db/fts.ts) plus cycles, modules and
- * projects (name LIKE). An exact work item key such as WEB-12 always ranks
+ * over work items and pages (FTS5 through db/fts.ts) plus cycles, modules,
+ * projects and views (name LIKE). An exact work item key such as WEB-12 always ranks
  * first, an exact name match next, then full-text hits in relevance order,
  * then name matches. Deleted entities never appear; archived ones (and items
  * of archived projects) only with `include_archived`. Items in the hidden
@@ -14,10 +14,10 @@ import type { TesseraContext } from "./core/context";
 import { validateInput } from "./core/errors";
 import { formatKey, nameKey, normalizeIdentifier, parseKey } from "./core/keys";
 import { searchPageIds, searchWorkItemIds } from "./db/fts";
-import { cycle, moduleTable, page, project, state, work_item } from "./db/schema";
+import { cycle, moduleTable, page, project, state, view, work_item } from "./db/schema";
 import { IdSchema } from "./schemas";
 
-export const SEARCH_TYPES = ["work_item", "page", "cycle", "module", "project"] as const;
+export const SEARCH_TYPES = ["work_item", "page", "cycle", "module", "project", "view"] as const;
 
 export type SearchType = (typeof SEARCH_TYPES)[number];
 
@@ -236,6 +236,8 @@ function cycleHits(ctx: TesseraContext, query: SearchQuery): SearchHit[] {
         isNull(cycle.deleted_at),
         notArchived(cycle.archived_at, query),
         liveProject(query),
+        // Decision 31: a project with cycles off has no cycle hits.
+        eq(project.cycles_enabled, true),
         query.projectId === null ? undefined : eq(cycle.project_id, query.projectId),
       ),
     )
@@ -263,6 +265,8 @@ function moduleHits(ctx: TesseraContext, query: SearchQuery): SearchHit[] {
         isNull(moduleTable.deleted_at),
         notArchived(moduleTable.archived_at, query),
         liveProject(query),
+        // Decision 31: a project with modules off has no module hits.
+        eq(project.modules_enabled, true),
         query.projectId === null ? undefined : eq(moduleTable.project_id, query.projectId),
       ),
     )
@@ -275,6 +279,34 @@ function moduleHits(ctx: TesseraContext, query: SearchQuery): SearchHit[] {
       project_id: row.project_id,
       title: row.name,
       subtitle: row.project_name,
+      score: nameScore(row.name, query),
+    }));
+}
+
+/** Views of live projects that have views on, plus workspace views when the search is not scoped to a project. */
+function viewHits(ctx: TesseraContext, query: SearchQuery): SearchHit[] {
+  return ctx.db
+    .select({ id: view.id, project_id: view.project_id, name: view.name, project_name: project.name })
+    .from(view)
+    .leftJoin(project, eq(view.project_id, project.id))
+    .where(
+      and(
+        nameLike(view.name, query),
+        isNull(view.deleted_at),
+        query.projectId === null
+          ? or(isNull(view.project_id), and(liveProject(query), eq(project.views_enabled, true)))
+          : and(eq(view.project_id, query.projectId), liveProject(query), eq(project.views_enabled, true)),
+      ),
+    )
+    .orderBy(asc(view.name_key), asc(view.created_at))
+    .limit(query.limit)
+    .all()
+    .map((row) => ({
+      type: "view" as const,
+      id: row.id,
+      project_id: row.project_id,
+      title: row.name,
+      subtitle: row.project_name ?? "Workspace",
       score: nameScore(row.name, query),
     }));
 }
@@ -353,5 +385,6 @@ export function searchAll(ctx: TesseraContext, q: string, options: SearchAllOpti
   if (types.has("cycle")) hits.push(...cycleHits(ctx, query));
   if (types.has("module")) hits.push(...moduleHits(ctx, query));
   if (types.has("project")) hits.push(...projectHits(ctx, query));
+  if (types.has("view")) hits.push(...viewHits(ctx, query));
   return dedupe(hits).sort(compareHits).slice(0, query.limit);
 }

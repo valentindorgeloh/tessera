@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provider";
 import { useCommandContext, type CommandContextValue } from "./command-context";
+import { readProjectFeatures, shortcutOffMessage } from "./project-features";
 import { projectIdFromPath } from "./recents";
 import { isQuietTarget, resolveShortcut, SHORTCUT_BY_ID, type ChordState, type ShortcutId } from "./shortcuts";
 
@@ -151,8 +152,11 @@ const PROJECT_ROUTES = {
   "nav.workItems": "work-items",
   "nav.cycles": "cycles",
   "nav.modules": "modules",
+  "nav.views": "views",
+  "nav.settings": "settings/general",
   "create.cycle": "cycles?create=1",
   "create.module": "modules?create=1",
+  "create.view": "views?create=1",
 } as const satisfies Partial<Record<ShortcutId, string>>;
 
 function runShortcut(id: ShortcutId, options: ShortcutDispatchOptions, context: CommandContextValue | null): void {
@@ -186,11 +190,20 @@ function runShortcut(id: ShortcutId, options: ShortcutDispatchOptions, context: 
     case "nav.workItems":
     case "nav.cycles":
     case "nav.modules":
+    case "nav.views":
+    case "nav.settings":
     case "create.cycle":
-    case "create.module": {
+    case "create.module":
+    case "create.view": {
       const project = currentOrLastProjectId();
-      if (project) options.push(`/projects/${project}/${PROJECT_ROUTES[id]}`);
-      else options.notify("Open a project first");
+      if (!project) {
+        options.notify("Open a project first");
+        return;
+      }
+      // Decision 31: a feature the project has off says so instead of navigating.
+      const off = shortcutOffMessage(id, readProjectFeatures(project));
+      if (off) options.notify(off);
+      else options.push(`/projects/${project}/${PROJECT_ROUTES[id]}`);
       return;
     }
     case "nav.archives": {

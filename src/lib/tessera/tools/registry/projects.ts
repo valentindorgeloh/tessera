@@ -34,7 +34,7 @@ export const projectTools = [
   defineTool({
     name: "get_project",
     title: "Get project",
-    description: "Returns one project by id or by its identifier such as WEB. NOT_FOUND for deleted projects.",
+    description: "Returns one project by id or by its identifier such as WEB. NOT_FOUND for deleted projects. A former identifier resolves the same way.",
     input: GetProjectInput,
     mutates: false,
     core: true,

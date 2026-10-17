@@ -33,6 +33,8 @@ export type ModuleHeaderProps = {
   /** The module with the writes in flight applied. */
   module: ModuleDetail;
   writer: ModuleWriter;
+  /** True in an archived project (F3.4): the status is read-only and "Add existing" is gone, as for an archived module. */
+  readOnly?: boolean;
   /** "Add existing work items" rows; [] for an archived module. */
   candidates: ItemCandidate[];
   isPanelOpen: boolean;
@@ -46,7 +48,7 @@ function workItemCount(count: number): string {
   return count === 1 ? "1 work item" : `${count} work items`;
 }
 
-export function ModuleHeader({ projectId, module, writer, candidates, isPanelOpen, isPanelBlocked = false, onTogglePanel }: ModuleHeaderProps) {
+export function ModuleHeader({ projectId, module, writer, readOnly = false, candidates, isPanelOpen, isPanelBlocked = false, onTogglePanel }: ModuleHeaderProps) {
   const router = useRouter();
   const toast = useToast();
   const [isAddOpen, setAddOpen] = useState(false);
@@ -83,12 +85,12 @@ export function ModuleHeader({ projectId, module, writer, candidates, isPanelOpe
               <Heading level={4} accessibilityLevel={2} maxLines={1} className="tessera-planning-detail-title">
                 {module.name}
               </Heading>
-              <ModuleStatusControl size="sm" value={module.status} readOnly={isArchived} onChange={(status) => writer.update({ status })} />
+              <ModuleStatusControl size="sm" value={module.status} readOnly={isArchived || readOnly} onChange={(status) => writer.update({ status })} />
             </>
           }
           end={
             <>
-              {isArchived ? null : <Button variant="secondary" size="sm" label="Add existing" icon={<PlusIcon />} onClick={() => setAddOpen(true)} />}
+              {isArchived || readOnly ? null : <Button variant="secondary" size="sm" label="Add existing" icon={<PlusIcon />} onClick={() => setAddOpen(true)} />}
               <IconButton
                 variant="ghost"
                 size="sm"
@@ -109,11 +111,11 @@ export function ModuleHeader({ projectId, module, writer, candidates, isPanelOpe
             status="info"
             title="This module is archived"
             description="Restore it to change it or add work items."
-            endContent={<Button variant="secondary" size="sm" label="Restore" icon={<RestoreIcon />} onClick={restore} isLoading={isRestoring} />}
+            endContent={readOnly ? undefined : <Button variant="secondary" size="sm" label="Restore" icon={<RestoreIcon />} onClick={restore} isLoading={isRestoring} />}
           />
         </VStack>
       ) : null}
-      {isArchived ? null : (
+      {isArchived || readOnly ? null : (
         <AddExistingItemsDialog
           isOpen={isAddOpen}
           onOpenChange={setAddOpen}

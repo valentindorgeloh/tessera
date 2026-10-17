@@ -41,7 +41,7 @@ async function ModulesData({ params, searchParams }: Props) {
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();
     throw err;
   }
-  if (data === null) return <FeatureOffState feature="modules" />;
+  if (data === null) return <FeatureOffState feature="modules" projectId={projectId} />;
   return <ModulesScreen projectId={projectId} modules={data.modules} today={data.today} createOnOpen={createOnOpen} />;
 }
 

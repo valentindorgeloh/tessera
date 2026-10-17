@@ -8,9 +8,10 @@ import { isId } from "../core/ids";
 import { normalizeIdentifier, parseKey } from "../core/keys";
 import { cycle, moduleTable, project, view, work_item, work_item_assignee, work_item_module, work_item_subscriber } from "../db/schema";
 import { buildOrder, buildWhere, groupItems } from "../filters";
-import { getProjectRow } from "../projects";
-import { DisplaySchema, FiltersSchema, IdSchema } from "../schemas";
+import { getProjectRow, resolveRetiredIdentifier } from "../projects";
+import { DEFAULT_DISPLAY, DisplaySchema, FiltersSchema, IdSchema } from "../schemas";
 import type { Display, Filters } from "../types";
+import { DisplayPatchSchema, mergeDisplay } from "../view-settings";
 import { ENTITY, type WorkItem, type WorkItemDetail, type WorkItemListResult, getWorkItemRow } from "./model";
 import { hydrate, itemQuery, listLinks, listSubscriberIds, loadWorkItem } from "./hydrate";
 
@@ -23,24 +24,28 @@ export function getWorkItem(ctx: TesseraContext, id: string): WorkItemDetail {
   return { ...item, subscriber_ids: listSubscriberIds(ctx, id), links: listLinks(ctx, id) };
 }
 
-/** By key (`WEB-12`, any case) or by id. */
+/**
+ * By key (`WEB-12`, any case) or by id. A key with a project's former
+ * identifier still resolves to the item under its current key unless another
+ * project uses that identifier now (decision 29).
+ */
 export function getWorkItemByKey(ctx: TesseraContext, keyOrId: string): WorkItemDetail {
   const raw = keyOrId.trim();
   if (isId(raw)) return getWorkItem(ctx, raw);
   const parsed = parseKey(raw);
   if (!parsed) throw notFound(ENTITY, raw);
+  const identifier = normalizeIdentifier(parsed.identifier);
+  const live = ctx.db
+    .select({ id: project.id })
+    .from(project)
+    .where(and(eq(project.identifier, identifier), isNull(project.deleted_at)))
+    .get();
+  const projectId = live?.id ?? resolveRetiredIdentifier(ctx, identifier)?.id;
+  if (projectId === undefined) throw notFound(ENTITY, raw);
   const row = ctx.db
     .select({ id: work_item.id })
     .from(work_item)
-    .innerJoin(project, eq(work_item.project_id, project.id))
-    .where(
-      and(
-        eq(project.identifier, normalizeIdentifier(parsed.identifier)),
-        isNull(project.deleted_at),
-        eq(work_item.sequence_id, parsed.sequenceId),
-        isNull(work_item.deleted_at),
-      ),
-    )
+    .where(and(eq(work_item.project_id, projectId), eq(work_item.sequence_id, parsed.sequenceId), isNull(work_item.deleted_at)))
     .get();
   if (!row) throw notFound(ENTITY, raw);
   return getWorkItem(ctx, row.id);
@@ -79,7 +84,8 @@ export const ListWorkItemsInput = z
   .object({
     scope: ListScopeSchema.describe("Which list this is."),
     filters: FiltersSchema.optional().describe("Filters combined with AND; merged over a view's saved filters."),
-    display: DisplaySchema.partial().optional().describe("Ordering, grouping and layout; merged over a view's saved display."),
+    // A patch, not DisplaySchema.partial(): zod 4 would still apply the defaults and wipe a view's saved keys (A1).
+    display: DisplayPatchSchema.optional().describe("Ordering, grouping and layout keys; omitted keys keep a view's saved display or the defaults."),
     limit: z.number().int().min(1).max(5000).optional().describe("Page size; all items when omitted."),
     offset: z.number().int().min(0).optional().describe("Rows to skip."),
   })
@@ -116,8 +122,8 @@ const LIVE_PROJECT = and(isNull(project.deleted_at), isNull(project.archived_at)
 function resolveScope(ctx: TesseraContext, data: z.output<typeof ListWorkItemsInput>): ResolvedScope {
   const scope = data.scope;
   const callerFilters = data.filters ?? {};
-  const callerDisplay = stripUndefined(data.display ?? {});
-  const base = { filters: callerFilters, display: DisplaySchema.parse(callerDisplay) };
+  const callerDisplay = data.display ?? {};
+  const base = { filters: callerFilters, display: mergeDisplay(DEFAULT_DISPLAY, callerDisplay) };
   switch (scope.type) {
     case "project": {
       getProjectRow(ctx, scope.project_id);
@@ -163,7 +169,7 @@ function resolveScope(ctx: TesseraContext, data: z.output<typeof ListWorkItemsIn
         .get();
       if (!row) throw notFound("view", scope.view_id);
       const filters = { ...FiltersSchema.parse(row.filters), ...stripUndefined(callerFilters) };
-      const display = DisplaySchema.parse({ ...DisplaySchema.parse(row.display), ...callerDisplay });
+      const display = mergeDisplay(DisplaySchema.parse(row.display), callerDisplay);
       if (row.project_id !== null) {
         return { filters, display, where: eq(work_item.project_id, row.project_id), project_ids: [row.project_id], project_id: row.project_id };
       }

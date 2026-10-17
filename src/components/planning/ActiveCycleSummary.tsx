@@ -44,7 +44,7 @@ export function ActiveCycleSummary({ projectId, data }: ActiveCycleSummaryProps)
         <HStack gap={4} vAlign="center" wrap="wrap">
           <HStack gap={1.5} vAlign="center">
             <Icon icon={CalendarDotsIcon} size="sm" color="secondary" />
-            <Text type="supporting">{formatCycleRange(cycle.start_date, cycle.end_date)}</Text>
+            <Text type="supporting">{formatCycleRange(cycle.start_date, cycle.end_date, today)}</Text>
           </HStack>
           {cycle.end_date ? (
             <HStack gap={1.5} vAlign="center">

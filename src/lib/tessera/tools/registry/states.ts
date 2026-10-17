@@ -69,7 +69,7 @@ export const stateTools = [
     name: "delete_state",
     title: "Delete state",
     description:
-      "Soft-deletes a state. The default state, the triage state and the last state of a group cannot be deleted (RULE). When work items still sit in the state, move_to_state_id names a different visible state of the same project that receives them (never the triage state); without it the call fails with RULE state_not_empty. Destructive.",
+      "Soft-deletes a state. The default state, the triage state and the last state of a group cannot be deleted (RULE). When work items still sit in the state, move_to_state_id names a different visible state of the same project that receives them (never the triage state); without it the call fails with RULE state_not_empty. Destructive. Its id is removed from every saved view and remembered view setting that filters on it.",
     input: DeleteStateInput.extend({ state_id: StateId }),
     mutates: true,
     destructive: true,

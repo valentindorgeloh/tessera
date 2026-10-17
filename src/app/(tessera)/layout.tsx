@@ -1,6 +1,7 @@
 import { Suspense, cache, type ReactNode } from "react";
 import { io } from "next/cache";
 import { ChangesPoller } from "@/components/shell/ChangesPoller";
+import { projectFeatureMap } from "@/components/shell/project-features";
 import { projectNameMap } from "@/components/shell/recents";
 import { RecentsTracker } from "@/components/shell/RecentsTracker";
 import { Sidebar } from "@/components/shell/Sidebar";
@@ -59,7 +60,7 @@ async function WatchersData() {
   ]);
   return (
     <>
-      <RecentsTracker projectNames={projectNameMap([...projects, ...archived])} />
+      <RecentsTracker projectNames={projectNameMap([...projects, ...archived])} projectFeatures={projectFeatureMap([...projects, ...archived])} />
       <ChangesPoller initialCursor={cursor} />
     </>
   );

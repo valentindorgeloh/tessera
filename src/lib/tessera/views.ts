@@ -20,10 +20,10 @@ import type { TesseraContext } from "./core/context";
 import { archived, conflict, locked, notFound, rule, validateInput, validation } from "./core/errors";
 import { newId } from "./core/ids";
 import { nameKey } from "./core/keys";
-import { lastSortOrder, sortOrderAfter } from "./core/order";
+import { lastSortOrder, sortOrderAfter, sortOrderForMove } from "./core/order";
 import { withTx } from "./core/tx";
 import { view } from "./db/schema";
-import { getProjectRow } from "./projects";
+import { assertFeatureEnabled, getProjectRow } from "./projects";
 import { DEFAULT_DISPLAY, DisplaySchema, FiltersSchema, IdSchema, LogoSchema, RichFiltersSchema } from "./schemas";
 import type { Display, ViewRow } from "./types";
 import { DisplayPatchSchema, mergeDisplay, type DisplayPatch } from "./view-settings";
@@ -71,11 +71,17 @@ function getViewRow(ctx: TesseraContext, id: string): ViewRow {
   return row;
 }
 
-/** NOT_FOUND for an unknown project; ARCHIVED for an archived one; nothing to check for the workspace. */
-function assertWritableScope(ctx: TesseraContext, projectId: string | null): void {
+/**
+ * NOT_FOUND for an unknown project; ARCHIVED for an archived one; nothing to
+ * check for the workspace. `forCreate` also refuses while the project has
+ * views turned off (RULE feature_disabled, decision 31): creates only, every
+ * other write on existing views stays allowed.
+ */
+function assertWritableScope(ctx: TesseraContext, projectId: string | null, forCreate = false): void {
   if (projectId === null) return;
   const row = getProjectRow(ctx, projectId);
   if (row.archived_at !== null) throw archived(`project ${row.identifier} is archived`);
+  if (forCreate) assertFeatureEnabled(row, "views");
 }
 
 function assertUnlocked(row: ViewRow): void {
@@ -152,7 +158,7 @@ export const CreateViewInput = z
     name: VIEW_NAME.describe("View name, unique within its project or among workspace views (case-insensitive)."),
     description: VIEW_DESCRIPTION.optional().describe("Short description shown under the name."),
     filters: FiltersSchema.optional().describe("Saved filters; empty when omitted."),
-    rich_filters: RichFiltersSchema.nullable().optional().describe("Rich AND/OR/NOT filter tree, or null."),
+    rich_filters: RichFiltersSchema.nullable().optional().describe("Stored only; lists and counts do not apply it until P10. Use filters."),
     display: DisplayPatchSchema.optional().describe("Display settings over the defaults; workspace views accept only layout table."),
     logo: LogoSchema.optional().describe("Icon and palette colour."),
   })
@@ -165,7 +171,7 @@ export function createView(ctx: TesseraContext, input: CreateViewInputType): Vie
   const display = initialDisplay(data.project_id, data.display);
   assertLayoutAllowed(data.project_id, display);
   return withTx(ctx, () => {
-    assertWritableScope(ctx, data.project_id);
+    assertWritableScope(ctx, data.project_id, true);
     const key = assertNameFree(ctx, data.project_id, data.name, null);
     const now = ctx.now();
     const row = ctx.db
@@ -199,7 +205,7 @@ export const UpdateViewInput = z
     name: VIEW_NAME.describe("New name, unique within the view's scope."),
     description: VIEW_DESCRIPTION.describe("New description."),
     filters: FiltersSchema.describe("Replaces the saved filters."),
-    rich_filters: RichFiltersSchema.nullable().describe("Replaces the rich filter tree; null clears it."),
+    rich_filters: RichFiltersSchema.nullable().describe("Stored only; lists and counts do not apply it until P10. Use filters."),
     display: DisplayPatchSchema.describe("Merged over the saved display; workspace views stay on layout table."),
     logo: LogoSchema.nullable().describe("Icon and colour, or null to clear."),
   })
@@ -247,6 +253,46 @@ export function updateView(ctx: TesseraContext, id: string, patch: UpdateViewInp
 }
 
 // ---------------------------------------------------------------------------
+// Reorder
+// ---------------------------------------------------------------------------
+
+export const ReorderViewInput = z
+  .object({
+    before_id: IdSchema.optional().describe("Id of the view that will come directly before this one."),
+    after_id: IdSchema.optional().describe("Id of the view that will come directly after this one."),
+  })
+  .strict()
+  .refine((value) => value.before_id !== undefined || value.after_id !== undefined, { message: "before_id or after_id is required" });
+
+export type ReorderViewInputType = z.input<typeof ReorderViewInput>;
+
+/**
+ * Moves a view within its scope (the same project, or the workspace), as
+ * `reorderState` does. Allowed on a locked view: `sort_order` is placement,
+ * not view content. Neighbours outside the scope are NOT_FOUND.
+ */
+export function reorderView(ctx: TesseraContext, id: string, input: ReorderViewInputType): View {
+  const data = validateInput(ReorderViewInput, input);
+  return withTx(ctx, () => {
+    const before = getView(ctx, id);
+    assertWritableScope(ctx, before.project_id);
+    const ordered = listViews(ctx, { project_id: before.project_id });
+    const sortOrder = sortOrderForMove(ordered, id, data.before_id, data.after_id, "view");
+    const now = ctx.now();
+    const after = toView(
+      ctx.db
+        .update(view)
+        .set({ sort_order: sortOrder, updated_at: now, updated_by: ctx.actor.id })
+        .where(eq(view.id, id))
+        .returning()
+        .get(),
+    );
+    diffFields(ctx, { project_id: before.project_id, entity_type: "view", entity_id: id }, before, after, ["sort_order"], () => before.name);
+    return after;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Duplicate
 // ---------------------------------------------------------------------------
 
@@ -278,7 +324,7 @@ function copyName(ctx: TesseraContext, projectId: string | null, sourceName: str
 export function duplicateView(ctx: TesseraContext, id: string): View {
   return withTx(ctx, () => {
     const source = getView(ctx, id);
-    assertWritableScope(ctx, source.project_id);
+    assertWritableScope(ctx, source.project_id, true);
     const name = copyName(ctx, source.project_id, source.name);
     const now = ctx.now();
     const row = ctx.db

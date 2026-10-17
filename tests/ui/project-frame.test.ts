@@ -146,21 +146,38 @@ describe("ProjectFrame", () => {
       ["work-items", false],
       ["cycles", true],
       ["modules", false],
+      ["views", false],
       ["archives", false],
+      ["settings", false],
     ]);
     expect(row?.querySelector(".tessera-panel-bar-end button[aria-label='Project actions']")).not.toBeNull();
     expect(el.querySelector(`a[href="/projects/${PROJECT}/archives"]`)).not.toBeNull();
     expect(el.textContent).not.toContain("This project is archived");
   });
 
-  it("follows the feature toggles and keeps Archives, selecting no tab on a route that is turned off", async () => {
-    const el = await render(`/projects/${PROJECT}/cycles`, { cycles_enabled: false, modules_enabled: false });
+  it("follows the feature toggles and keeps Archives and Settings, selecting no tab on a route that is turned off", async () => {
+    const el = await render(`/projects/${PROJECT}/cycles`, { cycles_enabled: false, modules_enabled: false, views_enabled: false });
     expect(tabs(el)).toEqual([
       ["work-items", false],
       ["archives", false],
+      ["settings", false],
     ]);
     // The content landmark falls back to the project's name.
     expect(el.querySelector('[aria-label="Website"] [data-testid="page"]')).not.toBeNull();
+  });
+
+  it("selects the Views and Settings tabs under their routes", async () => {
+    const views = await render(`/projects/${PROJECT}/views/22222222-2222-7222-8222-222222222222`);
+    expect(tabs(views).find(([key]) => key === "views")).toEqual(["views", true]);
+    expect(views.querySelector(`a[href="/projects/${PROJECT}/views"]`)).not.toBeNull();
+    await act(async () => {
+      root?.unmount();
+    });
+    root = null;
+    views.remove();
+    const settings = await render(`/projects/${PROJECT}/settings/general`);
+    expect(tabs(settings).find(([key]) => key === "settings")).toEqual(["settings", true]);
+    expect(settings.querySelector(`a[href="/projects/${PROJECT}/settings"]`)).not.toBeNull();
   });
 
   it("shows an archived project's Banner under the header row, outside it", async () => {

@@ -158,17 +158,17 @@ export function currentDate(model: ChartModel): string | null {
 /**
  * One sentence for the chart's accessible name and the visible caption:
  * "Burndown of Sprint 1: 5 of 8 work items pending on Mar 9, ideal 4. Behind by 1."
- * The cycle name is optional (the model does not carry it).
+ * The cycle name is optional (the model does not carry it); `today` decides which dates show their year.
  */
-export function summarizeChart(model: ChartModel, cycleName?: string): string {
+export function summarizeChart(model: ChartModel, today: string, cycleName?: string): string {
   const head = cycleName ? `${KIND_LABEL[model.kind]} of ${cycleName}` : KIND_LABEL[model.kind];
   if (model.empty === "draft") return `${head}: add dates to see the chart.`;
-  if (model.empty === "upcoming") return model.rows.length > 0 ? `${head}: starts ${formatShortDate(model.rows[0].date)}.` : `${head}: not started.`;
+  if (model.empty === "upcoming") return model.rows.length > 0 ? `${head}: starts ${formatShortDate(model.rows[0].date, today)}.` : `${head}: not started.`;
   if (model.empty === "no_items") return `${head}: add work items to see the chart.`;
   const asOf = currentDate(model);
   if (model.current === null || asOf === null) return `${head}: no data yet.`;
   const verb = model.kind === "burndown" ? "pending" : "done";
   const amount = `${formatNumber(model.current.actual)} of ${formatAmount(model.scope, model.unit)} ${verb}`;
   const pace = model.pace ? ` ${paceSentence(model.pace)}` : "";
-  return `${head}: ${amount} on ${formatShortDate(asOf)}, ideal ${formatNumber(model.current.ideal)}.${pace}`;
+  return `${head}: ${amount} on ${formatShortDate(asOf, today)}, ideal ${formatNumber(model.current.ideal)}.${pace}`;
 }

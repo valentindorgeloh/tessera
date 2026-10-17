@@ -40,9 +40,10 @@ export function peekHref(pathname: string, searchParams: SearchParamsLike | null
 
 /**
  * True when `pathname` renders a work items list of `projectId` that mounts the
- * peek: the project list, a cycle's or a module's list, and the archived work
- * items (`/projects/<id>/work-items`, `/projects/<id>/cycles/<cycleId>`,
- * `/projects/<id>/modules/<moduleId>`, `/projects/<id>/archives/work-items`);
+ * peek: the project list, a cycle's, a module's or a view's list, and the
+ * archived work items (`/projects/<id>/work-items`,
+ * `/projects/<id>/cycles/<cycleId>`, `/projects/<id>/modules/<moduleId>`,
+ * `/projects/<id>/views/<viewId>`, `/projects/<id>/archives/work-items`);
  * a trailing slash is ignored. Power K opens a work item hit there as a peek
  * when a peek host is mounted too (`workItemHitTarget`).
  */
@@ -53,7 +54,7 @@ export function mountsPeek(pathname: string, projectId: string): boolean {
   const rest = bare.slice(prefix.length).split("/");
   if (rest.some((segment) => segment === "")) return false;
   if (rest.length === 1) return rest[0] === "work-items";
-  if (rest.length === 2) return rest[0] === "cycles" || rest[0] === "modules" || (rest[0] === "archives" && rest[1] === "work-items");
+  if (rest.length === 2) return rest[0] === "cycles" || rest[0] === "modules" || rest[0] === "views" || (rest[0] === "archives" && rest[1] === "work-items");
   return false;
 }
 

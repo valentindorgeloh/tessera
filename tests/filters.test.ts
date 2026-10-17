@@ -514,4 +514,16 @@ describe("groupItems", () => {
     const flat = groupItems(ctx, items(ctx, p.id), display({ group_by: "labels" }), { project_ids: [p.id] });
     expect(flat.every((g) => g.sub_groups === undefined)).toBe(true);
   });
+
+  it("show_empty_groups false hides empty sub-groups", () => {
+    const { ctx, project: p } = setup();
+    const bug = createLabel(ctx, { project_id: p.id, name: "Bug" });
+    const only = createWorkItem(ctx, { project_id: p.id, name: "Only", label_ids: [bug.id], priority: "high" });
+    const hidden = groupItems(ctx, items(ctx, p.id), display({ group_by: "labels", sub_group_by: "priority", show_empty_groups: false }), { project_ids: [p.id] });
+    expect(hidden.map((g) => [g.name, g.sub_groups?.map((s) => [s.id, s.item_ids])])).toEqual([["Bug", [["high", [only.id]]]]]);
+    const shown = groupItems(ctx, items(ctx, p.id), display({ group_by: "labels", sub_group_by: "priority", show_empty_groups: true }), { project_ids: [p.id] });
+    const bugGroup = shown.find((g) => g.name === "Bug");
+    expect(bugGroup?.sub_groups?.map((s) => s.id)).toEqual(["urgent", "high", "medium", "low", "none"]);
+    expect(bugGroup?.sub_groups?.filter((s) => s.item_ids.length === 0)).toHaveLength(4);
+  });
 });

@@ -61,14 +61,17 @@ describe("module statuses", () => {
 
 describe("formatModuleRange", () => {
   it("formats both dates, one date or none", () => {
-    expect(formatModuleRange("2026-03-01", "2026-03-14")).toBe(`${formatShortDate("2026-03-01")} – ${formatShortDate("2026-03-14")}`);
-    expect(formatModuleRange("2026-03-01", null)).toBe(`From ${formatShortDate("2026-03-01")}`);
-    expect(formatModuleRange(null, "2026-03-14")).toBe(`Until ${formatShortDate("2026-03-14")}`);
-    expect(formatModuleRange(null, null)).toBe("No dates");
+    const today = "2026-03-10";
+    expect(formatModuleRange("2026-03-01", "2026-03-14", today)).toBe(`${formatShortDate("2026-03-01", today)} – ${formatShortDate("2026-03-14", today)}`);
+    expect(formatModuleRange("2026-03-01", null, today)).toBe(`From ${formatShortDate("2026-03-01", today)}`);
+    expect(formatModuleRange(null, "2026-03-14", today)).toBe(`Until ${formatShortDate("2026-03-14", today)}`);
+    expect(formatModuleRange(null, null, today)).toBe("No dates");
+    // The year shows for a date outside today's year.
+    expect(formatModuleRange(null, "2027-01-10", today)).toBe("Until Jan 10, 2027");
   });
 
   it("uses the short month format", () => {
-    expect(formatModuleRange("2026-03-01", "2026-03-14")).toMatch(/^Mar 1(, 2026)? – Mar 14(, 2026)?$/);
+    expect(formatModuleRange("2026-03-01", "2026-03-14", "2026-03-10")).toBe("Mar 1 – Mar 14");
   });
 });
 

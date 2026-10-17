@@ -4,7 +4,7 @@ import { MultiSelector, type MultiSelectorOptionData } from "@astryxdesign/core/
 import { HStack } from "@astryxdesign/core/Stack";
 import { Token } from "@astryxdesign/core/Token";
 import { useProject } from "../project-provider";
-import { archivedModulesLabel, mergeModuleChange, splitModuleValue } from "./membership-rules";
+import { archivedModulesLabel, mergeModuleChange, moduleControlOptions, splitModuleValue } from "./membership-rules";
 
 export type ModuleControlProps = {
   /** Module ids. */
@@ -23,7 +23,7 @@ export type ModuleControlProps = {
  */
 export function ModuleControl({ value, onChange, compact = false, readOnly = false, label = "Modules" }: ModuleControlProps) {
   const { bundle } = useProject();
-  const options: MultiSelectorOptionData[] = bundle.modules.map((module) => ({ value: module.id, label: module.name }));
+  const options: MultiSelectorOptionData[] = moduleControlOptions(bundle.modules);
   const { editable, kept } = splitModuleValue(value, bundle.modules);
   const selector = (
     <MultiSelector

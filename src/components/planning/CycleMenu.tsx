@@ -18,6 +18,7 @@ import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { useToast } from "@astryxdesign/core/Toast";
 import { archiveCycleAction, deleteCycleAction, unarchiveCycleAction } from "@/app/actions/cycles";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
+import { useOptionalProject } from "@/components/work-items/project-provider";
 import type { Cycle } from "@/lib/tessera/types";
 import { ArchiveIcon, PencilIcon, RestoreIcon, TransferIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { CycleDialog } from "./CycleDialog";
@@ -52,6 +53,8 @@ export function failureText(verb: string, name: string, message: string): string
 
 export function CycleMenu({ projectId, cycle, today, size = "sm", onDeleted, isEditOpen: editOpenProp, onEditOpenChange }: CycleMenuProps) {
   const toast = useToast();
+  // Core change (P4 F3.4): the menu of a cycle in an archived project is disabled, in the list row and the detail header alike.
+  const projectArchived = (useOptionalProject()?.bundle.project.archived_at ?? null) !== null;
   const [editOpenState, setEditOpenState] = useState(false);
   const [isTransferOpen, setTransferOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
@@ -106,7 +109,7 @@ export function CycleMenu({ projectId, cycle, today, size = "sm", onDeleted, isE
 
   return (
     <>
-      <MoreMenu label={`Actions for ${cycle.name}`} size={size} items={items} placement="below" alignment="end" />
+      <MoreMenu label={`Actions for ${cycle.name}`} size={size} items={items} placement="below" alignment="end" isDisabled={projectArchived} />
       <CycleDialog projectId={projectId} isOpen={isEditOpen} onOpenChange={setEditOpen} cycle={cycle} />
       <TransferDialog isOpen={isTransferOpen} onOpenChange={setTransferOpen} cycle={cycle} />
       <AlertDialog

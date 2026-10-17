@@ -21,6 +21,7 @@ import { VStack } from "@astryxdesign/core/Stack";
 import { Heading } from "@astryxdesign/core/Text";
 import { PanelBar, PanelHeader, PanelPage } from "@/components/shell/PanelHeader";
 import type { Module } from "@/lib/tessera/types";
+import { useProject } from "@/components/work-items/project-provider";
 import { ModuleIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { ModuleDialog } from "./ModuleDialog";
 import { ModuleRow } from "./ModuleRow";
@@ -40,12 +41,15 @@ export function ModulesScreen({ projectId, modules, createOnOpen }: ModulesScree
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isCreateOpen, setCreateOpen] = useState(false);
+  // An archived project takes no new modules and its row menus are disabled (F3.4, see ModuleMenu).
+  const { bundle } = useProject();
+  const isReadOnly = bundle.project.archived_at !== null;
 
   // Open once per request: the flag stays true until the replace below lands, and Next keeps the screen mounted.
   const [createRequestSeen, setCreateRequestSeen] = useState(false);
   if (createOnOpen && !createRequestSeen) {
     setCreateRequestSeen(true);
-    setCreateOpen(true);
+    setCreateOpen(!isReadOnly);
   } else if (!createOnOpen && createRequestSeen) {
     setCreateRequestSeen(false);
   }
@@ -78,7 +82,7 @@ export function ModulesScreen({ projectId, modules, createOnOpen }: ModulesScree
                   <Badge variant="purple" label={String(modules.length)} />
                 </>
               }
-              end={<Button variant="primary" size="sm" label="New module" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />}
+              end={isReadOnly ? undefined : <Button variant="primary" size="sm" label="New module" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />}
             />
           </PanelHeader>
         }
@@ -101,7 +105,7 @@ export function ModulesScreen({ projectId, modules, createOnOpen }: ModulesScree
           </VStack>
         )}
       </PanelPage>
-      <ModuleDialog projectId={projectId} isOpen={isCreateOpen} onOpenChange={setCreateOpen} />
+      {isReadOnly ? null : <ModuleDialog projectId={projectId} isOpen={isCreateOpen} onOpenChange={setCreateOpen} />}
     </>
   );
 }

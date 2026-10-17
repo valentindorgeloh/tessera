@@ -27,6 +27,7 @@ const PROJECT = "11111111-1111-7111-8111-111111111111";
 const ITEM = "22222222-2222-7222-8222-222222222222";
 const CYCLE = "33333333-3333-7333-8333-333333333333";
 const MODULE = "44444444-4444-7444-8444-444444444444";
+const VIEW = "55555555-5555-7555-8555-555555555555";
 
 const lookup: RouteLookup = {
   projectName: (id) => (id === PROJECT ? "Website" : undefined),
@@ -99,7 +100,7 @@ describe("resolveRoute", () => {
   });
 
   it("gives later project sections a readable label without code changes", () => {
-    expect(resolveRoute(`/projects/${PROJECT}/settings`, lookup)).toEqual({ label: "Website · Settings", icon: "page" });
+    expect(resolveRoute(`/projects/${PROJECT}/intake`, lookup)).toEqual({ label: "Website · Intake", icon: "page" });
     expect(resolveRoute(`/projects/${PROJECT}/work-items/`, lookup).icon).toBe("work-items");
   });
 
@@ -114,6 +115,20 @@ describe("resolveRoute", () => {
     expect(resolveRoute(`/projects/${PROJECT}/modules/${MODULE}/`, withEntities).label).toBe("Website · Launch");
     // The list routes keep their section label even when an entity label exists.
     expect(resolveRoute(`/projects/${PROJECT}/cycles`, withEntities).label).toBe("Website · Cycles");
+  });
+
+  it("labels the views routes, with the registered view name on a detail", () => {
+    expect(resolveRoute(`/projects/${PROJECT}/views`, lookup)).toEqual({ label: "Website · Views", icon: "views" });
+    expect(resolveRoute(`/projects/${PROJECT}/views/${VIEW}`, lookup)).toEqual({ label: "Website · View", icon: "view" });
+    const withView: RouteLookup = { ...lookup, entityLabel: (id) => (id === VIEW ? "Open bugs" : undefined) };
+    expect(resolveRoute(`/projects/${PROJECT}/views/${VIEW}?peek=x`, withView)).toEqual({ label: "Website · Open bugs", icon: "view" });
+    expect(resolveRoute(`/projects/${PROJECT}/views`, withView).label).toBe("Website · Views");
+  });
+
+  it("labels the settings pages by tab", () => {
+    expect(resolveRoute(`/projects/${PROJECT}/settings/general`, lookup)).toEqual({ label: "Website · Settings · General", icon: "settings" });
+    expect(resolveRoute(`/projects/${PROJECT}/settings/agents/`, lookup).label).toBe("Website · Settings · Agents");
+    expect(resolveRoute(`/projects/${PROJECT}/settings`, lookup)).toEqual({ label: "Website · Settings", icon: "settings" });
   });
 
   it("labels the project archives and the archived projects page", () => {
@@ -191,6 +206,13 @@ describe("isTransientPath and isRecordable", () => {
     expect(isTransientPath(`/modules/${MODULE}/`)).toBe(true);
     expect(isTransientPath(`/projects/${PROJECT}/cycles/${CYCLE}`)).toBe(false);
     expect(isTransientPath(`/projects/${PROJECT}/modules`)).toBe(false);
+  });
+
+  it("treats the settings index as transient, not a settings tab", () => {
+    expect(isTransientPath(`/projects/${PROJECT}/settings`)).toBe(true);
+    expect(isTransientPath(`/projects/${PROJECT}/settings/`)).toBe(true);
+    expect(isTransientPath(`/projects/${PROJECT}/settings/general`)).toBe(false);
+    expect(isRecordable(`/projects/${PROJECT}/settings/states`)).toBe(true);
   });
 
   it("treats the archives index as transient, not the archive lists or the archived projects page", () => {

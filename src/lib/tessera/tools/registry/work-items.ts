@@ -92,7 +92,7 @@ export const workItemTools = [
   defineTool({
     name: "get_work_item_by_key",
     title: "Get work item by key",
-    description: "Returns the full work item by its key such as WEB-12; the only tool that takes a key instead of an id. Ids are accepted as well.",
+    description: "Returns the full work item by its key such as WEB-12; the only tool that takes a key instead of an id. Ids are accepted as well. A key with a project's former identifier (before a rename) still resolves, unless another project uses that identifier now.",
     input: GetWorkItemByKeyInput,
     mutates: false,
     core: true,
@@ -136,7 +136,7 @@ export const workItemTools = [
     name: "move_work_item",
     title: "Move work item",
     description:
-      "Board and list move in one call: group_by with value changes the grouped field (state, priority, assignees, labels, modules, cycle, dates; null for the none group, from_value for multi-valued fields), and before_id or after_id places the item among neighbours of the same project. At least one of group_by, before_id and after_id is required; some groups such as created_by cannot be moved between (RULE group_not_movable).",
+      "Reorders a work item (before_id / after_id) and, with group_by and value, changes the grouped field as a board or list drop does. For labels, assignees and module, from_value is the value the item leaves and the others are kept; value null or \"none\" clears the field. sub_group_by, sub_value and sub_from_value change a second axis (a board swimlane) in the same call; both changes or neither are written.",
     input: MoveWorkItemInput.extend({ work_item_id: WorkItemId }),
     mutates: true,
     core: true,

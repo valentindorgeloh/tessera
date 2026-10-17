@@ -12,7 +12,7 @@
 import { act, createElement, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { ProjectBundle } from "@/components/work-items/types";
+import type { MoveInput, ProjectBundle } from "@/components/work-items/types";
 import type { ActorRow, Project, State, WorkItem } from "@/lib/tessera/types";
 
 const ok = { ok: true as const, data: {}, cursor: 1 };
@@ -26,6 +26,17 @@ vi.mock("@/app/actions/work-items", () => ({
 vi.mock("@/app/actions/views", () => ({
   saveViewSettingsAction: action(),
   resetViewSettingsAction: action(),
+  createViewAction: action(),
+  updateViewAction: action(),
+}));
+// The list layout is F3's; here it only records the props the screen hands every layout.
+type RecordedLayoutProps = { readOnly?: boolean; onQuickAdd?: unknown; onMove: (input: MoveInput) => void };
+const layout = vi.hoisted(() => ({ props: null as null | RecordedLayoutProps }));
+vi.mock("@/components/work-items/ListLayout", () => ({
+  ListLayout: (props: RecordedLayoutProps) => {
+    layout.props = props;
+    return null;
+  },
 }));
 const nav = vi.hoisted(() => ({
   router: { push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() },
@@ -39,6 +50,7 @@ vi.mock("next/navigation", () => ({
 const { ProjectProvider } = await import("@/components/work-items/project-provider");
 const { WorkItemsScreen } = await import("@/components/work-items/WorkItemsScreen");
 const { saveViewSettingsAction } = await import("@/app/actions/views");
+const { moveWorkItemAction } = await import("@/app/actions/work-items");
 const { DEFAULT_DISPLAY } = await import("@/lib/tessera/schemas");
 
 const PROJECT = "11111111-1111-7111-8111-111111111111";
@@ -116,7 +128,7 @@ const item: WorkItem = {
 
 type ScreenProps = ComponentProps<typeof WorkItemsScreen>;
 
-function screen(props: Partial<ScreenProps> = {}) {
+function screen(props: Partial<ScreenProps> = {}, projectBundle: ProjectBundle = bundle) {
   const screenProps: ScreenProps = {
     projectId: PROJECT,
     result: { items: [item], total: 1, cursor: 42 },
@@ -127,19 +139,19 @@ function screen(props: Partial<ScreenProps> = {}) {
     ...props,
   };
   // createElement's typing wants `children` in the props object, the lint rule wants it as an argument; the cast satisfies both.
-  const providerProps = { bundle } as ComponentProps<typeof ProjectProvider>;
+  const providerProps = { bundle: projectBundle } as ComponentProps<typeof ProjectProvider>;
   return createElement(ProjectProvider, providerProps, createElement(WorkItemsScreen, screenProps));
 }
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-async function render(props: Partial<ScreenProps> = {}) {
+async function render(props: Partial<ScreenProps> = {}, projectBundle: ProjectBundle = bundle) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () => {
-    root?.render(screen(props));
+    root?.render(screen(props, projectBundle));
   });
   return container;
 }
@@ -184,6 +196,9 @@ afterEach(async () => {
   root = null;
   container = null;
   vi.mocked(saveViewSettingsAction).mockClear();
+  vi.mocked(moveWorkItemAction).mockClear();
+  nav.router.replace.mockClear();
+  layout.props = null;
 });
 
 describe("WorkItemsScreen panel header", () => {
@@ -220,5 +235,90 @@ describe("WorkItemsScreen panel header", () => {
     });
     expect(saveViewSettingsAction).toHaveBeenCalledWith({ scope_type: "cycle", scope_id: CYCLE, display: { layout: "board" } });
     expect(nav.router.replace).toHaveBeenCalled();
+  });
+
+  it("saves nothing for a view (settingsScope null): the change goes to the URL only", async () => {
+    const el = await render({ settingsScope: null });
+    const board = [...el.querySelectorAll<HTMLElement>('[role="radio"], button')].find((element) => element.getAttribute("aria-label") === "Board" || element.textContent?.trim() === "Board");
+    expect(board).toBeDefined();
+    await act(async () => {
+      board?.click();
+    });
+    expect(saveViewSettingsAction).not.toHaveBeenCalled();
+    expect(nav.router.replace).toHaveBeenCalled();
+  });
+
+  it("renders the title adornment, the sub-header end and the filters end slots", async () => {
+    const el = await render({
+      titleAdornment: createElement("i", { "data-testid": "adornment" }),
+      subheaderEnd: createElement("i", { "data-testid": "subheader-end" }),
+      filtersEnd: createElement("i", { "data-testid": "filters-end" }),
+    });
+    expect(el.querySelector(".tessera-panel-bar--subheader > .tessera-panel-bar-start [data-testid=adornment]")).not.toBeNull();
+    expect(el.querySelector(".tessera-panel-bar--subheader > .tessera-panel-bar-end [data-testid=subheader-end]")).not.toBeNull();
+    expect(el.querySelector(".tessera-panel-bar--filters > .tessera-panel-bar-end [data-testid=filters-end]")).not.toBeNull();
+  });
+});
+
+describe("WorkItemsScreen in an archived project", () => {
+  const archived: ProjectBundle = { ...bundle, project: { ...project, archived_at: NOW } };
+
+  it("offers no New work item and hands every layout readOnly without quick-add", async () => {
+    const el = await render({}, archived);
+    expect([...el.querySelectorAll("button")].some((button) => button.textContent?.trim() === "New work item")).toBe(false);
+    expect(layout.props?.readOnly).toBe(true);
+    expect(layout.props?.onQuickAdd).toBeUndefined();
+  });
+
+  it("keeps creating off for ?create=1 and hides Save view", async () => {
+    const el = await render({ createOnOpen: true, saveView: true, filters: { priority: ["high"] } }, archived);
+    expect(el.querySelector("dialog[open]")).toBeNull();
+    expect([...el.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Save view")).toBe(false);
+  });
+
+  it("is writable in a live project and shows Save view once filters are set", async () => {
+    const el = await render({ saveView: true, filters: { priority: ["high"] } });
+    expect(layout.props?.readOnly).toBe(false);
+    expect([...el.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Save view")).toBe(true);
+  });
+
+  it("shows no Save view while no filter or display is set", async () => {
+    const el = await render({ saveView: true });
+    expect([...el.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Save view")).toBe(false);
+  });
+
+});
+
+describe("WorkItemsScreen moves", () => {
+  it("sends both axes of a swimlane drop, sub_from_value only for a multi-valued sub axis", async () => {
+    await render();
+    await act(async () => {
+      layout.props?.onMove({ id: ITEM, group_by: "state", value: STATE, sub_group_by: "labels", sub_value: "l2", sub_from_value: "l1" });
+    });
+    expect(moveWorkItemAction).toHaveBeenLastCalledWith({
+      work_item_id: ITEM,
+      group_by: "state",
+      value: STATE,
+      from_value: undefined,
+      sub_group_by: "labels",
+      sub_value: "l2",
+      sub_from_value: "l1",
+      before_id: undefined,
+      after_id: undefined,
+    });
+    await act(async () => {
+      layout.props?.onMove({ id: ITEM, group_by: "labels", value: "l2", from_value: "l1", sub_group_by: "priority", sub_value: "high", sub_from_value: "low" });
+    });
+    expect(moveWorkItemAction).toHaveBeenLastCalledWith(
+      expect.objectContaining({ group_by: "labels", from_value: "l1", sub_group_by: "priority", sub_value: "high", sub_from_value: undefined }),
+    );
+  });
+
+  it("sends no sub fields for a one-axis move", async () => {
+    await render();
+    await act(async () => {
+      layout.props?.onMove({ id: ITEM, group_by: "state", value: STATE });
+    });
+    expect(moveWorkItemAction).toHaveBeenLastCalledWith(expect.objectContaining({ sub_group_by: undefined, sub_value: undefined, sub_from_value: undefined }));
   });
 });

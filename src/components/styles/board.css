@@ -65,6 +65,12 @@
   flex-shrink: 0;
 }
 
+/* A lane is a controlled Collapsible (F3.2): the trigger row sticks to the left while the cells scroll. */
+.tessera-board-lane {
+  flex-shrink: 0;
+  width: max-content;
+}
+
 .tessera-board-lane-title {
   position: sticky;
   inset-inline-start: 0;
@@ -91,6 +97,12 @@
 
 .tessera-board-card:hover {
   box-shadow: var(--shadow-med);
+}
+
+/* Archived project: cards open but are not drag sources. */
+.tessera-board-card-readonly {
+  cursor: pointer;
+  touch-action: auto;
 }
 
 /* Landing slot while a card is dragged; the height follows the dragged card (Card height prop). */

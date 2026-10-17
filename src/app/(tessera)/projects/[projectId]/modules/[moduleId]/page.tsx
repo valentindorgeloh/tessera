@@ -49,7 +49,7 @@ async function ModuleData({ params, searchParams }: Props) {
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();
     throw err;
   }
-  if (data === null) return <FeatureOffState feature="modules" />;
+  if (data === null) return <FeatureOffState feature="modules" projectId={projectId} />;
   if (data.module.project_id !== projectId) notFound();
   const isArchived = data.module.archived_at !== null;
   return (

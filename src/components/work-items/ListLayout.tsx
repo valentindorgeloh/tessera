@@ -100,6 +100,8 @@ type RowProps = {
   display: Display;
   onUpdate: (id: string, patch: UpdateWorkItemPatch) => void;
   onOpen: (id: string) => void;
+  /** Archived project: every property control is read-only (F3.4). */
+  readOnly?: boolean;
 };
 
 function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowProps, "onOpen"> & { readOnly?: boolean }) {
@@ -211,7 +213,7 @@ function RowTitle({ name }: { name: string }) {
   );
 }
 
-function WorkItemRow({ item, display, onUpdate, onOpen }: RowProps) {
+function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false }: RowProps) {
   // The key button owns the row's action: surface clicks delegate to it and it is the row's only tab stop.
   const openRef = useRef<HTMLButtonElement>(null);
   if (isOptimisticId(item.id)) {
@@ -245,7 +247,7 @@ function WorkItemRow({ item, display, onUpdate, onOpen }: RowProps) {
           onClick={() => onOpen(item.id)}
         />
       }
-      endContent={<RowProperties item={item} display={display} onUpdate={onUpdate} />}
+      endContent={<RowProperties item={item} display={display} onUpdate={onUpdate} readOnly={readOnly} />}
     />
   );
 }
@@ -264,18 +266,19 @@ type GroupSectionProps = {
   onOpen: RowProps["onOpen"];
   onQuickAdd: LayoutProps["onQuickAdd"];
   canQuickAdd: LayoutProps["canQuickAdd"];
+  readOnly: boolean;
 };
 
-function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpen, onQuickAdd, canQuickAdd }: GroupSectionProps) {
+function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpen, onQuickAdd, canQuickAdd, readOnly }: GroupSectionProps) {
   const quickAddGroup: QuickAddGroup = group ? { field: group.field, value: group.id === NONE_GROUP_ID ? null : group.id } : { field: null, value: null };
   // No row when the list cannot create items, or when this group pins a state the scope refuses (a closed state in a cycle).
-  const showQuickAdd = onQuickAdd !== undefined && canQuickAdd?.(quickAddGroup) !== false;
+  const showQuickAdd = !readOnly && onQuickAdd !== undefined && canQuickAdd?.(quickAddGroup) !== false;
   const body = (
     <VStack gap={0}>
       {items.length > 0 ? (
         <List density="compact" hasDividers>
           {items.map((item) => (
-            <WorkItemRow key={item.id} item={item} display={display} onUpdate={onUpdate} onOpen={onOpen} />
+            <WorkItemRow key={item.id} item={item} display={display} onUpdate={onUpdate} onOpen={onOpen} readOnly={readOnly} />
           ))}
         </List>
       ) : null}
@@ -296,7 +299,7 @@ function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpe
 // Layout
 // ---------------------------------------------------------------------------
 
-export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQuickAdd }: LayoutProps) {
+export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQuickAdd, readOnly = false }: LayoutProps) {
   const itemsById = useMemo(() => new Map(result.items.map((item) => [item.id, item])), [result.items]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const { listRef, handleKeyDown, handleFocus } = useListFocus<HTMLElement>({
@@ -326,7 +329,7 @@ export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQ
         <EmptyState
           isCompact
           title="No work items yet"
-          description={onQuickAdd ? "Create the first one with the button above, press c, or use the quick-add row." : "New work items cannot be added to this list."}
+          description={onQuickAdd && !readOnly ? "Create the first one with the button above, press c, or use the quick-add row." : "New work items cannot be added to this list."}
         />
       ) : null}
       {groups ? (
@@ -345,6 +348,7 @@ export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQ
             onOpen={onOpen}
             onQuickAdd={onQuickAdd}
             canQuickAdd={canQuickAdd}
+            readOnly={readOnly}
           />
         ))
       ) : (
@@ -358,6 +362,7 @@ export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQ
           onOpen={onOpen}
           onQuickAdd={onQuickAdd}
           canQuickAdd={canQuickAdd}
+          readOnly={readOnly}
         />
       )}
     </VStack>

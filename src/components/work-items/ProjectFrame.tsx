@@ -6,11 +6,11 @@
  * a hairline, the project's pages as tabs (the tab under the current route is
  * selected, its indicator sitting on the header's hairline) and the project
  * menu at the row's end. The tabs follow the feature toggles
- * (./project-tabs.ts): Work items, Cycles and Modules when enabled, Archives
- * always; a route of a feature that is turned off selects no tab. They are the
+ * (./project-tabs.ts): Work items, Cycles, Modules and Views when enabled,
+ * Archives and Settings always; a route of a feature that is turned off selects no tab. They are the
  * project's only navigation: the sidebar lists projects, not their pages. An
  * archived project shows its Banner under the header, outside the scroller.
- * Later phases add views, pages and settings to the tabs.
+ * Later phases add pages to the tabs.
  */
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
@@ -23,7 +23,7 @@ import { Token } from "@astryxdesign/core/Token";
 import { ProjectArchivedBanner, ProjectMenu } from "@/components/planning/ProjectArchive";
 import { PanelBar, PanelHeader, PanelTitle } from "@/components/shell/PanelHeader";
 import type { Project } from "@/lib/tessera/types";
-import { ArchiveIcon, CycleIcon, KanbanIcon, ModuleIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { ArchiveIcon, CycleIcon, GearIcon, KanbanIcon, ModuleIcon, ViewIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { activeProjectTab, projectTabs, type ProjectTabKey } from "./project-tabs";
 import { useProject } from "./project-provider";
 
@@ -31,7 +31,9 @@ const TAB_ICONS: Record<ProjectTabKey, ReactNode> = {
   "work-items": <KanbanIcon />,
   cycles: <CycleIcon />,
   modules: <ModuleIcon />,
+  views: <ViewIcon />,
   archives: <ArchiveIcon />,
+  settings: <GearIcon />,
 };
 
 /** The project's identifier as a Token carrying its logo icon and colour. */

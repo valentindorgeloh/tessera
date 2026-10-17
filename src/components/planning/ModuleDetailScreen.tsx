@@ -23,6 +23,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { setModuleMembersAction, updateModuleAction } from "@/app/actions/modules";
 import { peekIdOf } from "@/components/detail/peek-url";
 import { registerEntityLabel } from "@/components/shell/entity-labels";
+import { useProject } from "@/components/work-items/project-provider";
 import type { ModuleDetail } from "@/lib/tessera/types";
 import { ModuleHeader } from "./ModuleHeader";
 import { ModuleSidePanel } from "./ModuleSidePanel";
@@ -103,6 +104,10 @@ export function ModuleDetailScreen({ projectId, data, children }: ModuleDetailSc
   const peekOpen = peekIdOf(searchParams) !== null;
   const prefs = usePanelPrefs();
   const { view, writer } = useModuleWriter(data.module);
+  // An archived project is read-only (F3.4): the header and the side panel get `readOnly` from the project, so their
+  // controls render read-only and never reach the engine; no candidates are offered.
+  const { bundle } = useProject();
+  const isReadOnly = bundle.project.archived_at !== null;
 
   const { id, name } = data.module;
   useEffect(() => {
@@ -117,7 +122,8 @@ export function ModuleDetailScreen({ projectId, data, children }: ModuleDetailSc
           projectId={projectId}
           module={view}
           writer={writer}
-          candidates={data.candidates}
+          readOnly={isReadOnly}
+          candidates={isReadOnly ? [] : data.candidates}
           isPanelOpen={prefs.open && !peekOpen}
           isPanelBlocked={peekOpen}
           onTogglePanel={() => savePanelPrefs({ open: !prefs.open })}
@@ -129,7 +135,7 @@ export function ModuleDetailScreen({ projectId, data, children }: ModuleDetailSc
           {children}
         </LayoutContent>
       }
-      end={prefs.open && !peekOpen ? <ModuleSidePanel module={view} writer={writer} /> : undefined}
+      end={prefs.open && !peekOpen ? <ModuleSidePanel module={view} writer={writer} readOnly={isReadOnly} /> : undefined}
     />
   );
 }

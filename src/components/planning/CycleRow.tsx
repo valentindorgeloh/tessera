@@ -20,7 +20,7 @@ export type CycleRowProps = { projectId: string; cycle: Cycle; today: string };
 
 /** "Mar 1 – Mar 14", plus " · 5 days left" for the current cycle. */
 export function cycleRowDescription(cycle: Pick<Cycle, "start_date" | "end_date" | "status">, today: string): string {
-  const range = formatCycleRange(cycle.start_date, cycle.end_date);
+  const range = formatCycleRange(cycle.start_date, cycle.end_date, today);
   return cycle.status === "current" && cycle.end_date ? `${range} · ${daysLeftLabel(cycle.end_date, today)}` : range;
 }
 

@@ -7,7 +7,7 @@
  * except unarchive and delete, and a delete soft-deletes everything the
  * project owns in one transaction.
  */
-import { and, asc, count, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { getActor } from "./actors";
 import { diffFields, logActivity } from "./activity";
@@ -18,6 +18,7 @@ import { nameKey, normalizeIdentifier } from "./core/keys";
 import { lastSortOrder, sortOrderAfter } from "./core/order";
 import { assertInTransaction, withTx } from "./core/tx";
 import {
+  activity,
   cycle,
   intake,
   intake_item,
@@ -75,12 +76,52 @@ function loadWritableProject(ctx: TesseraContext, id: string): ProjectRow {
   return row;
 }
 
+export type ProjectFeature = "cycles" | "modules" | "views";
+
+const FEATURE_LABEL: Record<ProjectFeature, string> = { cycles: "Cycles", modules: "Modules", views: "Views" };
+
+/** RULE feature_disabled while the project has the feature turned off: creates only, reads and data stay (decision 31). */
+export function assertFeatureEnabled(
+  project: Pick<ProjectRow, "cycles_enabled" | "modules_enabled" | "views_enabled">,
+  feature: ProjectFeature,
+): void {
+  const enabled = feature === "cycles" ? project.cycles_enabled : feature === "modules" ? project.modules_enabled : project.views_enabled;
+  if (!enabled) throw rule("feature_disabled", `${FEATURE_LABEL[feature]} are turned off for this project`);
+}
+
 function findByIdentifier(ctx: TesseraContext, identifier: string): ProjectRow | undefined {
   return ctx.db
     .select()
     .from(project)
     .where(and(eq(project.identifier, identifier), isNull(project.deleted_at)))
     .get();
+}
+
+/**
+ * Project that held `identifier` before a rename (decision 29), found through
+ * the newest `identifier` activity row whose old value is it. `undefined` when
+ * a non-deleted project (archived or not) holds the identifier now: the live
+ * holder always wins. No alias table. `diffFields` stores strings as-is, so
+ * `old_value` equals the identifier.
+ */
+export function resolveRetiredIdentifier(ctx: TesseraContext, identifier: string): ProjectRow | undefined {
+  const normalized = normalizeIdentifier(identifier);
+  if (findByIdentifier(ctx, normalized)) return undefined;
+  const rows = ctx.db
+    .select({ project_id: activity.entity_id })
+    .from(activity)
+    .where(and(eq(activity.entity_type, "project"), eq(activity.field, "identifier"), eq(activity.old_value, normalized)))
+    .orderBy(desc(activity.seq))
+    .all();
+  for (const row of rows) {
+    const holder = ctx.db
+      .select()
+      .from(project)
+      .where(and(eq(project.id, row.project_id), isNull(project.deleted_at)))
+      .get();
+    if (holder && holder.identifier !== normalized) return holder;
+  }
+  return undefined;
 }
 
 function findByNameKey(ctx: TesseraContext, key: string): ProjectRow | undefined {
@@ -196,7 +237,7 @@ export function listProjects(ctx: TesseraContext, input: ListProjectsInputType =
 /** By id or by identifier (any case); archived projects are returned, deleted ones are NOT_FOUND. */
 export function getProject(ctx: TesseraContext, idOrIdentifier: string): Project {
   const raw = idOrIdentifier.trim();
-  const row = isId(raw) ? getProjectRow(ctx, raw) : findByIdentifier(ctx, normalizeIdentifier(raw));
+  const row = isId(raw) ? getProjectRow(ctx, raw) : (findByIdentifier(ctx, normalizeIdentifier(raw)) ?? resolveRetiredIdentifier(ctx, raw));
   if (!row) throw notFound("project", raw);
   return toProject(ctx, row);
 }

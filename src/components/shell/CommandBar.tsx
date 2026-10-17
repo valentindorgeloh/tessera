@@ -55,20 +55,24 @@ import {
   PlusIcon,
   SearchIcon,
   SparkleIcon,
+  ViewIcon,
 } from "@/themes/catppuccin/icons";
 import { setColorScheme } from "./color-scheme";
 import { useCommandContext, type CommandContextValue } from "./command-context";
 import {
   buildCommands,
+  buildProjectSettingsCommands,
   createCommandSource,
   liveHighlight,
   OPEN_ITEM_PREFIX,
+  projectSettingsTab,
   recentToItem,
   themeCommandScheme,
   type CommandSearchItem,
   type CommandSection,
   type CommandSource,
 } from "./command-source";
+import { readProjectFeatures } from "./project-features";
 import { onScreenPaths, otherRecents, projectIdFromPath, RECENTS_IN_PALETTE } from "./recents";
 import { readRecents } from "./recents-store";
 import { COLOR_SCHEME_ICONS, ROUTE_ICONS } from "./shell-icons";
@@ -210,7 +214,10 @@ export function CommandBar({ ref }: CommandBarProps) {
     const inner = () => {
       const current = state();
       current.inner ??= createCommandSource({
-        commands: () => (state().scope.mode === "ask" ? [] : buildCommands(state().context)),
+        commands: () =>
+          state().scope.mode === "ask"
+            ? []
+            : [...buildCommands(state().context, readProjectFeatures(state().scope.projectId)), ...buildProjectSettingsCommands(state().scope.projectId)],
         recents: () => (state().scope.mode === "ask" ? [] : otherRecents(readRecents(), state().scope.onScreen, RECENTS_IN_PALETTE).map(recentToItem)),
         scope: () => (state().scope.allProjects ? null : state().scope.projectId),
       });
@@ -266,6 +273,11 @@ export function CommandBar({ ref }: CommandBarProps) {
         case "module":
           if (hit.project_id) router.push(`/projects/${hit.project_id}/modules/${hit.id}`);
           return;
+        case "view":
+          // A workspace view has no project; those screens arrive with P9.
+          if (hit.project_id) router.push(`/projects/${hit.project_id}/views/${hit.id}`);
+          else notify("Workspace views arrive in P9");
+          return;
         case "page":
           notify("Arrives in P6");
           return;
@@ -290,6 +302,12 @@ export function CommandBar({ ref }: CommandBarProps) {
       if (id.startsWith(OPEN_ITEM_PREFIX)) {
         const current = paletteRef.current.context;
         if (current) router.push(current.item.url);
+        return;
+      }
+      const settingsTab = projectSettingsTab(id);
+      const settingsProject = paletteRef.current.scope.projectId;
+      if (settingsTab && settingsProject) {
+        router.push(`/projects/${settingsProject}/settings/${settingsTab}`);
         return;
       }
       const scheme = themeCommandScheme(id);
@@ -472,6 +490,7 @@ const HIT_ICONS: Readonly<Record<SearchType, IconType>> = {
   project: FolderIcon,
   cycle: CycleIcon,
   module: ModuleIcon,
+  view: ViewIcon,
   page: PageIcon,
 };
 

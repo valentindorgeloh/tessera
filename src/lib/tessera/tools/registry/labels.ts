@@ -49,7 +49,7 @@ export const labelTools = [
   defineTool({
     name: "delete_label",
     title: "Delete label",
-    description: "Soft-deletes a label and its child labels, detaches them from every work item and page, and strips them from the saved filters of the project's views, of workspace views and of remembered list settings. Destructive.",
+    description: "Soft-deletes a label and its child labels, detaches them from every work item and page, and strips them from the saved filters of the project's views, of workspace views and of remembered list settings. Destructive. Its id is removed from every saved view and remembered view setting that filters on it.",
     input: LabelIdInput,
     mutates: true,
     destructive: true,

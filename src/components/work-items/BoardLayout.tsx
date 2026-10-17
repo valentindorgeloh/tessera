@@ -26,6 +26,7 @@ import { AvatarGroup } from "@astryxdesign/core/AvatarGroup";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Card } from "@astryxdesign/core/Card";
 import { ClickableCard } from "@astryxdesign/core/ClickableCard";
+import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
@@ -37,6 +38,7 @@ import { Token } from "@astryxdesign/core/Token";
 import { usePointerDrag, type DragDropEvent, type ItemDragHandlers } from "@/components/dnd/use-pointer-drag";
 import type { Display, DisplayProperties, Group, GroupBy, PaletteColor, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { PlusIcon } from "@/themes/catppuccin/icons";
+import { dragKey, itemIdOf } from "./board-keys";
 import { isMovableGroup } from "./moves";
 import { isOptimisticId } from "./optimistic";
 import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } from "./properties";
@@ -114,18 +116,33 @@ function useBoardModel(result: LayoutProps["result"], display: Display) {
   }, [display.group_by, display.show_empty_groups, display.sub_group_by, result.groups, result.items]);
 }
 
-export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAdd, canQuickAdd }: LayoutProps) {
+export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAdd, canQuickAdd, readOnly = false }: LayoutProps) {
   const { columns, lanes, containers, byId } = useBoardModel(result, display);
+  // Collapsed swimlanes (F3.2): their cells stay mounted but hidden and take no drops.
+  const [collapsedLanes, setCollapsedLanes] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleLane = (id: string, isOpen: boolean) =>
+    setCollapsedLanes((previous) => {
+      const next = new Set(previous);
+      if (isOpen) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   // The header "+" opens that column's quick-add row; a per-column nonce remounts only that row
   // active, so text typed in another column's row survives.
   const [quickAddNonces, setQuickAddNonces] = useState<Record<string, number>>({});
-  const canMoveColumns = isMovableGroup(display.group_by);
-  const canMoveLanes = isMovableGroup(display.sub_group_by);
+  // An archived project is read-only: no drag, no "Move to", no quick-add (F3.4).
+  const canMoveColumns = !readOnly && isMovableGroup(display.group_by);
+  const canMoveLanes = !readOnly && isMovableGroup(display.sub_group_by);
   // The modules and cycles items may join or leave; an archived module or a completed or archived cycle is closed.
   const open = useMemo(() => openMemberships(bundle), [bundle]);
 
-  // Quick-add placeholders are not registered with the drag hook and cannot be neighbours.
-  const itemsOf = useCallback((container: string) => (containers.get(container)?.itemIds ?? []).filter((id) => !isOptimisticId(id)), [containers]);
+  // Quick-add placeholders are not registered with the drag hook and cannot be neighbours. Every copy of a card is
+  // keyed by its container (decision 30), so an item in two columns collides with nothing.
+  const itemsOf = useCallback(
+    (container: string) =>
+      (containers.get(container)?.itemIds ?? []).filter((id) => !isOptimisticId(id)).map((id) => dragKey(container, id)),
+    [containers],
+  );
 
   /**
    * Whether a drop from one container into another goes through. A change of column (or lane) needs a field the engine
@@ -136,6 +153,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
       const from = containers.get(fromContainer);
       const to = containers.get(toContainer);
       if (!from || !to) return false;
+      if (to.laneId !== null && collapsedLanes.has(to.laneId)) return false;
       const field = display.group_by;
       if (from.columnId !== to.columnId) {
         if (!canMoveColumns || field === null) return false;
@@ -149,7 +167,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
       }
       return true;
     },
-    [canMoveColumns, canMoveLanes, containers, display.group_by, display.sub_group_by, open],
+    [canMoveColumns, canMoveLanes, collapsedLanes, containers, display.group_by, display.sub_group_by, open],
   );
 
   const handleDrop = useCallback(
@@ -159,26 +177,46 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
       if (!from || !to) return;
       // A drop the engine would refuse is ignored: the card snaps back.
       if (!acceptsDrop(event.fromContainer, event.toContainer)) return;
+      // The hook speaks in drag keys; the engine wants item ids (decision 30). A neighbour that is another copy of the
+      // dragged item (labels, assignees, modules show it in several columns) is no neighbour.
+      const id = itemIdOf(event.id);
+      const neighbour = (key: string | undefined) => {
+        const neighbourId = key === undefined ? undefined : itemIdOf(key);
+        return neighbourId === id ? undefined : neighbourId;
+      };
       // Neighbour ids only mean something when the list is in sort order; otherwise a drop just changes the group.
-      const placement: Pick<MoveInput, "before_id" | "after_id"> = display.order_by === "sort_order" ? { before_id: event.before_id, after_id: event.after_id } : {};
-      const field = display.group_by;
-      const columnChanged = from.columnId !== to.columnId;
-      const laneChanged = to.laneId !== null && from.laneId !== to.laneId;
-      if (field !== null && columnChanged) {
-        onMove({ id: event.id, group_by: field, value: groupValue(to.columnId, field), from_value: groupValue(from.columnId, field), ...placement });
+      const placement: Pick<MoveInput, "before_id" | "after_id"> = display.order_by === "sort_order" ? { before_id: neighbour(event.before_id), after_id: neighbour(event.after_id) } : {};
+      // The field of each axis that changed, else null.
+      const columnField = from.columnId !== to.columnId ? display.group_by : null;
+      const laneField = to.laneId !== null && from.laneId !== to.laneId ? display.sub_group_by : null;
+      const fromLane = from.laneId === null || laneField === null ? null : groupValue(from.laneId, laneField);
+      const toLane = to.laneId === null || laneField === null ? null : groupValue(to.laneId, laneField);
+      if (columnField !== null && laneField !== null) {
+        // Both axes change in one request (F3.5, decision 30).
+        onMove({
+          id,
+          group_by: columnField,
+          value: groupValue(to.columnId, columnField),
+          from_value: groupValue(from.columnId, columnField),
+          sub_group_by: laneField,
+          sub_value: toLane,
+          sub_from_value: fromLane,
+          ...placement,
+        });
+      } else if (columnField !== null) {
+        onMove({ id, group_by: columnField, value: groupValue(to.columnId, columnField), from_value: groupValue(from.columnId, columnField), ...placement });
+      } else if (laneField !== null) {
+        // Only the lane changed: a one-axis move on the sub field.
+        onMove({ id, group_by: laneField, value: toLane, from_value: fromLane, ...placement });
       } else if (placement.before_id !== undefined || placement.after_id !== undefined) {
-        onMove({ id: event.id, ...placement });
-      }
-      const subField = display.sub_group_by;
-      if (subField !== null && laneChanged && to.laneId !== null) {
-        onMove({ id: event.id, group_by: subField, value: groupValue(to.laneId, subField), from_value: from.laneId === null ? null : groupValue(from.laneId, subField) });
+        onMove({ id, ...placement });
       }
     },
     [acceptsDrop, containers, display.group_by, display.order_by, display.sub_group_by, onMove],
   );
 
   const { drag, registerContainer, registerItem, registerScroller, registerOverlay, itemHandlers } = usePointerDrag({ onDrop: handleDrop, itemsOf });
-  const dragged = drag ? byId.get(drag.id) : undefined;
+  const dragged = drag ? byId.get(itemIdOf(drag.id)) : undefined;
 
   const moveToColumn = useCallback(
     (itemId: string, fromColumn: string, toColumn: string) => {
@@ -216,7 +254,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
 
   // A column has no quick-add when the list cannot create items, or when its group pins a value the engine refuses
   // (a closed state in a cycle scope, an archived module, a completed or archived cycle; ./quick-add.ts).
-  const canAddTo = (column: Column) => onQuickAdd !== undefined && canQuickAdd?.(quickAddGroupOf(column)) !== false;
+  const canAddTo = (column: Column) => !readOnly && onQuickAdd !== undefined && canQuickAdd?.(quickAddGroupOf(column)) !== false;
 
   const quickAdd = useCallback(
     (column: Column, name: string) => {
@@ -227,7 +265,8 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
 
   const renderCards = (container: string, column: Column): ReactNode => {
     const ids = containers.get(container)?.itemIds ?? [];
-    const visible = ids.map((id) => byId.get(id)).filter((item): item is WorkItem => item !== undefined && item.id !== drag?.id);
+    // Only the dragged copy is hidden: the item's copies in other columns stay (decision 30).
+    const visible = ids.map((id) => byId.get(id)).filter((item): item is WorkItem => item !== undefined && dragKey(container, item.id) !== drag?.id);
     const nodes: ReactNode[] = visible.map((item) =>
       isOptimisticId(item.id) ? (
         <Card key={item.id} padding={3} className="tessera-board-card tessera-board-card-pending" aria-busy="true">
@@ -241,8 +280,8 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
           properties={display.properties}
           columns={moveTargetsFrom(column)}
           currentColumn={column.id}
-          cardRef={registerItem(item.id)}
-          handlers={itemHandlers(item.id, container)}
+          cardRef={readOnly ? undefined : registerItem(dragKey(container, item.id))}
+          handlers={readOnly ? undefined : itemHandlers(dragKey(container, item.id), container)}
           onOpen={onOpen}
           onMoveTo={moveToColumn}
         />
@@ -253,11 +292,13 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
       nodes.splice(Math.min(drag.target.index, nodes.length), 0, <Card key="placeholder" variant="muted" padding={0} height={drag.height} className="tessera-board-placeholder" />);
     }
     if (nodes.length === 0) {
-      const description = isClosedColumn(column)
-        ? closedColumnText(display.group_by)
-        : lanes === null && canAddTo(column)
-          ? "Drag a card here or add one with the plus button."
-          : "Drag a card here.";
+      const description = readOnly
+        ? undefined
+        : isClosedColumn(column)
+          ? closedColumnText(display.group_by)
+          : lanes === null && canAddTo(column)
+            ? "Drag a card here or add one with the plus button."
+            : "Drag a card here.";
       return <EmptyState isCompact title="No work items" description={description} />;
     }
     return (
@@ -318,11 +359,19 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
             ))}
           </HStack>
           {lanes.map((lane) => (
-            <VStack key={lane.id} gap={2} className="tessera-board-lane">
-              <HStack gap={2} vAlign="center" className="tessera-board-lane-title">
-                <GroupTitle name={lane.name} color={lane.color} id={lane.id} field={display.sub_group_by} bundle={bundle} level={5} />
-                <Badge label={lane.count} variant="neutral" />
-              </HStack>
+            <Collapsible
+              key={lane.id}
+              className="tessera-board-lane"
+              chevronPosition="start"
+              isOpen={!collapsedLanes.has(lane.id)}
+              onOpenChange={(isOpen) => toggleLane(lane.id, isOpen)}
+              trigger={
+                <HStack gap={2} vAlign="center" className="tessera-board-lane-title">
+                  <GroupTitle name={lane.name} color={lane.color} id={lane.id} field={display.sub_group_by} bundle={bundle} level={5} />
+                  <Badge label={lane.count} variant="neutral" />
+                </HStack>
+              }
+            >
               <HStack gap={4} vAlign="stretch" className="tessera-board-lane-row">
                 {columns.map((column) => {
                   const cell = containerId(column.id, lane.id);
@@ -333,7 +382,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
                   );
                 })}
               </HStack>
-            </VStack>
+            </Collapsible>
           ))}
         </VStack>
       )}
@@ -420,8 +469,9 @@ function BoardCard({
   /** "Move to" targets; empty when the grouped field cannot be moved between. */
   columns: Column[];
   currentColumn: string;
-  cardRef: (el: HTMLDivElement | null) => void;
-  handlers: ItemDragHandlers;
+  /** Absent when the board is read-only: the card is not a drag source. */
+  cardRef?: (el: HTMLDivElement | null) => void;
+  handlers?: ItemDragHandlers;
   onOpen: (id: string) => void;
   onMoveTo: (itemId: string, fromColumn: string, toColumn: string) => void;
 }) {
@@ -451,10 +501,10 @@ function BoardCard({
       ref={cardRef}
       label={`${item.key} ${item.name}`}
       padding={3}
-      className="tessera-board-card"
+      className={handlers ? "tessera-board-card" : "tessera-board-card tessera-board-card-readonly"}
       onClick={() => onOpen(item.id)}
-      onPointerDown={handlers.onPointerDown}
-      onClickCapture={handlers.onClickCapture}
+      onPointerDown={handlers?.onPointerDown}
+      onClickCapture={handlers?.onClickCapture}
     >
       <BoardCardBody item={item} bundle={bundle} properties={properties} menu={menu} />
     </ClickableCard>

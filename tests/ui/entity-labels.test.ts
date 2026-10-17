@@ -5,7 +5,7 @@
  * labels under the ones registered on this page.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ENTITY_LABELS_STORAGE_KEY, parseEntityLabels, serializeEntityLabels, withEntityLabel } from "@/components/shell/entity-labels";
+import { ENTITY_LABELS_STORAGE_KEY, parseEntityLabels, serializeEntityLabels, withEntityLabel, withRenamedKeys } from "@/components/shell/entity-labels";
 
 const A = "11111111-1111-7111-8111-111111111111";
 const B = "22222222-2222-7222-8222-222222222222";
@@ -44,6 +44,44 @@ describe("withEntityLabel", () => {
     labels = withEntityLabel(labels, B, "b", 2);
     labels = withEntityLabel(labels, C, "c", 2);
     expect([...labels.keys()]).toEqual([B, C]);
+  });
+});
+
+describe("withRenamedKeys", () => {
+  it("rewrites the key prefix of work-item labels and keeps the order", () => {
+    const before = new Map([
+      [A, "WEB-1 Set up hosting"],
+      [B, "Cycle WEB-1 is not a key"],
+      [C, "WEB-12 Write copy"],
+    ]);
+    const after = withRenamedKeys(before, "WEB", "SITE");
+    expect([...after]).toEqual([
+      [A, "SITE-1 Set up hosting"],
+      [B, "Cycle WEB-1 is not a key"],
+      [C, "SITE-12 Write copy"],
+    ]);
+    expect(before.get(A)).toBe("WEB-1 Set up hosting");
+  });
+
+  it("leaves other projects' keys alone, including longer identifiers that start the same", () => {
+    const labels = new Map([
+      [A, "WEBX-1 Other project"],
+      [B, "API-3 Endpoint"],
+    ]);
+    expect(withRenamedKeys(labels, "WEB", "SITE")).toBe(labels);
+  });
+
+  it("needs a numeric sequence and a space after the key", () => {
+    const labels = new Map([
+      [A, "WEB-x Not a key"],
+      [B, "WEB-1"],
+    ]);
+    expect(withRenamedKeys(labels, "WEB", "SITE")).toBe(labels);
+  });
+
+  it("returns the same map for an unchanged identifier", () => {
+    const labels = new Map([[A, "WEB-1 Set up hosting"]]);
+    expect(withRenamedKeys(labels, "WEB", "WEB")).toBe(labels);
   });
 });
 
@@ -109,6 +147,22 @@ describe("entity label store", () => {
     expect(JSON.parse(storage.get(ENTITY_LABELS_STORAGE_KEY) ?? "null")).toEqual([
       [B, "WEB-2 Write copy"],
       [A, "WEB-1 New title"],
+    ]);
+  });
+
+  it("renames the stored keys after an identifier change", async () => {
+    storage.set(
+      ENTITY_LABELS_STORAGE_KEY,
+      JSON.stringify([
+        [A, "WEB-1 Set up hosting"],
+        [B, "Sprint 3"],
+      ]),
+    );
+    const store = await import("@/components/shell/entity-labels");
+    store.renameEntityLabelKeys("WEB", "SITE");
+    expect(JSON.parse(storage.get(ENTITY_LABELS_STORAGE_KEY) ?? "null")).toEqual([
+      [A, "SITE-1 Set up hosting"],
+      [B, "Sprint 3"],
     ]);
   });
 

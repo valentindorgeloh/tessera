@@ -69,7 +69,7 @@ export const moduleTools = [
     name: "create_module",
     title: "Create module",
     description:
-      "Creates a module in a project. Names are unique per project (case-insensitive, CONFLICT otherwise); status defaults to planned; start_date must be on or before target_date; lead and members are actor ids.",
+      "Creates a module in a project. Names are unique per project (case-insensitive, CONFLICT otherwise); status defaults to planned; start_date must be on or before target_date; lead and members are actor ids. RULE feature_disabled while the project has the feature turned off.",
     input: CreateModuleInput,
     mutates: true,
     phase: "P3",
@@ -114,7 +114,7 @@ export const moduleTools = [
   defineTool({
     name: "delete_module",
     title: "Delete module",
-    description: "Soft-deletes a module and removes its member list and work item memberships; its work items stay in the project. Works on archived modules. Destructive.",
+    description: "Soft-deletes a module and removes its member list and work item memberships; its work items stay in the project. Works on archived modules. Destructive. Its id is removed from every saved view and remembered view setting that filters on it.",
     input: ModuleIdInput,
     mutates: true,
     destructive: true,

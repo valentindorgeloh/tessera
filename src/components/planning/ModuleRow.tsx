@@ -25,7 +25,7 @@ export type ModuleRowProps = { projectId: string; module: Module };
 const VISIBLE_MEMBERS = 3;
 
 export function ModuleRow({ projectId, module }: ModuleRowProps) {
-  const { actorsById } = useProject();
+  const { actorsById, bundle } = useProject();
   const statusLabel = MODULE_STATUS_LABEL[module.status];
   const nameOf = (id: string) => actorsById.get(id)?.name ?? "Removed";
   const lead = module.lead_actor_id === null ? null : nameOf(module.lead_actor_id);
@@ -41,7 +41,7 @@ export function ModuleRow({ projectId, module }: ModuleRowProps) {
           {module.name}
         </Text>
       }
-      description={`${statusLabel} · ${formatModuleRange(module.start_date, module.target_date)}`}
+      description={`${statusLabel} · ${formatModuleRange(module.start_date, module.target_date, bundle.today)}`}
       endContent={
         <HStack gap={4} vAlign="center" className="tessera-modules-row-end">
           {lead !== null ? <Avatar name={lead} size="sm" tooltip={`Lead: ${lead}`} /> : null}

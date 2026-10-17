@@ -20,6 +20,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { deleteCycleAction, unarchiveCycleAction } from "@/app/actions/cycles";
 import { RelativeTime } from "@/components/detail/RelativeTime";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
+import { useProject } from "@/components/work-items/project-provider";
 import type { Cycle } from "@/lib/tessera/types";
 import { CycleIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { failureText } from "./archive-rules";
@@ -84,6 +85,7 @@ type RowProps = { projectId: string; cycle: Cycle; onDelete: (cycle: Cycle) => v
 
 function ArchivedCycleRow({ projectId, cycle, onDelete }: RowProps) {
   const toast = useToast();
+  const { bundle } = useProject();
   const [isRestoring, startRestore] = useTransition();
 
   const restore = () => {
@@ -101,7 +103,7 @@ function ArchivedCycleRow({ projectId, cycle, onDelete }: RowProps) {
       description={
         // No hover card: the time sits inside the row's link or button, which holds no second control or tab stop.
         <>
-          {formatCycleRange(cycle.start_date, cycle.end_date)}
+          {formatCycleRange(cycle.start_date, cycle.end_date, bundle.today)}
           {cycle.archived_at === null ? null : (
             <>
               {" · Archived "}

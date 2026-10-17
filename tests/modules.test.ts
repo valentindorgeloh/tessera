@@ -5,7 +5,7 @@ import { ASSISTANT_ACTOR_ID, registerActor, SYSTEM_ACTOR_ID, USER_ACTOR_ID } fro
 import { TrackerError } from "@/lib/tessera/core/errors";
 import { newId } from "@/lib/tessera/core/ids";
 import { firstSortOrder } from "@/lib/tessera/core/order";
-import { activity, estimate, estimate_point, moduleTable, module_member, project, work_item, work_item_assignee, work_item_label, work_item_module } from "@/lib/tessera/db/schema";
+import { activity, estimate, estimate_point, moduleTable, module_member, project, view, work_item, work_item_assignee, work_item_label, work_item_module } from "@/lib/tessera/db/schema";
 import { createLabel } from "@/lib/tessera/labels";
 import { addLink, getLink, listLinks } from "@/lib/tessera/links";
 import {
@@ -27,9 +27,10 @@ import {
   updateModuleLink,
 } from "@/lib/tessera/modules";
 import { archiveProject, createProject, updateProjectFeatures } from "@/lib/tessera/projects";
-import { ModuleStatusSchema } from "@/lib/tessera/schemas";
+import { DEFAULT_DISPLAY, FiltersSchema, ModuleStatusSchema } from "@/lib/tessera/schemas";
 import { listStates } from "@/lib/tessera/states";
-import type { StateGroup } from "@/lib/tessera/types";
+import type { Filters, StateGroup } from "@/lib/tessera/types";
+import { getViewSettings, saveViewSettings } from "@/lib/tessera/view-settings";
 import { createTestContext, createTestDb, type TesseraContext } from "./helpers/db";
 
 type Fixture = { ctx: TesseraContext; projectId: string; states: Record<StateGroup, string> };
@@ -68,6 +69,46 @@ function ruleName(fn: () => unknown): string | undefined {
 }
 
 let sequence = 0;
+
+/** Saved filters on `key`: a project view, a locked one, a workspace view and a view_settings row hold [id, other]; one view holds only `id`. */
+function seedSavedFilters(ctx: TesseraContext, projectId: string, key: "state" | "cycle" | "module", id: string, other: string) {
+  const insertView = (scope: string | null, name: string, filters: Filters, isLocked = false) => {
+    const now = ctx.now();
+    return ctx.db
+      .insert(view)
+      .values({
+        id: newId(),
+        project_id: scope,
+        name,
+        name_key: name.toLowerCase(),
+        filters,
+        display: DEFAULT_DISPLAY,
+        is_locked: isLocked,
+        sort_order: firstSortOrder(),
+        created_at: now,
+        updated_at: now,
+        created_by: ctx.actor.id,
+        updated_by: ctx.actor.id,
+      })
+      .returning()
+      .get();
+  };
+  const both = { [key]: [id, other] } as Filters;
+  const views = {
+    project: insertView(projectId, "Project view", both),
+    locked: insertView(projectId, "Locked view", both, true),
+    workspace: insertView(null, "Workspace view", both),
+    only: insertView(projectId, "Only view", { [key]: [id] } as Filters),
+  };
+  saveViewSettings(ctx, "project", projectId, { filters: both });
+  return views;
+}
+
+function storedFilters(ctx: TesseraContext, viewId: string): Filters {
+  const row = ctx.db.select().from(view).where(eq(view.id, viewId)).get();
+  if (!row) throw new Error("view missing");
+  return FiltersSchema.parse(row.filters);
+}
 
 function insertWorkItem(ctx: TesseraContext, projectId: string, stateId: string, name: string, extra: Partial<typeof work_item.$inferInsert> = {}) {
   const now = ctx.now();
@@ -720,6 +761,39 @@ describe("deleteModule", () => {
     const rows = rowsSince(ctx, seqBefore);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ entity_type: "module", entity_id: m.id, verb: "deleted", old_identifier: "Auth", project_id: projectId });
+  });
+});
+
+
+describe("deleteModule and saved filters", () => {
+  it("delete strips the id from saved filters", () => {
+    const { ctx, projectId } = setup();
+    const target = createModule(ctx, { project_id: projectId, name: "Target" });
+    const keep = createModule(ctx, { project_id: projectId, name: "Keep" });
+    const views = seedSavedFilters(ctx, projectId, "module", target.id, keep.id);
+    const seqBefore = latestSeq(ctx);
+    deleteModule(ctx, target.id);
+    const keptOnly = { module: [keep.id] };
+    expect(storedFilters(ctx, views.project.id)).toEqual(keptOnly);
+    expect(storedFilters(ctx, views.locked.id)).toEqual(keptOnly);
+    expect(storedFilters(ctx, views.workspace.id)).toEqual(keptOnly);
+    expect(storedFilters(ctx, views.only.id)).toEqual({});
+    expect(getViewSettings(ctx, "project", projectId).filters).toEqual(keptOnly);
+    const rows = ctx.db.select().from(activity).all().filter((r) => r.seq > seqBefore && r.field === "filters");
+    expect(rows.map((r) => r.entity_type).sort()).toEqual(["view", "view", "view", "view", "view_settings"]);
+  });
+});
+
+describe("Modules feature toggle", () => {
+  it("create refuses while the feature is off", () => {
+    const { ctx, projectId } = setup();
+    const existing = createModule(ctx, { project_id: projectId, name: "Existing" });
+    updateProjectFeatures(ctx, projectId, { modules_enabled: false });
+    expect(ruleName(() => createModule(ctx, { project_id: projectId, name: "Blocked" }))).toBe("feature_disabled");
+    expect(listModules(ctx, projectId).map((row) => row.id)).toEqual([existing.id]);
+    expect(getModule(ctx, existing.id).id).toBe(existing.id);
+    updateProjectFeatures(ctx, projectId, { modules_enabled: true });
+    expect(createModule(ctx, { project_id: projectId, name: "Blocked" }).id).toBeTruthy();
   });
 });
 

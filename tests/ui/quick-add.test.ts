@@ -7,6 +7,7 @@
 import { describe, expect, it } from "vitest";
 import {
   acceptsGroupMove,
+  createDefaultsFromScope,
   isOpenGroupValue,
   openMemberships,
   quickAddAllowed,
@@ -196,5 +197,44 @@ describe("withScopeDefaults (create dialog defaults)", () => {
     expect(withScopeDefaults({}, { cycle_id: CYCLE, module_ids: [MODULE] })).toEqual({ cycle_id: CYCLE, module_ids: [MODULE] });
     expect(withScopeDefaults({ name: "Alpha", cycle_id: OTHER_CYCLE }, { cycle_id: CYCLE })).toEqual({ name: "Alpha", cycle_id: OTHER_CYCLE });
     expect(withScopeDefaults({ module_ids: [OTHER_MODULE] }, { module_ids: [MODULE] })).toEqual({ module_ids: [OTHER_MODULE, MODULE] });
+  });
+});
+
+describe("a view's filters as scope defaults", () => {
+  const viewList = (scopeDefaults: QuickAddContext["scopeDefaults"]): QuickAddContext => ({ projectId: PROJECT, states: STATES, ...OPEN, scopeDefaults });
+
+  it("unites a labels group with the view's labels", () => {
+    const input = quickAddInput({ field: "labels", value: LABEL }, "Alpha", viewList({ label_ids: [MODULE, LABEL] }));
+    expect(input?.label_ids).toEqual([LABEL, MODULE]);
+  });
+
+  it("keeps a state group's state over the view's single state", () => {
+    const input = quickAddInput({ field: "state_group", value: "completed" }, "Alpha", viewList({ state_id: TODO.id }));
+    expect(input?.state_id).toBe(DONE.id);
+    expect(quickAddInput({ field: null, value: null }, "Alpha", viewList({ state_id: TODO.id }))?.state_id).toBe(TODO.id);
+  });
+
+  it("takes the view's priority when the group is not priority", () => {
+    expect(quickAddInput({ field: "labels", value: LABEL }, "Alpha", viewList({ priority: "high" }))?.priority).toBe("high");
+    expect(quickAddInput({ field: "priority", value: "low" }, "Alpha", viewList({ priority: "high" }))?.priority).toBe("low");
+  });
+
+  it("adds the view's assignees and no empty keys", () => {
+    expect(quickAddInput({ field: null, value: null }, "Alpha", viewList({ assignee_ids: [MODULE] }))?.assignee_ids).toEqual([MODULE]);
+    expect(quickAddInput({ field: null, value: null }, "Alpha", viewList({}))).toEqual({ project_id: PROJECT, name: "Alpha", source: "in_app" });
+  });
+});
+
+describe("createDefaultsFromScope", () => {
+  it("is undefined for a missing or empty scope", () => {
+    expect(createDefaultsFromScope(undefined)).toBeUndefined();
+    expect(createDefaultsFromScope({})).toBeUndefined();
+    expect(createDefaultsFromScope({ label_ids: [] })).toBeUndefined();
+  });
+
+  it("maps the fields one to one", () => {
+    expect(
+      createDefaultsFromScope({ state_id: TODO.id, priority: "high", cycle_id: CYCLE, label_ids: [LABEL], assignee_ids: [OTHER_MODULE], module_ids: [MODULE] }),
+    ).toEqual({ state_id: TODO.id, priority: "high", cycle_id: CYCLE, label_ids: [LABEL], assignee_ids: [OTHER_MODULE], module_ids: [MODULE] });
   });
 });

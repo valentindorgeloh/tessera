@@ -24,7 +24,7 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 - "use client" files may import engine code only from @/lib/tessera/{types,schemas,core/keys,core/time,core/group}.
 - zod 4: `.partial()` still applies `.default()` values, so `DisplaySchema.partial()` fills defaults. Use DisplayPatchSchema for patches.
 - Cite numbered decisions in code as `decision N` (docs/PLAN.md). The convention gate fails on a cited number missing from the PLAN tables (docs/process/swarm.md).
-- File budget: 600 lines. Do not grow files listed in scripts/file-budget.json (work-items.ts, tools/registry.ts, cycles.ts, db/schema.ts, modules.ts, CommandBar.tsx); the convention gate fails on growth or on a new file over 600 lines. Lower the json when you shrink one.
+- File budget: 600 lines. Do not grow files listed in scripts/file-budget.json (cycles.ts, db/schema.ts, modules.ts after the P4 split; registry and work-items are folders). The convention gate fails on growth or on a new file over 600 lines. Lower the json when you shrink one.
 
 ## Astryx and theme
 - No raw <div>/<span>, hex or xstyle. Layout uses className + tokens in src/components/styles/<area>.css. Icons come only from src/themes/catppuccin/icons.tsx.

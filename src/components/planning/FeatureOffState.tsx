@@ -1,25 +1,34 @@
 "use client";
 
 /**
- * Shown instead of a cycles or modules screen while the project has the
+ * Shown instead of a cycles, modules or views screen while the project has the
  * feature turned off (docs/contracts/ui.md "Routes and data loading", feature
- * off). P3 has no settings UI, so there is no action button. A client
- * component because the Phosphor glyphs create a React context at module load.
+ * off; decision 31). The button opens Settings › Features. A client component
+ * because the Phosphor glyphs create a React context at module load.
  */
+import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/Stack";
-import { CycleIcon, ModuleIcon } from "@/themes/catppuccin/icons";
+import { CycleIcon, ModuleIcon, ViewIcon } from "@/themes/catppuccin/icons";
 
-export type FeatureOffStateProps = { feature: "cycles" | "modules" };
+export type FeatureOffStateProps = { feature: "cycles" | "modules" | "views"; projectId: string };
 
-export function FeatureOffState({ feature }: FeatureOffStateProps) {
+const FEATURES = {
+  cycles: { icon: CycleIcon, title: "Cycles are turned off for this project" },
+  modules: { icon: ModuleIcon, title: "Modules are turned off for this project" },
+  views: { icon: ViewIcon, title: "Views are turned off for this project" },
+} as const;
+
+export function FeatureOffState({ feature, projectId }: FeatureOffStateProps) {
+  const { icon, title } = FEATURES[feature];
   return (
     <VStack padding={8} hAlign="center" vAlign="center">
       <EmptyState
-        icon={<Icon icon={feature === "cycles" ? CycleIcon : ModuleIcon} size="lg" color="secondary" />}
-        title={feature === "cycles" ? "Cycles are turned off for this project" : "Modules are turned off for this project"}
-        description="Project settings arrive in P4; an agent can turn them on with update_project_features."
+        icon={<Icon icon={icon} size="lg" color="secondary" />}
+        title={title}
+        description="Turn them on in Settings › Features."
+        actions={<Button variant="secondary" size="sm" label="Open Features settings" href={`/projects/${projectId}/settings/features`} />}
       />
     </VStack>
   );
