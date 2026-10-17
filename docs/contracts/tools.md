@@ -19,7 +19,7 @@ type ToolDef<Name extends string = string, Input extends z.ZodObject = z.ZodObje
 defineTool(def): ToolDef                                                       // identity with inference
 type Toolset = "all" | "core";
 
-// tools/registry.ts
+// tools/registry/index.ts
 export const registry: ReadonlyMap<string, ToolDef>;                           // contract order; duplicate names throw at load
 export function getTool(name: string): ToolDef;                                // NOT_FOUND for unknown names
 export function listTools({ toolset?, phase? } = {}): ToolDef[];               // phase is cumulative: "P3" = P1 + P3 tools
