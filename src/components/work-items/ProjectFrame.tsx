@@ -23,7 +23,7 @@ import { Token } from "@astryxdesign/core/Token";
 import { ProjectArchivedBanner, ProjectMenu } from "@/components/planning/ProjectArchive";
 import { PanelBar, PanelHeader, PanelTitle } from "@/components/shell/PanelHeader";
 import type { Project } from "@/lib/tessera/types";
-import { ArchiveIcon, CycleIcon, GearIcon, KanbanIcon, ModuleIcon, ViewIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { ArchiveIcon, CycleIcon, GearIcon, KanbanIcon, ModuleIcon, PageIcon, ViewIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { activeProjectTab, projectTabs, type ProjectTabKey } from "./project-tabs";
 import { useProject } from "./project-provider";
 
@@ -32,6 +32,7 @@ const TAB_ICONS: Record<ProjectTabKey, ReactNode> = {
   cycles: <CycleIcon />,
   modules: <ModuleIcon />,
   views: <ViewIcon />,
+  pages: <PageIcon />,
   archives: <ArchiveIcon />,
   settings: <GearIcon />,
 };

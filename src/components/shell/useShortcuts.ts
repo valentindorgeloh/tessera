@@ -7,16 +7,19 @@
  * shortcuts open D2's property pickers), the router (navigation and create
  * chords) or a toast ("Arrives in P4"). Mounted once by CommandBar, which also
  * owns `mod+k`, `mod+/` and the help dialog through Astryx `useHotkeys`; those
- * two ids are left to it here, and Escape belongs to PeekHost. Nothing fires
- * from a typing surface (input, textarea, select, the contenteditable editor)
- * or from inside an open picker, menu or the delete confirmation
- * (`isQuietTarget`, a superset of `isTypingTarget`).
+ * two ids are left to it here, and Escape belongs to PeekHost. `mod+j`
+ * (`assistant.toggle`) toggles the assistant when it is available, including
+ * from a typing surface. Nothing else fires from a typing surface (input,
+ * textarea, select, the contenteditable editor) or from inside an open picker,
+ * menu or the delete confirmation (`isQuietTarget`, a superset of
+ * `isTypingTarget`).
  *
  * Also holds the single-key preference (`tessera.shortcuts.v1`,
  * `{ "singleKeys": boolean }`) that the help dialog's switch writes, the
  * off switch WCAG 2.1.4 asks for.
  */
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { useAssistant } from "@/components/ai/AssistantProvider";
 import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provider";
 import { useCommandContext, type CommandContextValue } from "./command-context";
 import { readProjectFeatures, shortcutOffMessage } from "./project-features";
@@ -235,15 +238,20 @@ function runShortcut(id: ShortcutId, options: ShortcutDispatchOptions, context: 
  */
 export function useShortcuts(options: ShortcutDispatchOptions): ShortcutRunner {
   const context = useCommandContext();
+  const assistant = useAssistant();
   const { singleKeys } = useShortcutPrefs();
-  const latest = useRef({ options, context, singleKeys });
+  const latest = useRef({ options, context, singleKeys, assistant });
   const chordRef = useRef<ChordState>(null);
 
   useEffect(() => {
-    latest.current = { options, context, singleKeys };
+    latest.current = { options, context, singleKeys, assistant };
   });
 
   const run = useCallback<ShortcutRunner>((id) => {
+    if (id === "assistant.toggle") {
+      if (latest.current.assistant.status?.available === true) latest.current.assistant.toggle();
+      return;
+    }
     runShortcut(id, latest.current.options, latest.current.context);
   }, []);
 
@@ -276,6 +284,13 @@ export function useShortcuts(options: ShortcutDispatchOptions): ShortcutRunner {
       }
       chordRef.current = null;
       if (DELEGATED.has(resolved.id)) return;
+      if (resolved.id === "assistant.toggle") {
+        if (latest.current.assistant.status?.available === true) {
+          event.preventDefault();
+          latest.current.assistant.toggle();
+        }
+        return;
+      }
       event.preventDefault();
       runShortcut(resolved.id, current, item);
     };

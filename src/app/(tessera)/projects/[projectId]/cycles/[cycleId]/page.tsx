@@ -6,7 +6,7 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { CycleDetailScreen } from "@/components/planning/CycleDetailScreen";
 import { FeatureOffState } from "@/components/planning/FeatureOffState";
 import { IdSchema } from "@/lib/tessera/schemas";
-import { getProject, isTrackerError, readTessera } from "@/lib/tessera/server";
+import { currentDigestSeq, getProject, getStoredDigest, isTrackerError, readTessera } from "@/lib/tessera/server";
 import { ListSkeleton, ScopedWorkItems } from "@/app/(tessera)/projects/[projectId]/work-items/scoped-list";
 import { loadCycleDetail } from "@/app/(tessera)/projects/[projectId]/cycles/cycle-data";
 
@@ -20,10 +20,10 @@ const HIDDEN_GROUP_FIELDS = ["cycle"] as const;
 
 /**
  * One cycle (docs/contracts/ui.md "Routes and data loading"): the cycle with
- * its progress (points too with an active estimate) and the "Add existing"
- * candidates in one read, then the scoped work items list streamed in below
- * the header. A cycle of another project is not found here; a project with
- * cycles turned off shows the feature-off state.
+ * its progress (points too with an active estimate), the "Add existing"
+ * candidates and any stored digest in one read, then the scoped work items
+ * list streamed in below the header. A cycle of another project is not found
+ * here; a project with cycles turned off shows the feature-off state.
  */
 export default function CyclePage({ params, searchParams }: Props) {
   return (
@@ -45,10 +45,10 @@ async function CycleData({ params, searchParams }: Props) {
     throw err;
   }
   if (data === null) return <FeatureOffState feature="cycles" projectId={projectId} />;
-  if (data.cycle.project_id !== projectId) notFound();
-  const takesItems = data.cycle.archived_at === null && data.cycle.status !== "completed";
+  if (data.detail.cycle.project_id !== projectId) notFound();
+  const takesItems = data.detail.cycle.archived_at === null && data.detail.cycle.status !== "completed";
   return (
-    <CycleDetailScreen projectId={projectId} data={data}>
+    <CycleDetailScreen projectId={projectId} data={data.detail} digest={data.digest}>
       <Suspense fallback={<ListSkeleton />}>
         <ScopedWorkItems
           projectId={projectId}
@@ -68,7 +68,10 @@ function loadCycle(projectId: string, cycleId: string) {
   return readTessera((ctx) => {
     const project = getProject(ctx, projectId);
     if (!project.cycles_enabled) return null;
-    return loadCycleDetail(ctx, project, cycleId, true);
+    const detail = loadCycleDetail(ctx, project, cycleId, true);
+    const stored = getStoredDigest(ctx, "cycle", cycleId);
+    const seq = currentDigestSeq(ctx, "cycle", cycleId);
+    return { detail, digest: stored === null ? null : { ...stored, is_stale: seq > stored.input_seq } };
   });
 }
 

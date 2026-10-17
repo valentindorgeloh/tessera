@@ -4,16 +4,18 @@
  * `listChanges(sinceSeq)` returns the rows after it, optionally without the
  * given actors (the UI skips `user` so it only refreshes on external writes),
  * and a cursor that never moves backwards. `listActivity` is the per-item or
- * per-project feed with a read-time collapse of consecutive description edits
- * by the same actor within five minutes into one entry. Both are reads: no
- * transaction, nothing written.
+ * per-project feed (since P5 also the per-cycle and per-module feed) with a
+ * read-time collapse of consecutive description edits by the same actor within
+ * five minutes into one entry. Both are reads: no transaction, nothing written.
  */
-import { and, asc, desc, eq, gt, notInArray, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gt, notInArray, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { latestSeq } from "./activity";
 import type { TesseraContext } from "./core/context";
 import { validateInput } from "./core/errors";
-import { activity, actor } from "./db/schema";
+import { getCycleRow } from "./cycles";
+import { activity, actor, work_item, work_item_module } from "./db/schema";
+import { getModuleRow } from "./modules";
 import { getProjectRow } from "./projects";
 import { IdSchema } from "./schemas";
 import type { ActivityRow } from "./types";
@@ -103,12 +105,14 @@ export const ListActivityInput = z
   .object({
     work_item_id: IdSchema.optional().describe("Feed of one work item (its own rows plus memberships and relations logged on it)."),
     project_id: IdSchema.optional().describe("Feed of a whole project."),
+    cycle_id: IdSchema.optional().describe("Feed of a cycle: its own rows, the rows of the work items in it now and the membership rows that name it."),
+    module_id: IdSchema.optional().describe("Feed of a module: its own rows, the rows of the work items in it now and the membership rows that name it."),
     since_seq: z.number().int().min(0).optional().describe("Only rows after this seq."),
     limit: z.number().int().min(1).max(5000).optional().describe("Newest raw rows to read before collapsing (default 500)."),
   })
   .strict()
-  .refine((value) => (value.work_item_id === undefined) !== (value.project_id === undefined), {
-    message: "exactly one of work_item_id or project_id is required",
+  .refine((value) => [value.work_item_id, value.project_id, value.cycle_id, value.module_id].filter((scope) => scope !== undefined).length === 1, {
+    message: "exactly one of work_item_id, project_id, cycle_id or module_id is required",
   });
 
 export type ListActivityInputType = z.input<typeof ListActivityInput>;
@@ -159,6 +163,48 @@ export function collapseDescriptionEdits(rows: RawRow[]): ActivityLogEntry[] {
   return entries;
 }
 
+/**
+ * Cycle feed (P5): rows on the cycle itself (created, renamed, added, removed ...), rows of the
+ * work items that are in it now, and the item-side membership rows that name it, including the
+ * ones of items that have left since.
+ */
+function cycleFeedCondition(cycleId: string): SQL | undefined {
+  // A subquery, not an inArray of bound values: membership is "who is in the cycle now".
+  const members = sql`${activity.work_item_id} IN (SELECT ${work_item.id} FROM ${work_item} WHERE ${work_item.cycle_id} = ${cycleId} AND ${work_item.deleted_at} IS NULL)`;
+  return or(
+    and(eq(activity.entity_type, "cycle"), eq(activity.entity_id, cycleId)),
+    members,
+    and(eq(activity.entity_type, "work_item"), eq(activity.field, "cycle_id"), or(eq(activity.old_value, cycleId), eq(activity.new_value, cycleId))),
+  );
+}
+
+/** Module feed (P5): same shape as the cycle feed, membership through `work_item_module` and the `modules` field rows. */
+function moduleFeedCondition(moduleId: string): SQL | undefined {
+  const members = sql`${activity.work_item_id} IN (SELECT ${work_item_module.work_item_id} FROM ${work_item_module} INNER JOIN ${work_item} ON ${work_item.id} = ${work_item_module.work_item_id} WHERE ${work_item_module.module_id} = ${moduleId} AND ${work_item.deleted_at} IS NULL)`;
+  return or(
+    and(eq(activity.entity_type, "module"), eq(activity.entity_id, moduleId)),
+    members,
+    and(eq(activity.entity_type, "work_item"), eq(activity.field, "modules"), or(eq(activity.old_value, moduleId), eq(activity.new_value, moduleId))),
+  );
+}
+
+/**
+ * Highest seq in a cycle or module feed, or 0 when the feed is empty.
+ * Same rows as `listActivity` (decision 37); one indexed read, no collapse.
+ */
+export function maxFeedSeq(ctx: TesseraContext, scope: { cycle_id: string } | { module_id: string }): number {
+  let condition: SQL | undefined;
+  if ("cycle_id" in scope) {
+    getCycleRow(ctx, scope.cycle_id);
+    condition = cycleFeedCondition(scope.cycle_id);
+  } else {
+    getModuleRow(ctx, scope.module_id);
+    condition = moduleFeedCondition(scope.module_id);
+  }
+  const row = ctx.db.select({ seq: activity.seq }).from(activity).where(condition).orderBy(desc(activity.seq)).limit(1).get();
+  return row?.seq ?? 0;
+}
+
 /** The newest `limit` raw rows of the feed, returned oldest first with description edits collapsed. */
 export function listActivity(ctx: TesseraContext, input: ListActivityInputType): ActivityLogEntry[] {
   const data = validateInput(ListActivityInput, input);
@@ -170,6 +216,14 @@ export function listActivity(ctx: TesseraContext, input: ListActivityInputType):
   if (data.project_id !== undefined) {
     getProjectRow(ctx, data.project_id);
     conditions.push(eq(activity.project_id, data.project_id));
+  }
+  if (data.cycle_id !== undefined) {
+    getCycleRow(ctx, data.cycle_id);
+    conditions.push(cycleFeedCondition(data.cycle_id));
+  }
+  if (data.module_id !== undefined) {
+    getModuleRow(ctx, data.module_id);
+    conditions.push(moduleFeedCondition(data.module_id));
   }
   if (data.since_seq !== undefined) conditions.push(gt(activity.seq, data.since_seq));
   const rows = ctx.db

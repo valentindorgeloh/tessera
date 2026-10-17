@@ -9,7 +9,8 @@
  * colour scheme), the "Recent" group of visited routes while the query is
  * empty (./recents-store.ts; the page on screen and its peek left out), an
  * "All projects" footer toggle inside a
- * project, an "Ask" tab placeholder for the assistant (P5) and the keyboard
+ * project, an "Ask" tab that hands the question to the assistant panel
+ * (decision 38) and the keyboard
  * shortcuts dialog on `mod+/`. Mounts the shortcut dispatcher and the Create
  * project dialog once. The open state and the scope live here; the shell
  * reaches `open()`, `openHelp()` and `openCreateProject()` through the
@@ -26,23 +27,23 @@
  * them. Selection comes back as the chosen item id (`onValueChange`), looked
  * up in the map of items the source produced.
  */
-import { useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type KeyboardEvent, type Ref } from "react";
+import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
-import { CommandPalette, CommandPaletteFooter, CommandPaletteInput, useCommandPaletteContext } from "@astryxdesign/core/CommandPalette";
+import { CommandPalette } from "@astryxdesign/core/CommandPalette";
 import { useHotkeys } from "@astryxdesign/core/hooks";
 import { Icon, type IconType } from "@astryxdesign/core/Icon";
-import { Kbd } from "@astryxdesign/core/Kbd";
-import { HStack, VStack } from "@astryxdesign/core/Stack";
-import { Switch } from "@astryxdesign/core/Switch";
-import { Tab, TabList } from "@astryxdesign/core/TabList";
+import { HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
+import { askItems } from "@/components/ai/ask-items";
+import { useCommandBarAsk } from "@/components/ai/CommandBarAsk";
 import { notePeekPush } from "@/components/detail/peek-history";
 import { hasPeekHost } from "@/components/detail/peek-hosts";
 import { currentHref, PEEK_PARAM, workItemHitTarget } from "@/components/detail/peek-url";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import type { SearchHit, SearchType } from "@/lib/tessera/types";
 import {
+  AssistantIcon,
   CompassIcon,
   CycleIcon,
   FolderIcon,
@@ -50,20 +51,20 @@ import {
   KeyboardIcon,
   LightningIcon,
   ListBulletsIcon,
+  MagicIcon,
   ModuleIcon,
   PageIcon,
   PlusIcon,
-  SearchIcon,
-  SparkleIcon,
   ViewIcon,
 } from "@/themes/catppuccin/icons";
 import { setColorScheme } from "./color-scheme";
 import { useCommandContext, type CommandContextValue } from "./command-context";
 import {
+  buildAiCommands,
   buildCommands,
   buildProjectSettingsCommands,
   createCommandSource,
-  liveHighlight,
+  DESCRIBE_VIEW_ID,
   OPEN_ITEM_PREFIX,
   projectSettingsTab,
   recentToItem,
@@ -72,6 +73,7 @@ import {
   type CommandSection,
   type CommandSource,
 } from "./command-source";
+import { PaletteFooter, PaletteInput, type PaletteMode, type PaletteScope } from "./palette-parts";
 import { readProjectFeatures } from "./project-features";
 import { onScreenPaths, otherRecents, projectIdFromPath, RECENTS_IN_PALETTE } from "./recents";
 import { readRecents } from "./recents-store";
@@ -92,32 +94,21 @@ export type CommandBarProps = {
   ref?: Ref<CommandBarHandle>;
 };
 
-type PaletteMode = "search" | "ask";
-
-type PaletteScope = {
-  /** The project of the route the palette opened on, or null outside a project. */
-  projectId: string | null;
-  /** The footer toggle: search every project instead of the current one. */
-  allProjects: boolean;
-  mode: PaletteMode;
-  /** The routes on screen when the palette opened (`onScreenPaths`), left out of the "Recent" group. */
-  onScreen: readonly string[];
-};
-
-const CLOSED_SCOPE: PaletteScope = { projectId: null, allProjects: false, mode: "search", onScreen: [] };
+const CLOSED_SCOPE: PaletteScope = { projectId: null, allProjects: false, mode: "search", onScreen: [], pathname: "/" };
 
 type PaletteState = {
   scope: PaletteScope;
   context: CommandContextValue | null;
   items: Map<string, CommandSearchItem>;
   inner: CommandSource | null;
+  aiAvailable: boolean;
+  handoff: (text: string) => void;
 };
-
-const ASK_PLACEHOLDER = "The assistant arrives in P5";
 
 export function CommandBar({ ref }: CommandBarProps) {
   const router = useRouter();
   const toast = useToast();
+  const ask = useCommandBarAsk();
   const context = useCommandContext();
   const { singleKeys } = useShortcutPrefs();
   const [isOpen, setOpen] = useState(false);
@@ -136,7 +127,13 @@ export function CommandBar({ ref }: CommandBarProps) {
   // time. Handlers write `scope` before re-running the query so the source
   // sees the new value; `context` follows the hook; `items` is the map of
   // palette items by id that the selection handler resolves.
-  const paletteRef = useRef<PaletteState>({ scope: CLOSED_SCOPE, context: null, items: new Map(), inner: null });
+  const paletteRef = useRef<PaletteState>({ scope: CLOSED_SCOPE, context: null, items: new Map(), inner: null, aiAvailable: false, handoff: () => undefined });
+
+  // Layout effect so the palette's own effect, which re-runs the query, reads the new values.
+  useLayoutEffect(() => {
+    paletteRef.current.aiAvailable = ask.isAskShown;
+    paletteRef.current.handoff = ask.handoff;
+  }, [ask.handoff, ask.isAskShown]);
 
   useEffect(() => {
     paletteRef.current.context = context;
@@ -165,6 +162,7 @@ export function CommandBar({ ref }: CommandBarProps) {
       allProjects: false,
       mode: "search",
       onScreen: onScreenPaths(pathname, new URLSearchParams(search).get(PEEK_PARAM)),
+      pathname,
     };
     paletteRef.current.scope = next;
     setScope(next);
@@ -214,10 +212,16 @@ export function CommandBar({ ref }: CommandBarProps) {
     const inner = () => {
       const current = state();
       current.inner ??= createCommandSource({
-        commands: () =>
-          state().scope.mode === "ask"
-            ? []
-            : [...buildCommands(state().context, readProjectFeatures(state().scope.projectId)), ...buildProjectSettingsCommands(state().scope.projectId)],
+        commands: () => {
+          const current = state();
+          if (current.scope.mode === "ask") return [];
+          const features = readProjectFeatures(current.scope.projectId);
+          return [
+            ...buildCommands(current.context, features),
+            ...buildProjectSettingsCommands(current.scope.projectId),
+            ...buildAiCommands(current.scope.projectId, features, current.aiAvailable),
+          ];
+        },
         recents: () => (state().scope.mode === "ask" ? [] : otherRecents(readRecents(), state().scope.onScreen, RECENTS_IN_PALETTE).map(recentToItem)),
         scope: () => (state().scope.allProjects ? null : state().scope.projectId),
       });
@@ -228,9 +232,10 @@ export function CommandBar({ ref }: CommandBarProps) {
       for (const item of items) map.set(item.id, item);
       return items;
     };
+    const askList = (query: string) => remember(askItems(query, state().scope.pathname));
     return {
-      bootstrap: async () => remember(await inner().bootstrap()),
-      search: async (query: string) => (state().scope.mode === "ask" ? [] : remember(await inner().search(query))),
+      bootstrap: async () => (state().scope.mode === "ask" ? askList("") : remember(await inner().bootstrap())),
+      search: async (query: string) => (state().scope.mode === "ask" ? askList(query) : remember(await inner().search(query))),
       cancel: () => state().inner?.cancel(),
     };
   }, []);
@@ -299,6 +304,15 @@ export function CommandBar({ ref }: CommandBarProps) {
         router.push(aux.path);
         return;
       }
+      if (aux?.kind === "ask") {
+        paletteRef.current.handoff(aux.text);
+        return;
+      }
+      if (id === DESCRIBE_VIEW_ID) {
+        const projectId = paletteRef.current.scope.projectId;
+        if (projectId) router.push(`/projects/${projectId}/views?describe=1`);
+        return;
+      }
       if (id.startsWith(OPEN_ITEM_PREFIX)) {
         const current = paletteRef.current.context;
         if (current) router.push(current.item.url);
@@ -322,8 +336,6 @@ export function CommandBar({ ref }: CommandBarProps) {
     [openHit, router, run],
   );
 
-  const emptyText = scope.mode === "ask" ? ASK_PLACEHOLDER : undefined;
-
   return (
     <>
       <CommandPalette<CommandSearchItem>
@@ -335,149 +347,14 @@ export function CommandBar({ ref }: CommandBarProps) {
         onValueChange={handleSelect}
         label="Command bar"
         renderItem={(item) => <CommandRow item={item} />}
-        emptyBootstrapText={emptyText ?? "Type to search, or pick a command"}
-        emptySearchText={emptyText ?? "No matches"}
-        input={<PaletteInput initialQuery={initialQuery} mode={scope.mode} onModeChange={setMode} />}
+        emptyBootstrapText="Type to search, or pick a command"
+        emptySearchText="No matches"
+        input={<PaletteInput initialQuery={initialQuery} mode={scope.mode} isAskShown={ask.isAskShown} onModeChange={setMode} />}
         footer={<PaletteFooter scope={scope} onAllProjectsChange={setAllProjects} />}
       />
       <ShortcutsDialog isOpen={isHelpOpen} onOpenChange={setHelpOpen} singleKeys={singleKeys} />
       <CreateProjectDialog isOpen={isCreateProjectOpen} onOpenChange={setCreateProjectOpen} />
     </>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Input slot: the search field above the Search / Ask tabs
-// ---------------------------------------------------------------------------
-
-function PaletteInput({ initialQuery, mode, onModeChange }: { initialQuery: string; mode: PaletteMode; onModeChange: (mode: PaletteMode) => void }) {
-  const palette = useCommandPaletteContext();
-  // An id for the combobox input, so the browser can tell the form field apart (DevTools flags fields with neither id nor name).
-  const inputId = useId();
-  // The palette remounts per opening (`session`), so this seeds each opening's query once.
-  const seeded = useRef(false);
-  useEffect(() => {
-    if (seeded.current || !palette) return;
-    seeded.current = true;
-    if (initialQuery) palette.setSearch(initialQuery);
-  }, [initialQuery, palette]);
-  // Enter pressed while the debounced search is still running: open the
-  // first result once it lands instead of the stale list on screen.
-  const pendingEnter = useRef(false);
-
-  const change = (value: string) => {
-    onModeChange(value === "ask" ? "ask" : "search");
-    // Re-run the current query against the source in its new mode.
-    palette?.setSearch(palette.search);
-  };
-
-  const openFirst = useCallback(() => {
-    if (!palette) return false;
-    const first = palette.selectableItems.find((item) => !item.disabled);
-    if (!first) return false;
-    palette.selectItem(first.value);
-    palette.onClose();
-    return true;
-  }, [palette]);
-
-  useEffect(() => {
-    if (!pendingEnter.current || !palette || palette.isBusy) return;
-    pendingEnter.current = false;
-    openFirst();
-  }, [openFirst, palette]);
-
-  // Astryx keeps a hover highlight when the list changes under it. A new query
-  // starts without one, so Enter opens its first result; a highlight past the
-  // end of the list (the list narrowed) is dropped too, so the input's
-  // aria-activedescendant never names an option that is gone.
-  const query = palette?.search;
-  const highlighted = palette?.highlightedIndex ?? -1;
-  const rowCount = palette?.selectableItems.length ?? 0;
-  const setHighlighted = palette?.setHighlightedIndex;
-  useEffect(() => {
-    setHighlighted?.(-1);
-  }, [query, setHighlighted]);
-  useEffect(() => {
-    if (highlighted >= rowCount) setHighlighted?.(-1);
-  }, [highlighted, rowCount, setHighlighted]);
-
-  // The palette highlights nothing until an arrow key moves; Enter on a fresh
-  // query opens the first result (a key such as WEB-1 ranks first). A row the
-  // user highlighted is the palette's to open; a stale highlight is not.
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== "Enter") {
-      pendingEnter.current = false;
-      return;
-    }
-    if (!palette || mode === "ask" || liveHighlight(palette.highlightedIndex, palette.selectableItems) >= 0) return;
-    if (palette.isBusy) {
-      event.preventDefault();
-      pendingEnter.current = true;
-      return;
-    }
-    if (openFirst()) event.preventDefault();
-  };
-  return (
-    <VStack gap={0} width="100%">
-      <CommandPaletteInput
-        id={inputId}
-        placeholder={mode === "ask" ? "Ask the assistant…" : "Search work items, or type a command…"}
-        label={mode === "ask" ? "Ask" : "Search"}
-        endContent={<Kbd keys="escape" />}
-        onKeyDown={onKeyDown}
-      />
-      <TabList value={mode} onChange={change} size="sm" aria-label="Command bar mode" className="tessera-cmd-tabs">
-        <Tab value="search" label="Search" icon={<Icon icon={SearchIcon} size="sm" />} />
-        <Tab value="ask" label="Ask" icon={<Icon icon={SparkleIcon} size="sm" />} />
-      </TabList>
-    </VStack>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Footer slot: key hints and the "All projects" toggle
-// ---------------------------------------------------------------------------
-
-function PaletteFooter({ scope, onAllProjectsChange }: { scope: PaletteScope; onAllProjectsChange: (allProjects: boolean) => void }) {
-  const palette = useCommandPaletteContext();
-  const showToggle = scope.projectId !== null && scope.mode === "search";
-  return (
-    <CommandPaletteFooter>
-      <HStack gap={4} vAlign="center" hAlign="between" width="100%">
-        <HStack gap={3} vAlign="center" wrap="wrap">
-          <HStack gap={1} vAlign="center">
-            <Kbd keys="up" />
-            <Kbd keys="down" />
-            <Text type="supporting" color="secondary">
-              to move
-            </Text>
-          </HStack>
-          <HStack gap={1} vAlign="center">
-            <Kbd keys="enter" />
-            <Text type="supporting" color="secondary">
-              to open
-            </Text>
-          </HStack>
-          <HStack gap={1} vAlign="center">
-            <Kbd keys="mod+/" />
-            <Text type="supporting" color="secondary">
-              shortcuts
-            </Text>
-          </HStack>
-        </HStack>
-        {showToggle ? (
-          <Switch
-            label="All projects"
-            size="sm"
-            value={scope.allProjects}
-            onChange={(checked) => {
-              onAllProjectsChange(checked);
-              palette?.setSearch(palette.search);
-            }}
-          />
-        ) : null}
-      </HStack>
-    </CommandPaletteFooter>
   );
 }
 
@@ -502,6 +379,8 @@ const SECTION_ICONS: Partial<Record<CommandSection, IconType>> = {
 };
 
 function commandIcon(item: CommandSearchItem): IconType {
+  if (item.auxiliaryData?.kind === "ask") return AssistantIcon;
+  if (item.id === DESCRIBE_VIEW_ID) return MagicIcon;
   if (item.id === "shortcuts.help") return KeyboardIcon;
   const scheme = themeCommandScheme(item.id);
   if (scheme) return COLOR_SCHEME_ICONS[scheme];

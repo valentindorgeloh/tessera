@@ -1,1 +1,46 @@
 /* Assistant panel layout (P5, lane U2): className + tokens only. */
+
+.tessera-ai-panel {
+  min-width: 0;
+  min-height: 0;
+  background: var(--color-background-surface);
+}
+
+.tessera-ai-fill,
+.tessera-ai-chat {
+  min-height: 0;
+  height: 100%;
+}
+
+.tessera-ai-proposals {
+  min-width: 0;
+}
+
+.tessera-ai-proposal + .tessera-ai-proposal {
+  border-block-start: var(--border-width) solid var(--color-border);
+  padding-block-start: var(--spacing-3);
+}
+
+/*
+ * Below 768px the panel covers the content panel. The resize hook writes an
+ * inline pixel width, so the overlay has to win that width. 767px is the
+ * breakpoint from the P5 plan.
+ */
+@media (max-width: 767px) {
+  .tessera-panel:has(.tessera-ai-panel) {
+    position: relative;
+  }
+
+  .tessera-ai-resize {
+    display: none;
+  }
+
+  .tessera-ai-panel {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100% !important;
+    max-width: none;
+    height: 100%;
+  }
+}

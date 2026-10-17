@@ -8,7 +8,7 @@ import { FeatureOffState } from "@/components/planning/FeatureOffState";
 import { ModuleDetailScreen } from "@/components/planning/ModuleDetailScreen";
 import type { ItemCandidate, ModuleDetailData } from "@/components/planning/types";
 import { IdSchema } from "@/lib/tessera/schemas";
-import { getModule, getProject, isTrackerError, listWorkItems, readTessera, type TesseraContext } from "@/lib/tessera/server";
+import { currentDigestSeq, getModule, getProject, getStoredDigest, isTrackerError, listWorkItems, readTessera, type TesseraContext } from "@/lib/tessera/server";
 import type { GroupBy } from "@/lib/tessera/types";
 
 type Props = {
@@ -25,9 +25,9 @@ const HIDDEN_GROUP_FIELDS: readonly GroupBy[] = ["module"];
 /**
  * One module (docs/contracts/ui.md "Routes and data loading"): the project
  * (its `modules_enabled` toggle), the module with members, links and
- * progress, the "Add existing" candidates (skipped for an archived module)
- * and today's date in one read; the module's work items stream in below the
- * header through E4's `ScopedWorkItems`. A module of another project, or an
+ * progress, the "Add existing" candidates (skipped for an archived module),
+ * today's date and any stored digest in one read; the module's work items
+ * stream in below the header through E4's `ScopedWorkItems`. A module of another project, or an
  * unknown or malformed id, is not found.
  */
 export default function ModulePage({ params, searchParams }: Props) {
@@ -50,10 +50,10 @@ async function ModuleData({ params, searchParams }: Props) {
     throw err;
   }
   if (data === null) return <FeatureOffState feature="modules" projectId={projectId} />;
-  if (data.module.project_id !== projectId) notFound();
-  const isArchived = data.module.archived_at !== null;
+  if (data.detail.module.project_id !== projectId) notFound();
+  const isArchived = data.detail.module.archived_at !== null;
   return (
-    <ModuleDetailScreen projectId={projectId} data={data}>
+    <ModuleDetailScreen projectId={projectId} data={data.detail} digest={data.digest}>
       <Suspense fallback={<ListSkeleton />}>
         <ScopedWorkItems
           projectId={projectId}
@@ -78,12 +78,17 @@ function loadCandidates(ctx: TesseraContext, projectId: string, memberIds: reado
 
 /** null when the project has modules turned off; nothing else is read then. */
 function loadModule(projectId: string, moduleId: string) {
-  return readTessera((ctx): ModuleDetailData | null => {
+  return readTessera((ctx): { detail: ModuleDetailData; digest: ReturnType<typeof getStoredDigest> } | null => {
     const project = getProject(ctx, projectId);
     if (!project.modules_enabled) return null;
-    const detail = getModule(ctx, moduleId);
-    const isOpen = detail.archived_at === null && detail.project_id === projectId;
-    return { module: detail, candidates: isOpen ? loadCandidates(ctx, projectId, detail.work_item_ids) : [], today: ctx.today() };
+    const loaded = getModule(ctx, moduleId);
+    const isOpen = loaded.archived_at === null && loaded.project_id === projectId;
+    const stored = getStoredDigest(ctx, "module", moduleId);
+    const seq = currentDigestSeq(ctx, "module", moduleId);
+    return {
+      detail: { module: loaded, candidates: isOpen ? loadCandidates(ctx, projectId, loaded.work_item_ids) : [], today: ctx.today() },
+      digest: stored === null ? null : { ...stored, is_stale: seq > stored.input_seq },
+    };
   });
 }
 

@@ -18,6 +18,8 @@ import * as filters from "@/lib/tessera/filters";
 import * as labels from "@/lib/tessera/labels";
 import * as links from "@/lib/tessera/links";
 import * as modules from "@/lib/tessera/modules";
+import * as pages from "@/lib/tessera/pages";
+import * as relations from "@/lib/tessera/relations";
 import * as projects from "@/lib/tessera/projects";
 import {
   DEFAULT_DISPLAY,
@@ -85,6 +87,8 @@ const DOMAIN_MODULES = {
   states,
   "view-settings": viewSettings,
   views,
+  pages,
+  relations,
   "work-items": workItems,
 };
 
@@ -280,6 +284,13 @@ const CONTRACT_CORE = [
   "get_cycle_progress",
   "list_modules",
   "list_views",
+  "list_pages",
+  "get_page",
+  "list_page_backlinks",
+  "create_page",
+  "update_page",
+  "update_page_body",
+  "list_relations",
   "get_counts",
   "search_all",
   "describe_filters",
@@ -327,6 +338,24 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   get_view_settings: "P4",
   save_view_settings: "P4",
   reset_view_settings: "P4",
+  list_pages: "P6",
+  get_page: "P6",
+  list_page_backlinks: "P6",
+  list_page_versions: "P6",
+  create_page: "P6",
+  update_page: "P6",
+  update_page_body: "P6",
+  move_page: "P6",
+  duplicate_page: "P6",
+  lock_page: "P6",
+  unlock_page: "P6",
+  archive_page: "P6",
+  unarchive_page: "P6",
+  restore_page_version: "P6",
+  delete_page: "P6",
+  list_relations: "P7",
+  add_relation: "P7",
+  remove_relation: "P7",
 };
 
 describe("tool flags", () => {

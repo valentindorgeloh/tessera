@@ -6,7 +6,8 @@
  * name search and "New view" (the project frame above holds the `h1` and the
  * tabs). One row per view in manual order, each with its work item count and
  * a menu. `?create=1` (what `n v` pushes) opens the New view dialog once and
- * is dropped from the URL. An archived project shows the list read-only.
+ * is dropped from the URL. `?describe=1` opens Describe a view the same way
+ * when the assistant is available. An archived project shows the list read-only.
  */
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -18,10 +19,12 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { List } from "@astryxdesign/core/List";
 import { VStack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
+import { useAiStatus } from "@/components/ai/AiStatusProvider";
+import { ViewFromPromptDialog } from "@/components/ai/ViewFromPromptDialog";
 import { PanelBar, PanelHeader, PanelPage } from "@/components/shell/PanelHeader";
 import { useProject } from "@/components/work-items/project-provider";
 import type { View } from "@/lib/tessera/types";
-import { PlusIcon, ViewIcon } from "@/themes/catppuccin/icons";
+import { PlusIcon, SparkleIcon, ViewIcon } from "@/themes/catppuccin/icons";
 import { ViewDialog } from "./ViewDialog";
 import { ViewRow } from "./ViewRow";
 
@@ -39,9 +42,15 @@ export function ViewsScreen({ projectId, views, counts, createOnOpen: createRequ
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { bundle } = useProject();
+  const { status } = useAiStatus();
   const readOnly = bundle.project.archived_at !== null;
+  const viewsOn = bundle.project.views_enabled;
+  const aiAvailable = status?.available === true;
   const createOnOpen = createRequested && !readOnly;
+  const describeRequested = searchParams.get("describe") === "1";
+  const describeOnOpen = describeRequested && !readOnly && viewsOn && aiAvailable;
   const [isCreateOpen, setCreateOpen] = useState(false);
+  const [isDescribeOpen, setDescribeOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   // React to the flag rather than the mount, so `n v` while this page is open opens the dialog too.
@@ -62,9 +71,32 @@ export function ViewsScreen({ projectId, views, counts, createOnOpen: createRequ
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the flag only; pathname and params are read when it flips
   }, [createRequested]);
 
+  // Same as create: open once from `?describe=1`, then drop it. Wait while the status is still loading.
+  const [describeRequestSeen, setDescribeRequestSeen] = useState(false);
+  if (describeOnOpen && !describeRequestSeen) {
+    setDescribeRequestSeen(true);
+    setDescribeOpen(true);
+  } else if (!describeRequested && describeRequestSeen) {
+    setDescribeRequestSeen(false);
+  }
+
+  useEffect(() => {
+    if (!describeRequested) return;
+    if (!readOnly && viewsOn && status === null) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("describe");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the flag and the status; pathname and params are read when they flip
+  }, [describeRequested, readOnly, viewsOn, status]);
+
   const needle = search.trim().toLowerCase();
   const shown = needle === "" ? views : views.filter((view) => view.name.toLowerCase().includes(needle));
   const canReorder = needle === "";
+  const describeButton =
+    readOnly || !viewsOn || !aiAvailable ? null : (
+      <Button variant="secondary" size="sm" label="Describe a view" icon={<SparkleIcon />} onClick={() => setDescribeOpen(true)} />
+    );
   const newButton = readOnly ? null : <Button variant="primary" size="sm" label="New view" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />;
 
   return (
@@ -95,6 +127,7 @@ export function ViewsScreen({ projectId, views, counts, createOnOpen: createRequ
                     onChange={setSearch}
                     className="tessera-views-search"
                   />
+                  {describeButton}
                   {newButton}
                 </>
               }
@@ -130,6 +163,7 @@ export function ViewsScreen({ projectId, views, counts, createOnOpen: createRequ
         </VStack>
       </PanelPage>
       <ViewDialog isOpen={isCreateOpen} onOpenChange={setCreateOpen} projectId={projectId} mode="create" title="New view" />
+      <ViewFromPromptDialog isOpen={isDescribeOpen} onOpenChange={setDescribeOpen} projectId={projectId} />
     </>
   );
 }

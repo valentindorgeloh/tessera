@@ -6,6 +6,9 @@ import { Card } from "@astryxdesign/core/Card";
 import { useHotkeys } from "@astryxdesign/core/hooks";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { ToastViewport } from "@astryxdesign/core/Toast";
+import { AiStatusProvider } from "@/components/ai/AiStatusProvider";
+import { AssistantPanel } from "@/components/ai/AssistantPanel";
+import { AssistantProvider, useAssistant } from "@/components/ai/AssistantProvider";
 import { CommandBar, type CommandBarHandle } from "./CommandBar";
 import { TopBar } from "./TopBar";
 
@@ -29,6 +32,18 @@ export function useShell(): ShellContextValue {
   return value;
 }
 
+/** The content panel, with the assistant in the Layout end slot while it is open. */
+function ShellFrame({ sideNav, children }: { sideNav: ReactNode; children: ReactNode }) {
+  const { isOpen } = useAssistant();
+  return (
+    <AppShell height="fill" variant="wash" contentPadding={2} topNav={<TopBar />} sideNav={sideNav}>
+      <Card padding={0} height="100%" className="tessera-panel">
+        <Layout height="fill" content={<LayoutContent isScrollable>{children}</LayoutContent>} end={isOpen ? <AssistantPanel /> : undefined} />
+      </Card>
+    </AppShell>
+  );
+}
+
 /**
  * Tessera frame (docs/contracts/ui.md "Shell"): an AppShell on the wash with
  * the TopBar above and the SideNav beside the content, which sits in one
@@ -36,8 +51,9 @@ export function useShell(): ShellContextValue {
  * `useToast()` in any screen renders into, and the CommandBar (Power K,
  * `mod+k`; the shortcut dispatcher, the shortcuts dialog and the Create
  * project dialog live inside it). `mod+b` collapses the navigation. The
- * sidebar arrives as a server-rendered child (`sideNav`), so this component
- * never touches the database.
+ * assistant panel is the content Layout's end slot (`mod+j`). The sidebar
+ * arrives as a server-rendered child (`sideNav`), so this component never
+ * touches the database.
  */
 export function TesseraShell({ sideNav, children }: { sideNav: ReactNode; children: ReactNode }) {
   const [isNavCollapsed, setNavCollapsed] = useState(false);
@@ -64,12 +80,12 @@ export function TesseraShell({ sideNav, children }: { sideNav: ReactNode; childr
   return (
     <ShellContext.Provider value={value}>
       <ToastViewport position="bottomEnd">
-        <CommandBar ref={commandBar} />
-        <AppShell height="fill" variant="wash" contentPadding={2} topNav={<TopBar />} sideNav={sideNav}>
-          <Card padding={0} height="100%" className="tessera-panel">
-            <Layout height="fill" content={<LayoutContent isScrollable>{children}</LayoutContent>} />
-          </Card>
-        </AppShell>
+        <AiStatusProvider>
+          <AssistantProvider>
+            <CommandBar ref={commandBar} />
+            <ShellFrame sideNav={sideNav}>{children}</ShellFrame>
+          </AssistantProvider>
+        </AiStatusProvider>
       </ToastViewport>
     </ShellContext.Provider>
   );

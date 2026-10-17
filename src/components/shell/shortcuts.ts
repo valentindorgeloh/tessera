@@ -35,6 +35,7 @@ export type ShortcutId =
   | "palette.open"
   | "shortcuts.help"
   | "peek.close"
+  | "assistant.toggle"
   | "item.state"
   | "item.priority"
   | "item.assign"
@@ -95,6 +96,7 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { id: "palette.open", label: "Open the command bar", keys: "mod+k", group: "Global" },
   { id: "shortcuts.help", label: "Keyboard shortcuts", keys: "mod+/", group: "Global" },
   { id: "peek.close", label: "Close the panel", keys: "escape", group: "Global" },
+  { id: "assistant.toggle", label: "Assistant", keys: "mod+j", group: "Global" },
 
   { id: "item.state", label: "Change state…", keys: "s", group: "Work item", needsItem: true },
   { id: "item.priority", label: "Change priority…", keys: "p", group: "Work item", needsItem: true },
@@ -233,7 +235,7 @@ export function isQuietTarget(target: ShortcutTargetLike): boolean {
 }
 
 /** Shortcuts that keep working while the focus is in a typing surface. */
-const ALLOWED_WHILE_TYPING: ReadonlySet<ShortcutId> = new Set<ShortcutId>(["palette.open", "shortcuts.help"]);
+const ALLOWED_WHILE_TYPING: ReadonlySet<ShortcutId> = new Set<ShortcutId>(["palette.open", "shortcuts.help", "assistant.toggle"]);
 
 /** US-layout characters for the punctuation codes, shifted and not; used only when `event.code` is empty. */
 const CODE_BY_CHARACTER: Readonly<Record<string, string>> = {

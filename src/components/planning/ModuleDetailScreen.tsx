@@ -8,7 +8,8 @@
  * content slot; the side panel sits in the
  * `end` slot while it is open (`panel-prefs`, shared with cycles) and steps
  * aside while the peek shows an item, whose own panel takes that place (the
- * header's toggle is disabled meanwhile).
+ * header's toggle is disabled meanwhile). The digest card sits at the top of
+ * the work-item column.
  *
  * `useModuleWriter` is the one writer for the inline controls of the header
  * and the panel: the module renders through `useOptimistic`, so a picked
@@ -21,17 +22,18 @@ import { useSearchParams } from "next/navigation";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { useToast } from "@astryxdesign/core/Toast";
 import { setModuleMembersAction, updateModuleAction } from "@/app/actions/modules";
+import { DigestCard } from "@/components/ai/DigestCard";
 import { peekIdOf } from "@/components/detail/peek-url";
 import { registerEntityLabel } from "@/components/shell/entity-labels";
 import { useProject } from "@/components/work-items/project-provider";
-import type { ModuleDetail } from "@/lib/tessera/types";
+import type { DigestView, ModuleDetail } from "@/lib/tessera/types";
 import { ModuleHeader } from "./ModuleHeader";
 import { ModuleSidePanel } from "./ModuleSidePanel";
 import { sameMembers, type ModuleFormValues } from "./module-format";
 import { savePanelPrefs, usePanelPrefs } from "./panel-prefs";
 import type { ModuleDetailData } from "./types";
 
-export type ModuleDetailScreenProps = { projectId: string; data: ModuleDetailData; children: ReactNode };
+export type ModuleDetailScreenProps = { projectId: string; data: ModuleDetailData; digest: DigestView | null; children: ReactNode };
 
 /** Inline fields of the header and the panel; the name and description change through the edit dialog. */
 export type ModuleInlinePatch = Partial<Pick<ModuleFormValues, "status" | "lead_actor_id" | "start_date" | "target_date">>;
@@ -99,7 +101,7 @@ export function useModuleWriter(module: ModuleDetail): { view: ModuleDetail; wri
   return { view, writer };
 }
 
-export function ModuleDetailScreen({ projectId, data, children }: ModuleDetailScreenProps) {
+export function ModuleDetailScreen({ projectId, data, digest, children }: ModuleDetailScreenProps) {
   const searchParams = useSearchParams();
   const peekOpen = peekIdOf(searchParams) !== null;
   const prefs = usePanelPrefs();
@@ -132,6 +134,7 @@ export function ModuleDetailScreen({ projectId, data, children }: ModuleDetailSc
       content={
         // Named after the module: the list inside brings its own "Work items" panel header.
         <LayoutContent padding={0} isScrollable label={`${view.name} work items`}>
+          <DigestCard kind="module" id={view.id} digest={digest} />
           {children}
         </LayoutContent>
       }

@@ -8,6 +8,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { forgetLastProject } from "@/components/shell/useShortcuts";
 import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provider";
 
+// useShortcuts loads the assistant, whose actions import the server entry. This test only touches localStorage.
+vi.mock("@/app/actions/ai", () => ({
+  applyProposalsAction: vi.fn(),
+  discardProposalsAction: vi.fn(),
+}));
+
 const DELETED = "11111111-1111-7111-8111-111111111111";
 const OTHER = "22222222-2222-7222-8222-222222222222";
 

@@ -41,6 +41,8 @@ export * from "./links";
 export * from "./cycles";
 export * from "./modules";
 export * from "./views";
+export * from "./pages";
+export * from "./relations";
 export * from "./view-settings";
 export * from "./filters";
 export * from "./counts";

@@ -1,1 +1,6 @@
 /* AI surfaces outside the panel (P5, lane U3): Ask items, view from prompt, digest card. */
+
+.tessera-ai-digest {
+  margin-inline: var(--spacing-4);
+  margin-block: var(--spacing-4) var(--spacing-2);
+}

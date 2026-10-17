@@ -25,7 +25,8 @@ export const SEARCH_DEBOUNCE_MS = 150;
 export const SEARCH_LIMIT = 20;
 export const SEARCH_ENDPOINT = "/api/search";
 
-export const SECTION_ORDER = ["Recent", "Work items", "Projects", "Cycles", "Modules", "Views", "Pages", "Actions", "Create", "Navigate", "Settings"] as const;
+/** "Ask" is last: Ask-mode items never share a list with the others. */
+export const SECTION_ORDER = ["Recent", "Work items", "Projects", "Cycles", "Modules", "Views", "Pages", "Actions", "Create", "Navigate", "Settings", "Ask"] as const;
 
 export type CommandSection = (typeof SECTION_ORDER)[number];
 
@@ -54,7 +55,10 @@ export type CommandAux = {
 /** A recently visited route (./recents.ts), listed while the query is empty. */
 export type RecentAux = { group: "Recent"; kind: "recent"; path: string; icon: RouteIconKey };
 
-export type CommandSearchItem = SearchableItem<HitAux | CommandAux | RecentAux>;
+/** An Ask-mode item (../ai/ask-items.ts): selecting it hands `text` to the assistant panel (decision 38). */
+export type AskAux = { group: "Ask"; kind: "ask"; text: string };
+
+export type CommandSearchItem = SearchableItem<HitAux | CommandAux | RecentAux | AskAux>;
 
 export const HIT_PREFIX = "hit:";
 export const OPEN_ITEM_PREFIX = "open:";
@@ -204,6 +208,25 @@ export function buildProjectSettingsCommands(projectId: string | null): CommandS
     label: `Settings: ${label}`,
     auxiliaryData: { group: "Settings", kind: "command", keywords: ["project", "configuration", "preferences", tab] },
   }));
+}
+
+/** The project command that opens the views list with the "Describe a view" dialog (P5 view from prompt). */
+export const DESCRIBE_VIEW_ID = "ai.describeView";
+
+/**
+ * "Describe a view…" for the project in scope, in the Create section. Left out
+ * outside a project, while the project has views off (decision 31) and while the
+ * assistant is unavailable (`isAiAvailable`, from the AI status).
+ */
+export function buildAiCommands(projectId: string | null, features: ProjectFeatures | null | undefined, isAiAvailable: boolean): CommandSearchItem[] {
+  if (projectId === null || !isAiAvailable || (features && !features.views)) return [];
+  return [
+    {
+      id: DESCRIBE_VIEW_ID,
+      label: "Describe a view…",
+      auxiliaryData: { group: "Create", kind: "command", keywords: ["view", "ai", "assistant", "prompt", "filter", "generate", "new"] },
+    },
+  ];
 }
 
 /** The settings tab of a `projectSettings.<tab>` command id, or null for any other id. */

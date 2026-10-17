@@ -10,14 +10,15 @@ import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/Stack";
-import { CycleIcon, ModuleIcon, ViewIcon } from "@/themes/catppuccin/icons";
+import { CycleIcon, ModuleIcon, PageIcon, ViewIcon } from "@/themes/catppuccin/icons";
 
-export type FeatureOffStateProps = { feature: "cycles" | "modules" | "views"; projectId: string };
+export type FeatureOffStateProps = { feature: "cycles" | "modules" | "views" | "pages"; projectId: string };
 
 const FEATURES = {
   cycles: { icon: CycleIcon, title: "Cycles are turned off for this project" },
   modules: { icon: ModuleIcon, title: "Modules are turned off for this project" },
   views: { icon: ViewIcon, title: "Views are turned off for this project" },
+  pages: { icon: PageIcon, title: "Pages are turned off for this project" },
 } as const;
 
 export function FeatureOffState({ feature, projectId }: FeatureOffStateProps) {

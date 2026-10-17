@@ -13,7 +13,8 @@ import { SideNavCollapseButton } from "@astryxdesign/core/SideNav";
 import { HStack, Stack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { TopNav, TopNavHeading } from "@astryxdesign/core/TopNav";
-import { KeyboardIcon, QuestionIcon, SearchIcon, SquaresFourIcon } from "@/themes/catppuccin/icons";
+import { useAssistant } from "@/components/ai/AssistantProvider";
+import { AssistantIcon, KeyboardIcon, QuestionIcon, SearchIcon, SquaresFourIcon } from "@/themes/catppuccin/icons";
 import { COLOR_SCHEME_LABELS, isColorScheme, setColorScheme, useColorScheme, type ColorScheme } from "./color-scheme";
 import { COLOR_SCHEME_ICONS } from "./shell-icons";
 import { useShell } from "./TesseraShell";
@@ -63,6 +64,13 @@ function SearchTrigger({ onOpen }: { onOpen: (initialQuery?: string) => void }) 
   );
 }
 
+/** Assistant toggle. Hidden until `GET /api/ai/status` says the assistant is available. */
+function AssistantButton() {
+  const { status, toggle } = useAssistant();
+  if (status?.available !== true) return null;
+  return <IconButton label="Assistant" variant="ghost" size="sm" tooltip="Assistant (mod+j)" icon={<Icon icon={AssistantIcon} />} onClick={toggle} />;
+}
+
 /** The account menu behind the avatar: colour scheme and keyboard shortcuts. */
 function AccountMenu({ onShortcuts }: { onShortcuts: () => void }) {
   const scheme = useColorScheme();
@@ -103,7 +111,7 @@ function AccountMenu({ onShortcuts }: { onShortcuts: () => void }) {
  * Top bar of the Tessera frame (docs/contracts/ui.md "Shell"), on the wash
  * above the sidebar and the content panel: the sidebar toggle and the
  * Tessera brand (home link) on the left, the search field in the middle, and
- * help and the account menu on the right. Below the AppShell's mobile
+ * the assistant (when it is available), help and the account menu on the right. Below the AppShell's mobile
  * breakpoint the shell's own drawer toggle replaces the sidebar toggle.
  */
 export function TopBar() {
@@ -121,6 +129,7 @@ export function TopBar() {
       centerContent={<SearchTrigger onOpen={openCommandBar} />}
       endContent={
         <HStack gap={1} vAlign="center">
+          <AssistantButton />
           <IconButton label="Help and keyboard shortcuts" variant="ghost" size="sm" tooltip="Keyboard shortcuts" icon={<Icon icon={QuestionIcon} />} onClick={openShortcuts} />
           <AccountMenu onShortcuts={openShortcuts} />
         </HStack>

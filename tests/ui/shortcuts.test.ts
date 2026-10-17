@@ -58,6 +58,7 @@ const ALL_IDS: ShortcutId[] = [
   "palette.open",
   "shortcuts.help",
   "peek.close",
+  "assistant.toggle",
   "item.state",
   "item.priority",
   "item.assign",
@@ -184,9 +185,12 @@ describe("resolveShortcut: work item keys", () => {
 describe("resolveShortcut: typing surfaces and the single-key switch", () => {
   const typing = { ...MAC, isTyping: true };
 
-  it("lets only mod+k and mod+/ fire inside inputs", () => {
+  it("lets mod+k, mod+/ and mod+j fire inside inputs", () => {
     expect(resolveShortcut(key("KeyK", { metaKey: true }), null, NOW, typing)).toEqual(action("palette.open"));
     expect(resolveShortcut(key("Slash", { metaKey: true }), null, NOW, typing)).toEqual(action("shortcuts.help"));
+    expect(resolveShortcut(key("KeyJ", { metaKey: true }), null, NOW, typing)).toEqual(action("assistant.toggle"));
+    expect(resolveShortcut(key("KeyJ", { ctrlKey: true }), null, NOW, { ...typing, isMac: false })).toEqual(action("assistant.toggle"));
+    expect(resolveShortcut(key("KeyJ", { metaKey: true }), null, NOW, { ...typing, isMac: false })).toBeNull();
     expect(resolveShortcut(key("KeyS"), null, NOW, typing)).toBeNull();
     expect(resolveShortcut(key("Period", { metaKey: true }), null, NOW, typing)).toBeNull();
     expect(resolveShortcut(key("KeyG"), null, NOW, typing)).toBeNull();

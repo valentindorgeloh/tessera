@@ -9,7 +9,7 @@ const PROJECT = "11111111-1111-7111-8111-111111111111";
 const OTHER = "22222222-2222-7222-8222-222222222222";
 const CYCLE = "33333333-3333-7333-8333-333333333333";
 
-const ALL = { cycles_enabled: true, modules_enabled: true, views_enabled: true };
+const ALL = { cycles_enabled: true, modules_enabled: true, views_enabled: true, pages_enabled: true };
 
 describe("projectTabs", () => {
   it("lists Work items, Cycles, Modules, Views, Archives and Settings when every feature is on", () => {
@@ -18,6 +18,7 @@ describe("projectTabs", () => {
       { key: "cycles", label: "Cycles", segment: "cycles" },
       { key: "modules", label: "Modules", segment: "modules" },
       { key: "views", label: "Views", segment: "views" },
+      { key: "pages", label: "Pages", segment: "pages" },
       { key: "archives", label: "Archives", segment: "archives" },
       { key: "settings", label: "Settings", segment: "settings" },
     ]);
@@ -25,10 +26,11 @@ describe("projectTabs", () => {
 
   it("leaves out a feature that is turned off and always keeps Archives and Settings", () => {
     const keys = (toggles: Parameters<typeof projectTabs>[0]) => projectTabs(toggles).map((tab) => tab.key);
-    expect(keys({ ...ALL, cycles_enabled: false })).toEqual(["work-items", "modules", "views", "archives", "settings"]);
-    expect(keys({ ...ALL, modules_enabled: false })).toEqual(["work-items", "cycles", "views", "archives", "settings"]);
-    expect(keys({ ...ALL, views_enabled: false })).toEqual(["work-items", "cycles", "modules", "archives", "settings"]);
-    expect(keys({ cycles_enabled: false, modules_enabled: false, views_enabled: false })).toEqual(["work-items", "archives", "settings"]);
+    expect(keys({ ...ALL, cycles_enabled: false })).toEqual(["work-items", "modules", "views", "pages", "archives", "settings"]);
+    expect(keys({ ...ALL, modules_enabled: false })).toEqual(["work-items", "cycles", "views", "pages", "archives", "settings"]);
+    expect(keys({ ...ALL, views_enabled: false })).toEqual(["work-items", "cycles", "modules", "pages", "archives", "settings"]);
+    expect(keys({ ...ALL, pages_enabled: false })).toEqual(["work-items", "cycles", "modules", "views", "archives", "settings"]);
+    expect(keys({ cycles_enabled: false, modules_enabled: false, views_enabled: false, pages_enabled: false })).toEqual(["work-items", "archives", "settings"]);
   });
 });
 

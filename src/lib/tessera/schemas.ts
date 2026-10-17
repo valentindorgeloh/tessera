@@ -40,6 +40,8 @@ export const PaletteColorSchema = z.enum(["red", "orange", "yellow", "green", "t
 export const LayoutSchema = z.enum(["list", "board", "table", "calendar", "gantt"]);
 
 export const PageAccessSchema = z.enum(["public", "private"]);
+export const PageEmbedTypeSchema = z.enum(["work_item", "page", "cycle", "module"]);
+export const PageTabSchema = z.enum(["public", "private", "archived"]);
 
 export const ViewSettingsScopeSchema = z.enum(["project", "cycle", "module", "workspace", "profile", "archived", "draft"]);
 

@@ -35,6 +35,8 @@ import type {
   ModuleStatusSchema,
   OrderBySchema,
   PageAccessSchema,
+  PageEmbedTypeSchema,
+  PageTabSchema,
   PaletteColorSchema,
   PointsCountsSchema,
   PrioritySchema,
@@ -68,6 +70,33 @@ export type EstimateType = z.infer<typeof EstimateTypeSchema>;
 export type PaletteColor = z.infer<typeof PaletteColorSchema>;
 export type Layout = z.infer<typeof LayoutSchema>;
 export type PageAccess = z.infer<typeof PageAccessSchema>;
+export type PageEmbedType = z.infer<typeof PageEmbedTypeSchema>;
+export type PageTab = z.infer<typeof PageTabSchema>;
+export type PageSummary = {
+  id: string;
+  project_id: string | null;
+  parent_id: string | null;
+  name: string;
+  access: PageAccess;
+  is_locked: boolean;
+  logo: Logo | null;
+  archived_at: string | null;
+  sort_order: string;
+  label_ids: string[];
+  child_count: number;
+  updated_at: string;
+  updated_by: string;
+};
+export type PageDetail = PageSummary & {
+  description_md: string;
+  description_version: number;
+  ancestors: { id: string; name: string }[];
+  embeds: { entity_type: PageEmbedType; entity_id: string }[];
+  created_at: string;
+  created_by: string;
+};
+export type PageBacklink = { id: string; name: string; project_id: string | null; archived_at: string | null };
+export type PageVersionInfo = { id: string; version: number; name: string; actor_id: string; created_at: string; length: number; description_md?: string };
 export type ViewSettingsScope = z.infer<typeof ViewSettingsScopeSchema>;
 export type FavoriteEntityType = z.infer<typeof FavoriteEntityTypeSchema>;
 

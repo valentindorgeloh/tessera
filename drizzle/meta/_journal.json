@@ -15,6 +15,13 @@
       "when": 1791658177789,
       "tag": "0001_fts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792252206857,
+      "tag": "0002_stiff_grim_reaper",
+      "breakpoints": true
     }
   ]
 }

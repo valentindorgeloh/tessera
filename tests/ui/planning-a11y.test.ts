@@ -40,6 +40,11 @@ vi.mock("@/app/actions/modules", () => ({
   updateModuleLinkAction: action(),
   removeModuleLinkAction: action(),
 }));
+// Archived projects reach the assistant actions through the delete dialog, and those import the server entry.
+vi.mock("@/app/actions/ai", () => ({
+  applyProposalsAction: action(),
+  discardProposalsAction: action(),
+}));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
   usePathname: () => "/projects/p/cycles",

@@ -35,7 +35,7 @@ const FEATURES: readonly FeatureRow[] = [
   { key: "cycles_enabled", label: "Cycles", icon: CycleIcon, description: "Time-boxed iterations with burndown and burnup." },
   { key: "modules_enabled", label: "Modules", icon: ModuleIcon, description: "Group work items into larger pieces of work." },
   { key: "views_enabled", label: "Views", icon: ViewIcon, description: "Saved filters and display options." },
-  { key: "pages_enabled", label: "Pages", icon: PageIcon, description: "Documents for the project.", unavailable: "Pages arrive in P6" },
+  { key: "pages_enabled", label: "Pages", icon: PageIcon, description: "Documents for the project." },
   {
     key: "intake_enabled",
     label: "Intake",

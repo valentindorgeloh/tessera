@@ -23,6 +23,11 @@ vi.mock("@/app/actions/projects", () => ({
   unarchiveProjectAction: action(),
   deleteProjectAction: action(),
 }));
+// The frame's delete dialog reaches the assistant actions, which import the server entry.
+vi.mock("@/app/actions/ai", () => ({
+  applyProposalsAction: action(),
+  discardProposalsAction: action(),
+}));
 const nav = vi.hoisted(() => ({ pathname: "/" }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
@@ -147,6 +152,7 @@ describe("ProjectFrame", () => {
       ["cycles", true],
       ["modules", false],
       ["views", false],
+      ["pages", false],
       ["archives", false],
       ["settings", false],
     ]);
@@ -159,6 +165,7 @@ describe("ProjectFrame", () => {
     const el = await render(`/projects/${PROJECT}/cycles`, { cycles_enabled: false, modules_enabled: false, views_enabled: false });
     expect(tabs(el)).toEqual([
       ["work-items", false],
+      ["pages", false],
       ["archives", false],
       ["settings", false],
     ]);

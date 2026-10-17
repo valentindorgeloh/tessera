@@ -275,7 +275,7 @@ export const workItemTools = [
     name: "list_activity",
     title: "List activity",
     description:
-      "Returns the activity feed of exactly one work item (its own rows plus memberships and relations logged on it) or one whole project, newest first, with consecutive description edits by the same actor collapsed. since_seq limits the feed to rows after a cursor.",
+      "Returns the activity feed of exactly one work item (its own rows plus memberships and relations logged on it) or one whole project, newest first, with consecutive description edits by the same actor collapsed. cycle_id or module_id returns the feed of a cycle or module and the work items in it. since_seq limits the feed to rows after a cursor.",
     input: ListActivityInput,
     mutates: false,
     core: true,

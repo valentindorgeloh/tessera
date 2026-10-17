@@ -39,3 +39,19 @@ export async function readTessera<T>(fn: (ctx: TesseraContext) => T | Promise<T>
 export async function writeTessera<T>(fn: (ctx: TesseraContext) => T): Promise<T> {
   return withTx(userContext(), fn);
 }
+
+// Assistant bookkeeping stays out of the engine barrel (decision 34).
+export {
+  applyProposals,
+  createProposal,
+  currentDigestSeq,
+  discardProposals,
+  generateDigest,
+  getAiStatus,
+  getProposal,
+  getStoredDigest,
+  listProposals,
+  runAssistant,
+  toAiError,
+  viewFromPrompt,
+} from "./ai";

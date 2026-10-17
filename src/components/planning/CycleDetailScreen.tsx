@@ -7,28 +7,31 @@
  * header and its own scroller) and the progress side panel. While an item is
  * open in the peek, its own panel replaces the progress panel and the
  * header's toggle is disabled. The cycle's name labels its recent entry.
+ * The digest card sits at the top of the work-item column.
  */
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { useToast } from "@astryxdesign/core/Toast";
 import { addWorkItemsToCycleAction } from "@/app/actions/cycles";
+import { DigestCard } from "@/components/ai/DigestCard";
 import { peekIdOf } from "@/components/detail/peek-url";
 import { registerEntityLabel } from "@/components/shell/entity-labels";
 import { useProject } from "@/components/work-items/project-provider";
+import type { DigestView } from "@/lib/tessera/types";
 import { AddExistingItemsDialog } from "./AddExistingItemsDialog";
 import { CycleHeader } from "./CycleHeader";
 import { CycleSidePanel } from "./CycleSidePanel";
 import { savePanelPrefs, usePanelPrefs } from "./panel-prefs";
 import type { CycleDetailData } from "./types";
 
-export type CycleDetailScreenProps = { projectId: string; data: CycleDetailData; children: ReactNode };
+export type CycleDetailScreenProps = { projectId: string; data: CycleDetailData; digest: DigestView | null; children: ReactNode };
 
 function workItems(n: number): string {
   return n === 1 ? "1 work item" : `${n} work items`;
 }
 
-export function CycleDetailScreen({ projectId, data, children }: CycleDetailScreenProps) {
+export function CycleDetailScreen({ projectId, data, digest, children }: CycleDetailScreenProps) {
   const { cycle, pointsProgress, candidates, today } = data;
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -79,6 +82,7 @@ export function CycleDetailScreen({ projectId, data, children }: CycleDetailScre
         }
         content={
           <LayoutContent padding={0} isScrollable>
+            <DigestCard kind="cycle" id={cycle.id} digest={digest} />
             {children}
           </LayoutContent>
         }
