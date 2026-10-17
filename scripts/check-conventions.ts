@@ -14,7 +14,7 @@
  *  server-only          within src/lib/tessera/** only server.ts may import "server-only"
  *  forbidden-package    no xstyle, @heroicons, lucide-react, @stylexjs, @milkdown in Tessera code
  *  hex-colour           no hex colours outside src/themes/** (tokens only); append `hex-ok` to a line to opt out
- *  drizzle-zod          drizzle-zod is imported only by src/lib/tessera/db/schema.ts
+ *  drizzle-zod          drizzle-zod is imported only under src/lib/tessera/db/schema/
  *  plane-marker         no identifiers or strings copied from the Plane code base
  *  no-router-refresh    mutations use Server Actions + refresh(); never router.refresh()
  *  no-cwd-in-engine     src/lib/tessera/** resolves paths from the module location, never process.cwd()
@@ -168,8 +168,8 @@ for (const dir of SCAN_DIRS) {
         if (!isLegacy && FORBIDDEN_PACKAGES.some((p) => spec === p || spec.startsWith(p))) {
           report(rel, n, "forbidden-package", `import of ${spec} is not allowed in Tessera code`);
         }
-        if (spec === "drizzle-zod" && rel !== "src/lib/tessera/db/schema.ts") {
-          report(rel, n, "drizzle-zod", "drizzle-zod may only be used inside src/lib/tessera/db/schema.ts");
+        if (spec === "drizzle-zod" && !rel.startsWith("src/lib/tessera/db/schema/")) {
+          report(rel, n, "drizzle-zod", "drizzle-zod may only be used inside src/lib/tessera/db/schema/");
         }
       }
 
