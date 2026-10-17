@@ -290,3 +290,140 @@ export const ExportStatusSchema = z.enum(["pending", "running", "done", "failed"
 
 /** Activity verbs a webhook subscribes to, e.g. work_item.created. */
 export const WebhookEventsSchema = z.array(z.string().min(1));
+
+// ---------------------------------------------------------------------------
+// AI (P5, docs/drafts/p5-plan.md §3–§5). Client-safe wire shapes shared by the
+// routes, the assistant panel and the engine. No Anthropic SDK and no
+// `@/lib/tessera/ai` import here: `"use client"` code imports this file.
+// ---------------------------------------------------------------------------
+
+/** `pending → applying → applied | failed`, or `pending → discarded`. */
+export const ProposalStatusSchema = z.enum(["pending", "applying", "applied", "failed", "discarded"]);
+
+/** Where a proposal came from: the chat (`assistant`) or the Describe a view dialog. */
+export const ProposalSourceSchema = z.enum(["assistant", "view_from_prompt"]);
+
+/** Digest subjects; P7 and P9 add `inbox`, `home` and `analytics`. */
+export const DigestKindSchema = z.enum(["cycle", "module"]);
+
+/** The route on screen that the assistant answers about. Every key is optional. */
+export const AssistantScopeSchema = z.object({
+  project_id: IdSchema.optional().describe("Project on screen."),
+  work_item_id: IdSchema.optional().describe("Work item open in the detail screen or the peek."),
+  page_id: IdSchema.optional().describe("Page on screen; accepted from P5 and used from P6."),
+  cycle_id: IdSchema.optional().describe("Cycle on screen."),
+  module_id: IdSchema.optional().describe("Module on screen."),
+});
+
+/** One text turn of the transcript; tool calls and thinking blocks are never replayed. */
+export const AssistMessageSchema = z.object({
+  role: z.enum(["user", "assistant"]).describe("Who wrote the turn."),
+  content: z.string().min(1).max(20000).describe("Text of the turn."),
+});
+
+/** Body of `POST /api/ai/assist`. */
+export const AssistRequestSchema = z.object({
+  conversation_id: z.uuid().describe("Client-made id of the conversation (crypto.randomUUID), links proposals to it."),
+  scope: AssistantScopeSchema.default({}).describe("Route on screen."),
+  messages: z.array(AssistMessageSchema).min(1).max(50).describe("Text history, oldest first; the last turn is the question."),
+  toolset: z.enum(["core", "all"]).default("all").describe("Which registry tools the assistant may use."),
+});
+
+/** Error shape of a failed proposal or apply: a tracker code, or INTERNAL for anything else. */
+export const ProposalErrorSchema = z.object({
+  code: z
+    .enum(["NOT_FOUND", "VALIDATION", "CONFLICT", "RULE", "ARCHIVED", "LOCKED", "BUSY", "INTERNAL"])
+    .describe("TrackerErrorCode, or INTERNAL."),
+  message: z.string().describe("Reason shown to the person."),
+});
+
+/** Entity a proposal acts on, with its display label. */
+export const ProposalTargetSchema = z.object({
+  type: z
+    .enum(["project", "work_item", "state", "label", "cycle", "module", "view", "actor", "link"])
+    .describe("Kind of entity."),
+  id: IdSchema.nullable().describe("Entity id, or null when it does not exist yet."),
+  label: z.string().describe("Name or `KEY title` of the entity."),
+});
+
+/** Human-readable before and after of one changed field. */
+export const ProposalFieldSchema = z.object({
+  field: z.string().describe("Input key, e.g. priority."),
+  label: z.string().describe("Field name in UI words."),
+  before: z.string().nullable().describe("Current value, or null for a create."),
+  after: z.string().nullable().describe("Proposed value, or null when cleared."),
+});
+
+/** What Apply would do, with ids resolved to names (docs/drafts/p5-plan.md §4). */
+export const ProposalPreviewSchema = z.object({
+  title: z.string().describe("`<tool title> · <target label>`, e.g. Update work item · WEB-12 Fix login."),
+  target: ProposalTargetSchema.nullable().describe("Entity the proposal acts on, or null."),
+  fields: z.array(ProposalFieldSchema).describe("Changed fields, before and after."),
+  note: z.string().optional().describe("Extra line such as Expected key WEB-13 or Deletes 1 work item."),
+});
+
+/** A stored assistant proposal as the client sees it. */
+export const ProposalViewSchema = z.object({
+  id: IdSchema.describe("Proposal id."),
+  conversation_id: z.uuid().describe("Conversation the proposal belongs to."),
+  source: ProposalSourceSchema.describe("Chat or view from prompt."),
+  tool: z.string().min(1).describe("Registry name of the mutating tool Apply runs."),
+  title: z.string().describe("Same as preview.title."),
+  input: z.unknown().describe("The validated tool input Apply runs."),
+  preview: ProposalPreviewSchema.describe("Resolved before and after."),
+  destructive: z.boolean().describe("Whether Apply needs an explicit confirmation."),
+  status: ProposalStatusSchema.describe("Lifecycle state."),
+  error: ProposalErrorSchema.nullable().describe("Why it failed, or null."),
+  created_at: IsoTimestampSchema.describe("When the model proposed it."),
+  decided_at: IsoTimestampSchema.nullable().describe("When it was applied, failed or discarded."),
+});
+
+/** A stored digest of a cycle or module. */
+export const DigestViewSchema = z.object({
+  kind: DigestKindSchema.describe("Cycle or module."),
+  entity_id: IdSchema.describe("Cycle or module id."),
+  body_md: z.string().describe("Digest text in markdown."),
+  input_seq: z.number().int().nonnegative().describe("Highest activity seq the digest summarised."),
+  model: z.string().describe("Model id that wrote it."),
+  created_at: IsoTimestampSchema.describe("When it was generated."),
+  is_stale: z.boolean().describe("Newer activity exists since it was generated."),
+});
+
+/** Answer of `GET /api/ai/status`; every AI entry point hides unless `available` is true. */
+export const AiStatusSchema = z.discriminatedUnion("available", [
+  z.object({ available: z.literal(true), model: z.string().describe("Model id in use.") }),
+  z.object({
+    available: z.literal(false),
+    reason: z.enum(["no_credential", "model_unavailable", "offline"]).describe("Why the assistant is off."),
+  }),
+]);
+
+/** Server-sent events of `POST /api/ai/assist`; `type` doubles as the SSE event name. */
+export const AssistantEventSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("text_delta"), text: z.string().describe("Next piece of answer text.") }),
+  z.object({
+    type: z.literal("tool_use"),
+    id: z.string().describe("The model's tool_use id."),
+    name: z.string().describe("Tool name; mutating tools carry the propose_ prefix."),
+  }),
+  z.object({
+    type: z.literal("tool_result"),
+    id: z.string().describe("The tool_use id this result answers."),
+    ok: z.boolean().describe("False when the tool returned an error."),
+    summary: z.string().describe("One line for the tool calls row."),
+  }),
+  z.object({ type: z.literal("proposal"), proposal: ProposalViewSchema.describe("The pending proposal the model made.") }),
+  z.object({ type: z.literal("notice"), text: z.string().describe("System note, e.g. Answered by <model>.") }),
+  z.object({
+    type: z.literal("error"),
+    kind: z.enum(["auth", "rate_limit", "unavailable"]).describe("How the client should present the failure."),
+    message: z.string().describe("Text for the composer status or a toast."),
+  }),
+  z.object({
+    type: z.literal("done"),
+    stop_reason: z.string().describe("end_turn, max_tokens, refusal, aborted or another API stop reason."),
+    continue: z.boolean().optional().describe("True when the turn was cut at max_tokens and the client may offer Continue."),
+  }),
+]);
+
+export type AssistantEvent = z.infer<typeof AssistantEventSchema>;

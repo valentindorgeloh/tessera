@@ -11,6 +11,8 @@
 @import "../components/styles/archives.css";
 @import "../components/styles/views.css";
 @import "../components/styles/project-settings.css";
+@import "../components/styles/ai-panel.css";
+@import "../components/styles/ai-surfaces.css";
 
 html,
 body {

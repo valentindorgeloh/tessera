@@ -15,6 +15,8 @@
  *  forbidden-package    no xstyle, @heroicons, lucide-react, @stylexjs, @milkdown in Tessera code
  *  hex-colour           no hex colours outside src/themes/** (tokens only); append `hex-ok` to a line to opt out
  *  drizzle-zod          drizzle-zod is imported only under src/lib/tessera/db/schema/
+ *  ai-boundary          @anthropic-ai/sdk is imported only by src/lib/tessera/ai/** and src/lib/tessera/tools/anthropic.ts
+ *                       (tests/ may import it for fakes); src/components/** and 'use client' files never import @/lib/tessera/ai
  *  plane-marker         no identifiers or strings copied from the Plane code base
  *  no-router-refresh    mutations use Server Actions + refresh(); never router.refresh()
  *  no-cwd-in-engine     src/lib/tessera/** resolves paths from the module location, never process.cwd()
@@ -78,6 +80,11 @@ const CLIENT_ALLOWED_TESSERA_IMPORTS = new Set([
 const BUDGET_EXEMPT = new Set(["src/app/page-body.tsx", "src/app/document-table.tsx"]);
 const BUDGET_FILE = "scripts/file-budget.json";
 const DECISION_SCAN_DIRS = ["src/", "scripts/"];
+
+/** Where the Anthropic SDK may be imported (P5 ai-boundary): the AI engine folder and its tool adapter. */
+const ANTHROPIC_SDK = "@anthropic-ai/sdk";
+const ANTHROPIC_SDK_ALLOWED_PREFIXES = ["src/lib/tessera/ai/"];
+const ANTHROPIC_SDK_ALLOWED_FILES = new Set(["src/lib/tessera/tools/anthropic.ts"]);
 
 const SERVER_ONLY_PACKAGES = ["better-sqlite3", "drizzle-orm", "server-only"];
 const FORBIDDEN_PACKAGES = ["xstyle", "@heroicons/", "lucide-react", "@stylexjs/", "@milkdown/"];
@@ -167,6 +174,17 @@ for (const dir of SCAN_DIRS) {
         }
         if (!isLegacy && FORBIDDEN_PACKAGES.some((p) => spec === p || spec.startsWith(p))) {
           report(rel, n, "forbidden-package", `import of ${spec} is not allowed in Tessera code`);
+        }
+        if (
+          (spec === ANTHROPIC_SDK || spec.startsWith(ANTHROPIC_SDK + "/")) &&
+          !rel.startsWith("tests/") &&
+          !ANTHROPIC_SDK_ALLOWED_FILES.has(rel) &&
+          !ANTHROPIC_SDK_ALLOWED_PREFIXES.some((p) => rel.startsWith(p))
+        ) {
+          report(rel, n, "ai-boundary", `${ANTHROPIC_SDK} may only be imported by src/lib/tessera/ai/** and src/lib/tessera/tools/anthropic.ts`);
+        }
+        if ((inComponents || isClient) && (spec === "@/lib/tessera/ai" || spec.startsWith("@/lib/tessera/ai/"))) {
+          report(rel, n, "ai-boundary", `components and "use client" files must not import ${spec}; use @/lib/tessera/{types,schemas} for AI shapes`);
         }
         if (spec === "drizzle-zod" && !rel.startsWith("src/lib/tessera/db/schema/")) {
           report(rel, n, "drizzle-zod", "drizzle-zod may only be used inside src/lib/tessera/db/schema/");

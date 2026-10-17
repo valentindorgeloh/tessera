@@ -120,6 +120,11 @@ import {
   Stack,
   ToggleRight,
   Tray,
+  // P5 assistant: panel, proposals, stop, retry and the view-from-prompt action.
+  ArrowClockwise,
+  ChatCircleDots,
+  ListChecks,
+  MagicWand,
   type Icon as PhosphorIcon,
   type IconProps,
 } from "@phosphor-icons/react";
@@ -277,6 +282,12 @@ export const IntakeIcon = duotoneIcon(Tray);
 export const AgentIcon = duotoneIcon(Robot);
 export const MoveUpIcon = duotoneIcon(ArrowUp);
 export const MoveDownIcon = duotoneIcon(ArrowDown);
+// P5 assistant panel, proposals and view from prompt.
+export const AssistantIcon = duotoneIcon(ChatCircleDots);
+export const ProposalIcon = duotoneIcon(ListChecks);
+export const StopIcon = duotoneIcon(Stop);
+export const RetryIcon = duotoneIcon(ArrowClockwise);
+export const MagicIcon = duotoneIcon(MagicWand);
 
 /**
  * Icons a project logo may use (`Logo.icon` holds the Phosphor name). The

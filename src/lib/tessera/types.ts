@@ -7,10 +7,16 @@ import type { z } from "zod";
 import type {
   ActorKindSchema,
   AiEffortSchema,
+  AiStatusSchema,
+  AssistantScopeSchema,
+  AssistMessageSchema,
+  AssistRequestSchema,
   CalendarDisplaySchema,
   CycleProgressSchema,
   CycleStatusSchema,
   DateFilterSchema,
+  DigestKindSchema,
+  DigestViewSchema,
   DisplayPropertiesSchema,
   DisplaySchema,
   EstimateTypeSchema,
@@ -32,6 +38,11 @@ import type {
   PaletteColorSchema,
   PointsCountsSchema,
   PrioritySchema,
+  ProposalErrorSchema,
+  ProposalPreviewSchema,
+  ProposalSourceSchema,
+  ProposalStatusSchema,
+  ProposalViewSchema,
   ProgressBreakdownRowSchema,
   ProgressCountsSchema,
   ProgressModeSchema,
@@ -96,6 +107,31 @@ export type ExportScope = z.infer<typeof ExportScopeSchema>;
 export type ExportFormat = z.infer<typeof ExportFormatSchema>;
 export type ExportStatus = z.infer<typeof ExportStatusSchema>;
 export type WebhookEvents = z.infer<typeof WebhookEventsSchema>;
+
+// ---------------------------------------------------------------------------
+// AI (P5): client-safe wire shapes. The zod schemas live in schemas.ts.
+// ---------------------------------------------------------------------------
+export type { AssistantEvent } from "./schemas";
+export type AssistantScope = z.infer<typeof AssistantScopeSchema>;
+export type AssistMessage = z.infer<typeof AssistMessageSchema>;
+export type AssistRequest = z.infer<typeof AssistRequestSchema>;
+export type ProposalStatus = z.infer<typeof ProposalStatusSchema>;
+export type ProposalSource = z.infer<typeof ProposalSourceSchema>;
+export type ProposalPreview = z.infer<typeof ProposalPreviewSchema>;
+/** A stored assistant proposal; `input` is the validated tool input Apply runs. */
+export type ProposalView = z.infer<typeof ProposalViewSchema>;
+/** Result of applying one proposal; `pending` means it was left alone (e.g. a destructive one without confirmation). */
+export type ApplyOutcome = {
+  id: string;
+  status: "applied" | "failed" | "pending";
+  error?: z.infer<typeof ProposalErrorSchema>;
+  data?: unknown;
+};
+export type DigestKind = z.infer<typeof DigestKindSchema>;
+/** A stored cycle or module digest; `is_stale` once newer activity exists. */
+export type DigestView = z.infer<typeof DigestViewSchema>;
+/** `GET /api/ai/status`; every AI entry point stays hidden unless `available` is true. */
+export type AiStatus = z.infer<typeof AiStatusSchema>;
 
 // ---------------------------------------------------------------------------
 // Row types (Drizzle select and insert models), one pair per table
