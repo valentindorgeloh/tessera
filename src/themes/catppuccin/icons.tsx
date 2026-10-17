@@ -111,6 +111,15 @@ import {
   TextAlignLeft,
   TreeStructure,
   Triangle,
+  // P4 views and settings.
+  ArrowUUpLeft,
+  FloppyDisk,
+  LockSimple,
+  LockSimpleOpen,
+  Robot,
+  Stack,
+  ToggleRight,
+  Tray,
   type Icon as PhosphorIcon,
   type IconProps,
 } from "@phosphor-icons/react";
@@ -257,6 +266,17 @@ export const EstimateIcon = duotoneIcon(Triangle);
 export const ClockIcon = duotoneIcon(Clock);
 export const DescriptionIcon = duotoneIcon(TextAlignLeft);
 export const ReorderIcon = duotoneIcon(ArrowsDownUp);
+// P4 views and settings.
+export const ViewIcon = duotoneIcon(Stack);
+export const LockIcon = duotoneIcon(LockSimple);
+export const UnlockIcon = duotoneIcon(LockSimpleOpen);
+export const SaveIcon = duotoneIcon(FloppyDisk);
+export const ResetIcon = duotoneIcon(ArrowUUpLeft);
+export const FeaturesIcon = duotoneIcon(ToggleRight);
+export const IntakeIcon = duotoneIcon(Tray);
+export const AgentIcon = duotoneIcon(Robot);
+export const MoveUpIcon = duotoneIcon(ArrowUp);
+export const MoveDownIcon = duotoneIcon(ArrowDown);
 
 /**
  * Icons a project logo may use (`Logo.icon` holds the Phosphor name). The

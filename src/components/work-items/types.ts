@@ -10,6 +10,7 @@ import type {
   GroupBy,
   Label,
   Module,
+  Priority,
   Project,
   State,
   UpdateWorkItemInputType,
@@ -28,6 +29,8 @@ export type ProjectBundle = {
   actors: ActorRow[];
   /** latestSeq at load time; seeds the change poller. */
   cursor: number;
+  /** Server local date at load (decision 6); `formatShortDate` reads it. */
+  today: string;
 };
 
 /** Input of a drag or keyboard move; mirrors MoveWorkItemInput minus the id. */
@@ -38,6 +41,9 @@ export type MoveInput = {
   from_value?: string | null;
   before_id?: string;
   after_id?: string;
+  sub_group_by?: GroupBy;
+  sub_value?: string | null;
+  sub_from_value?: string | null;
 };
 
 /** Field-scoped patch for inline edits; same shape as the update_work_item tool input. */
@@ -53,7 +59,7 @@ export type QuickAddGroup = { field: GroupBy | null; value: string | null };
 export type SettingsScope = { scope_type: "project" | "cycle" | "module"; scope_id: string };
 
 /** Memberships new items of a scoped list join: the cycle, the module(s). */
-export type ScopeDefaults = { cycle_id?: string; module_ids?: string[] };
+export type ScopeDefaults = { cycle_id?: string; module_ids?: string[]; state_id?: string; priority?: Priority; label_ids?: string[]; assignee_ids?: string[] };
 
 /** Props every layout component (list, board, table, calendar, gantt) receives. */
 export type LayoutProps = {
@@ -67,6 +73,8 @@ export type LayoutProps = {
   onQuickAdd?: (group: QuickAddGroup, name: string) => void;
   /** Whether a group or column shows its quick-add row; absent = always. */
   canQuickAdd?: (group: QuickAddGroup) => boolean;
+  /** Archived project: no create, no drag, read-only controls; default false. */
+  readOnly?: boolean;
 };
 
 /** URL state carried in the `q` search param (base64url JSON). */

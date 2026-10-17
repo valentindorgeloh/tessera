@@ -1,8 +1,5 @@
 {
-  "src/components/shell/CommandBar.tsx": 616,
   "src/lib/tessera/cycles.ts": 925,
   "src/lib/tessera/db/schema.ts": 857,
-  "src/lib/tessera/modules.ts": 735,
-  "src/lib/tessera/tools/registry.ts": 1259,
-  "src/lib/tessera/work-items.ts": 1719
+  "src/lib/tessera/modules.ts": 735
 }

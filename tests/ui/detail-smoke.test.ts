@@ -122,7 +122,7 @@ const labels: Label[] = [{ id: LABEL, project_id: PROJECT, parent_id: null, name
 
 const actors: ActorRow[] = [{ id: USER, kind: "user", name: "Valentin", name_key: "valentin", color: "blue", client_name: null, last_seen_at: null, ...audit }];
 
-const bundle: ProjectBundle = { project, states, labels, cycles: [], modules: [], actors, cursor: 42 };
+const bundle: ProjectBundle = { project, states, labels, cycles: [], modules: [], actors, cursor: 42, today: "2026-10-17" };
 
 function workItem(overrides: Partial<WorkItem> & Pick<WorkItem, "id" | "key" | "name" | "sequence_id">): WorkItem {
   return {

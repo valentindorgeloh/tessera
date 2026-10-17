@@ -1,6 +1,6 @@
 # Tool registry contract
 
-Owner: lane A (`src/lib/tessera/tools/registry.ts`); adapters `tools/mcp.ts` (built) and `tools/anthropic.ts` (P5) are lane G. The registry is the **single enumeration of operations**: every mutating service export is bound by exactly one tool, and every tool is reachable from the UI (Server Actions through `runTool`), from MCP (`tessera_<name>`) and from the assistant (read tools directly, mutations as `propose_<name>`).
+Owner: lane A (`src/lib/tessera/tools/registry/`); adapters `tools/mcp.ts` (built) and `tools/anthropic.ts` (P5) are lane G. The registry is the **single enumeration of operations**: every mutating service export is bound by exactly one tool, and every tool is reachable from the UI (Server Actions through `runTool`), from MCP (`tessera_<name>`) and from the assistant (read tools directly, mutations as `propose_<name>`).
 
 ## ToolDef (`tools/define.ts`)
 

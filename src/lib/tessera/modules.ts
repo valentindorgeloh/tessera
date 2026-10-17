@@ -25,19 +25,7 @@ import { isIsoDate } from "./core/time";
 import { withTx } from "./core/tx";
 import { activeEstimateId, loadBreakdowns, parsePointValue } from "./cycles";
 import { actor, estimate_point, moduleTable, module_member, project, state, work_item, work_item_module } from "./db/schema";
-import {
-  addLink,
-  countLinks,
-  getLink,
-  LinkFieldsInput,
-  listLinks,
-  removeLink,
-  UpdateLinkInput,
-  updateLink,
-  type Link,
-  type LinkFieldsInputType,
-  type UpdateLinkInputType,
-} from "./links";
+import { countLinks, listLinks, type Link } from "./links";
 import { IdListSchema, IdSchema, IsoDateSchema, ModuleStatusSchema } from "./schemas";
 import type { ActorRow, ModuleRow, ModuleStatus, PointsCounts, ProgressBreakdownRow, ProgressCounts, ProjectRow, StateGroup } from "./types";
 
@@ -700,36 +688,4 @@ export function setModuleMembers(ctx: TesseraContext, id: string, actorIds: SetM
   });
 }
 
-// ---------------------------------------------------------------------------
-// Links (thin wrappers over links.ts that only accept module links)
-// ---------------------------------------------------------------------------
-
-export const AddModuleLinkInput = LinkFieldsInput;
-export type AddModuleLinkInputType = LinkFieldsInputType;
-export const UpdateModuleLinkInput = UpdateLinkInput;
-export type UpdateModuleLinkInputType = UpdateLinkInputType;
-
-/** The link must exist and belong to a module; a work item link is NOT_FOUND here. */
-function assertModuleLink(ctx: TesseraContext, linkId: string): void {
-  const link = getLink(ctx, linkId);
-  if (link.parent_type !== "module") throw notFound("module_link", linkId);
-}
-
-export function addModuleLink(ctx: TesseraContext, moduleId: string, input: AddModuleLinkInputType): Link {
-  const data = validateInput(AddModuleLinkInput, input);
-  return addLink(ctx, { ...data, module_id: moduleId });
-}
-
-export function updateModuleLink(ctx: TesseraContext, linkId: string, patch: UpdateModuleLinkInputType): Link {
-  return withTx(ctx, () => {
-    assertModuleLink(ctx, linkId);
-    return updateLink(ctx, linkId, patch);
-  });
-}
-
-export function removeModuleLink(ctx: TesseraContext, linkId: string): void {
-  withTx(ctx, () => {
-    assertModuleLink(ctx, linkId);
-    removeLink(ctx, linkId);
-  });
-}
+export { AddModuleLinkInput, UpdateModuleLinkInput, addModuleLink, updateModuleLink, removeModuleLink, type AddModuleLinkInputType, type UpdateModuleLinkInputType } from "./module-links";

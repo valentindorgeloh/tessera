@@ -82,7 +82,7 @@ const states: State[] = [
 
 const actors: ActorRow[] = [{ id: USER, kind: "user", name: "Valentin", name_key: "valentin", color: "blue", client_name: null, last_seen_at: null, ...audit }];
 
-const bundle: ProjectBundle = { project, states, labels: [], cycles: [], modules: [], actors, cursor: 42 };
+const bundle: ProjectBundle = { project, states, labels: [], cycles: [], modules: [], actors, cursor: 42, today: "2026-10-17" };
 
 const item: WorkItem = {
   id: ITEM,

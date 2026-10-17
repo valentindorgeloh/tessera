@@ -215,7 +215,7 @@ as the P2a rule above says). Mismatches with docs/PLAN.md are collected at the e
   `if (parseKey(key) === null && !IdSchema.safeParse(key).success) notFound();`
   (`parseKey` and `IdSchema` from `@/lib/tessera/server`, which re-exports
   `core/keys` and `schemas`); then in a `try`: `item = await readTessera((ctx) => getWorkItemByKey(ctx, key))`
-  (`src/lib/tessera/work-items.ts` line 483, accepts key or id, any case), `NOT_FOUND`/`VALIDATION`
+  (`src/lib/tessera/work-items/` line 483, accepts key or id, any case), `NOT_FOUND`/`VALIDATION`
   → `notFound()`; after the try: `redirect(`/projects/${item.project_id}/work-items/${item.id}`)`.
   `redirect` throws, so it stays outside `try` (`04-functions/redirect.md` lines 51–53)
   and is allowed in Server Components; it uses `replace` outside Server Actions (line 31).
@@ -1573,7 +1573,7 @@ only, and each lane fills its own.
 
 | Lane | Creates | May edit additively (name it in the hand-off) | Must not touch |
 |---|---|---|---|
-| A engine | `scripts/mcp-call.ts` | `src/lib/tessera/{schemas,types,cycles,modules,work-items}.ts`, `src/lib/tessera/tools/registry.ts` (five descriptions), `tests/{cycles,modules,work-items}.test.ts`, `docs/contracts/{service-api,tools}.md` (corrections only), `docs/PLAN.md` (§5, §6, §9, §11 step 2, §13; item 10) | `src/app/**`, `src/components/**`, migrations |
+| A engine | `scripts/mcp-call.ts` | `src/lib/tessera/{schemas,types,cycles,modules,work-items}.ts`, `src/lib/tessera/tools/registry/` (five descriptions), `tests/{cycles,modules,work-items}.test.ts`, `docs/contracts/{service-api,tools}.md` (corrections only), `docs/PLAN.md` (§5, §6, §9, §11 step 2, §13; item 10) | `src/app/**`, `src/components/**`, migrations |
 | E1 cycles and charts | `src/app/(tessera)/projects/[projectId]/cycles/**`, `src/components/planning/{types,panel-prefs,burndown,cycle-format,chart-colors}.ts`, `src/components/planning/{ProgressPanel,BreakdownTabs,AddExistingItemsDialog,FeatureOffState,CyclesScreen,CycleRow,CycleMenu,ActiveCycleSummary,CycleDialog,CycleDetailScreen,CycleHeader,CycleSidePanel,TransferDialog,BurndownChart}.tsx`, `src/components/styles/planning.css`, `src/app/actions/cycles.ts`, `tests/ui/{burndown,cycle-format}.test.ts` | `tests/themes/catppuccin-contrast.test.ts` (one case) | `src/components/{work-items,shell,detail,editor}/**`, other routes, `palette.ts`, `catppuccinTheme.ts` |
 | E2 modules | `src/app/(tessera)/projects/[projectId]/modules/**`, `src/components/planning/{ModulesScreen,ModuleRow,ModuleMenu,ModuleDialog,ModuleDetailScreen,ModuleHeader,ModuleSidePanel,ModuleLinks,LeadControl}.tsx`, `src/components/planning/module-format.ts`, `src/components/styles/modules.css`, `src/app/actions/modules.ts`, `tests/ui/module-format.test.ts` | none | E1's planning files (stub them), `src/components/{work-items,shell,detail}/**` |
 | E3 archives | `src/app/(tessera)/projects/[projectId]/archives/**`, `src/app/(tessera)/projects/archives/page.tsx`, `src/components/planning/{ArchivesTabs,ArchivedWorkItems,ArchivedCycles,ArchivedModules,ArchivedProjects,ProjectArchive,DeleteProjectDialog}.tsx`, `src/components/planning/archive-rules.ts`, `src/components/styles/archives.css`, `tests/ui/archive-rules.test.ts` | `src/app/actions/work-items.ts` (`unarchiveWorkItemAction`), `src/app/actions/projects.ts` (three wrappers), `src/components/detail/{DetailHeader,WorkItemDetail}.tsx` (archive and restore), `src/app/(tessera)/projects/page.tsx` (link) | `ProjectFrame.tsx`, `src/components/shell/**`, `src/components/work-items/**` except the files named |

@@ -293,7 +293,7 @@ Rules (docs/PLAN.md §7):
 - Debounce 400 ms after the last `onChange`; a save sends
   `updateWorkItemDescriptionAction({ work_item_id, description_md, expected_description_version: state.version })`
   (`src/app/actions/work-items.ts` line 13; input `UpdateWorkItemDescriptionInput`,
-  `src/lib/tessera/work-items.ts` line 1211). Only one request in flight; a change
+  `src/lib/tessera/work-items/` line 1211). Only one request in flight; a change
   during a save marks dirty again and resends after it returns. Skip the send when
   the text equals the last saved text.
 - `{ ok: true, data }` → `version = data.description_version`, status `clean`

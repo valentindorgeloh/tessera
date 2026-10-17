@@ -9,6 +9,8 @@
 @import "../components/styles/planning.css";
 @import "../components/styles/modules.css";
 @import "../components/styles/archives.css";
+@import "../components/styles/views.css";
+@import "../components/styles/project-settings.css";
 
 html,
 body {

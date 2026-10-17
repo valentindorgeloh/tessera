@@ -44,6 +44,7 @@ async function ProjectShell({ children, params }: Props) {
       modules: listModules(ctx, projectId, {}),
       actors: listActors(ctx),
       cursor: latestSeq(ctx),
+      today: ctx.today(),
     }));
   } catch (err) {
     // An unknown or malformed id is a missing page, not a crash. The layout steps aside and renders

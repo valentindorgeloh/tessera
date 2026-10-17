@@ -35,6 +35,7 @@ export function loadProjectBundle(ctx: TesseraContext, projectId: string): Proje
     modules: listModules(ctx, projectId, {}),
     actors: listActors(ctx),
     cursor: latestSeq(ctx),
+    today: ctx.today(),
   };
 }
 
