@@ -18,10 +18,15 @@
  *  plane-marker         no identifiers or strings copied from the Plane code base
  *  no-router-refresh    mutations use Server Actions + refresh(); never router.refresh()
  *  no-cwd-in-engine     src/lib/tessera/** resolves paths from the module location, never process.cwd()
+ *  decision-ref         a comment in src/** or scripts/** that cites `decision N` or `decision UN` names a row of the
+ *                       "Resolved design decisions" tables in docs/PLAN.md (parsed from the file)
+ *  file-budget          .ts/.tsx files under src/ and scripts/ (tests excluded) stay within 600 lines; the ones already
+ *                       over are pinned in scripts/file-budget.json and may shrink but not grow
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { countLines, evaluateFileBudget, parseDecisionNumbers, unknownDecisionRefs } from "./convention-rules";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCAN_DIRS = ["src", "scripts", "tests"];
@@ -69,6 +74,11 @@ const CLIENT_ALLOWED_TESSERA_IMPORTS = new Set([
   "@/lib/tessera/core/group",
 ]);
 
+/** Exempt from the file budget until their P6 rewrite; the script lists them. */
+const BUDGET_EXEMPT = new Set(["src/app/page-body.tsx", "src/app/document-table.tsx"]);
+const BUDGET_FILE = "scripts/file-budget.json";
+const DECISION_SCAN_DIRS = ["src/", "scripts/"];
+
 const SERVER_ONLY_PACKAGES = ["better-sqlite3", "drizzle-orm", "server-only"];
 const FORBIDDEN_PACKAGES = ["xstyle", "@heroicons/", "lucide-react", "@stylexjs/", "@milkdown/"];
 const PLANE_MARKERS = ["makeplane", "plane.so", "@plane/", "apiserver", "useIssueStore", "TIssue", "IssueService", "AGPL"];
@@ -112,6 +122,9 @@ function hasUseClientDirective(lines: string[]): boolean {
 
 const HEX_RE = /(?<![\w&;%])#[0-9a-fA-F]{3,8}\b/;
 
+const knownDecisions = parseDecisionNumbers(fs.readFileSync(path.join(ROOT, "docs/PLAN.md"), "utf8"));
+const budgetCounts: Record<string, number> = {};
+
 for (const dir of SCAN_DIRS) {
   for (const abs of walk(path.join(ROOT, dir))) {
     const rel = path.relative(ROOT, abs).split(path.sep).join("/");
@@ -123,6 +136,14 @@ for (const dir of SCAN_DIRS) {
     const text = fs.readFileSync(abs, "utf8");
     const lines = text.split("\n");
     const isClient = hasUseClientDirective(lines);
+    const isSource = /\.tsx?$/.test(rel) && DECISION_SCAN_DIRS.some((d) => rel.startsWith(d));
+
+    if (isSource) {
+      for (const ref of unknownDecisionRefs(lines, knownDecisions)) {
+        report(rel, ref.line, "decision-ref", `decision ${ref.number} is not in the "Resolved design decisions" tables of docs/PLAN.md`);
+      }
+      if (!/\.(test|d)\.tsx?$/.test(rel)) budgetCounts[rel] = countLines(text);
+    }
 
     lines.forEach((line, i) => {
       const n = i + 1;
@@ -173,10 +194,16 @@ for (const dir of SCAN_DIRS) {
   }
 }
 
+const budget: Record<string, number> = JSON.parse(fs.readFileSync(path.join(ROOT, BUDGET_FILE), "utf8"));
+const budgetResult = evaluateFileBudget(budgetCounts, budget, BUDGET_EXEMPT);
+for (const f of budgetResult.failures) report(f.file, 1, "file-budget", f.message);
+
 if (findings.length > 0) {
   console.error(`\nConvention gate failed: ${findings.length} finding(s)\n`);
   for (const f of findings) console.error(`  ${f.file}:${f.line}  [${f.rule}] ${f.message}`);
   console.error("");
   process.exit(1);
 }
+for (const note of budgetResult.notes) console.log(`note: ${note}`);
+if (budgetResult.exempt.length > 0) console.log(`File budget: exempt until P6: ${budgetResult.exempt.join(", ")}`);
 console.log("Convention gate passed.");

@@ -1,6 +1,6 @@
 # How agents build Tessera (swarm structure)
 
-Status: in use from 2026-10-17. Two gate checks described below are still to build: the decision-reference check and the file-budget ratchet (`scripts/file-budget.json`). Until then reviewers check both by hand.
+Status: in use from 2026-10-17.
 
 From 2026-10-17, every phase is built by a swarm with fixed roles. The model follows Cursor's write-up "Agent-Schwärme und die neue Modellökonomie" (cursor.com/de/blog/agent-swarm-model-economics, 2026-07-20). Its main findings:
 - Frontier intelligence is needed only at a few points: decomposition, design decisions and trade-offs.
