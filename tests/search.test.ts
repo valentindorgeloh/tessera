@@ -8,7 +8,7 @@ import { upsertPageFts } from "@/lib/tessera/db/fts";
 import { page } from "@/lib/tessera/db/schema";
 import { archiveCycle, createCycle } from "@/lib/tessera/cycles";
 import { archiveModule, createModule, updateModule } from "@/lib/tessera/modules";
-import { archiveProject, createProject, updateProjectFeatures, type Project } from "@/lib/tessera/projects";
+import { archiveProject, createProject, updateProject, updateProjectFeatures, type Project } from "@/lib/tessera/projects";
 import { EXACT_NAME_SCORE, KEY_MATCH_SCORE, SEARCH_TYPES, searchAll, type SearchHit } from "@/lib/tessera/search";
 import { listStates } from "@/lib/tessera/states";
 import type { StateRow } from "@/lib/tessera/types";
@@ -105,6 +105,34 @@ describe("searchAll over work items", () => {
     expect(hits.length).toBeGreaterThan(1);
     expect(ids(searchAll(ctx, " web-3 "))[0]).toBe(third.id);
     expect(ids(searchAll(ctx, "WEB-99"))).toEqual([]);
+  });
+
+  it("finds an item by a retired key and reports the queried key (decision 29)", () => {
+    const { ctx, project } = setup();
+    const created = item(ctx, project.id, "Plain title");
+    updateProject(ctx, project.id, { identifier: "WEB2" });
+    const [hit] = searchAll(ctx, "web-1", { types: ["work_item"], limit: 1 });
+    expect(hit.id).toBe(created.id);
+    expect(hit.key).toBe("WEB2-1");
+    expect(hit.matched_key).toBe("WEB-1");
+    expect(hit.score).toBe(KEY_MATCH_SCORE);
+    // The current key is a normal key hit with no matched_key.
+    const [current] = searchAll(ctx, "WEB2-1", { types: ["work_item"], limit: 1 });
+    expect(current.id).toBe(created.id);
+    expect(current.matched_key).toBeUndefined();
+    expect(ids(searchAll(ctx, "WEB-99", { types: ["work_item"] }))).toEqual([]);
+  });
+
+  it("lets the live holder of an identifier win over a retired key (decision 29)", () => {
+    const { ctx, project } = setup();
+    const created = item(ctx, project.id, "Original");
+    updateProject(ctx, project.id, { identifier: "WEB2" });
+    const holder = createProject(ctx, { name: "Webby", identifier: "WEB" });
+    const other = item(ctx, holder.id, "Newcomer");
+    const hits = searchAll(ctx, "WEB-1", { types: ["work_item"] });
+    expect(hits[0].id).toBe(other.id);
+    expect(hits[0].matched_key).toBeUndefined();
+    expect(ids(hits)).not.toContain(created.id);
   });
 
   it("ranks an exact name above partial full-text matches", () => {

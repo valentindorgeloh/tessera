@@ -307,6 +307,7 @@ export function WorkItemsScreen({
             />
             <PanelBar
               size="filters"
+              canWrap
               hasDivider
               start={<FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} />}
               end={filtersEnd ?? (showSaveView ? <SaveViewButton projectId={projectId} filters={filters} display={display} /> : undefined)}

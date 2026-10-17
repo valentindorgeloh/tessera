@@ -186,6 +186,21 @@ describe("search hits", () => {
     expect(matchWorkItemRef(hits, " ")).toBeNull();
   });
 
+  it("resolves a work link written with a retired key through matched_key (decision 29)", () => {
+    const retired = toCandidates({
+      hits: [
+        { type: "work_item", id: "id-1", key: "P4B-1", matched_key: "P4A-1", title: "Old", score: 1000 },
+        { type: "work_item", id: "id-2", key: "P4B-2", matched_key: 5, title: "Mentions P4A-9", score: 10 },
+      ],
+    });
+    expect(retired[0].matched_key).toBe("P4A-1");
+    expect(retired[1].matched_key).toBeUndefined();
+    expect(matchWorkItemRef(retired, "P4A-1")?.id).toBe("id-1");
+    expect(matchWorkItemRef(retired, "p4a-1")?.id).toBe("id-1");
+    expect(matchWorkItemRef(retired, "P4B-1")?.id).toBe("id-1");
+    expect(matchWorkItemRef(retired, "P4A-9")).toBeNull();
+  });
+
   it("names the parent picker trigger from the loaded parent, else from the hit just picked", () => {
     const parent = { id: "p1", key: "WEB-1", name: "Launch" };
     const picked = { id: "p2", key: "WEB-2", title: "Copy" };

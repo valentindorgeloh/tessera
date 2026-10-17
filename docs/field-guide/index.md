@@ -33,6 +33,8 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 - Badge is for counts only. RelativeTime inside a tooltip trigger needs hasTooltip={false}.
 - Dev-only console noise to tolerate: Astryx Table tableContextMenu warnings (`moveTo`; `start`/`cancel` props). Every anchor carrying a `to` attribute is known (LinkProvider + next/link).
 - Dialogs animate: wait 2–3 s before a screenshot.
+- A MoreMenu row with nested `items` drops `description`. A disabled reason has to be a leaf row.
+- A wrapping PanelBar end slot needs `max-width: 100%`, and the cluster inside it must wrap, or a right-aligned row overflows off the left.
 
 ## Shell
 - There are no tabs. Navigation history is recents (src/components/shell/recents.ts, recents-store.ts). On delete or archive, call forgetRecentsUnder(path).

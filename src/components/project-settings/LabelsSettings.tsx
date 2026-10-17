@@ -71,7 +71,9 @@ export function LabelsSettings({ usage }: LabelsSettingsProps) {
       { id: "edit", label: "Edit…", icon: PencilIcon, onClick: () => setDialog({ mode: "edit", label }) },
       ...(isChild ? [] : [{ id: "add-child", label: "Add sub-label", icon: PlusIcon, onClick: () => setDialog({ mode: "create", parentId: label.id }) }]),
       hasChildren
-        ? { id: "move-to", label: "Move to", description: "Labels with sub-labels stay top level", isDisabled: true, items: moveItems }
+        ? // No `items` here: Astryx's data path renders a nested-`items` row as a submenu and drops its `description`,
+          // while a leaf row forwards it. The row is disabled and never opens, so a leaf shows the reason.
+          { id: "move-to", label: "Move to", description: "Labels with sub-labels stay top level", isDisabled: true }
         : { id: "move-to", label: "Move to", isDisabled: moveItems.length === 0, items: moveItems },
       {
         id: "move-up",

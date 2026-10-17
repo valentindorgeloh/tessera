@@ -15,6 +15,7 @@ import { validateInput } from "./core/errors";
 import { formatKey, nameKey, normalizeIdentifier, parseKey } from "./core/keys";
 import { searchPageIds, searchWorkItemIds } from "./db/fts";
 import { cycle, moduleTable, page, project, state, view, work_item } from "./db/schema";
+import { resolveRetiredIdentifier } from "./projects";
 import { IdSchema } from "./schemas";
 
 export const SEARCH_TYPES = ["work_item", "page", "cycle", "module", "project", "view"] as const;
@@ -30,6 +31,8 @@ export type SearchHit = {
   project_id: string | null;
   /** WEB-12 for work items, the identifier for projects. */
   key?: string;
+  /** Set only when a work item was found by a retired key (decision 29): the key as queried, upper-cased; `key` is the current one. */
+  matched_key?: string;
   title: string;
   /** Project name, state, or "Wiki"; whatever helps tell hits apart. */
   subtitle?: string;
@@ -161,12 +164,27 @@ function workItemHit(row: WorkItemHitRow, score: number): SearchHit {
 function keyHit(ctx: TesseraContext, query: SearchQuery): SearchHit | null {
   const parsed = parseKey(query.q);
   if (!parsed) return null;
+  const identifier = normalizeIdentifier(parsed.identifier);
+  const queried = formatKey(identifier, parsed.sequenceId);
+  const live = workItemQuery(
+    ctx,
+    query,
+    and(eq(project.identifier, identifier), eq(work_item.sequence_id, parsed.sequenceId)) ?? sql`1 = 1`,
+  ).get();
+  if (live) return workItemHit(live, KEY_MATCH_SCORE);
+  // Decision 29: a key written with a project's former identifier still finds
+  // its item, unless a live project holds that identifier now (the resolver
+  // then returns undefined).
+  const retired = resolveRetiredIdentifier(ctx, identifier);
+  if (!retired) return null;
   const row = workItemQuery(
     ctx,
     query,
-    and(eq(project.identifier, normalizeIdentifier(parsed.identifier)), eq(work_item.sequence_id, parsed.sequenceId)) ?? sql`1 = 1`,
+    and(eq(work_item.project_id, retired.id), eq(work_item.sequence_id, parsed.sequenceId)) ?? sql`1 = 1`,
   ).get();
-  return row ? workItemHit(row, KEY_MATCH_SCORE) : null;
+  if (!row) return null;
+  const hit = workItemHit(row, KEY_MATCH_SCORE);
+  return hit.key === queried ? hit : { ...hit, matched_key: queried };
 }
 
 /** Full-text hits hydrated in relevance order; rows filtered out by the guards keep the others' ranks. */

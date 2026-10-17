@@ -70,7 +70,7 @@ export function ViewBar({ projectId, view, isModified, effective }: ViewBarProps
 
   return (
     <>
-      <HStack gap={2} vAlign="center">
+      <HStack gap={2} vAlign="center" wrap="wrap" className="tessera-view-bar">
         <StatusDot variant="accent" label="Unsaved changes" tooltip="Filters or display differ from the saved view" />
         <Text type="supporting" color="secondary">
           Modified
