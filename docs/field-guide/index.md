@@ -10,6 +10,7 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 - MCP without the stdio server: `TESSERA_DB_PATH=<db> npx tsx scripts/mcp-call.ts <tool> '<json>'`. The stdio server refuses pending migrations unless started with --migrate.
 - `astryx doctor` always shows one theme-fonts warning (fonts load through next/font). It is expected.
 - Only the root planner runs state-changing git. Agents never add, commit, stash, checkout or restore.
+- The /tmp scratchpad is wiped by the system (it happened on 2026-10-16). Keep drafts that must survive in docs/drafts/ in the repo.
 - The Edit tool refuses a stale read. Another agent may have changed the file, so re-read it and never overwrite.
 
 ## Next 16 (Cache Components)
