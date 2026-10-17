@@ -1,13 +1,12 @@
 "use client";
 
-import { createContext, Suspense, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@astryxdesign/core/AppShell";
 import { Card } from "@astryxdesign/core/Card";
 import { useHotkeys } from "@astryxdesign/core/hooks";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { ToastViewport } from "@astryxdesign/core/Toast";
 import { CommandBar, type CommandBarHandle } from "./CommandBar";
-import { HiddenDialogGuard } from "./HiddenDialogGuard";
 import { TopBar } from "./TopBar";
 
 export type ShellContextValue = {
@@ -38,9 +37,7 @@ export function useShell(): ShellContextValue {
  * `mod+k`; the shortcut dispatcher, the shortcuts dialog and the Create
  * project dialog live inside it). `mod+b` collapses the navigation. The
  * sidebar arrives as a server-rendered child (`sideNav`), so this component
- * never touches the database. `HiddenDialogGuard` closes the modal dialogs a
- * navigation leaves open in the hidden route (./hidden-dialogs.ts); it reads
- * the request-bound URL, so it has its own empty Suspense boundary.
+ * never touches the database.
  */
 export function TesseraShell({ sideNav, children }: { sideNav: ReactNode; children: ReactNode }) {
   const [isNavCollapsed, setNavCollapsed] = useState(false);
@@ -68,9 +65,6 @@ export function TesseraShell({ sideNav, children }: { sideNav: ReactNode; childr
     <ShellContext.Provider value={value}>
       <ToastViewport position="bottomEnd">
         <CommandBar ref={commandBar} />
-        <Suspense fallback={null}>
-          <HiddenDialogGuard />
-        </Suspense>
         <AppShell height="fill" variant="wash" contentPadding={2} topNav={<TopBar />} sideNav={sideNav}>
           <Card padding={0} height="100%" className="tessera-panel">
             <Layout height="fill" content={<LayoutContent isScrollable>{children}</LayoutContent>} />

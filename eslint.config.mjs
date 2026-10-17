@@ -23,6 +23,28 @@ const databaseImports = [
   },
 ];
 
+// Dialog and AlertDialog come from `@/components/shell/dialogs`, which closes
+// the native <dialog> when Next hides a route (docs/contracts/ui.md, "Modal
+// dialogs and hidden routes"). `importNames` leaves DialogHeader and the rest of
+// Astryx free to import.
+const dialogMessage =
+  "Import Dialog and AlertDialog from '@/components/shell/dialogs': it closes the native <dialog> when a navigation hides the route, so the next page is not left inert.";
+const dialogImports = [
+  { name: "@astryxdesign/core/Dialog", importNames: ["Dialog"], message: dialogMessage },
+  { name: "@astryxdesign/core/AlertDialog", importNames: ["AlertDialog"], message: dialogMessage },
+  { name: "@astryxdesign/core", importNames: ["Dialog", "AlertDialog"], message: dialogMessage },
+];
+
+// Components may not reach the engine beyond its client-safe modules.
+const componentPatterns = [
+  ...databaseImports,
+  {
+    regex: "^@/lib/tessera(?!/(types|schemas|core/(keys|time|group))$)",
+    message:
+      "Components may import only '@/lib/tessera/types', '@/lib/tessera/schemas' and '@/lib/tessera/core/{keys,time,group}'. Read through a Server Component and write through a Server Action.",
+  },
+];
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -30,25 +52,20 @@ const eslintConfig = defineConfig([
     files: ["src/app/**/*.{ts,tsx}"],
     ignores: ["src/app/actions/**", "src/app/api/**"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: databaseImports }],
+      "no-restricted-imports": ["error", { paths: dialogImports, patterns: databaseImports }],
     },
   },
   {
     files: ["src/components/**/*.{ts,tsx}"],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            ...databaseImports,
-            {
-              regex: "^@/lib/tessera(?!/(types|schemas|core/(keys|time|group))$)",
-              message:
-                "Components may import only '@/lib/tessera/types', '@/lib/tessera/schemas' and '@/lib/tessera/core/{keys,time,group}'. Read through a Server Component and write through a Server Action.",
-            },
-          ],
-        },
-      ],
+      "no-restricted-imports": ["error", { paths: dialogImports, patterns: componentPatterns }],
+    },
+  },
+  {
+    // The wrapper is the one place that imports Astryx's Dialog and AlertDialog.
+    files: ["src/components/shell/dialogs.tsx"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: componentPatterns }],
     },
   },
   {

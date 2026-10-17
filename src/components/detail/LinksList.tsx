@@ -10,7 +10,7 @@
  */
 import { useState, type ReactNode } from "react";
 import { Button } from "@astryxdesign/core/Button";
-import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Dialog, DialogHeader } from "@/components/shell/dialogs";
 import { FormLayout } from "@astryxdesign/core/FormLayout";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";

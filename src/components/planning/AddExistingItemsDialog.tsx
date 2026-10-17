@@ -12,7 +12,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
-import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Dialog, DialogHeader } from "@/components/shell/dialogs";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import { List, ListItem } from "@astryxdesign/core/List";

@@ -37,7 +37,7 @@ import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
-import { Dialog } from "@astryxdesign/core/Dialog";
+import { Dialog } from "@/components/shell/dialogs";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { useHotkeys } from "@astryxdesign/core/hooks";
 import { LayerDepthProvider } from "@astryxdesign/core/Layer";

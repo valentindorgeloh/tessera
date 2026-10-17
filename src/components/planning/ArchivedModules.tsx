@@ -6,7 +6,7 @@
  * read-only controls), with Restore and a menu holding Delete….
  */
 import { useState, useTransition } from "react";
-import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { AlertDialog } from "@/components/shell/dialogs";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { List, ListItem } from "@astryxdesign/core/List";

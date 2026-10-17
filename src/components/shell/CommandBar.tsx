@@ -29,7 +29,7 @@
 import { useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type KeyboardEvent, type Ref } from "react";
 import { useRouter } from "next/navigation";
 import { CommandPalette, CommandPaletteFooter, CommandPaletteInput, useCommandPaletteContext } from "@astryxdesign/core/CommandPalette";
-import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Dialog, DialogHeader } from "@/components/shell/dialogs";
 import { useHotkeys } from "@astryxdesign/core/hooks";
 import { Icon, type IconType } from "@astryxdesign/core/Icon";
 import { Kbd } from "@astryxdesign/core/Kbd";

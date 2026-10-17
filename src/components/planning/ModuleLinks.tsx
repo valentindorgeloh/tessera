@@ -11,7 +11,7 @@
  */
 import { useState, useTransition } from "react";
 import { Button } from "@astryxdesign/core/Button";
-import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Dialog, DialogHeader } from "@/components/shell/dialogs";
 import { FormLayout } from "@astryxdesign/core/FormLayout";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import { Link as AstryxLink } from "@astryxdesign/core/Link";

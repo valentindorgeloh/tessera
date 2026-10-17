@@ -16,7 +16,7 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 - Reads go under <Suspense>, with `await io()` before readTessera. refresh() only works in Server Actions; never use router.refresh().
 - Mutations go through toolAction("tool_name") wrappers in src/app/actions/*.ts. redirect() and notFound() go outside try.
 - Next keeps left routes mounted under React <Activity mode="hidden">. Their effects stop but their DOM and state stay. Layout-effect cleanups run at hide time.
-- An Astryx Dialog left open in a hidden route keeps the next page inert (showModal is document-wide). Use the dialog fix in docs/contracts/ui.md: the shell guard, or later the dialogs wrapper.
+- Import Dialog and AlertDialog from @/components/shell/dialogs, never from Astryx (lint-enforced): it closes the native <dialog> when Next hides a route, so the next page is not left inert.
 - No Date.now(), Math.random() or argless new Date() in render (prerender errors). Use src/lib/tessera/core/time helpers.
 
 ## Code rules that bite

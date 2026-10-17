@@ -10,7 +10,7 @@
  */
 import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { AlertDialog } from "@/components/shell/dialogs";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";

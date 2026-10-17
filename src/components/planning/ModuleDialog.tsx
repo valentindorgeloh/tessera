@@ -16,7 +16,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { DateInput } from "@astryxdesign/core/DateInput";
-import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Dialog, DialogHeader } from "@/components/shell/dialogs";
 import { FormLayout } from "@astryxdesign/core/FormLayout";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";

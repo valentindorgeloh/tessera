@@ -9,7 +9,7 @@
  * the same control. Failures show an error Toast with the engine's message.
  */
 import { useState, useTransition, type ReactNode } from "react";
-import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { AlertDialog } from "@/components/shell/dialogs";
 import type { DropdownMenuItemData } from "@astryxdesign/core/DropdownMenu";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import type { ButtonSize } from "@astryxdesign/core/Button";

@@ -9,7 +9,7 @@
  * Server Action wrappers and the router are mocked so no database or Next
  * runtime is involved.
  */
-import { Fragment, act, createElement, useEffect, type ComponentProps, type ReactNode } from "react";
+import { Fragment, act, createElement, useEffect, useLayoutEffect, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ProjectBundle } from "@/components/work-items/types";
@@ -716,14 +716,23 @@ describe("PeekHost", () => {
   it("closes the modal peek when a navigation hides its route, and opens it again when the route comes back", async () => {
     const { Activity } = await import("react");
     const { savePeekPrefs } = await import("@/components/detail/peek-prefs");
-    const { HiddenDialogGuard } = await import("@/components/shell/HiddenDialogGuard");
     savePeekPrefs({ mode: "modal" });
     nav.search = `peek=${ITEM}`;
     const element = await host();
-    // The shell's guard sits outside the route; Cache Components hides a route it leaves with <Activity mode="hidden">.
+    // Cache Components hides a route it leaves with <Activity mode="hidden">. The peek's Dialog comes from
+    // @/components/shell/dialogs, which closes the native <dialog> in a layout-effect cleanup at hide time.
     // children go in as the third argument; the cast covers the props object without them.
+    // The probe sits outside the route and reads the dialog in the layout phase of every commit, so it sees the
+    // state the hide commit itself leaves, before any passive effect could close the dialog.
+    const seen: Array<boolean | undefined> = [];
+    const Probe = () => {
+      useLayoutEffect(() => {
+        seen.push(document.querySelector<HTMLDialogElement>('dialog[aria-label="Work item"]')?.open);
+      });
+      return null;
+    };
     const frame = (mode: "visible" | "hidden") =>
-      createElement(Fragment, null, createElement(HiddenDialogGuard), createElement(Activity, { mode } as ComponentProps<typeof Activity>, element));
+      createElement(Fragment, null, createElement(Activity, { mode } as ComponentProps<typeof Activity>, element), createElement(Probe));
     await render(frame("visible"));
     const dialog = document.querySelector<HTMLDialogElement>('dialog[aria-label="Work item"]');
     expect(dialog?.open).toBe(true);
@@ -737,6 +746,7 @@ describe("PeekHost", () => {
     // Still mounted (Activity keeps the DOM), but no longer open, so it cannot leave the next page inert.
     expect(dialog?.isConnected).toBe(true);
     expect(dialog?.open).toBe(false);
+    expect(seen.at(-1)).toBe(false);
 
     // Back: the route shows again with its ?peek, and the Dialog's own effect opens it again.
     nav.pathname = LIST;

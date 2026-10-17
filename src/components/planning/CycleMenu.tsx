@@ -11,7 +11,7 @@
  * Failures show an error Toast with the engine's message.
  */
 import { useState, useTransition, type ReactNode } from "react";
-import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { AlertDialog } from "@/components/shell/dialogs";
 import type { ButtonSize } from "@astryxdesign/core/Button";
 import type { DropdownMenuItemData } from "@astryxdesign/core/DropdownMenu";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";

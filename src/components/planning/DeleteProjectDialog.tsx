@@ -14,7 +14,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
-import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Dialog, DialogHeader } from "@/components/shell/dialogs";
 import { FieldStatus } from "@astryxdesign/core/FieldStatus";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import { HStack, VStack } from "@astryxdesign/core/Stack";

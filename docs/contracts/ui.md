@@ -114,6 +114,7 @@ Filter bar: Astryx `PowerSearch` tokens for state, priority, labels, assignees, 
 - Templates under `node_modules/@astryxdesign/cli/assets/templates/pages/` are reference code under MIT: port them (className + tokens, Phosphor icons), never import or paste them; they use `@stylexjs/stylex` and `@heroicons/react`, both forbidden by `scripts/check-conventions.ts`.
 - `Link` goes through Astryx's `LinkProvider` (already configured in `src/app/providers.tsx` with `next/link`).
 - CSS lives in `src/components/styles/<area>.css`, imported once from `src/app/globals.css` (one additive `@import` line per area), tokens only.
+- `Dialog` and `AlertDialog` come from `@/components/shell/dialogs`, never from `@astryxdesign/core` (lint-enforced): the Astryx ones stay modal in a route Next has hidden and leave the next page inert.
 
 ## Verification per phase
 
@@ -1815,16 +1816,20 @@ Notes from the P3 integration run; the hand-off is in docs/PLAN-STATUS.md "P3
 - Modal dialogs and hidden routes: Cache Components keeps a route the user leaves
   mounted under React `<Activity mode="hidden">` (`display: none`). The Astryx
   `Dialog` (and `AlertDialog`) opens its native `<dialog>` with `showModal()` in an
-  effect and closes it only when `isOpen` turns false, with no effect cleanup, so a
-  dialog open at the moment of a navigation (a chip or the breadcrumb in the modal
-  peek, Power K, a link clicked from code, a redirect) stayed in the top layer
-  without a box and made the next page inert. `HiddenDialogGuard`
-  (`src/components/shell/HiddenDialogGuard.tsx`, mounted by `TesseraShell` in its
-  own Suspense boundary) runs `closeHiddenDialogs`
-  (`src/components/shell/hidden-dialogs.ts`) after every URL change: it closes each
-  open `<dialog>` that has no box. React state is untouched, so Back shows the route
-  again and the Dialog's effect reopens it (`showModal()`), the modal peek included.
-  Upstream candidate: an effect cleanup in the Astryx Dialog that closes the element.
+  effect with no cleanup, so a dialog open at the moment of a navigation (a chip or
+  the breadcrumb in the modal peek, Power K, a link clicked from code, a redirect)
+  stayed in the top layer without a box and made the next page inert. Dialogs
+  come from `@/components/shell/dialogs` (lint-enforced: `no-restricted-imports` in
+  `eslint.config.mjs` rejects `Dialog` and `AlertDialog` from the Astryx entry
+  points; `DialogHeader` is re-exported there). The wrapper reaches the element
+  through Astryx's public `ref` and closes it in a `useLayoutEffect` cleanup, which
+  React runs when Activity hides the route (Next, "Effect and media cleanup" in
+  `01-app/02-guides/preserving-ui-state.md`). React state is untouched, so Back
+  shows the route again and Astryx's effect reopens the dialog (`showModal()`), the
+  modal peek included. Known limits: focus after Back goes to `<body>`; the
+  BottomSheet presentation Astryx uses on touch screens is not covered. Tests:
+  `tests/ui/dialog-teardown.test.ts` (with a raw-Astryx baseline) and the PeekHost
+  case in `tests/ui/detail-smoke.test.ts`.
 - Burndown and burnup: the "Today" label sits right of its marker in the first half
   of the cycle and left of it from the middle on (`burndown.todayLabelPosition`), so
   it is no longer clipped by the y-axis when today is the first day.

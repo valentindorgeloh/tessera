@@ -7,9 +7,8 @@
  * name and description; closing with unsaved text asks first.
  */
 import { useEffect, useRef, useState, useTransition, type RefObject } from "react";
-import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { AlertDialog, Dialog, DialogHeader } from "@/components/shell/dialogs";
 import { Button } from "@astryxdesign/core/Button";
-import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { FieldStatus } from "@astryxdesign/core/FieldStatus";
 import { FormLayout } from "@astryxdesign/core/FormLayout";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";

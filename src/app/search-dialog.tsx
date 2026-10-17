@@ -3,7 +3,7 @@
 import {useMemo, useState} from "react";
 import {useRouter} from "next/navigation";
 import {Card} from "@astryxdesign/core/Card";
-import {Dialog} from "@astryxdesign/core/Dialog";
+import {Dialog} from "@/components/shell/dialogs";
 import {Divider} from "@astryxdesign/core/Divider";
 import {DropdownMenu, type DropdownMenuOption} from "@astryxdesign/core/DropdownMenu";
 import {EmptyState} from "@astryxdesign/core/EmptyState";
