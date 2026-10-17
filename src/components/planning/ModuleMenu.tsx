@@ -15,7 +15,7 @@ import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import type { ButtonSize } from "@astryxdesign/core/Button";
 import { useToast } from "@astryxdesign/core/Toast";
 import { archiveModuleAction, deleteModuleAction, unarchiveModuleAction } from "@/app/actions/modules";
-import { forgetTabsUnder } from "@/components/shell/TabBar";
+import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import { ArchiveIcon, PencilIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { ModuleDialog, type EditableModule } from "./ModuleDialog";
 import { DELETE_MODULE_DESCRIPTION, deleteModuleTitle, moduleActions, type ModuleActionId } from "./module-format";
@@ -78,7 +78,7 @@ export function ModuleMenu({ projectId, module, size = "sm", onDeleted }: Module
       }
       setDeleteOpen(false);
       toast({ type: "info", body: `Deleted ${module.name}` });
-      forgetTabsUnder(`/projects/${projectId}/modules/${module.id}`);
+      forgetRecentsUnder(`/projects/${projectId}/modules/${module.id}`);
       onDeleted?.();
     });
   };

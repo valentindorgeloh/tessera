@@ -10,7 +10,7 @@
  * two ids are left to it here, and Escape belongs to PeekHost. Nothing fires
  * from a typing surface (input, textarea, select, the contenteditable editor)
  * or from inside an open picker, menu or the delete confirmation
- * (`isQuietTarget`, a superset of the TabBar's `isTypingTarget`).
+ * (`isQuietTarget`, a superset of `isTypingTarget`).
  *
  * Also holds the single-key preference (`tessera.shortcuts.v1`,
  * `{ "singleKeys": boolean }`) that the help dialog's switch writes, the
@@ -19,8 +19,8 @@
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provider";
 import { useCommandContext, type CommandContextValue } from "./command-context";
+import { projectIdFromPath } from "./recents";
 import { isQuietTarget, resolveShortcut, SHORTCUT_BY_ID, type ChordState, type ShortcutId } from "./shortcuts";
-import { projectIdFromPath } from "./tab-registry";
 
 // ---------------------------------------------------------------------------
 // Preferences store (localStorage), read after mount so server and client

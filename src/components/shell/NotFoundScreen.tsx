@@ -5,6 +5,7 @@ import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/Stack";
 import { CompassIcon } from "@/themes/catppuccin/icons";
+import { useMissingRoute } from "./recents-store";
 
 /**
  * The Tessera "page not found" screen, shared by the root and route group
@@ -12,8 +13,10 @@ import { CompassIcon } from "@/themes/catppuccin/icons";
  * itself is unknown, centred in whatever area hosts it. A client component
  * because the Phosphor glyphs in src/themes/catppuccin/icons.tsx create a React
  * context at module load, which React Server Components cannot evaluate.
+ * The address leaves the recents (`useMissingRoute`).
  */
 export function NotFoundScreen() {
+  useMissingRoute();
   return (
     <VStack padding={8} minHeight="100%" hAlign="center" vAlign="center">
       <EmptyState

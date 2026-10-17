@@ -4,7 +4,8 @@
  * Module detail (docs/contracts/ui.md "Modules (E2)"): the cycle detail's
  * layout with `ModuleHeader` and `ModuleSidePanel`. The module's work items
  * arrive as `children` (E4's `ScopedWorkItems`, a Server Component passed into
- * this Client Component) and fill the content slot; the side panel sits in the
+ * this Client Component, with its own panel header and scroller) and fill the
+ * content slot; the side panel sits in the
  * `end` slot while it is open (`panel-prefs`, shared with cycles) and steps
  * aside while the peek shows an item, whose own panel takes that place (the
  * header's toggle is disabled meanwhile).
@@ -123,7 +124,8 @@ export function ModuleDetailScreen({ projectId, data, children }: ModuleDetailSc
         />
       }
       content={
-        <LayoutContent padding={0} isScrollable label="Work items">
+        // Named after the module: the list inside brings its own "Work items" panel header.
+        <LayoutContent padding={0} isScrollable label={`${view.name} work items`}>
           {children}
         </LayoutContent>
       }

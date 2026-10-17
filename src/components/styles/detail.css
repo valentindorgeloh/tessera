@@ -19,24 +19,38 @@
   min-width: 0;
 }
 
-/* Full page: capped reading column like the list screens. */
-.tessera-detail--page {
-  max-width: 1200px;
-  margin-inline: auto;
+/*
+ * Peek side mode: an inset card in the end panel, 4px inside the 16px content
+ * panel so the corners stay concentric. The card scrolls; the detail header
+ * pins at its top.
+ */
+.tessera-peek-card {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
 }
 
+/*
+ * The side panel never outgrows the content panel: on a phone its stored
+ * width (360–720px) is wider than the screen, and the header's More, Open as
+ * and Close buttons went off the edge. Capped, it covers the list instead.
+ */
+.tessera-peek-panel {
+  max-width: 100%;
+}
+
+/* Header: the 44px panel bar, pinned at the top of whatever scrolls the detail (peek card, modal, project frame). */
 .tessera-detail-header {
-  min-width: 0;
-  padding-inline: var(--spacing-4);
-  padding-block: var(--spacing-2);
-  border-block-end: var(--border-width) solid var(--color-border);
-  background: var(--color-background-surface);
-}
-
-.tessera-detail--peek .tessera-detail-header {
   position: sticky;
   top: 0;
   z-index: 1;
+  background: var(--color-background-surface);
+  border-block-end: var(--border-width) solid var(--color-border);
+}
+
+/* Focus scrolled into view stays clear of the pinned header, whichever host scrolls the detail. */
+.tessera-detail-body * {
+  scroll-margin-block-start: calc(var(--size-element-md) + var(--spacing-4));
 }
 
 .tessera-detail-crumbs {
@@ -44,14 +58,12 @@
   flex: 1;
 }
 
-.tessera-detail-mode-active {
-  background: var(--color-overlay-hover);
-}
-
 /*
- * Body: three grid areas. One column (title, properties, main) in the peek and
- * below 960px; page and modal hosts from 960px put the properties in a right
- * column next to the title and the main column.
+ * Body: three grid areas. One column (title, properties, main) in the peek,
+ * the modal and below 960px, the properties between hairlines under the
+ * title. The full page from 960px puts the properties in a 320–384px column
+ * behind a hairline that runs the body's full height; the reading column
+ * keeps a 960px measure.
  */
 .tessera-detail-body {
   display: grid;
@@ -60,42 +72,53 @@
     "title"
     "rail"
     "main";
-  column-gap: var(--spacing-8);
-  row-gap: var(--spacing-5);
-  padding: var(--spacing-5) var(--spacing-4) var(--spacing-10);
   min-width: 0;
 }
 
 .tessera-detail-heading {
   grid-area: title;
   min-width: 0;
+  padding: var(--spacing-5) var(--spacing-4) 0;
 }
 
 .tessera-detail-rail {
   grid-area: rail;
   min-width: 0;
+  margin-inline: var(--spacing-4);
+  padding-block: var(--spacing-4);
+  border-block-end: var(--border-width) solid var(--color-border);
 }
 
 .tessera-detail-main {
   grid-area: main;
   min-width: 0;
+  padding: var(--spacing-5) var(--spacing-4) var(--spacing-10);
 }
 
 @container detail (min-width: 960px) {
-  .tessera-detail--page .tessera-detail-body,
-  .tessera-detail--modal .tessera-detail-body {
-    grid-template-columns: minmax(0, 1fr) 360px;
+  .tessera-detail--page .tessera-detail-body {
+    grid-template-columns: minmax(0, 1fr) clamp(320px, 32%, 384px);
     grid-template-rows: auto 1fr;
     grid-template-areas:
       "title rail"
       "main rail";
-    padding-inline: var(--spacing-6);
   }
 
-  .tessera-detail--page .tessera-detail-rail,
-  .tessera-detail--modal .tessera-detail-rail {
-    align-self: start;
-    padding-inline-start: var(--spacing-5);
+  .tessera-detail--page .tessera-detail-heading,
+  .tessera-detail--page .tessera-detail-main {
+    max-width: calc(960px + 2 * var(--spacing-8));
+    padding-inline: var(--spacing-8);
+  }
+
+  .tessera-detail--page .tessera-detail-heading {
+    padding-block-start: var(--spacing-6);
+  }
+
+  .tessera-detail--page .tessera-detail-rail {
+    align-self: stretch;
+    margin-inline: 0;
+    padding: var(--spacing-5) var(--spacing-4);
+    border-block-end: none;
     border-inline-start: var(--border-width) solid var(--color-border);
   }
 }
@@ -105,7 +128,10 @@
   min-width: 0;
 }
 
+/* One size on every host (the page's h1 and the peek's h2 read alike): the heading-2 tokens, like the input below. */
 .tessera-detail-title {
+  font-size: var(--text-heading-2-size);
+  line-height: var(--text-heading-2-leading);
   flex: 1;
   min-width: 0;
   cursor: text;
@@ -186,10 +212,35 @@
   min-width: 0;
 }
 
-/* Activity: one row per entry, the timestamp hugs the end. */
+/*
+ * Activity timeline: a 28px tile per entry on a hairline that joins the tile
+ * centres; the tiles sit on the surface colour, so the line stops at them.
+ */
+.tessera-detail-timeline {
+  position: relative;
+}
+
+.tessera-detail-timeline::before {
+  content: "";
+  position: absolute;
+  inset-block: calc(var(--size-element-sm) / 2);
+  inset-inline-start: calc(var(--size-element-sm) / 2);
+  border-inline-start: var(--border-width) solid var(--color-border);
+}
+
 .tessera-detail-activity-row {
+  position: relative;
   min-width: 0;
   padding-block: var(--spacing-1);
+}
+
+.tessera-detail-activity-tile {
+  flex-shrink: 0;
+  width: var(--size-element-sm);
+  height: var(--size-element-sm);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-element);
+  background: var(--color-background-surface);
 }
 
 .tessera-detail-activity-text {

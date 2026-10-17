@@ -1,5 +1,5 @@
 /*
- * Tessera P3 planning styles (lane E1): cycles list, active cycle summary, cycle detail header and side panel, progress panel, breakdowns, chart frame and data table.
+ * Tessera P3 planning styles (lane E1): cycles list, active cycle summary, cycle and module detail headers and side panel, progress panel, breakdowns, chart frame and data table.
  * Classes are prefixed tessera-planning-. Tokens only; corners follow the
  * Theme section of docs/contracts/ui.md.
  */
@@ -12,6 +12,30 @@
 .tessera-planning-cycle-bar {
   inline-size: 96px;
   flex: none;
+}
+
+/*
+ * Cycle and module detail headers: one wrapping sub-header row (PanelBar
+ * canWrap). Its start (name, status, dates) wraps too, so on a phone the
+ * dates drop under the name instead of overflowing; the name truncates.
+ */
+.tessera-planning-detail-bar > .tessera-panel-bar-start {
+  flex-wrap: wrap;
+  row-gap: var(--spacing-1);
+}
+
+.tessera-planning-detail-title {
+  min-width: 0;
+}
+
+/* The cycle and module side panels (360px) never outgrow the content panel: on a phone they covered it 3px too wide. */
+.tessera-planning-side-panel {
+  max-width: 100%;
+}
+
+/* When the actions drop under the name, they keep to the row's end edge, as on one line. */
+.tessera-planning-detail-bar > .tessera-panel-bar-end {
+  margin-inline-start: auto;
 }
 
 /* Breakdown rows (BreakdownTabs): a 64px completed bar next to its "2/5". */

@@ -1,14 +1,18 @@
 "use client";
 
 /**
- * Cycles of a project (docs/contracts/ui.md "Cycles (E1)"): a header with
- * "New cycle", the current cycle's summary card, then one list per non-empty
- * section (Current, Upcoming, Completed, Draft) in engine order. `?create=1`
- * (what `n c` pushes) opens the create dialog once and is dropped from the URL
- * so a reload does not reopen it.
+ * Cycles of a project (docs/contracts/ui.md "Cycles (E1)", "Shell" › "Panel
+ * headers"): a full-width panel page whose sub-header holds the "Cycles"
+ * heading with its count and "New cycle" (the project frame above holds the
+ * `h1` and the tabs, so there is no second title row). Under it scroll the
+ * current cycle's summary card and one list per non-empty section (Current,
+ * Upcoming, Completed, Draft) in engine order, their text on the panel
+ * header's 16px inset. `?create=1` (what `n c` pushes) opens the create
+ * dialog once and is dropped from the URL so a reload does not reopen it.
  */
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -16,6 +20,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { List } from "@astryxdesign/core/List";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
+import { PanelBar, PanelHeader, PanelPage } from "@/components/shell/PanelHeader";
 import type { Cycle } from "@/lib/tessera/types";
 import { CycleIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { ActiveCycleSummary } from "./ActiveCycleSummary";
@@ -61,41 +66,66 @@ export function CyclesScreen({ projectId, cycles, active, today, createOnOpen }:
   const sections = groupCycles(cycles);
   const newButton = <Button variant="primary" size="sm" label="New cycle" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />;
 
+  // A row's text sits 8px inside the row (Astryx's item inset), so the content column is inset 8px and the
+  // card and the section labels another 8px: everything lines up with the panel header's 16px.
   // The extra end padding lets the last row's menu scroll clear of the bottom-end toasts and the dev indicator.
   return (
-    <VStack gap={5} paddingInline={5} paddingBlockStart={5} paddingBlockEnd={10} className="tessera-planning-screen">
-      <HStack gap={3} vAlign="center" hAlign="between">
-        <Heading level={2}>Cycles</Heading>
-        {newButton}
-      </HStack>
-      {cycles.length === 0 ? (
-        <EmptyState
-          icon={<Icon icon={CycleIcon} size="lg" color="secondary" />}
-          title="No cycles yet"
-          description="A cycle is a dated window of work. Create one and add work items to it."
-          actions={newButton}
-        />
-      ) : (
-        <>
-          {active ? <ActiveCycleSummary projectId={projectId} data={active} /> : null}
-          {sections.map((section) => (
-            <List
-              key={section.key}
-              hasDividers
-              header={
-                <Text type="label" color="secondary">
-                  {section.label}
-                </Text>
+    <>
+      <PanelPage
+        header={
+          <PanelHeader label="Cycles">
+            <PanelBar
+              size="subheader"
+              start={
+                <>
+                  <Heading level={4} accessibilityLevel={2} maxLines={1}>
+                    Cycles
+                  </Heading>
+                  <Badge variant="purple" label={String(cycles.length)} />
+                </>
               }
-            >
-              {section.cycles.map((cycle) => (
-                <CycleRow key={cycle.id} projectId={projectId} cycle={cycle} today={today} />
+              end={newButton}
+            />
+          </PanelHeader>
+        }
+      >
+        <VStack gap={5} paddingInline={2} paddingBlockStart={4} paddingBlockEnd={10} className="tessera-planning-screen">
+          {cycles.length === 0 ? (
+            <EmptyState
+              icon={<Icon icon={CycleIcon} size="lg" color="secondary" />}
+              title="No cycles yet"
+              description="A cycle is a dated window of work. Create one and add work items to it."
+              actions={newButton}
+            />
+          ) : (
+            <>
+              {active ? (
+                <VStack paddingInline={2}>
+                  <ActiveCycleSummary projectId={projectId} data={active} />
+                </VStack>
+              ) : null}
+              {sections.map((section) => (
+                <List
+                  key={section.key}
+                  hasDividers
+                  header={
+                    <HStack paddingInline={2}>
+                      <Text type="label" color="secondary">
+                        {section.label}
+                      </Text>
+                    </HStack>
+                  }
+                >
+                  {section.cycles.map((cycle) => (
+                    <CycleRow key={cycle.id} projectId={projectId} cycle={cycle} today={today} />
+                  ))}
+                </List>
               ))}
-            </List>
-          ))}
-        </>
-      )}
+            </>
+          )}
+        </VStack>
+      </PanelPage>
       <CycleDialog projectId={projectId} isOpen={isCreateOpen} onOpenChange={setCreateOpen} />
-    </VStack>
+    </>
   );
 }

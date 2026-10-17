@@ -3,9 +3,10 @@
 /**
  * Archived projects at `/projects/archives` (docs/contracts/ui.md "Archives
  * (E3)"). The route sits next to `[projectId]`, outside the project layout,
- * so nothing here reads `useProject()`: the projects arrive as props. Rows
- * link to the project (its frame shows the archived Banner) and carry Restore
- * and a menu with Delete project…. `ArchivedProjectsLink` is the "Archived
+ * so nothing here reads `useProject()`: the projects arrive as props. The
+ * page's panel header holds the title, so this is the list alone. Rows link
+ * to the project (its frame shows the archived Banner) and carry Restore and
+ * a menu with Delete project…. `ArchivedProjectsLink` is the "Archived
  * projects" link on `/projects`.
  */
 import { useState } from "react";
@@ -16,7 +17,6 @@ import { Link } from "@astryxdesign/core/Link";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
-import { Heading } from "@astryxdesign/core/Text";
 import { RelativeTime } from "@/components/detail/RelativeTime";
 import { ProjectToken } from "@/components/work-items/ProjectFrame";
 import type { Project } from "@/lib/tessera/types";
@@ -38,7 +38,6 @@ export function ArchivedProjects({ projects }: ArchivedProjectsProps) {
 
   return (
     <VStack gap={5} className="tessera-archives-projects">
-      <Heading level={1}>Archived projects</Heading>
       {projects.length === 0 ? (
         <EmptyState
           icon={<ArchiveIcon />}

@@ -4,10 +4,20 @@
  * Theme section of docs/contracts/ui.md.
  */
 
-/* Archives › tabs: aligned with the list's rows under the frame's own tab strip. */
+/*
+ * Archives › tabs in the archives' panel sub-header: like the project tabs in
+ * the frame's header row, they dock on the header's bottom hairline (the start
+ * group fills the row's height, the tab strip sits at its bottom edge).
+ */
+.tessera-panel-bar-start:has(> .tessera-archives-tabs) {
+  align-self: stretch;
+}
+
 .tessera-archives-tabs {
-  padding-inline: var(--spacing-5);
-  padding-block-start: var(--spacing-2);
+  align-self: flex-end;
+  min-width: 0;
+  /* The first tab's text lines up with the panel's 16px inset, like the titles above and below it (a tab brings its own 12px). */
+  margin-inline-start: calc(-1 * var(--spacing-3));
 }
 
 /* Archived projects (`/projects/archives`): the page column of `/projects`. */

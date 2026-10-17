@@ -5,7 +5,7 @@
  * width and whether the item opens as a side panel or a modal. They live in
  * localStorage under `tessera.peek.v1` as `{ width, mode }` and are read
  * after mount through `useSyncExternalStore`, the same pattern as the
- * TabBar's store: the server snapshot is the default, so the first client
+ * recents store: the server snapshot is the default, so the first client
  * render matches the server markup and the stored values apply in an effect.
  */
 import { useSyncExternalStore } from "react";

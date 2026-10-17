@@ -5,8 +5,8 @@
  * types the project identifier before the destructive button enables
  * (`confirmsDelete`: trimmed, any case). Deletes through
  * `deleteProjectAction` and lands on `/projects`; a failure shows inline and
- * the dialog stays open. A successful delete also closes the project's tabs
- * and forgets it as the last visited project, which the off-project
+ * the dialog stays open. A successful delete also drops the project's
+ * recents and forgets it as the last visited project, which the off-project
  * shortcuts (`g c`, `n m`, …) would otherwise still open. Rendered by `ProjectMenu` (project frame) and by
  * `ArchivedProjects` (`/projects/archives`), so it takes the project as a prop
  * and never reads `useProject()`.
@@ -22,7 +22,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
 import { deleteProjectAction } from "@/app/actions/projects";
-import { forgetTabsUnder } from "@/components/shell/TabBar";
+import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import { forgetLastProject } from "@/components/shell/useShortcuts";
 import type { Project } from "@/lib/tessera/types";
 import { confirmsDelete } from "./archive-rules";
@@ -62,7 +62,7 @@ function DeleteProjectForm({ project, onOpenChange }: Pick<DeleteProjectDialogPr
       }
       toast({ type: "info", body: `Deleted ${project.name}` });
       onOpenChange(false);
-      forgetTabsUnder(`/projects/${project.id}`);
+      forgetRecentsUnder(`/projects/${project.id}`);
       forgetLastProject(project.id);
       router.push("/projects");
     });

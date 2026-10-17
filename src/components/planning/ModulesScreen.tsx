@@ -1,21 +1,25 @@
 "use client";
 
 /**
- * Modules list of a project (docs/contracts/ui.md "Modules (E2)"): a header
- * with "Modules" (the frame holds the `h1`) and "New module", then one `List`
- * of `ModuleRow`s in engine order (`sort_order`, then creation); no modules →
- * `EmptyState` "No modules yet". `?create=1` (Power K `n m`) opens the create
- * dialog once and is then dropped with `router.replace`, as on the work items
- * screen.
+ * Modules list of a project (docs/contracts/ui.md "Modules (E2)", "Shell" ›
+ * "Panel headers"): a full-width panel page whose sub-header holds the
+ * "Modules" heading with its count (the frame holds the `h1`) and "New
+ * module", then one scrolling `List` of `ModuleRow`s in engine order
+ * (`sort_order`, then creation), the rows' text on the header's 16px inset;
+ * no modules → `EmptyState` "No modules yet". `?create=1` (Power K `n m`)
+ * opens the create dialog once and is then dropped with `router.replace`, as
+ * on the work items screen.
  */
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List } from "@astryxdesign/core/List";
-import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { VStack } from "@astryxdesign/core/Stack";
 import { Heading } from "@astryxdesign/core/Text";
+import { PanelBar, PanelHeader, PanelPage } from "@/components/shell/PanelHeader";
 import type { Module } from "@/lib/tessera/types";
 import { ModuleIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { ModuleDialog } from "./ModuleDialog";
@@ -56,29 +60,48 @@ export function ModulesScreen({ projectId, modules, createOnOpen }: ModulesScree
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the flag only; pathname and params are read when it flips
   }, [createOnOpen]);
 
-  // The extra end padding lets the last row's menu scroll clear of the bottom-end toasts and the dev indicator.
+  // A row's text sits 8px inside the row (Astryx's item inset): with the list inset 8px it lines up with the
+  // panel header's 16px. The extra end padding lets the last row's menu scroll clear of the bottom-end toasts
+  // and the dev indicator.
   return (
-    <VStack gap={0} paddingBlockEnd={10} className="tessera-modules-screen">
-      <HStack gap={2} vAlign="center" hAlign="between" paddingInline={5} paddingBlock={3}>
-        <Heading level={2}>Modules</Heading>
-        <Button variant="primary" size="sm" label="New module" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />
-      </HStack>
-      {modules.length === 0 ? (
-        <VStack padding={8} hAlign="center">
-          <EmptyState
-            icon={<Icon icon={ModuleIcon} size="lg" color="secondary" />}
-            title="No modules yet"
-            description="Modules group work items into a deliverable with a lead, members and a target date."
-          />
-        </VStack>
-      ) : (
-        <List hasDividers aria-label="Modules" className="tessera-modules-list">
-          {modules.map((module) => (
-            <ModuleRow key={module.id} projectId={projectId} module={module} />
-          ))}
-        </List>
-      )}
+    <>
+      <PanelPage
+        header={
+          <PanelHeader label="Modules">
+            <PanelBar
+              size="subheader"
+              start={
+                <>
+                  <Heading level={4} accessibilityLevel={2} maxLines={1}>
+                    Modules
+                  </Heading>
+                  <Badge variant="purple" label={String(modules.length)} />
+                </>
+              }
+              end={<Button variant="primary" size="sm" label="New module" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />}
+            />
+          </PanelHeader>
+        }
+      >
+        {modules.length === 0 ? (
+          <VStack padding={8} hAlign="center">
+            <EmptyState
+              icon={<Icon icon={ModuleIcon} size="lg" color="secondary" />}
+              title="No modules yet"
+              description="Modules group work items into a deliverable with a lead, members and a target date."
+            />
+          </VStack>
+        ) : (
+          <VStack gap={0} paddingInline={2} paddingBlockStart={2} paddingBlockEnd={10}>
+            <List hasDividers aria-label="Modules" className="tessera-modules-list">
+              {modules.map((module) => (
+                <ModuleRow key={module.id} projectId={projectId} module={module} />
+              ))}
+            </List>
+          </VStack>
+        )}
+      </PanelPage>
       <ModuleDialog projectId={projectId} isOpen={isCreateOpen} onOpenChange={setCreateOpen} />
-    </VStack>
+    </>
   );
 }

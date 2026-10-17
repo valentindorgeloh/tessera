@@ -192,7 +192,7 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowPr
     );
   }
   return (
-    <HStack gap={1} vAlign="center" className="tessera-wi-props">
+    <HStack gap={1} vAlign="center" hAlign="end" wrap="wrap" className="tessera-wi-props">
       {nodes}
     </HStack>
   );
@@ -205,7 +205,7 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowPr
  */
 function RowTitle({ name }: { name: string }) {
   return (
-    <Text className="tessera-wi-title" maxLines={1}>
+    <Text className="tessera-wi-title" weight="medium" maxLines={1}>
       {name}
     </Text>
   );

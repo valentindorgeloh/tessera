@@ -1,5 +1,5 @@
 /**
- * Tab-label store of the detail hosts (src/components/shell/entity-labels.ts):
+ * Entity-label store of the detail hosts, read by the recents lists (src/components/shell/entity-labels.ts):
  * the bounded, newest-last map behind `registerEntityLabel`, its stored form
  * in localStorage `tessera.entityLabels.v1`, and the store merging stored
  * labels under the ones registered on this page.

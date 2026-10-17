@@ -21,6 +21,7 @@ import { deleteWorkItemAction, unarchiveWorkItemAction } from "@/app/actions/wor
 import { notePeekPush } from "@/components/detail/peek-history";
 import { currentHref, peekHref, peekIdOf } from "@/components/detail/peek-url";
 import { RelativeTime } from "@/components/detail/RelativeTime";
+import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import { stateGroupVariant } from "@/components/work-items/properties";
 import { useProject } from "@/components/work-items/project-provider";
 import type { WorkItem } from "@/lib/tessera/types";
@@ -54,6 +55,9 @@ export function ArchivedWorkItems({ items }: ArchivedWorkItemsProps) {
       }
       setDeleting(null);
       toast({ type: "info", body: `Deleted ${item.key}` });
+      // Like the detail's Delete: both routes of the item leave the recents.
+      forgetRecentsUnder(`/projects/${item.project_id}/work-items/${item.id}`);
+      forgetRecentsUnder(`/work-items/${item.id}`);
       // The peek of a deleted item would only show "not found": close it with the row.
       if (peekIdOf(searchParams) === item.id) router.replace(peekHref(pathname, searchParams, null), { scroll: false });
     });
@@ -61,7 +65,7 @@ export function ArchivedWorkItems({ items }: ArchivedWorkItemsProps) {
 
   if (items.length === 0) {
     return (
-      <VStack paddingInline={5} paddingBlock={6}>
+      <VStack paddingInline={4} paddingBlock={6}>
         <EmptyState
           icon={<ArchiveIcon />}
           title="No archived work items"
@@ -71,9 +75,10 @@ export function ArchivedWorkItems({ items }: ArchivedWorkItemsProps) {
     );
   }
 
-  // The extra end padding lets the last row's menu scroll clear of the bottom-end toasts and the dev indicator.
+  // The list is inset 8px and a row's text 8px more (Astryx's item inset), on the panel header's 16px. The extra end
+  // padding lets the last row's menu scroll clear of the bottom-end toasts and the dev indicator.
   return (
-    <VStack gap={0} paddingInline={3} paddingBlockStart={2} paddingBlockEnd={10} className="tessera-archives-list">
+    <VStack gap={0} paddingInline={2} paddingBlockStart={2} paddingBlockEnd={10} className="tessera-archives-list">
       <List hasDividers aria-label="Archived work items">
         {items.map((item) => (
           <ArchivedWorkItemRow key={item.id} item={item} onOpen={open} onDelete={setDeleting} />

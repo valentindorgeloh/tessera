@@ -2,30 +2,48 @@
 
 /**
  * Property rail (docs/contracts/ui.md "PropertyRail"): the P2a property
- * controls in an Astryx MetadataList, each inside a `data-property` wrapper
- * so the shortcut dispatcher can open it. Writes follow the QuickDetail
- * pattern through `useDetailActions` (action, Toast on `{ ok: false }`, the
- * host's `refresh()` brings the new data); values render from its optimistic
- * view, and unchanged values are dropped before any call (Selector and
- * DateInput re-fire them).
+ * controls in Astryx MetadataLists, each inside a `data-property` wrapper so
+ * the shortcut dispatcher can open it. Writes follow the QuickDetail pattern
+ * through `useDetailActions` (action, Toast on `{ ok: false }`, the host's
+ * `refresh()` brings the new data); values render from its optimistic view,
+ * and unchanged values are dropped before any call (Selector and DateInput
+ * re-fire them).
  *
- * One labelled column everywhere (the DateInput is about 220px wide, which
- * two columns in a 480px peek cannot hold); `compact` (the peek) only narrows
- * the label column. The controls keep their full form because the rail has
- * its own labels, which keeps the priority name and "No cycle" readable.
- * Dates use a DateInput with its label hidden, since the rail already shows
- * one (the P2a detail showed both).
+ * Four groups split by hairlines: status (state, priority, labels), people
+ * (assignees, subscription), planning (cycle, modules, parent, estimate) and
+ * dates (start, target, created, updated). One labelled column everywhere,
+ * the label an icon and muted text in a 120px column (104px in the peek,
+ * `compact`); the DateInput is about 220px wide, which two columns in a
+ * 480px peek cannot hold. Dates use a DateInput with its label hidden, since
+ * the rail already shows one.
  */
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { DateInput } from "@astryxdesign/core/DateInput";
+import { Divider } from "@astryxdesign/core/Divider";
+import { Icon } from "@astryxdesign/core/Icon";
 import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";
 import { Selector } from "@astryxdesign/core/Selector";
-import { HStack } from "@astryxdesign/core/Stack";
+import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { useProject } from "@/components/work-items/project-provider";
 import { AssigneeControl, CycleControl, LabelControl, ModuleControl, PriorityControl, StateControl } from "@/components/work-items/properties";
 import type { WorkItem, WorkItemDetail } from "@/lib/tessera/types";
-import { BellIcon, BellSlashIcon } from "@/themes/catppuccin/icons";
+import {
+  BellIcon,
+  BellSlashIcon,
+  CalendarIcon,
+  ClockIcon,
+  CycleIcon,
+  EstimateIcon,
+  ModuleIcon,
+  ParentIcon,
+  PriorityMediumIcon,
+  RecentIcon,
+  StateIcon,
+  TagIcon,
+  TargetIcon,
+  UsersIcon,
+} from "@/themes/catppuccin/icons";
 import { ParentPicker } from "./ParentPicker";
 import { storedIsoDate } from "./patch";
 import { RelativeTime } from "./RelativeTime";
@@ -90,109 +108,155 @@ function DateProperty({ label, placeholder, value, min, max, readOnly, onChange 
 
 export type PropertyRailFieldsProps = Omit<PropertyRailProps, "item" | "currentActorId"> & { actions: DetailActions };
 
+/** A rail label's icon: small and muted like the label text. */
+function labelIcon(icon: typeof StateIcon) {
+  return <Icon icon={icon} size="sm" color="secondary" />;
+}
+
 /** The rail drawn from a shared `useDetailActions` result (WorkItemDetail passes the one its title and shortcuts use). */
 export function PropertyRailFields({ actions, compact = false, parent = null, subItems = [] }: PropertyRailFieldsProps) {
   const { bundle } = useProject();
   const item = actions.view;
   const readOnly = item.archived_at !== null;
+  const label = { position: "start" as const, width: compact ? 104 : 120 };
+
+  const groups: { id: string; items: ReactNode }[] = [
+    {
+      id: "status",
+      items: (
+        <>
+          <MetadataListItem label="State" icon={labelIcon(StateIcon)}>
+            <Property name="state">
+              <StateControl readOnly={readOnly} value={item.state_id} onChange={(state_id) => actions.update({ state_id })} />
+            </Property>
+          </MetadataListItem>
+          <MetadataListItem label="Priority" icon={labelIcon(PriorityMediumIcon)}>
+            <Property name="priority">
+              <PriorityControl readOnly={readOnly} value={item.priority} onChange={(priority) => actions.update({ priority })} />
+            </Property>
+          </MetadataListItem>
+          <MetadataListItem label="Labels" icon={labelIcon(TagIcon)}>
+            <Property name="labels">
+              <LabelControl readOnly={readOnly} value={item.label_ids} onChange={actions.setLabels} />
+            </Property>
+          </MetadataListItem>
+        </>
+      ),
+    },
+    {
+      id: "people",
+      items: (
+        <>
+          <MetadataListItem label="Assignees" icon={labelIcon(UsersIcon)}>
+            <Property name="assignees">
+              <AssigneeControl readOnly={readOnly} value={item.assignee_ids} onChange={actions.setAssignees} />
+            </Property>
+          </MetadataListItem>
+          <MetadataListItem label="Subscription" icon={labelIcon(BellIcon)}>
+            <Property name="subscription">
+              <Button
+                variant="ghost"
+                size="md"
+                icon={actions.isSubscribed ? <BellSlashIcon /> : <BellIcon />}
+                label={actions.isSubscribed ? "Unsubscribe" : "Subscribe"}
+                tooltip={actions.isSubscribed ? "Stop following this work item" : "Follow this work item (notifications arrive in P7)"}
+                isDisabled={readOnly}
+                onClick={() => void actions.toggleSubscribe()}
+              />
+            </Property>
+          </MetadataListItem>
+        </>
+      ),
+    },
+    {
+      id: "planning",
+      items: (
+        <>
+          {bundle.project.cycles_enabled ? (
+            <MetadataListItem label="Cycle" icon={labelIcon(CycleIcon)}>
+              <Property name="cycle">
+                <CycleControl readOnly={readOnly} value={item.cycle_id} onChange={(cycle_id) => actions.update({ cycle_id })} />
+              </Property>
+            </MetadataListItem>
+          ) : null}
+          {bundle.project.modules_enabled ? (
+            <MetadataListItem label="Modules" icon={labelIcon(ModuleIcon)}>
+              <Property name="modules">
+                <ModuleControl readOnly={readOnly} value={item.module_ids} onChange={actions.setModules} />
+              </Property>
+            </MetadataListItem>
+          ) : null}
+          <MetadataListItem label="Parent" icon={labelIcon(ParentIcon)}>
+            <Property name="parent">
+              <ParentPicker
+                value={item.parent_id}
+                parent={parent}
+                projectId={item.project_id}
+                excludeId={item.id}
+                excludeIds={subItems.map((child) => child.id)}
+                readOnly={readOnly}
+                onChange={(parent_id) => actions.update({ parent_id })}
+              />
+            </Property>
+          </MetadataListItem>
+          <MetadataListItem label="Estimate" icon={labelIcon(EstimateIcon)}>
+            <Property name="estimate">
+              <Selector label="Estimate" isLabelHidden variant="ghost" size="md" options={[]} value={undefined} placeholder="No estimate" isDisabled disabledMessage="Arrives in P8" />
+            </Property>
+          </MetadataListItem>
+        </>
+      ),
+    },
+    {
+      id: "dates",
+      items: (
+        <>
+          <MetadataListItem label="Start date" icon={labelIcon(CalendarIcon)}>
+            <Property name="start_date">
+              <DateProperty
+                label="Start date"
+                placeholder="No start date"
+                readOnly={readOnly}
+                value={item.start_date}
+                max={item.target_date}
+                onChange={(start_date) => actions.update({ start_date })}
+              />
+            </Property>
+          </MetadataListItem>
+          <MetadataListItem label="Target date" icon={labelIcon(TargetIcon)}>
+            <Property name="target_date">
+              <DateProperty
+                label="Target date"
+                placeholder="No target date"
+                readOnly={readOnly}
+                value={item.target_date}
+                min={item.start_date}
+                onChange={(target_date) => actions.update({ target_date })}
+              />
+            </Property>
+          </MetadataListItem>
+          <MetadataListItem label="Created" icon={labelIcon(ClockIcon)}>
+            <RelativeTime value={item.created_at} type="body" color="primary" />
+          </MetadataListItem>
+          <MetadataListItem label="Updated" icon={labelIcon(RecentIcon)}>
+            <RelativeTime value={item.updated_at} type="body" color="primary" />
+          </MetadataListItem>
+        </>
+      ),
+    },
+  ];
+
   return (
-    <MetadataList columns="single" label={{ position: "start", width: compact ? 88 : 96 }} className="tessera-detail-props">
-      <MetadataListItem label="State">
-        <Property name="state">
-          <StateControl readOnly={readOnly} value={item.state_id} onChange={(state_id) => actions.update({ state_id })} />
-        </Property>
-      </MetadataListItem>
-      <MetadataListItem label="Priority">
-        <Property name="priority">
-          <PriorityControl readOnly={readOnly} value={item.priority} onChange={(priority) => actions.update({ priority })} />
-        </Property>
-      </MetadataListItem>
-      <MetadataListItem label="Assignees">
-        <Property name="assignees">
-          <AssigneeControl readOnly={readOnly} value={item.assignee_ids} onChange={actions.setAssignees} />
-        </Property>
-      </MetadataListItem>
-      <MetadataListItem label="Labels">
-        <Property name="labels">
-          <LabelControl readOnly={readOnly} value={item.label_ids} onChange={actions.setLabels} />
-        </Property>
-      </MetadataListItem>
-      {bundle.project.cycles_enabled ? (
-        <MetadataListItem label="Cycle">
-          <Property name="cycle">
-            <CycleControl readOnly={readOnly} value={item.cycle_id} onChange={(cycle_id) => actions.update({ cycle_id })} />
-          </Property>
-        </MetadataListItem>
-      ) : null}
-      {bundle.project.modules_enabled ? (
-        <MetadataListItem label="Modules">
-          <Property name="modules">
-            <ModuleControl readOnly={readOnly} value={item.module_ids} onChange={actions.setModules} />
-          </Property>
-        </MetadataListItem>
-      ) : null}
-      <MetadataListItem label="Start date">
-        <Property name="start_date">
-          <DateProperty
-            label="Start date"
-            placeholder="No start date"
-            readOnly={readOnly}
-            value={item.start_date}
-            max={item.target_date}
-            onChange={(start_date) => actions.update({ start_date })}
-          />
-        </Property>
-      </MetadataListItem>
-      <MetadataListItem label="Target date">
-        <Property name="target_date">
-          <DateProperty
-            label="Target date"
-            placeholder="No target date"
-            readOnly={readOnly}
-            value={item.target_date}
-            min={item.start_date}
-            onChange={(target_date) => actions.update({ target_date })}
-          />
-        </Property>
-      </MetadataListItem>
-      <MetadataListItem label="Parent">
-        <Property name="parent">
-          <ParentPicker
-            value={item.parent_id}
-            parent={parent}
-            projectId={item.project_id}
-            excludeId={item.id}
-            excludeIds={subItems.map((child) => child.id)}
-            readOnly={readOnly}
-            onChange={(parent_id) => actions.update({ parent_id })}
-          />
-        </Property>
-      </MetadataListItem>
-      <MetadataListItem label="Estimate">
-        <Property name="estimate">
-          <Selector label="Estimate" isLabelHidden variant="ghost" size="md" options={[]} value={undefined} placeholder="No estimate" isDisabled disabledMessage="Arrives in P8" />
-        </Property>
-      </MetadataListItem>
-      <MetadataListItem label="Subscription">
-        <Property name="subscription">
-          <Button
-            variant="ghost"
-            size="md"
-            icon={actions.isSubscribed ? <BellSlashIcon /> : <BellIcon />}
-            label={actions.isSubscribed ? "Unsubscribe" : "Subscribe"}
-            tooltip={actions.isSubscribed ? "Stop following this work item" : "Follow this work item (notifications arrive in P7)"}
-            isDisabled={readOnly}
-            onClick={() => void actions.toggleSubscribe()}
-          />
-        </Property>
-      </MetadataListItem>
-      <MetadataListItem label="Created">
-        <RelativeTime value={item.created_at} type="body" color="primary" />
-      </MetadataListItem>
-      <MetadataListItem label="Updated">
-        <RelativeTime value={item.updated_at} type="body" color="primary" />
-      </MetadataListItem>
-    </MetadataList>
+    <VStack gap={3} className="tessera-detail-props">
+      {groups.map((group, index) => (
+        <Fragment key={group.id}>
+          {index > 0 ? <Divider /> : null}
+          <MetadataList columns="single" label={label}>
+            {group.items}
+          </MetadataList>
+        </Fragment>
+      ))}
+    </VStack>
   );
 }
 

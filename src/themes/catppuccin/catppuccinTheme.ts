@@ -40,7 +40,7 @@ export const catppuccinTheme = defineTheme({
     contrast: "standard",
   },
   typography: {
-    scale: {base: 16, ratio: 1.22},
+    scale: {base: 14, ratio: 1.2},
     body: {
       family: "var(--font-body)",
       fallbacks: '"Source Sans 3", "Source Sans Pro", sans-serif',
@@ -105,7 +105,7 @@ export const catppuccinTheme = defineTheme({
       "status:warning": {color: "var(--color-text-yellow)"},
       "status:success": {color: "var(--color-text-green)"},
     },
-    // Balanced corners: only avatars and badges are round, so the SideNav
+    // Balanced corners: only avatars and badges are round, so the top bar
     // logo, the tab strip's scroll arrows and calendar days are rounded squares.
     "nav-icon": {base: {borderRadius: "var(--radius-element)"}},
     "tab-scroll-button": {base: {borderRadius: "var(--radius-element)"}},

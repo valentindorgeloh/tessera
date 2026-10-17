@@ -13,7 +13,7 @@ type Props = { params: Promise<{ workItemId: string }> };
 /**
  * Global work item page (docs/contracts/ui.md "Routes and modes"): the
  * detail outside the project frame, reachable from search, links and the
- * tab bar. It loads its own project bundle, so the property controls work
+ * recents. It loads its own project bundle, so the property controls work
  * exactly as they do under `/projects/[projectId]/...`.
  */
 export default function GlobalWorkItemPage({ params }: Props) {

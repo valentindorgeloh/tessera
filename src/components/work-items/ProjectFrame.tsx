@@ -2,21 +2,26 @@
 
 /**
  * Project frame (docs/contracts/ui.md "Project routes", P3 "Integration (E4)"):
- * header with the project's logo, name and identifier and the project menu,
- * the archived Banner when the project is archived, and the tab strip under
- * it. The tabs follow the feature toggles (./project-tabs.ts); a route of a
- * feature that is turned off selects no tab. Later phases add views, pages
- * and settings there.
+ * the project's panel header, one 52px row with the project's token and name,
+ * a hairline, the project's pages as tabs (the tab under the current route is
+ * selected, its indicator sitting on the header's hairline) and the project
+ * menu at the row's end. The tabs follow the feature toggles
+ * (./project-tabs.ts): Work items, Cycles and Modules when enabled, Archives
+ * always; a route of a feature that is turned off selects no tab. They are the
+ * project's only navigation: the sidebar lists projects, not their pages. An
+ * archived project shows its Banner under the header, outside the scroller.
+ * Later phases add views, pages and settings to the tabs.
  */
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Layout, LayoutContent, LayoutHeader } from "@astryxdesign/core/Layout";
-import { HStack, StackItem, VStack } from "@astryxdesign/core/Stack";
+import { Divider } from "@astryxdesign/core/Divider";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { VStack } from "@astryxdesign/core/Stack";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
-import { Heading } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Token } from "@astryxdesign/core/Token";
 import { ProjectArchivedBanner, ProjectMenu } from "@/components/planning/ProjectArchive";
+import { PanelBar, PanelHeader, PanelTitle } from "@/components/shell/PanelHeader";
 import type { Project } from "@/lib/tessera/types";
 import { ArchiveIcon, CycleIcon, KanbanIcon, ModuleIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { activeProjectTab, projectTabs, type ProjectTabKey } from "./project-tabs";
@@ -30,8 +35,8 @@ const TAB_ICONS: Record<ProjectTabKey, ReactNode> = {
 };
 
 /** The project's identifier as a Token carrying its logo icon and colour. */
-export function ProjectToken({ project, size = "md" }: { project: Pick<Project, "identifier" | "logo">; size?: "sm" | "md" | "lg" }) {
-  return <Token label={project.identifier} icon={<Icon icon={resolveLogoIcon(project.logo?.icon)} />} color={project.logo?.color ?? "gray"} size={size} />;
+export function ProjectToken({ project, size = "md", className }: { project: Pick<Project, "identifier" | "logo">; size?: "sm" | "md" | "lg"; className?: string }) {
+  return <Token label={project.identifier} icon={<Icon icon={resolveLogoIcon(project.logo?.icon)} />} color={project.logo?.color ?? "gray"} size={size} className={className} />;
 }
 
 export function ProjectFrame({ children }: { children: ReactNode }) {
@@ -46,29 +51,31 @@ export function ProjectFrame({ children }: { children: ReactNode }) {
     <Layout
       height="fill"
       header={
-        <LayoutHeader hasDivider padding={0} label={project.name}>
-          <HStack gap={3} vAlign="center" paddingInline={5} paddingBlockStart={4} paddingBlockEnd={2}>
-            <StackItem size="fill">
-              <HStack gap={3} vAlign="center">
-                <ProjectToken project={project} />
-                <Heading level={1} maxLines={1}>
-                  {project.name}
-                </Heading>
-              </HStack>
-            </StackItem>
-            <ProjectMenu project={project} />
-          </HStack>
+        <>
+          <PanelHeader label={project.name}>
+            <PanelBar
+              start={
+                <>
+                  {/* On a narrow panel the token and the name keep their room and the tabs scroll (shell.css). */}
+                  <ProjectToken project={project} size="sm" className="tessera-project-frame-token" />
+                  <PanelTitle className="tessera-project-frame-title">{project.name}</PanelTitle>
+                  <Divider orientation="vertical" className="tessera-panel-bar-divider" />
+                  <TabList value={active?.key ?? ""} onChange={() => {}} size="sm" layout="hug" aria-label={`${project.name} pages`} className="tessera-project-tabs">
+                    {tabs.map((tab) => (
+                      <Tab key={tab.key} value={tab.key} label={tab.label} icon={TAB_ICONS[tab.key]} href={`/projects/${project.id}/${tab.segment}`} />
+                    ))}
+                  </TabList>
+                </>
+              }
+              end={<ProjectMenu project={project} />}
+            />
+          </PanelHeader>
           {project.archived_at !== null ? (
-            <VStack paddingInline={5} paddingBlockEnd={2}>
+            <VStack paddingInline={4} paddingBlock={2}>
               <ProjectArchivedBanner project={project} />
             </VStack>
           ) : null}
-          <TabList value={active?.key ?? ""} onChange={() => {}} size="sm" layout="hug" isFullBleed>
-            {tabs.map((tab) => (
-              <Tab key={tab.key} value={tab.key} label={tab.label} icon={TAB_ICONS[tab.key]} href={`/projects/${project.id}/${tab.segment}`} />
-            ))}
-          </TabList>
-        </LayoutHeader>
+        </>
       }
       content={
         <LayoutContent padding={0} isScrollable label={active?.label ?? project.name}>

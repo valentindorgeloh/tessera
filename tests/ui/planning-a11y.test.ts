@@ -7,7 +7,10 @@
  * - an archive row's relative time is plain text, not a second tab stop
  *   inside the row's link;
  * - the detail headers' panel toggle is disabled with a reason while the peek
- *   holds the panel's place.
+ *   holds the panel's place;
+ * - the screens sit on the panel header building blocks (docs/contracts/ui.md
+ *   "Shell" › "Panel headers"): one sub-header whose title is an h2 with its
+ *   count, no second title row, Banners and dialogs outside the header.
  * The Server Action wrappers and the router are mocked, so no database or Next
  * runtime is involved.
  */
@@ -15,7 +18,7 @@ import { act, createElement, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ProjectBundle } from "@/components/work-items/types";
-import type { ActorRow, Cycle, Link, Project, State } from "@/lib/tessera/types";
+import type { ActorRow, Cycle, Link, Module, ModuleDetail, Project, State } from "@/lib/tessera/types";
 
 const ok = { ok: true as const, data: {}, cursor: 1 };
 const action = () => vi.fn(async () => ok);
@@ -51,6 +54,10 @@ const { ModuleDialog } = await import("@/components/planning/ModuleDialog");
 const { ModuleLinks } = await import("@/components/planning/ModuleLinks");
 const { ArchivedCycles } = await import("@/components/planning/ArchivedCycles");
 const { CycleHeader } = await import("@/components/planning/CycleHeader");
+const { CyclesScreen } = await import("@/components/planning/CyclesScreen");
+const { ModulesScreen } = await import("@/components/planning/ModulesScreen");
+const { ModuleHeader } = await import("@/components/planning/ModuleHeader");
+const { ArchivedProjects } = await import("@/components/planning/ArchivedProjects");
 
 const PROJECT = "11111111-1111-7111-8111-111111111111";
 const USER = "55555555-5555-7555-8555-555555555555";
@@ -325,5 +332,150 @@ describe("cycle header panel toggle", () => {
     const toggle = el.querySelector('button[aria-label="Show progress"]');
     expect(toggle).not.toBeNull();
     expect(toggle?.getAttribute("aria-disabled") === "true" || toggle?.hasAttribute("disabled")).toBe(true);
+  });
+});
+
+const noProgress = { total: 0, completed: 0, cancelled: 0, started: 0, unstarted: 0, backlog: 0 };
+
+function module(overrides: Partial<Module> = {}): Module {
+  return {
+    id: MODULE,
+    project_id: PROJECT,
+    name: "Launch",
+    name_key: "launch",
+    description_md: "",
+    status: "planned",
+    lead_actor_id: null,
+    start_date: null,
+    target_date: null,
+    archived_at: null,
+    sort_order: "a0",
+    ...audit,
+    member_ids: [],
+    links_count: 0,
+    progress: noProgress,
+    ...overrides,
+  };
+}
+
+function moduleDetail(overrides: Partial<Module> = {}): ModuleDetail {
+  return {
+    ...module(overrides),
+    progress: { ...noProgress, by_state: {}, by_label: {}, by_assignee: {}, assignees: [], labels: [] },
+    links: [],
+    work_item_ids: [],
+  };
+}
+
+/**
+ * The panel header (a LayoutHeader labelled after the screen), the text of its
+ * first row's start group and the heading there (an h4 announced at level 2:
+ * `Heading level={4} accessibilityLevel={2}`).
+ */
+function panelHeader(el: HTMLElement, label: string) {
+  const header = el.querySelector(`[aria-label="${label}"]`);
+  expect(header).not.toBeNull();
+  const start = header?.querySelector(".tessera-panel-bar-start") ?? null;
+  return { header, start: start?.textContent ?? null, heading: start?.querySelector('[aria-level="2"]')?.textContent ?? null };
+}
+
+/** Headings announced at a level: hN without an aria-level, or any heading with that aria-level. */
+function headingsAt(el: HTMLElement, level: number): Element[] {
+  return [...el.querySelectorAll("h1, h2, h3, h4, h5, h6")].filter((h) => Number(h.getAttribute("aria-level") ?? h.tagName.slice(1)) === level);
+}
+
+describe("panel headers", () => {
+  it("gives the cycles list one sub-header: the h2 with the count and New cycle, no h1", async () => {
+    const cycles = [cycle({ status: "upcoming", start_date: "2026-11-01", end_date: "2026-11-14" }), cycle({ id: "c2", name: "Sprint 0" })];
+    const el = await render(inProject(createElement(CyclesScreen, { projectId: PROJECT, cycles, active: null, today: "2026-10-11", createOnOpen: false })));
+    const { header, start, heading } = panelHeader(el, "Cycles");
+    expect(start).toBe("Cycles2");
+    expect(heading).toBe("Cycles");
+    expect([...(header?.querySelectorAll("button") ?? [])].map((button) => button.textContent?.trim())).toContain("New cycle");
+    expect(headingsAt(el, 1)).toHaveLength(0);
+    // The section lists carry no heading of their own; the closed dialogs' titles are not in the page.
+    expect(headingsAt(el, 2).filter((h) => h.closest("dialog") === null)).toHaveLength(1);
+  });
+
+  it("gives the modules list the same sub-header, also when it is empty", async () => {
+    const el = await render(inProject(createElement(ModulesScreen, { projectId: PROJECT, modules: [], today: "2026-10-11", createOnOpen: false })));
+    const { start, heading } = panelHeader(el, "Modules");
+    expect(start).toBe("Modules0");
+    expect(heading).toBe("Modules");
+    expect(el.textContent).toContain("No modules yet");
+    expect(headingsAt(el, 1)).toHaveLength(0);
+  });
+
+  it("lists modules under the sub-header with the count", async () => {
+    const el = await render(inProject(createElement(ModulesScreen, { projectId: PROJECT, modules: [module()], today: "2026-10-11", createOnOpen: false })));
+    expect(panelHeader(el, "Modules").start).toBe("Modules1");
+    expect(el.querySelector('ul[aria-label="Modules"]')).not.toBeNull();
+  });
+
+  const cycleHeader = (overrides: Partial<Cycle>) =>
+    inProject(
+      createElement(CycleHeader, {
+        projectId: PROJECT,
+        cycle: cycle(overrides),
+        today: "2026-10-11",
+        isPanelOpen: false,
+        onTogglePanel: noop,
+        isEditOpen: false,
+        onEditOpenChange: noop,
+        onDeleted: noop,
+      }),
+    );
+
+  it("titles the cycle detail with the cycle's h2 and keeps the read-only line under the header", async () => {
+    const el = await render(cycleHeader({ status: "completed", open_count: 1 }));
+    const { header, heading } = panelHeader(el, "Sprint 1");
+    expect(heading).toBe("Sprint 1");
+    expect(header?.querySelector('button[aria-label="Show progress"]')).not.toBeNull();
+    expect(header?.textContent).not.toContain("read-only");
+    expect(el.textContent).toContain("Completed cycles are read-only. Transfer the open items to keep working on them.");
+  });
+
+  it("shows an archived cycle's Banner under the header", async () => {
+    const el = await render(cycleHeader({ archived_at: NOW }));
+    const { header } = panelHeader(el, "Sprint 1");
+    expect(header?.textContent).not.toContain("This cycle is archived");
+    expect(el.textContent).toContain("This cycle is archived");
+    expect(el.textContent).not.toContain("read-only");
+  });
+
+  const moduleHeader = (overrides: Partial<Module>) =>
+    inProject(
+      createElement(ModuleHeader, {
+        projectId: PROJECT,
+        module: moduleDetail(overrides),
+        writer: { update: noop, setMembers: noop },
+        candidates: [],
+        isPanelOpen: true,
+        onTogglePanel: noop,
+      }),
+    );
+
+  it("titles the module detail with the module's h2 and keeps the add dialog out of the header", async () => {
+    const el = await render(moduleHeader({}));
+    const { header, heading } = panelHeader(el, "Launch");
+    expect(heading).toBe("Launch");
+    expect(header?.querySelector('button[aria-label="Hide details"]')).not.toBeNull();
+    const add = el.querySelector('dialog[aria-label="Add work items to Launch"]');
+    expect(add).not.toBeNull();
+    expect(header?.contains(add ?? null)).toBe(false);
+  });
+
+  it("shows an archived module's Banner under the header, without Add existing", async () => {
+    const el = await render(moduleHeader({ status: "completed", archived_at: NOW }));
+    const { header } = panelHeader(el, "Launch");
+    expect(header?.textContent).not.toContain("This module is archived");
+    expect(el.textContent).toContain("This module is archived");
+    expect([...el.querySelectorAll("button")].map((button) => button.textContent?.trim())).not.toContain("Add existing");
+  });
+
+  it("leaves the archived projects title to the page's panel header", async () => {
+    const el = await render(createElement(ArchivedProjects, { projects: [] }));
+    expect(headingsAt(el, 1)).toHaveLength(0);
+    expect(el.textContent).toContain("No archived projects");
   });
 });

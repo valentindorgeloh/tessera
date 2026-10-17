@@ -7,7 +7,7 @@ import { loadWorkItemDetail } from "@/app/(tessera)/work-items/load-detail";
 import { PeekHost, type PeekData } from "@/components/detail/PeekHost";
 import type { ScopeDefaults, SettingsScope, UrlState } from "@/components/work-items/types";
 import { decodeUrlState, mergeDisplay, mergeFilters } from "@/components/work-items/url-state";
-import { WorkItemsScreen } from "@/components/work-items/WorkItemsScreen";
+import { WorkItemsScreen, type WorkItemsScreenProps } from "@/components/work-items/WorkItemsScreen";
 import { DEFAULT_DISPLAY, IdSchema } from "@/lib/tessera/schemas";
 import { getViewSettings, isTrackerError, listWorkItems, readTessera } from "@/lib/tessera/server";
 import type { Display, GroupBy } from "@/lib/tessera/types";
@@ -21,7 +21,9 @@ import type { Display, GroupBy } from "@/lib/tessera/types";
  *
  * The effective display and filters are defaults <- saved view settings of
  * `settingsScope` <- the URL's `q` state. `?peek=<id>` opens that item next to
- * the list through a second, separately guarded read.
+ * the list through a second, separately guarded read. `title` and `count` name
+ * the list's sub-header (default "Work items" and the list's total, also in a
+ * cycle or module, whose own header above names the scope).
  */
 
 export type WorkItemsScope = { type: "project"; project_id: string } | { type: "cycle"; cycle_id: string } | { type: "module"; module_id: string };
@@ -40,7 +42,7 @@ export type ScopedWorkItemsProps = {
   canCreate?: boolean;
   /** Cycle scope ["cycle"], module scope ["module"]: grouping by these fields is dropped. */
   hiddenGroupFields?: readonly GroupBy[];
-};
+} & Pick<WorkItemsScreenProps, "title" | "count">;
 
 /** Page size; the engine caps a list at 5000 rows and P2 adds paging. */
 const LIMIT = 2000;
@@ -77,6 +79,8 @@ export async function ScopedWorkItems({
   scopeDefaults,
   canCreate = true,
   hiddenGroupFields = NO_HIDDEN_FIELDS,
+  title,
+  count,
 }: ScopedWorkItemsProps): Promise<React.JSX.Element> {
   const urlState = decodeUrlState(typeof query.q === "string" ? query.q : undefined);
   const createOnOpen = canCreate && query.create === "1";
@@ -104,6 +108,8 @@ export async function ScopedWorkItems({
         scopeDefaults={scopeDefaults}
         canCreate={canCreate}
         hiddenGroupFields={hiddenGroupFields}
+        title={title}
+        count={count}
       />
     </PeekHost>
   );

@@ -1,23 +1,29 @@
 "use client";
 
-import { Suspense, createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, Suspense, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@astryxdesign/core/AppShell";
+import { Card } from "@astryxdesign/core/Card";
 import { useHotkeys } from "@astryxdesign/core/hooks";
-import { HStack, Layout, LayoutContent, LayoutHeader } from "@astryxdesign/core/Layout";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { ToastViewport } from "@astryxdesign/core/Toast";
 import { CommandBar, type CommandBarHandle } from "./CommandBar";
 import { HiddenDialogGuard } from "./HiddenDialogGuard";
+import { TopBar } from "./TopBar";
 
 export type ShellContextValue = {
   isNavCollapsed: boolean;
   setNavCollapsed: (collapsed: boolean) => void;
-  /** Opens Power K (the sidebar's search item; `mod+k` does the same). */
-  openCommandBar: () => void;
+  /** Opens Power K (the top bar's search field; `mod+k` does the same), optionally with a first query. */
+  openCommandBar: (initialQuery?: string) => void;
+  /** Opens the keyboard shortcuts dialog (the top bar's help button; `mod+/` does the same). */
+  openShortcuts: () => void;
+  /** Opens the Create project dialog (the sidebar's Projects "+"; `n p` does the same). */
+  openCreateProject: () => void;
 };
 
 const ShellContext = createContext<ShellContextValue | null>(null);
 
-/** Shell state shared between the frame and the Sidebar. */
+/** Shell state shared between the frame, the top bar and the sidebar. */
 export function useShell(): ShellContextValue {
   const value = useContext(ShellContext);
   if (!value) throw new Error("useShell must be used inside TesseraShell");
@@ -25,21 +31,18 @@ export function useShell(): ShellContextValue {
 }
 
 /**
- * Tessera frame (docs/contracts/ui.md "Shell"): AppShell with the SideNav in
- * its side slot, the TabBar pinned above the scrolling content, the
- * ToastViewport that `useToast()` in any screen renders into, and the
- * CommandBar (Power K, `mod+k`; the shortcut dispatcher lives inside it).
- * `mod+b` collapses the navigation. The sidebar and the tab bar arrive as
- * server-rendered children (`sideNav`, `tabBar`), so this component never
- * touches the database and the tab bar already knows the project names on
- * its first client render. The TabBar reads `usePathname()`, which is
- * request-bound under Cache Components, so it sits in its own Suspense
- * boundary (an empty strip of the same height in the static shell) instead
- * of blocking the whole route. `HiddenDialogGuard` closes the modal dialogs a
+ * Tessera frame (docs/contracts/ui.md "Shell"): an AppShell on the wash with
+ * the TopBar above and the SideNav beside the content, which sits in one
+ * rounded panel inset from the wash. Also the ToastViewport that
+ * `useToast()` in any screen renders into, and the CommandBar (Power K,
+ * `mod+k`; the shortcut dispatcher, the shortcuts dialog and the Create
+ * project dialog live inside it). `mod+b` collapses the navigation. The
+ * sidebar arrives as a server-rendered child (`sideNav`), so this component
+ * never touches the database. `HiddenDialogGuard` closes the modal dialogs a
  * navigation leaves open in the hidden route (./hidden-dialogs.ts); it reads
- * the URL too, so it has its own empty Suspense boundary.
+ * the request-bound URL, so it has its own empty Suspense boundary.
  */
-export function TesseraShell({ sideNav, tabBar, children }: { sideNav: ReactNode; tabBar: ReactNode; children: ReactNode }) {
+export function TesseraShell({ sideNav, children }: { sideNav: ReactNode; children: ReactNode }) {
   const [isNavCollapsed, setNavCollapsed] = useState(false);
   const commandBar = useRef<CommandBarHandle>(null);
 
@@ -51,10 +54,15 @@ export function TesseraShell({ sideNav, tabBar, children }: { sideNav: ReactNode
     },
   ]);
 
-  // CommandBar owns its open state and scope; the sidebar opens it through the same path as mod+k.
-  const openCommandBar = useCallback(() => commandBar.current?.open(), []);
+  // CommandBar owns its dialogs; the top bar and the sidebar reach them through the same paths as the shortcuts.
+  const openCommandBar = useCallback((initialQuery?: string) => commandBar.current?.open(initialQuery), []);
+  const openShortcuts = useCallback(() => commandBar.current?.openHelp(), []);
+  const openCreateProject = useCallback(() => commandBar.current?.openCreateProject(), []);
 
-  const value = useMemo<ShellContextValue>(() => ({ isNavCollapsed, setNavCollapsed, openCommandBar }), [isNavCollapsed, openCommandBar]);
+  const value = useMemo<ShellContextValue>(
+    () => ({ isNavCollapsed, setNavCollapsed, openCommandBar, openShortcuts, openCreateProject }),
+    [isNavCollapsed, openCommandBar, openShortcuts, openCreateProject],
+  );
 
   return (
     <ShellContext.Provider value={value}>
@@ -63,16 +71,10 @@ export function TesseraShell({ sideNav, tabBar, children }: { sideNav: ReactNode
         <Suspense fallback={null}>
           <HiddenDialogGuard />
         </Suspense>
-        <AppShell height="fill" contentPadding={0} variant="elevated" sideNav={sideNav}>
-          <Layout
-            height="fill"
-            header={
-              <LayoutHeader padding={0} hasDivider label="Open pages">
-                <Suspense fallback={<HStack className="tessera-tabbar" vAlign="center" />}>{tabBar}</Suspense>
-              </LayoutHeader>
-            }
-            content={<LayoutContent isScrollable>{children}</LayoutContent>}
-          />
+        <AppShell height="fill" variant="wash" contentPadding={2} topNav={<TopBar />} sideNav={sideNav}>
+          <Card padding={0} height="100%" className="tessera-panel">
+            <Layout height="fill" content={<LayoutContent isScrollable>{children}</LayoutContent>} />
+          </Card>
         </AppShell>
       </ToastViewport>
     </ShellContext.Provider>

@@ -1,43 +1,121 @@
 /*
- * Tessera shell (lane B): tab bar and sidebar details that Astryx props do not
- * cover. Tokens only; structural widths are the only raw px allowed.
+ * Tessera shell (lane B): the frame panel, the top bar and sidebar details
+ * that Astryx props do not cover. Tokens only; structural widths are the only
+ * raw px allowed.
  */
 
-/* The strip keeps its height before the tabs mount so the frame never jumps. */
-.tessera-tabbar {
-  min-height: var(--size-element-lg);
-  min-width: 0;
-  width: 100%;
-  padding-inline: var(--spacing-2);
-  background: var(--color-background-surface);
+/*
+ * The content panel: one rounded card inset from the wash by the AppShell's
+ * content padding. It clips its children to the corner, and the scrolling
+ * LayoutContent inside it is the only scroller.
+ */
+.tessera-panel {
+  border-radius: var(--radius-page);
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* The top bar's search field: a fixed column in the centre slot, narrower on small screens. */
+.tessera-topbar-search {
+  width: min(364px, 40vw);
+  cursor: pointer;
+}
+
+.tessera-topbar-search input {
+  cursor: pointer;
+}
+
+/* The sidebar's "New work item" reads as a quiet row: label and icon at the start, like the items below it. */
+.tessera-sidebar-new {
+  justify-content: flex-start;
 }
 
 /*
- * The strip's child (the ContextMenu wrapper around the TabList) is a flex item:
- * without min-width 0 it grows to the width of every tab and the shell's main
- * area scrolls sideways, hiding the left edge of every page. With it the
- * TabList scrolls inside the strip (overflow="scroll").
+ * Panel header rows (PanelHeader.tsx): 52px page header, 44px sub-header and
+ * filters row. The start group takes the room and may shrink (the tabs scroll,
+ * the filter field narrows); the end group keeps its actions whole, unless the
+ * row wraps (`canWrap`, the work items sub-header): then the end group drops
+ * under the title when both do not fit and wraps its own actions on a phone.
  */
-.tessera-tabbar > * {
+.tessera-panel-bar {
+  width: 100%;
   min-width: 0;
 }
 
-/* Decorative close glyph inside a tab: quieter until hovered, but still 3:1 on the tab bar. */
-.tessera-tab-close {
-  color: var(--color-icon-secondary);
-  opacity: 0.85;
-  border-radius: var(--radius-inner);
-  transition: opacity var(--duration-fast) var(--ease-standard);
+.tessera-panel-bar--header {
+  min-height: calc(var(--size-element-md) + var(--spacing-5));
 }
 
-.tessera-tab-close:hover {
-  opacity: 1;
-  color: var(--color-icon-primary);
-  background: var(--color-overlay-hover);
+.tessera-panel-bar--subheader,
+.tessera-panel-bar--filters {
+  min-height: calc(var(--size-element-md) + var(--spacing-3));
 }
 
-/* Home: capped reading column for the widgets and the project rows. */
-.tessera-home {
+.tessera-panel-bar--divided {
+  border-block-start: var(--border-width) solid var(--color-border);
+}
+
+.tessera-panel-bar-start {
+  flex: 1;
+  min-width: 0;
+}
+
+.tessera-panel-bar-end {
+  flex-shrink: 0;
+}
+
+/* A wrapped row keeps clear of the hairlines around it. */
+.tessera-panel-bar--wraps {
+  row-gap: var(--spacing-1);
+  padding-block: var(--spacing-1);
+}
+
+.tessera-panel-bar--wraps > .tessera-panel-bar-start {
+  flex: 1 1 auto;
+}
+
+.tessera-panel-bar--wraps > .tessera-panel-bar-end {
+  flex-shrink: 1;
+  min-width: 0;
+  row-gap: var(--spacing-1);
+}
+
+/* A short vertical hairline between groups in a row (the project name and its tabs). */
+.tessera-panel-bar-divider {
+  align-self: center;
+  height: calc(var(--size-element-sm) - var(--spacing-2));
+}
+
+/*
+ * The project's tabs dock on the header's bottom hairline: the start group
+ * fills the row's height and the tab strip sits at its bottom edge, while the
+ * token and the title stay centred.
+ */
+.tessera-panel-bar--header > .tessera-panel-bar-start {
+  align-self: stretch;
+}
+
+.tessera-project-tabs {
+  align-self: flex-end;
+  min-width: 0;
+}
+
+/*
+ * A narrow panel (a phone, a list beside the peek): the project's token keeps
+ * its label and the name keeps its width up to 40% of the row, so the four
+ * tabs scroll in the room left instead of squeezing the name to "P3 A…".
+ */
+.tessera-project-frame-token {
+  flex-shrink: 0;
+}
+
+.tessera-project-frame-title {
+  flex-shrink: 0;
+  max-width: 40%;
+}
+
+/* Reading pages (Home, Projects, not found): a capped column centred in the panel. */
+.tessera-reading {
   width: 100%;
   max-width: 960px;
   margin-inline: auto;

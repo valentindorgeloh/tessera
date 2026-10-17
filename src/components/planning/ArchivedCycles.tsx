@@ -19,7 +19,7 @@ import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { useToast } from "@astryxdesign/core/Toast";
 import { deleteCycleAction, unarchiveCycleAction } from "@/app/actions/cycles";
 import { RelativeTime } from "@/components/detail/RelativeTime";
-import { forgetTabsUnder } from "@/components/shell/TabBar";
+import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import type { Cycle } from "@/lib/tessera/types";
 import { CycleIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { failureText } from "./archive-rules";
@@ -43,21 +43,22 @@ export function ArchivedCycles({ projectId, cycles }: ArchivedCyclesProps) {
       }
       setDeleting(null);
       toast({ type: "info", body: `Deleted ${cycle.name}` });
-      forgetTabsUnder(`/projects/${projectId}/cycles/${cycle.id}`);
+      forgetRecentsUnder(`/projects/${projectId}/cycles/${cycle.id}`);
     });
   };
 
   if (cycles.length === 0) {
     return (
-      <VStack paddingInline={5} paddingBlock={6}>
+      <VStack paddingInline={4} paddingBlock={6}>
         <EmptyState icon={<CycleIcon />} title="No archived cycles" description="Completed cycles you archive are kept here with their progress, until you restore them." />
       </VStack>
     );
   }
 
-  // The extra end padding lets the last row's menu scroll clear of the bottom-end toasts and the dev indicator.
+  // The list is inset 8px and a row's text 8px more (Astryx's item inset), on the panel header's 16px. The extra end
+  // padding lets the last row's menu scroll clear of the bottom-end toasts and the dev indicator.
   return (
-    <VStack gap={0} paddingInline={3} paddingBlockStart={2} paddingBlockEnd={10} className="tessera-archives-list">
+    <VStack gap={0} paddingInline={2} paddingBlockStart={2} paddingBlockEnd={10} className="tessera-archives-list">
       <List hasDividers aria-label="Archived cycles">
         {cycles.map((cycle) => (
           <ArchivedCycleRow key={cycle.id} projectId={projectId} cycle={cycle} onDelete={setDeleting} />

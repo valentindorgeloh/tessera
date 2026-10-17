@@ -64,6 +64,7 @@ export function DateControl({ value, onChange, compact = false, readOnly = false
       <Button
         variant="ghost"
         size="sm"
+        className="tessera-wi-chip"
         icon={<CalendarIcon />}
         label={value ? `${short} ${formatShortDate(value)}` : label}
         isIconOnly={!value}

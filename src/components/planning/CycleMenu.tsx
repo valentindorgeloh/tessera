@@ -17,7 +17,7 @@ import type { DropdownMenuItemData } from "@astryxdesign/core/DropdownMenu";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { useToast } from "@astryxdesign/core/Toast";
 import { archiveCycleAction, deleteCycleAction, unarchiveCycleAction } from "@/app/actions/cycles";
-import { forgetTabsUnder } from "@/components/shell/TabBar";
+import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import type { Cycle } from "@/lib/tessera/types";
 import { ArchiveIcon, PencilIcon, RestoreIcon, TransferIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { CycleDialog } from "./CycleDialog";
@@ -99,7 +99,7 @@ export function CycleMenu({ projectId, cycle, today, size = "sm", onDeleted, isE
       }
       setDeleteOpen(false);
       toast({ type: "info", body: `Deleted ${cycle.name}` });
-      forgetTabsUnder(`/projects/${projectId}/cycles/${cycle.id}`);
+      forgetRecentsUnder(`/projects/${projectId}/cycles/${cycle.id}`);
       onDeleted?.();
     });
   };

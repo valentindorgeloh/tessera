@@ -3,8 +3,8 @@
 /**
  * Project archive controls (docs/contracts/ui.md "Archives (E3)"), rendered
  * by the project frame (`ProjectFrame`, lane E4): `ProjectMenu` at the end of
- * the header row and `ProjectArchivedBanner` between the header row and the
- * tabs. Both take the project as a prop; neither reads `useProject()`, so
+ * the panel header row (beside the tabs) and `ProjectArchivedBanner` under the
+ * panel header. Both take the project as a prop; neither reads `useProject()`, so
  * `/projects/archives` (outside the project layout) can reuse the restore
  * hook below.
  */
@@ -17,6 +17,7 @@ import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { useToast } from "@astryxdesign/core/Toast";
 import type { DropdownMenuOption } from "@astryxdesign/core/DropdownMenu";
 import { archiveProjectAction, unarchiveProjectAction } from "@/app/actions/projects";
+import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import type { Project } from "@/lib/tessera/types";
 import { ArchiveIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { failureText } from "./archive-rules";
@@ -65,6 +66,8 @@ export function ProjectMenu({ project }: ProjectMenuProps) {
       }
       setConfirmArchive(false);
       toast({ type: "info", body: `Archived ${project.identifier}` });
+      // An archived project leaves the sidebar and its recents. The last-project pointer stays (P3): its routes still render, read-only.
+      forgetRecentsUnder(`/projects/${project.id}`);
       router.push("/projects/archives");
     });
   };

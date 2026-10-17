@@ -101,8 +101,8 @@ describe("colour scheme store", () => {
     colorSchemeStore.subscribe(listener);
     expect(colorSchemeStore.getSnapshot()).toBe("dark");
 
-    win.values.set("tessera.tabs.v1", "[]");
-    win.dispatchStorage("tessera.tabs.v1");
+    win.values.set("tessera.recents.v1", "[]");
+    win.dispatchStorage("tessera.recents.v1");
     expect(listener).not.toHaveBeenCalled();
 
     win.values.set("tessera.scheme.v1", "light");

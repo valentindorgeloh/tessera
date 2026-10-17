@@ -1,11 +1,12 @@
 "use client";
 
 /**
- * Cycle detail (docs/contracts/ui.md "Cycles (E1)"): the header, the scoped
- * work items list the page passes as `children` (a Server Component
- * interleaved into this client screen) and the progress side panel. While an
- * item is open in the peek, its own panel replaces the progress panel and the
- * header's toggle is disabled. The cycle's name labels its tab.
+ * Cycle detail (docs/contracts/ui.md "Cycles (E1)"): the cycle's panel header,
+ * the scoped work items list the page passes as `children` (a Server
+ * Component interleaved into this client screen; it brings its own panel
+ * header and its own scroller) and the progress side panel. While an item is
+ * open in the peek, its own panel replaces the progress panel and the
+ * header's toggle is disabled. The cycle's name labels its recent entry.
  */
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";

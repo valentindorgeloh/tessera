@@ -1,8 +1,10 @@
 "use client";
 
 /**
- * Work items screen (docs/contracts/ui.md "Work items screen"): filter bar,
- * display menu, "New work item" button and the layout the display picks.
+ * Work items screen (docs/contracts/ui.md "Work items screen"): a pinned
+ * header with the sub-header (the view's name and count, the layout switch,
+ * the display menu and "New work item") and the filters row, above the layout
+ * the display picks, which scrolls on its own.
  * Mutations go through the action wrappers inside transitions with an
  * optimistic copy of the list, so a move or an inline edit shows at once and
  * the server's re-render (the action's `refresh()`) settles it. Layout moves
@@ -11,26 +13,31 @@
  *
  * The same screen lists a cycle's or a module's items (P3, the scoped list in
  * src/app/(tessera)/projects/[projectId]/work-items/scoped-list.tsx): the
- * optional scope props save the display to that scope's view settings, let new
- * items join the scope (./quick-add.ts), hide grouping by the scope's own field
- * and, for a closed scope, remove every way to create an item.
+ * optional scope props save the display (layout switch and display menu) to
+ * that scope's view settings, let new items join the scope (./quick-add.ts),
+ * hide grouping by the scope's own field and, for a closed scope, remove every
+ * way to create an item. The sub-header's title and count are props too
+ * (default "Work items" and the list's total).
  */
 import { startTransition, useEffect, useOptimistic, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { useHotkeys } from "@astryxdesign/core/hooks";
-import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { createWorkItemAction, moveWorkItemAction, updateWorkItemAction } from "@/app/actions/work-items";
 import { notePeekPush } from "@/components/detail/peek-history";
 import { currentHref, peekHref } from "@/components/detail/peek-url";
+import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
 import { isMultiValuedGroup } from "@/lib/tessera/core/group";
 import type { CreateWorkItemInputType, Display, Filters, Group, GroupBy, State, StateGroup, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 import { PlusIcon } from "@/themes/catppuccin/icons";
 import { BoardLayout } from "./BoardLayout";
 import { CreateWorkItemDialog } from "./CreateWorkItemDialog";
-import { DisplayMenu } from "./DisplayMenu";
+import { DisplayMenu, LayoutSwitch } from "./DisplayMenu";
 import { FilterBar } from "./FilterBar";
 import { ListLayout } from "./ListLayout";
 import { toEngineMove } from "./moves";
@@ -52,7 +59,7 @@ export type WorkItemsScreenProps = {
   settingsDisplay: Display;
   /** Open the create dialog (`?create=1`, the sidebar's "New work item"). */
   createOnOpen: boolean;
-  /** View settings row the display menu saves to; default `{ "project", projectId }`. */
+  /** View settings row the layout switch and the display menu save to; default `{ "project", projectId }`. */
   settingsScope?: SettingsScope;
   /** Memberships new items join (a cycle's or a module's list). */
   scopeDefaults?: ScopeDefaults;
@@ -60,7 +67,21 @@ export type WorkItemsScreenProps = {
   canCreate?: boolean;
   /** Group fields the display menu leaves out (the scope's own field); default none. */
   hiddenGroupFields?: readonly GroupBy[];
+  /**
+   * The sub-header's title, also the name of the header and list landmarks.
+   * Default "Work items", in a cycle or module too: the scope's own header
+   * above the list already names the cycle or module.
+   */
+  title?: string;
+  /**
+   * The count in the purple Badge next to the title. Default (undefined) the
+   * list's total after filters, with optimistic quick-adds; `null` hides the
+   * Badge (a scope header that shows its own count).
+   */
+  count?: number | null;
 };
+
+const DEFAULT_TITLE = "Work items";
 
 const NO_HIDDEN_FIELDS: readonly GroupBy[] = [];
 
@@ -209,6 +230,8 @@ export function WorkItemsScreen({
   scopeDefaults,
   canCreate = true,
   hiddenGroupFields = NO_HIDDEN_FIELDS,
+  title = DEFAULT_TITLE,
+  count,
 }: WorkItemsScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -402,26 +425,51 @@ export function WorkItemsScreen({
   };
   // The dialog starts in the scope: `{ ...scopeDefaults, ...createDefaults }` with module ids united.
   const dialogDefaults = scopeDefaults ? withScopeDefaults(createDefaults ?? {}, scopeDefaults) : createDefaults;
+  const shownCount = count === undefined ? optimistic.total : count;
 
   return (
-    <VStack gap={0} className="tessera-wi-screen">
-      <HStack gap={2} vAlign="center" wrap="wrap" paddingInline={5} paddingBlock={3}>
-        <FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} />
-        <HStack gap={2} vAlign="center" hAlign="end" wrap="wrap" className="tessera-wi-actions">
-          <DisplayMenu projectId={projectId} display={display} urlState={urlState} settingsScope={settingsScope} hiddenGroupFields={hiddenGroupFields} />
-          {canCreate ? <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" /> : null}
-        </HStack>
-      </HStack>
-      {display.layout === "list" ? (
-        <ListLayout {...layoutProps} />
-      ) : display.layout === "board" ? (
-        <BoardLayout {...layoutProps} />
-      ) : display.layout === "table" ? (
-        <TableLayout {...layoutProps} />
-      ) : (
-        <EmptyState title={display.layout === "calendar" ? "Calendar arrives in P10" : "Gantt arrives in P10"} description="Switch back to list, board or table from the Display menu." />
-      )}
+    <>
+      <Layout
+        height="fill"
+        header={
+          <PanelHeader label={title}>
+            <PanelBar
+              size="subheader"
+              canWrap
+              start={
+                <>
+                  <Text weight="medium" maxLines={1}>
+                    {title}
+                  </Text>
+                  {shownCount === null ? null : <Badge variant="purple" label={String(shownCount)} />}
+                </>
+              }
+              end={
+                <>
+                  <LayoutSwitch display={display} urlState={urlState} settingsScope={settingsScope} />
+                  <DisplayMenu display={display} urlState={urlState} settingsScope={settingsScope} hiddenGroupFields={hiddenGroupFields} />
+                  {canCreate ? <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" /> : null}
+                </>
+              }
+            />
+            <PanelBar size="filters" hasDivider start={<FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} />} />
+          </PanelHeader>
+        }
+        content={
+          <LayoutContent padding={0} isScrollable label={`${title} list`} className="tessera-wi-scroller">
+            {display.layout === "list" ? (
+              <ListLayout {...layoutProps} />
+            ) : display.layout === "board" ? (
+              <BoardLayout {...layoutProps} />
+            ) : display.layout === "table" ? (
+              <TableLayout {...layoutProps} />
+            ) : (
+              <EmptyState title={display.layout === "calendar" ? "Calendar arrives in P10" : "Gantt arrives in P10"} description="Switch back to list, board or table with the layout switch." />
+            )}
+          </LayoutContent>
+        }
+      />
       <CreateWorkItemDialog projectId={projectId} isOpen={isCreateOpen} onOpenChange={setCreateOpen} defaults={dialogDefaults} />
-    </VStack>
+    </>
   );
 }

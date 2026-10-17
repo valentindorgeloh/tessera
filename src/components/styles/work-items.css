@@ -4,24 +4,14 @@
  * (key column, reading columns) are the only raw px.
  */
 
-.tessera-wi-screen {
-  width: 100%;
-  min-height: 100%;
-}
-
 /*
- * The filter takes the free toolbar width but keeps a readable minimum (the
- * result count sits inside the field); when the toolbar is narrower than that
- * plus the actions (a cycle or module detail beside its side panel), the
- * toolbar wraps and the actions move to a line of their own, at the end.
+ * The filter field takes the filters row (PanelHeader.tsx) and may narrow with
+ * it. The actions sit in the sub-header row above, which wraps on its own
+ * (PanelBar canWrap), so the field needs no minimum share against them.
  */
 .tessera-wi-filter {
-  flex: 1 1 16rem;
-  min-width: min(16rem, 100%);
-}
-
-.tessera-wi-actions {
-  margin-inline-start: auto;
+  flex: 1;
+  min-width: 0;
 }
 
 /* PowerSearch wraps its field in a block element; let that wrapper take the free toolbar width. */
@@ -31,41 +21,109 @@
   min-width: 0;
 }
 
-/* Rows: the key button opens the item; the properties hug the end edge. */
+/*
+ * Rows: at least 44px; the key button opens the item; the properties hug the
+ * end edge. The insets line the key's text and the last chip up with the
+ * panel header's 16px (the key button brings its own 12px).
+ */
 .tessera-wi-row {
   min-width: 0;
+  min-height: calc(var(--size-element-md) + var(--spacing-3));
+  padding-inline: var(--spacing-1) var(--spacing-4);
   /* When the title would get less than its minimum, the properties wrap onto a second line under it. */
   flex-wrap: wrap;
   row-gap: var(--spacing-1);
 }
 
-/* Astryx's label slot (it holds the row title): a minimum share before the properties wrap. */
+/*
+ * Astryx's label slot (it holds the row title): a minimum share before the
+ * properties wrap. 14rem keeps the title beside its key in a 352px list (the
+ * list beside a 480px peek at 1100px); at 16rem the title dropped under the
+ * key, 12px left of the key's text.
+ */
 .tessera-wi-row > :has(.tessera-wi-title) {
-  min-width: min(16rem, 100%);
+  min-width: min(14rem, 100%);
 }
 
-/* Astryx's end slot (it holds the properties): stays at the end of the row, also on the wrapped line. */
+/* Astryx's end slot (it holds the properties): stays at the end of the row, also on the wrapped line, and may narrow to it. */
 .tessera-wi-row > :has(> .tessera-wi-props) {
   margin-inline-start: auto;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
+/* The key: small, muted and tabular, so the title leads the row. */
 .tessera-wi-open {
   font-variant-numeric: tabular-nums;
+  font-size: var(--text-supporting-size);
   color: var(--color-text-secondary);
   min-width: 72px;
   justify-content: flex-start;
 }
 
-/* Properties keep their natural width on one line; the compact controls are chips, so the label keeps its share. */
+/*
+ * Properties keep their natural width on one line; the compact controls are
+ * chips, so the label keeps its share. On a line narrower than the chips (a
+ * phone) they wrap, still aligned to the end.
+ */
 .tessera-wi-props {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  row-gap: var(--spacing-1);
 }
 
 .tessera-wi-prop-text {
   white-space: nowrap;
 }
 
-/* Group headers sit on the surface colour so collapsed groups still read as sections. */
+/*
+ * Property chips: the compact ghost controls of a row (selectors, and the
+ * date buttons, `tessera-wi-chip`) as small outlined chips, 24px tall with
+ * the inner radius and supporting-size text; the chevron goes, since the
+ * control outline already marks a chip as a control. A selector's own clear
+ * button keeps its Astryx look. The detail keeps the full controls.
+ */
+.tessera-wi-props .astryx-selector[data-variant="ghost"],
+.tessera-wi-props .tessera-wi-chip {
+  height: calc(var(--size-element-sm) - var(--spacing-1));
+  min-height: 0;
+  padding-inline: var(--spacing-1-5);
+  border: var(--border-width) solid var(--color-border-emphasized);
+  border-radius: var(--radius-inner);
+  font-size: var(--text-supporting-size);
+}
+
+.tessera-wi-props .astryx-selector-indicator-icon {
+  display: none;
+}
+
+/*
+ * Group headers: a muted band that stays at the top of the list while its
+ * group scrolls under it (the Collapsible trigger is the sticky box, so it
+ * hands over to the next group's band at the group's end). Only the colour
+ * is set, so the trigger's pressed overlay still paints over the band; a
+ * mouse press paints it as an image on top.
+ */
+.tessera-wi-group .astryx-collapsible-trigger {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: calc(var(--size-element-md) + var(--spacing-2));
+  padding-inline: var(--spacing-3) var(--spacing-4);
+  background-color: var(--color-background-muted);
+}
+
+@media (pointer: fine) {
+  .tessera-wi-group .astryx-collapsible-trigger:active {
+    background-image: linear-gradient(var(--color-overlay-pressed), var(--color-overlay-pressed));
+  }
+}
+
+/* Focus scrolled into view stays clear of the sticky band (40px, plus the key button's inset). */
+.tessera-wi-scroller:has(.tessera-wi-group) {
+  scroll-padding-block-start: calc(var(--size-element-md) + var(--spacing-4));
+}
+
 .tessera-wi-group-header {
   min-width: 0;
   padding-inline: var(--spacing-2);
@@ -101,13 +159,6 @@
 .tessera-wi-description {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-
-/* Project list rows. */
-.tessera-projects {
-  width: 100%;
-  max-width: 960px;
-  margin-inline: auto;
 }
 
 /* Quick-add placeholder rows: visible at once, inert until the server item replaces them. */

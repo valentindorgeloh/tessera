@@ -16,7 +16,7 @@ import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { useToast } from "@astryxdesign/core/Toast";
 import { deleteModuleAction, unarchiveModuleAction } from "@/app/actions/modules";
 import { RelativeTime } from "@/components/detail/RelativeTime";
-import { forgetTabsUnder } from "@/components/shell/TabBar";
+import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import type { Module } from "@/lib/tessera/types";
 import { ModuleIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { failureText } from "./archive-rules";
@@ -40,21 +40,22 @@ export function ArchivedModules({ projectId, modules }: ArchivedModulesProps) {
       }
       setDeleting(null);
       toast({ type: "info", body: `Deleted ${target.name}` });
-      forgetTabsUnder(`/projects/${projectId}/modules/${target.id}`);
+      forgetRecentsUnder(`/projects/${projectId}/modules/${target.id}`);
     });
   };
 
   if (modules.length === 0) {
     return (
-      <VStack paddingInline={5} paddingBlock={6}>
+      <VStack paddingInline={4} paddingBlock={6}>
         <EmptyState icon={<ModuleIcon />} title="No archived modules" description="Completed or cancelled modules you archive are kept here, read-only, until you restore them." />
       </VStack>
     );
   }
 
-  // The extra end padding lets the last row's menu scroll clear of the bottom-end toasts and the dev indicator.
+  // The list is inset 8px and a row's text 8px more (Astryx's item inset), on the panel header's 16px. The extra end
+  // padding lets the last row's menu scroll clear of the bottom-end toasts and the dev indicator.
   return (
-    <VStack gap={0} paddingInline={3} paddingBlockStart={2} paddingBlockEnd={10} className="tessera-archives-list">
+    <VStack gap={0} paddingInline={2} paddingBlockStart={2} paddingBlockEnd={10} className="tessera-archives-list">
       <List hasDividers aria-label="Archived modules">
         {modules.map((item) => (
           <ArchivedModuleRow key={item.id} projectId={projectId} module={item} onDelete={setDeleting} />

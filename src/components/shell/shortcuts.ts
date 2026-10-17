@@ -8,7 +8,7 @@
  * keyboard layout. Only an event without a code (some virtual keyboards and
  * input tools send `code: ""`) falls back to its `key` (`physicalCode`). `mod` is the Command key on Apple platforms and Control
  * elsewhere; Alt combos and the other platform's modifier never match, so
- * `alt+w` (close tab) and browser shortcuts stay untouched. Chords (`g` then
+ * browser and operating system shortcuts stay untouched. Chords (`g` then
  * `h`) have a `CHORD_WINDOW_MS` window and are dropped by any key outside
  * their table; that key then resolves on its own.
  *
@@ -17,7 +17,19 @@
  * dispatcher in ./useShortcuts.ts leaves them alone. `peek.close` is listed for
  * the help dialog only and never resolves: PeekHost owns Escape.
  */
-import { isTypingTarget } from "./tab-registry";
+/** What the typing-surface check needs from an event target; DOM-free so Vitest runs it in Node. */
+export type TypingTargetLike = { tagName: string; isContentEditable?: boolean } | null | undefined;
+
+/**
+ * True for inputs, textareas, selects and contenteditable elements, the same
+ * rule Astryx's useHotkeys applies to every shortcut by default.
+ */
+export function isTypingTarget(target: TypingTargetLike): boolean {
+  if (!target) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName.toUpperCase();
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
 
 export type ShortcutId =
   | "palette.open"
@@ -208,9 +220,9 @@ export type ShortcutTargetLike = {
 } | null;
 
 /**
- * True when the target is a typing surface (`isTypingTarget`, the TabBar's
- * own check: input, textarea, select, contenteditable such as the
- * description editor) or sits inside one of the
+ * True when the target is a typing surface (`isTypingTarget`: input,
+ * textarea, select, contenteditable such as the description editor) or sits
+ * inside one of the
  * `QUIET_POPUP_SELECTOR` popups. The dispatcher passes it as `isTyping`, so
  * only `mod+k` and `mod+/` get through.
  */

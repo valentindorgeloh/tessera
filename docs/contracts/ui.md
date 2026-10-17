@@ -7,7 +7,7 @@ Owner: lane A for this document; the code is split between lanes B (shell), C (w
 ```
 src/app/layout.tsx                 fonts + <Providers> only (no app frame)
 src/app/(handbook)/layout.tsx      legacy handbook frame (<WorkspaceFrame>); routes / and /items/[id]; deleted in P6
-src/app/(tessera)/layout.tsx       Tessera frame: AppShell + SideNav + TabBar + ToastViewport + ChangesPoller
+src/app/(tessera)/layout.tsx       Tessera frame: AppShell (TopBar, SideNav, content panel) + ToastViewport + ChangesPoller + RecentsTracker
 src/app/(tessera)/home/page.tsx    Tessera Home (moves to / in P6)
 src/app/(tessera)/projects/...     see docs/PLAN.md §5 for the full route list
 src/app/api/changes/route.ts       GET ?since=<seq> → { changes, cursor } (lane B)
@@ -39,11 +39,11 @@ type ProjectBundle = {
 };
 ```
 
-It renders `<ProjectProvider bundle={bundle}>` (client context in `src/components/work-items/project-provider.tsx`, lane C) and `<ProjectFrame>` (header with project name, section `TabList` for Work items / Cycles / Modules / Views / Pages / Intake / Settings according to the feature toggles; tabs whose routes do not exist yet are omitted). Every property control reads the bundle from `useProject()`; nothing fetches lists client-side except search typeahead.
+It renders `<ProjectProvider bundle={bundle}>` (client context in `src/components/work-items/project-provider.tsx`, lane C) and `<ProjectFrame>`: the panel header (`PanelHeader` with one 52px `PanelBar`, "Panel headers" under Shell) holding the project token, the project name as the page's h1 (`PanelTitle`), a vertical divider and the section `TabList` (`size="sm" layout="hug"`, docked on the header hairline) for Work items / Cycles / Modules / Views / Pages / Intake / Settings according to the feature toggles; tabs whose routes do not exist yet are omitted. The tabs are the project's only page navigation (the sidebar lists projects as flat rows); project-wide actions go in the bar's `end`. The frame's content is one scrolling `LayoutContent`. Every property control reads the bundle from `useProject()`; nothing fetches lists client-side except search typeahead.
 
 ## Work items screen (lane C)
 
-`WorkItemsScreen` (client) owns the filter bar, the display menu, quick-add and the layout switch. The server page passes `result: WorkItemListResult`, the resolved `display`, `filters` and the `view_settings` defaults.
+`WorkItemsScreen` (client) owns the filter bar, the display menu, quick-add and the layout switch. The server page passes `result: WorkItemListResult`, the resolved `display`, `filters` and the `view_settings` defaults. It is a fill `Layout` whose `PanelHeader` stacks two rows: the 44px sub-header (`PanelBar size="subheader"`: "Work items" and the total as a purple `Badge`; at the end `LayoutSwitch`, the display menu and the primary sm "New work item") and the 44px filters row (`PanelBar size="filters" hasDivider` with the filter bar). Only the layout below them scrolls.
 
 URL state: one `q` search param holding base64url-encoded JSON `{ filters?: Filters, display?: Partial<Display> }`, encoded and decoded by `src/components/work-items/url-state.ts` (zod-validated; invalid → ignored). The server merges: defaults ← `view_settings(project, projectId)` ← URL. Changing the display menu writes the URL (`router.replace`, no scroll) and calls `saveViewSettingsAction` so the choice is remembered.
 
@@ -63,32 +63,38 @@ type LayoutProps = {
 
 Files: `ListLayout.tsx` (List/ListItem rows grouped with collapsible headers), `BoardLayout.tsx` (columns per group, sub-groups as swimlanes, pointer DnD through `src/components/dnd/use-pointer-drag.ts`), `TableLayout.tsx` (Astryx `Table` with `useTableGroupedRows`, `useTableSortable`, `useTableColumnResize`, inline edit via `renderCell` returning ghost controls). `CalendarLayout` and `GanttLayout` arrive in P10 with the same props.
 
-List rows (`ListLayout`): the title is `RowTitle` (Astryx `Text maxLines={1}`, class `tessera-wi-title`) inside `ListItem`'s label; `work-items.css` gives the label slot `min-width: min(16rem, 100%)` and lets the row wrap, so properties move to a second line (kept at the end) instead of squeezing the title. Selectors reach Astryx's slots only through our own classes (`:has(.tessera-wi-title)`, `:has(> .tessera-wi-props)`).
+List rows (`ListLayout`): the title is `RowTitle` (Astryx `Text weight="medium" maxLines={1}`, class `tessera-wi-title`) inside `ListItem`'s label; `work-items.css` gives the label slot `min-width: min(14rem, 100%)` (16rem until the layout rework merge, where it put the title under its key in the list beside a side peek at 1100px) and lets the row wrap, so properties move to a second line (kept at the end) instead of squeezing the title; on a line narrower than the chips (a phone) the chips wrap too. Selectors reach Astryx's slots only through our own classes (`:has(.tessera-wi-title)`, `:has(> .tessera-wi-props)`). Rows are at least 44px; the key is supporting-size, secondary and tabular; the key's text and the last property line up with the panel header's 16px inset. A group header is a 40px muted band: the `Collapsible` trigger (Astryx's documented `astryx-collapsible-trigger` class, scoped under `.tessera-wi-group`) is sticky, so the band stays at the top of the list while its group scrolls under it. In a row the compact ghost controls (selectors, and the date buttons through their own `tessera-wi-chip` class, so a selector's clear button keeps its Astryx look) read as chips: 24px, a control outline (`--color-border-emphasized`, 3:1 or more on every surface), `--radius-inner`, supporting-size text, no chevron (`.tessera-wi-props` rules in `work-items.css`); the detail keeps the full controls. The band sets only `background-color`, so the trigger's pressed overlay still shows, and the list scroller (`tessera-wi-scroller`) has a `scroll-padding-block-start` so focus moved into view is never hidden under a band; the detail body gives its descendants the matching `scroll-margin-block-start` under the pinned detail header.
+
+Board (`BoardLayout`): 350px columns (`COLUMN_WIDTH`, repeated in `board.css`) with 16px gaps on a muted backdrop whose corners are concentric with the 8px cards (12px padding) inside them. Table (`TableLayout`): the first column's text lines up with the panel header (`table.css`).
 
 Property controls live in `src/components/work-items/properties/` and are reused by the detail panel (lane D) and bulk bar (lane E): `StateControl`, `PriorityControl`, `AssigneeControl`, `LabelControl`, `DateControl` (start or target), `CycleControl`, `ModuleControl`, `EstimateControl` (P8). Each takes `{ value, onChange, bundle?, compact?, readOnly? }` and renders a ghost `Selector` / `MultiSelector` / `DateInput`; state shows a `StatusDot` by group, labels and cycles show `Token` with the palette colour, priority shows the Phosphor priority icon.
 
 Create dialog: `CreateWorkItemDialog` (Astryx `Dialog` + `FormLayout`): name, description (plain `TextArea` until the editor lands in P2b), state, priority, assignees, labels, cycle, modules, dates; "Create more" keeps it open; closing with a dirty form asks "Save this draft?" (P8 wires drafts; until then the dialog just confirms discard). Quick-add: inline row at the bottom of a group / column that creates with that group's value.
 
-Filter bar: Astryx `PowerSearch` tokens for state, priority, labels, assignees, cycle, module, dates, text; the display menu is a `Popover` with `SegmentedControl` for layout and `Selector`s for group / sub-group / order / properties.
+Filter bar: Astryx `PowerSearch` tokens for state, priority, labels, assignees, cycle, module, dates, text, in the filters row. The layout switch is `LayoutSwitch` (`DisplayMenu.tsx`): an icon-only sm `SegmentedControl` (List, Board, Table) in the sub-header, writing through the same `useDisplayWriter` as the display menu. The display menu is a `Popover` with `Selector`s for group / sub-group / order / properties.
 
 ## Shell (lane B)
 
-- `(tessera)/layout.tsx`: `AppShell` with `SideNav` (Tessera header, "New work item" button opening the create dialog for the current or last project, search button `mod+k`, workspace items that exist, Favorites (P9), Projects tree with per-project children by feature toggle, bottom items), `TabBar` above the content, `ToastViewport`, `ChangesPoller`. `mod+b` collapses the nav.
-- Sidebar data: `listProjects` (with counts) and the sidebar's expanded state in `localStorage` key `tessera.sidebar.v1`.
-- `TabBar` + `tab-registry.ts`: path-based tabs, storage key `tessera.tabs.v1`, `resolveTab(pathname, lookup) → { label, icon }`, close via decorative `Icon` inside the `Tab` (no nested button), `alt+w`, middle-click, context menu. Pure functions in `tab-registry.ts` have Vitest coverage.
+- Frame (`TesseraShell.tsx`): `AppShell variant="wash" contentPadding={2}`, so the top bar and the sidebar sit on the wash (`--color-background-body`) and the content sits in one rounded panel 8px in from the wash on every side: a `Card padding={0} height="100%"` with class `tessera-panel` (`--radius-page`, 16px). Only the screen's own `LayoutContent` scrolls inside it. The shell also mounts `ToastViewport` and `CommandBar`; `(tessera)/layout.tsx` adds `RecentsTracker` and `ChangesPoller` together in one `Suspense` beside the content, not in the sidebar, whose mobile drawer React pauses while closed. There is no tab strip.
+- Top bar (`TopBar.tsx`, Astryx `TopNav`): the sidebar collapse button (desktop only) and the brand ("Tessera", logo tile, → `/home`); in the middle the search field (`tessera-topbar-search`, about 364px, sm): a read-only `TextInput` (named "Search work items and commands", `aria-haspopup="dialog"`) with a `mod+k` `Kbd` that opens Power K on a click, Enter, Space, the arrow down or any printable key, the key becoming the palette's first query (`openCommandBar(initialQuery)`); at the end a help button (keyboard shortcuts, as `mod+/`) and the account menu (`Avatar` in a ghost `IconButton`) with the Colour scheme radio group and Keyboard shortcuts.
+- Sidebar (`Sidebar.tsx`, Astryx `SideNav` on the wash): the "Work" heading (→ `/home`); a quiet secondary sm "New work item" button (an icon button while collapsed) that opens the create dialog for the last visited project (`tessera.lastProject.v1`), else the first, and is disabled with "Create a project first" when there are none; Home and Projects; the "Projects" section with a "+" (Create project, as `n p`) and the projects as flat rows (logo icon, name, total count; the current project selected). A project's own pages are the tabs in its panel header, not sidebar children. Resizable from 236 to 350px (250 by default), the width kept in `tessera.sidebarWidth.v1` and read after mount so the first render matches the server's. `mod+b` and the top bar's button collapse it; the collapsed state is `TesseraShell` state and is not persisted (it resets on reload). The "New work item" tooltip names the global chord (`n i`, "N then I"). `SidebarSkeleton.tsx` mirrors it while the layout streams.
+- Panel headers (`PanelHeader.tsx`): a screen puts one `PanelHeader` (an Astryx `LayoutHeader`, hairline below; a labelled `div`, not a landmark, as before the rework) in its `Layout` header and stacks `PanelBar` rows in it: `size="header"` 52px (title, tabs, page actions), `"subheader"` 44px (the view's name and count, layout, display, the primary action), `"filters"` 44px (the filter bar; `hasDivider` draws the hairline above it). Heights come from tokens (`--size-element-md` plus `--spacing-5` or `--spacing-3`). `canWrap` (the work items sub-header) lets a row wrap: the end group drops under the title when both do not fit (a phone, the peek open) and wraps its own actions; without it the start group shrinks and the end group stays whole. A bar is a plain `HStack` with a 16px inline padding, not an Astryx `Toolbar`, so the tabs and the filter field keep their own arrow-key handling. `PanelTitle` is the page's h1 at the working size (14px medium, `Heading level={4} accessibilityLevel={1}`). `PanelPage` is a pinned header over scrolling content, `width="reading"` centring it in a 960px column (a `VStack` with class `tessera-reading`: Home and Projects) or `"full"`. The not-found screen is its own centred `EmptyState`, also used outside the shell.
+- Recents (`recents.ts`, `recents-store.ts`, `RecentsTracker.tsx`): every visited path, normalised as before (`resolveRoute`, `isTransientPath`), goes to the front of a list of at most 12 (`addRecent`; `/home` and transient routes skipped; a work item's project route and its global `/work-items/<id>` route count as one entry, `isSameRecent`), kept in `localStorage` `tessera.recents.v1` (`parseRecents` validates it) behind a `useSyncExternalStore` store whose server snapshot is empty. A work item opened in the peek is recorded by `PeekHost` once it has loaded, as a visit to its full page (`workItemPath`), so a peek that shows "not found" never becomes a recent. Every write starts from the stored list and a `storage` listener follows other tabs, so tabs never erase each other's visits. `forgetRecentsUnder(path)` drops a route and the routes under it: the detail calls it after a delete (the project path and `/work-items/<id>`), and the not-found screens (`NotFoundScreen`, the project's "Not found in this project") call `useMissingRoute()`, which forgets their own address and skips the tracker's visit to it, so a dead recent goes away once it has led there. Home shows the newest 8 first (`RecentsList.tsx`); Power K shows a "Recent" group of 5 when the query is empty, leaving out the page on screen and the item open in its peek (`onScreenPaths`, `otherRecents`). Pure functions in `recents.ts` and the store have Vitest coverage.
+- Sidebar data: `listProjects` (with counts).
 - `QuickCreate`: global create dialog host so the sidebar button and `n i` shortcut open the same dialog as lane C's screen (lane C exports `CreateWorkItemDialog`; lane B mounts it).
-- Home at `/home`: project rows from `listProjects` in a `List` with `edgeCompensation="inline"` (no Section around it: Section bleeds outward and would shift the heading), "Since you were last here" placeholder card (P5/P9 fill it), recent items (P9).
-- Keyboard: `useHotkeys` from `@astryxdesign/core/hooks` (verify the call form in `node_modules/@astryxdesign/core/hooks`); shortcut list per docs/PLAN.md §6.
-- Colour scheme: the SideNav `footerIcons` slot holds the "Colour scheme" menu (Frappé (dark), Latte (light), Match system) next to the collapse button. State lives in `src/components/shell/color-scheme.ts` (`useColorScheme`, `setColorScheme`, `localStorage` key `tessera.scheme.v1`); its values are the Astryx `<Theme mode>` values, which `src/app/providers.tsx` passes through.
+- Home at `/home` (`PanelPage width="reading"`): Recents, then the "Since you were last here" placeholder card (P5/P9 fill it), then project rows from `listProjects` in a `List` with `edgeCompensation="inline"` (no Section around it: Section bleeds outward and would shift the heading).
+- Keyboard: `useHotkeys` from `@astryxdesign/core/hooks` (verify the call form in `node_modules/@astryxdesign/core/hooks`); shortcut list per docs/PLAN.md §6. `isTypingTarget` lives in `shortcuts.ts`.
+- Colour scheme: the account menu in the top bar holds "Colour scheme" (Frappé (dark), Latte (light), Match system). State lives in `src/components/shell/color-scheme.ts` (`useColorScheme`, `setColorScheme`, `localStorage` key `tessera.scheme.v1`); its values are the Astryx `<Theme mode>` values, which `src/app/providers.tsx` passes through.
 
 ## Theme
 
 - The theme is the local Astryx theme `catppuccin` in `src/themes/catppuccin/`. Edit `palette.ts` (colours and `[latte, frappe]` token pairs, the only place for hex) or `catppuccinTheme.ts` (`defineTheme`). Then run `npm run astryx -- theme build src/themes/catppuccin/catppuccinTheme.ts`, and again after every Astryx upgrade.
 - Never edit the generated `catppuccin.{css,js,d.ts,css.d.ts}` (`npm run check:theme` fails when they are stale) or `src/astryx-themes.ts` (regenerate it with `npm run astryx -- theme add catppuccin --import`; `npm run astryx -- doctor` fails its theme-module check when it drifts). Every local import of the theme must resolve inside `src/themes/catppuccin/`; Astryx refuses the theme otherwise, which is why the icons live there.
 - A new colour pair gets a case in `tests/themes/catppuccin-contrast.test.ts` (text 4.5:1; icons, control outlines and the focus ring 3:1; translucent fills composited over their surface). `tests/themes/catppuccin-wiring.test.ts` checks the built CSS carries the palette, the syntax mapping and the overrides the contrast test assumes.
+- Density: the theme's type scale is `{ base: 14, ratio: 1.2 }` (body 14px, supporting 12px, h1 24px), with sm controls (28px) in headers and rows. A 16px or `1rem` assumption in app CSS is a bug; use the tokens.
 - Corners: `--radius-inner` (4, chips and tokens), `--radius-element` (8, buttons, inputs, cards nested in a column), `--radius-container` (12, cards, menus, dialogs), `--radius-page` (16, page panels). Use `--radius-full` only for avatars and badges. A container's corner is the radius of the surface nested in it plus the padding between them, written with `calc()` on tokens (`src/components/styles/board.css`: 8px cards in 8px padding give 16px columns).
 - Exceptions to "only avatars and badges are round", inherent to the component: the `Switch` track and thumb, the radio indicator, status dots and spinners, the `Token` remove button, tab underline caps, and in date pickers the `Calendar` range bands and the touch month-scroller puck (neither themeable; revisit if a range or touch picker lands).
-- `--radius-page` only shows where Astryx's AppShell elevates its content, which needs a top nav next to an inline side nav (the legacy handbook). The Tessera shell has a side nav only, so its content panel is flat and the board columns are its 16px panels.
+- `--radius-page` (16) is the content panel's corner (`.tessera-panel`, 8px from the wash). The side peek is a 12px card 4px inside the panel's 1px border (5px from its outer edge), so its corners follow the panel's 16px ones.
 - Control outlines (inputs, selectors, checkbox and radio rings, the off switch track) use `--color-border-emphasized`, tuned to 3:1 on every surface (WCAG 1.4.11). Change it only together with the contrast test.
 - A restyle of a whole component goes in `components` in `catppuccinTheme.ts`, keyed by `npm run astryx -- theme targets <Name>`, never in app CSS and never through private `--_*` variables. Per-instance layout stays className + tokens. Current overrides:
   - Hairline borders on `popover` and `context-menu`.
@@ -97,7 +103,7 @@ Filter bar: Astryx `PowerSearch` tokens for state, priority, labels, assignees, 
   - Rounded-square `nav-icon`, `tab-scroll-button` and `calendar-day`.
   - `banner` scopes two tokens: secondary text reads as primary on the status tint, and `--color-neutral` is the plain surface, so secondary buttons in a banner do not stack their fill and hover overlay on the tint (Astryx's own themes scope banner tokens the same way). `banner-icon` gives the warning and success glyphs their text colours, because Latte yellow and green stay under 3:1 on their tint.
   - `onDark`/`onLight`: the focus ring on inverted surfaces (toasts) uses the on-colour, as the accent does there.
-- Accepted trade-offs (not every pair can pass; these are recorded rather than tuned away): a ghost button's hover on a Latte error banner falls to 4.4:1 on the shell wash and 4.1:1 on a muted well, where banners do not render (the test covers content surfaces); the table cell-selection tint, the active peek mode button and active bubble-menu marks differ from their resting state by less than 3:1, as they did under paper.
+- Accepted trade-offs (not every pair can pass; these are recorded rather than tuned away): a ghost button's hover on a Latte error banner falls to 4.4:1 on the shell wash and 4.1:1 on a muted well, where banners do not render (the test covers content surfaces); the table cell-selection tint and active bubble-menu marks differ from their resting state by less than 3:1, as they did under paper.
 - Editor surfaces (`src/components/styles/editor.css`) follow the same rules: the frame is a control outline (`--color-border-emphasized`, accent while focused), entity links are purple chips (`--color-background-purple` / `--color-text-purple`), the placeholder is secondary text, and the bubble menu and suggestion popover are shaped like Astryx menus (12px around 8px rows at a 4px inset).
 - Code highlighting uses Astryx's default syntax mapping (`syntaxTokenDefaults`, declared in the theme so it resolves to the Catppuccin text tokens). Code colours therefore follow `--color-text-{accent,green,orange,blue,purple,cyan,red,teal,secondary,primary}`.
 - The root layout sets `<html data-theme="dark">`, the Astryx SSR hint for the Frappé default; the root `<Theme>` updates it after hydration. Until then `<html>` and `<body>` resolve Astryx's default tokens, because the root `<Theme>` copies `data-astryx-theme` onto `<html>` in an effect. So every page paints its own surface inside the Theme wrapper: the shell does, and the root not-found page uses `.tessera-root-frame` (`src/app/globals.css`).
@@ -111,7 +117,7 @@ Filter bar: Astryx `PowerSearch` tokens for state, priority, labels, assignees, 
 
 ## Verification per phase
 
-- Vitest for pure helpers (`url-state`, `tab-registry`, the DnD reducer, grouping adapters).
+- Vitest for pure helpers (`url-state`, `recents`, the DnD reducer, grouping adapters).
 - Browser acceptance through the in-app browser (`.claude/launch.json` → `tessera`) following the numbered steps in docs/PLAN.md §12; the verifier records what it saw with screenshots.
 - `npm run check` green; `next build` green with no hydration warnings in the dev console on the screens touched.
 
@@ -142,11 +148,13 @@ as the P2a rule above says). Mismatches with docs/PLAN.md are collected at the e
   `dist/Dialog/Dialog.d.ts`); `page` navigates to the full route. Mode and width
   live in `localStorage` key `tessera.peek.v1` as `{ "width": number, "mode": "side" | "modal" }`
   (`src/components/detail/peek-prefs.ts`, `useSyncExternalStore` with server snapshot
-  `{ width: 480, mode: "side" }`, same pattern as `TabBar`). Only `?peek` is in the URL.
+  `{ width: 480, mode: "side" }`, same pattern as the recents store). Only `?peek` is in the URL.
 - Resizing: `const peek = useResizable({ defaultSize: prefs.width, minSize: 360, maxSize: 720, direction: "horizontal", onSizeChange: (size) => savePeekPrefs({ width: size }) })`
-  then `<LayoutPanel resizable={peek.props} hasDivider={false} padding={0} isScrollable label="Work item" role="complementary">`
-  with `<ResizeHandle resizable={peek.props} direction="horizontal" isReversed hasDivider />`
-  placed before the panel (`dist/Resizable/useResizable.d.ts`: `ResizableRegion.props`
+  then `<LayoutPanel resizable={peek.props} hasDivider={false} padding={1} isScrollable={false} label="Work item" role="complementary">`
+  holding `<Card padding={0} height="100%" elevation="low" className="tessera-peek-card">` around the slot,
+  with `<ResizeHandle resizable={peek.props} direction="horizontal" isReversed hasDivider={false} />`
+  placed before the panel. The side peek is an inset card (layout rework, 2026-10-11): 12px corners
+  4px inside the 16px content panel, its own hairline and low shadow, the detail scrolling inside it (`dist/Resizable/useResizable.d.ts`: `ResizableRegion.props`
   is the object both components take; `dist/Resizable/ResizeHandle.d.ts`: `isReversed`
   "when the handle controls a panel" on the end side; `dist/Layout/LayoutPanel.d.ts`:
   `width` is ignored when `resizable` is set). Do not use `autoSaveId`: Astryx's own
@@ -210,18 +218,16 @@ as the P2a rule above says). Mismatches with docs/PLAN.md are collected at the e
   → `notFound()`; after the try: `redirect(`/projects/${item.project_id}/work-items/${item.id}`)`.
   `redirect` throws, so it stays outside `try` (`04-functions/redirect.md` lines 51–53)
   and is allowed in Server Components; it uses `replace` outside Server Actions (line 31).
-- Tab labels: `src/components/shell/entity-labels.ts` (D3) — module store
+- Recents labels: `src/components/shell/entity-labels.ts` (D3) — module store
   `registerEntityLabel(id: string, label: string)`, `useEntityLabels(): ReadonlyMap<string, string>`
-  via `useSyncExternalStore` (server snapshot: empty map; never cleared so a tab
-  keeps its label after navigating away). `WorkItemDetail` registers
-  `${item.key} ${item.name}` in an effect. `TabBar.tsx` extends its lookup
-  (`useMemo(() => ({ ...lookupFromNames(projectNames), workItemLabel: (id) => labels.get(id) }), [projectNames, labels])`;
-  `lookupFromNames` is the helper the in-flight TabBar change in `tab-registry.ts` introduces,
-  additive). `resolveTab`
-  gains two cases (additive, with tests in `tests/ui/tab-registry.test.ts`):
-  `/work-items/[id]` → `{ label: lookup.workItemLabel?.(id) ?? "Work item", icon: "work-item" }`
-  and `/browse/[key]` → `{ label: key.toUpperCase(), icon: "work-item" }`; today both
-  fall through to `titleCase(root)`.
+  via `useSyncExternalStore` (server snapshot: empty map; never cleared so a recent
+  entry keeps its label after navigating away). `WorkItemDetail` registers
+  `${item.key} ${item.name}` in an effect. The recents store (`recents-store.ts`) labels
+  each path with `resolveRoute(path, { ...lookupFromNames(projectNames), workItemLabel: (id) => labels.get(id) })`
+  (`recents.ts`, tests in `tests/ui/recents.test.ts`): `/work-items/[id]` →
+  `{ label: lookup.workItemLabel?.(id) ?? "Work item", icon: "work-item" }` and
+  `/browse/[key]` → `{ label: key.toUpperCase(), icon: "work-item" }`. (Until the
+  layout rework these labels named the tabs of the removed `TabBar`.)
 
 ### Detail components (D2) — `src/components/detail/`
 
@@ -252,7 +258,7 @@ export type WorkItemDetailProps = {
   data: WorkItemDetailData;
   host: DetailHost;
   onClose?: () => void;                       // peek and modal
-  onHostChange?: (host: DetailHost) => void;  // the mode switcher in the header
+  onHostChange?: (host: DetailHost) => void;  // the "Open as" menu in the header
   onOpenItem: (id: string) => void;           // parent, sub-item, `#` link: host decides (peek → replace ?peek, page → push)
 };
 export function WorkItemDetail(props: WorkItemDetailProps): JSX.Element;
@@ -262,26 +268,33 @@ export function WorkItemDetail(props: WorkItemDetailProps): JSX.Element;
   `ProjectProvider` (reads `useProject()` for states, labels, actors, cycles,
   modules). Layout: `DetailHeader`; title (`Heading` that turns into an input on
   click/Enter, saved on blur or Enter via `updateWorkItemAction({ work_item_id, name })`);
-  `PropertyRail` (right column from 960 px on `page`/`modal`, stacked above the
-  description on `peek` with `compact`); `DescriptionEditor`; `SubItems`;
+  `PropertyRail` (a 320–384 px column behind a hairline on `page` once the detail is
+  960 px wide, a `detail` container query; stacked under the title between hairlines
+  on `modal`, a 760 px Dialog, and on `peek` with `compact`); `DescriptionEditor`; `SubItems`;
   `LinksList`; `ActivityFeed` (collapsed to the last 20 with "Show all"). Registers
   the entity label (D3's store) and the command context (D4's store, below) in one
   effect, both unregistered on unmount.
-- `DetailHeader` `{ item, parent, host, onClose, onHostChange, onOpenItem }`:
-  Astryx `Breadcrumbs` + `BreadcrumbItem` (`dist/Breadcrumbs/*.d.ts`: `href`,
-  `onClick`, `isCurrent`, `startIcon`, `menu?: DropdownMenuOption[]`) — project
-  (href `/projects/<id>/work-items`), parent key (onClick → `onOpenItem`), current
-  key `isCurrent`; end: copy ID and copy URL `IconButton`s using
-  `useClipboard({ announce: "Copied" })` (`dist/hooks/useClipboard.d.ts`: `copy`,
-  `isCopied`), the mode switcher (three `IconButton`s: side, modal, page), close
-  (peek/modal). Icons needed and missing from `src/themes/catppuccin/icons.tsx` are added
-  there additively (`export const <Name>Icon = duotoneIcon(<Phosphor>);`, alphabetical),
-  listed in the hand-off: `CopyIcon` (Copy), `LinkIcon` (Link), `SidebarIcon`
-  (SidebarSimple), `ArrowsOutIcon` (ArrowsOutSimple), `DragHandleIcon` (DotsSixVertical),
-  `BellIcon` (Bell), `BellSlashIcon` (BellSlash).
-- `PropertyRail` `{ item, currentActorId, compact }` — Astryx `MetadataList`
+- `DetailHeader` `{ item, parent, host, onClose, onHostChange, onOpenItem, onCopyItem, onDelete }`:
+  one 44px `PanelBar size="subheader"` (class `tessera-detail-header`), pinned
+  while the detail scrolls. Start: Astryx `Breadcrumbs` + `BreadcrumbItem`
+  (`dist/Breadcrumbs/*.d.ts`: `href`, `onClick`, `isCurrent`, `startIcon`) —
+  project (logo, href `/projects/<id>/work-items`), "Work items" on the full
+  page, parent key (onClick → `onOpenItem`), current key `isCurrent`. End, in
+  this order: copy link (`IconButton`, `useClipboard({ announce: "Copied" })`,
+  `dist/hooks/useClipboard.d.ts`: `copy`, `isCopied`; copies the full page
+  URL); `MoreMenu` "More actions" (Make a copy when `onCopyItem`, `Copy ID (<KEY>)`,
+  Delete… when `onDelete`); the "Open as" menu (`DropdownMenu` whose trigger
+  shows the current mode's icon, a `DropdownMenuRadioGroup` of Side panel /
+  Modal / Full page; a choice focuses the trigger before the host moves the
+  detail, so focus comes back to it); Close "Close (Esc)" (peek and modal).
+  Icons come from `src/themes/catppuccin/icons.tsx`, added there additively
+  (`export const <Name>Icon = duotoneIcon(<Phosphor>);`, alphabetical).
+- `PropertyRail` `{ item, currentActorId, compact }` — four Astryx `MetadataList`s
   (`dist/MetadataList/MetadataList.d.ts`: `columns`, `label: { position, width }`,
-  `orientation`) of the P2a controls from `@/components/work-items/properties`
+  `orientation`) split by hairlines: status (State, Priority, Labels), people
+  (Assignees, Subscription), planning (Cycle, Modules, Parent, Estimate) and dates
+  (Start, Target, Created, Updated). One column; each row is a 16px icon and muted
+  label in a 120px label column (104 px in the peek) and the value. The rows hold the P2a controls from `@/components/work-items/properties`
   (`{ value, onChange, compact?, readOnly? }`): State → `updateWorkItemAction({ work_item_id, state_id })`;
   Priority → `{ priority }`; Assignees → `setAssigneesAction({ work_item_id, actor_ids })`;
   Labels → `setLabelsAction({ work_item_id, label_ids })`; Modules →
@@ -314,8 +327,10 @@ export function WorkItemDetail(props: WorkItemDetailProps): JSX.Element;
   Title + URL) → `addLinkAction({ work_item_id, url, title })`
   (`AddLinkInput`, links.ts line 79, http(s) only); edit → `updateLinkAction({ link_id, title?, url? })`;
   remove → `removeLinkAction({ link_id })`.
-- `ActivityFeed` `{ entries: ActivityLogEntry[] }`: `Avatar` (`dist/Avatar/Avatar.d.ts`:
-  `name`, `size: "xsm"`) + `actor_name`, verb and field in words ("changed state",
+- `ActivityFeed` `{ entries: ActivityLogEntry[] }`: a timeline, newest first. Each
+  entry is a 28px icon tile for the kind of change (by verb: created, archived,
+  restored, deleted, copied, moved; else by field; else a pencil) on a hairline
+  that joins the tiles, then `actor_name`, verb and field in words ("changed state",
   "edited the description" — with `merged_count > 1` → "edited the description
   N times"), `Timestamp format="relative" hasTooltip`. `ActivityLogEntry = ActivityRow & { actor_name, merged_count, last_seq }`
   (changes.ts line 88). No client fetch; the host reloads on `refresh()`.
@@ -342,23 +357,25 @@ export function WorkItemDetail(props: WorkItemDetailProps): JSX.Element;
   `emptySearchText`, `emptyBootstrapText`, `label`, `width` 640, `maxHeight` 480).
   Mounted by one additive line in `TesseraShell.tsx` next to `ToastViewport`
   (D4 is the only P2b lane that edits `TesseraShell.tsx`; it also adds
-  `openCommandBar: () => void` to `ShellContextValue`, and the Sidebar's search
-  button, when lane B adds one, calls `useShell().openCommandBar()`).
-- Opening: `useHotkeys([{ keys: "mod+k", onPress: open, allowInInputs: true }, { keys: "mod+/", onPress: openHelp, allowInInputs: true }])`.
+  `openCommandBar(initialQuery?: string)` to `ShellContextValue`, which the top bar's
+  search field calls; a call while the palette is open does nothing).
+- Opening: `useHotkeys([{ keys: "mod+k", onPress: () => open(), allowInInputs: true }, { keys: "mod+/", onPress: openHelp, allowInInputs: true }])`.
   `mod+/` is a shift-free combo, so `event.key` matching is layout-safe here.
 - Search source (`src/components/shell/command-source.ts`, pure apart from `fetch`):
   implements `SearchSource` from `@astryxdesign/core/Typeahead`
   (`dist/Typeahead/types.d.ts` line 77: `search(q)`, `bootstrap()`, `cancel?()`);
   items are `SearchableItem` (`{ id, label, element?, auxiliaryData? }`, auto-grouped
-  by `auxiliaryData.group`, line 26). `bootstrap()` returns the static commands for
-  the current context; `search(q)` aborts the previous request (`cancel()` holds an
+  by `auxiliaryData.group`, line 26). `bootstrap()` and an empty `search("")` return
+  the "Recent" group (the newest 5 recents not on screen, empty in the Ask tab)
+  followed by the static commands for the current context; a non-empty `search(q)`
+  leaves the recents out, aborts the previous request (`cancel()` holds an
   `AbortController`), waits 150 ms, fetches `/api/search` and merges the hits with
   the static commands whose label or keywords contain `q`. Selection: the palette
   closes and `onValueChange(value)` delivers the chosen item id (picker mode,
   `value`/`onValueChange` props); `CommandBar` keeps a `Map<id, () => void>` built
-  with the items and runs the handler. Section order (group names): "Work items",
+  with the items and runs the handler. Section order (group names): "Recent", "Work items",
   "Projects", "Cycles", "Modules", "Pages", "Actions", "Create", "Navigate", "Settings".
-  Hit ids are `hit:<type>:<id>`; command ids are `CommandId`s: the `ShortcutId`s below plus the palette-only theme commands.
+  Hit ids are `hit:<type>:<id>`; command ids are `CommandId`s: the `ShortcutId`s below plus the palette-only theme commands; the open-item command is `open:<workItemId>`; a recent route is `recent:<path>` (`auxiliaryData.kind === "recent"`, which pushes the path).
 - Theme commands in the "Settings" group: "Theme: Frappé (dark)", "Theme: Latte (light)" and "Theme: Match system" call `setColorScheme("dark" | "light" | "system")` from `src/components/shell/color-scheme.ts`. They are palette-only commands with ids `theme.dark`, `theme.light` and `theme.system`, have no key binding, and are not entries in `SHORTCUTS`.
 - Scope: inside a project (`useOptionalProject()` non-null) `scope=<projectId>`
   and a footer toggle "All projects" (`CommandPaletteFooter` replaced through the
@@ -447,7 +464,7 @@ export function formatKeys(keys: string, isMac: boolean): string;   // "mod+." �
   `{ "singleKeys": boolean }`, satisfying the WCAG note in `useHotkeys.d.ts`).
 - Dispatcher `src/components/shell/useShortcuts.ts` (`"use client"`, mounted once
   inside `CommandBar`): one `window` keydown listener; `isTyping = isTypingTarget(event.target)`
-  (`tab-registry.ts` line 20, the TabBar's own check) blocks everything except
+  (`shortcuts.ts`; it lived in `tab-registry.ts` until the layout rework) blocks everything except
   `palette.open` and `shortcuts.help`; `hasItem = useCommandContext() !== null`;
   item ids run the registered context action, `create.workItem` pushes
   `/projects/<current or last>/work-items?create=1` (what the Sidebar does today;
@@ -458,6 +475,11 @@ export function formatKeys(keys: string, isMac: boolean): string;   // "mod+." �
   as `"mod+k"`) and the single-key switch.
 
 ### Lane split and file ownership
+
+The lane split below is the P2b record. The layout rework (2026-10-11) since
+replaced `TabBar.tsx` and `tab-registry.ts` with `recents.ts`,
+`recents-store.ts` and `RecentsTracker.tsx` ("Shell" above); read those names
+where the table says `TabBar.tsx` or `tab-registry.ts`.
 
 | Lane | Creates | May edit additively (name it in the hand-off) | Must not touch |
 |---|---|---|---|
@@ -495,15 +517,15 @@ Browser steps (docs/PLAN.md §12, through `.claude/launch.json` → `tessera`), 
    or announce); `mod+/` lists the shortcuts.
 6. `/browse/WEB-1` redirects to `/projects/<id>/work-items/<itemId>`;
    `/browse/NOPE-9` renders not-found; `/work-items/<itemId>` renders the detail
-   without the project tabs and its tab label reads `WEB-1 <title>`.
+   without the project tabs and its Recents entry (Home, Power K) reads `WEB-1 <title>`.
 7. Drag the peek's handle → width changes within 360–720 px and survives reload;
-   switch to modal → survives reload.
+   switch to modal from the "Open as" menu → survives reload.
 8. Round trip: paste a description with a table, nested task list and a
    `[WEB-1](work:WEB-1)` link, reload → the editor shows the same content and the
    chip opens the item.
 
 Gate: `npm run check` green (lint, conventions, licences, Vitest including
-`tests/editor/*` under jsdom and `tests/ui/{shortcuts,peek-url,tab-registry}.test.ts`),
+`tests/editor/*` under jsdom and `tests/ui/{shortcuts,peek-url,recents}.test.ts`),
 `next build` green, no hydration warnings in the dev console on the list, the
 peek, the full page, `/work-items/[id]` and `/browse/[key]`.
 
@@ -589,8 +611,11 @@ archive, restore and delete of cycles; modules list and detail (status, lead,
 members, dates, links, progress, breakdowns); "Add existing work items" for
 cycles and modules; project archives (work items, cycles, modules) and archived
 projects, each with restore and delete; archive and restore of a work item from
-its detail; Cycles, Modules and Archives tabs, sidebar entries, tab labels, Power K
-targets and `cycle:` / `module:` editor links.
+its detail; Cycles, Modules and Archives tabs in the project panel header, recent
+labels, Power K targets and `cycle:` / `module:` editor links. (P3 shipped
+per-project sidebar entries and tab-bar labels; the layout rework merge replaced
+them with flat sidebar rows and recents, see "As built (layout rework merge,
+2026-10-11)".)
 
 | Deferred | Phase | Note |
 |---|---|---|
@@ -608,7 +633,7 @@ targets and `cycle:` / `module:` editor links.
 | Burnup scope over time (a per-day scope series from each item's join day) | P9 analytics | P3 draws the current scope (`total − cancelled`) as a flat line, so items added mid-cycle do not show as a scope step; the engine has no scope series (tools.md `get_cycle_progress` says so) |
 | Filters, display options and layouts on Archives › Work items | P4 (views) | P3 shows a plain `List` ordered by last update; the `archived` view_settings scope stays unused |
 | Search, sort and filter on the cycles and modules lists | P4 (views) | Engine order (`sort_order`, then creation) |
-| "Copy link" in the cycle and module menus | P9 (with favourites) | The URL bar and the tab carry the link |
+| "Copy link" in the cycle and module menus | P9 (with favourites) | The URL bar carries the link |
 | Module shortcuts `s` (status) and `m` (members) | P9 | The side panel's inline controls only |
 | Activity row per detached item when a module is deleted | P5 (entity feeds) | `deleteModule` logs only the module row; `deleteCycle` already logs one per item |
 | Row action "Remove from cycle" / "Remove from module" in the scoped list | P8 (bulk bar) | An item leaves through its Cycle or Modules property (peek or full page); P3 adds no `remove_work_items_from_*` wrapper |
@@ -650,7 +675,8 @@ targets and `cycle:` / `module:` editor links.
 - `/projects/archives` is a static segment next to `[projectId]`, so Next routes it
   to its own page and the project layout does not wrap it. Three path parsers treat
   `archives` as a project id today (`Sidebar.tsx`, `useShortcuts.ts`, `CommandBar.tsx`;
-  mismatch 12); E4 replaces them with one guarded function.
+  mismatch 12); E4 replaces them with one guarded function, which lives in
+  `recents.ts` since the layout rework merge (`projectIdFromPath`).
 - Feature off (`project.cycles_enabled` / `modules_enabled`, read with `getProject`
   in the same `readTessera`): the list and detail routes of that feature
   (`/cycles`, `/cycles/[cycleId]`, `/modules`, `/modules/[moduleId]`) and its
@@ -676,13 +702,19 @@ targets and `cycle:` / `module:` editor links.
 - `today` (`ctx.today()`, server local date, decision 6) travels as a prop so
   "days left", the chart's today marker and the pace line render the same on the
   server and the client.
-- Tab labels (E4, `tab-registry.ts`): `/projects/<p>/cycles` → "<project> · Cycles",
-  `/projects/<p>/cycles/<c>` → "<project> · <cycle name>" (else "Cycle"),
+- Recent labels (E4; `recents.resolveRoute` since the layout rework merge, which
+  replaced the tab bar's `tab-registry.ts`): `/projects/<p>/cycles` → "<project> ·
+  Cycles", `/projects/<p>/cycles/<c>` → "<project> · <cycle name>" (else "Cycle"),
   `/projects/<p>/modules(/<m>)` likewise with "Modules" / "Module",
-  `/projects/<p>/archives(/…)` → "<project> · Archives", `/projects/archives` →
-  "Archived projects", `/cycles/<id>` → "Cycle" and `/modules/<id>` → "Module"
-  (both transient, like `/browse/`). Detail screens call
-  `registerEntityLabel(id, name)` (`src/components/shell/entity-labels.ts`) in an effect.
+  `/projects/<p>/archives/<tab>` → "<project> · Archived work items", "· Archived
+  cycles" or "· Archived modules" (one label per tab since the layout rework merge,
+  so three archives recents never read as one repeated entry; any other path under
+  it → "<project> · Archives"), `/projects/archives` → "Archived projects". These labels show on Home's "Recent" list and in Power K's
+  "Recent" group. Never recorded (`isTransientPath`): `/cycles/<id>` and
+  `/modules/<id>` (aliases that redirect, like `/browse/`), the project index
+  `/projects/<p>` and the archives index `/projects/<p>/archives`, which redirect
+  too. Detail screens call `registerEntityLabel(id, name)`
+  (`src/components/shell/entity-labels.ts`) in an effect.
 
 ### Lane A: engine additions
 
@@ -1422,8 +1454,11 @@ export type ProgressTarget = { type: "cycle"; cycle_id: string } | { type: "modu
   `projectTabs(project)`, maps icons in the component (`KanbanIcon`, `CycleIcon`,
   `ModuleIcon`, `ArchiveIcon`), passes `value={active?.key ?? ""}` (a route of a
   disabled feature selects no tab), and renders E3's `<ProjectMenu project />` at the
-  end of the header row and `<ProjectArchivedBanner project />` between the header
-  row and the tabs.
+  end of the header row. Since the layout rework merge the header row is the
+  project's `PanelHeader` (one 52px `PanelBar`: project token, name, a hairline, the
+  tabs; `ProjectMenu` at its end), and `<ProjectArchivedBanner project />` sits under
+  the `PanelHeader` in the `Layout` header slot (outside the scroller), not between
+  the row and the tabs.
 - Property controls and lane A's new refusals (an item may sit in an archived cycle
   or module, which the bundle leaves out). New pure module
   `src/components/work-items/properties/membership-rules.ts` (no directive, tested in
@@ -1454,28 +1489,33 @@ export type ProgressTarget = { type: "cycle"; cycle_id: string } | { type: "modu
     synthetic option; open value editable and completed cycles left out of the options;
     `kept` ids survive adding and removing an editable module; no kept ids → the value
     passes through unchanged.
-- Sidebar (`src/components/shell/Sidebar.tsx`): `projectNavItems(project)` returns
-  Work items, Cycles (`CycleIcon`, when `cycles_enabled`) and Modules (`ModuleIcon`,
-  when `modules_enabled`) with `/projects/<id>/<segment>` hrefs; "Projects" is also
-  selected on `/projects/archives`. `projectIdFromPath` moves into `tab-registry.ts`
-  as an export with the guard `/^\/projects\/(?!archives(?:\/|$))([^/]+)/`;
-  `Sidebar.tsx` (whose copy is exported today, with no importer elsewhere),
-  `useShortcuts.ts` (line 115) and `CommandBar.tsx` (line 104, used at line 147 for
-  the palette's project scope, which on `/projects/archives` would send
-  `scope=archives` to `/api/search` and fail its `IdSchema`) import it and drop their
-  local copies. `tests/ui/tab-registry.test.ts` gains cases: `/projects/archives` and
+- Sidebar (`src/components/shell/Sidebar.tsx`): since the layout rework merge the
+  projects are flat rows with no children (P3's `projectNavItems` is gone); a
+  project's Work items, Cycles, Modules and Archives are the tabs of its panel header
+  (above), which follow the feature toggles. "Projects" is also selected on
+  `/projects/archives` and below it (`isProjectsPage`). `projectIdFromPath` is one
+  export of `src/components/shell/recents.ts` (it was in `tab-registry.ts` until the
+  merge) with the guard `/^\/projects\/(?!archives(?:[/?#]|$))([^/?#]+)/`;
+  `Sidebar.tsx` (the current project's row), `useShortcuts.ts` and `CommandBar.tsx`
+  (the palette's project scope, which on `/projects/archives` would send
+  `scope=archives` to `/api/search` and fail its `IdSchema`) import it and keep no
+  local copies. `tests/ui/recents.test.ts` covers `/projects/archives` and
   `/projects/archives/` → `null`, `/projects/<id>/archives/cycles` → `<id>`,
   `/projects/<id>` → `<id>`.
 - `src/components/work-items/properties/date-format.ts` (new, no directive):
   `formatShortDate` moves here unchanged from `DateControl.tsx`, which imports it and
   re-exports it so current importers keep working. `cycle-format.ts` and
   `module-format.ts` (E1, E2) import it from here (mismatch 27).
-- `tab-registry.ts`: `TabIconKey` adds `"cycles" | "modules" | "archives"`;
-  `TabLookup` adds `entityLabel?: (id: string) => string | undefined`; `resolveTab`
-  adds the cases under "Routes and data loading" (`/projects/archives` checked before
-  the project lookup); `isTransientPath` also matches `/cycles/` and `/modules/`.
-  `TabBar.tsx`: `TAB_ICONS` gains `cycles: CycleIcon`, `modules: ModuleIcon`,
-  `archives: ArchiveIcon`, and the lookup passes `entityLabel: (id) => labels.get(id)`.
+- Recents (`src/components/shell/recents.ts`, which replaced `tab-registry.ts` and
+  `TabBar.tsx` in the layout rework merge): `RouteIconKey` adds `"cycles" | "cycle" |
+  "modules" | "module" | "archives"`; `RouteLookup` adds `entityLabel?: (id: string)
+  => string | undefined`; `resolveRoute` adds the cases under "Routes and data
+  loading" (`/projects/archives` checked before the project lookup);
+  `isTransientPath` also matches `/cycles/`, `/modules/`, the project index and the
+  archives index. `shell-icons.ts`: `ROUTE_ICONS` maps `cycles` and `cycle` to
+  `CycleIcon`, `modules` and `module` to `ModuleIcon`, `archives` to `ArchiveIcon`;
+  `recents-store.ts` passes `entityLabel: (id) => entityLabels.get(id)` (the store
+  `registerEntityLabel` fills).
 - Power K:
   - `shortcuts.ts`: remove `arrives` from `create.cycle`, `create.module`,
     `nav.cycles`, `nav.modules`, `nav.archives`; `create.view` and `nav.views` →
@@ -1536,7 +1576,7 @@ only, and each lane fills its own.
 | E1 cycles and charts | `src/app/(tessera)/projects/[projectId]/cycles/**`, `src/components/planning/{types,panel-prefs,burndown,cycle-format,chart-colors}.ts`, `src/components/planning/{ProgressPanel,BreakdownTabs,AddExistingItemsDialog,FeatureOffState,CyclesScreen,CycleRow,CycleMenu,ActiveCycleSummary,CycleDialog,CycleDetailScreen,CycleHeader,CycleSidePanel,TransferDialog,BurndownChart}.tsx`, `src/components/styles/planning.css`, `src/app/actions/cycles.ts`, `tests/ui/{burndown,cycle-format}.test.ts` | `tests/themes/catppuccin-contrast.test.ts` (one case) | `src/components/{work-items,shell,detail,editor}/**`, other routes, `palette.ts`, `catppuccinTheme.ts` |
 | E2 modules | `src/app/(tessera)/projects/[projectId]/modules/**`, `src/components/planning/{ModulesScreen,ModuleRow,ModuleMenu,ModuleDialog,ModuleDetailScreen,ModuleHeader,ModuleSidePanel,ModuleLinks,LeadControl}.tsx`, `src/components/planning/module-format.ts`, `src/components/styles/modules.css`, `src/app/actions/modules.ts`, `tests/ui/module-format.test.ts` | none | E1's planning files (stub them), `src/components/{work-items,shell,detail}/**` |
 | E3 archives | `src/app/(tessera)/projects/[projectId]/archives/**`, `src/app/(tessera)/projects/archives/page.tsx`, `src/components/planning/{ArchivesTabs,ArchivedWorkItems,ArchivedCycles,ArchivedModules,ArchivedProjects,ProjectArchive,DeleteProjectDialog}.tsx`, `src/components/planning/archive-rules.ts`, `src/components/styles/archives.css`, `tests/ui/archive-rules.test.ts` | `src/app/actions/work-items.ts` (`unarchiveWorkItemAction`), `src/app/actions/projects.ts` (three wrappers), `src/components/detail/{DetailHeader,WorkItemDetail}.tsx` (archive and restore), `src/app/(tessera)/projects/page.tsx` (link) | `ProjectFrame.tsx`, `src/components/shell/**`, `src/components/work-items/**` except the files named |
-| E4 integration | `src/app/(tessera)/projects/[projectId]/work-items/scoped-list.tsx`, `src/components/work-items/{project-tabs,quick-add}.ts`, `src/components/work-items/properties/{membership-rules,date-format}.ts`, `src/app/(tessera)/cycles/[cycleId]/page.tsx`, `src/app/(tessera)/modules/[moduleId]/page.tsx`, `tests/ui/{project-tabs,quick-add,property-controls}.test.ts` | `projects/[projectId]/work-items/page.tsx`, `src/components/work-items/{WorkItemsScreen,DisplayMenu,ListLayout,BoardLayout,ProjectFrame,types}.ts(x)`, `properties/{CycleControl,ModuleControl,DateControl}.tsx`, `src/components/shell/{Sidebar,tab-registry,TabBar,shortcuts,useShortcuts,CommandBar}.ts(x)`, `src/components/detail/{peek-url,activity-text,DescriptionEditor}.ts(x)`, `src/components/editor/links.ts`, `tests/ui/{tab-registry,shortcuts,peek-url}.test.ts`, `tests/editor/links.test.ts` | `src/components/planning/**` (renders `ProjectMenu` and `ProjectArchivedBanner` through stubs), `src/lib/tessera/**` |
+| E4 integration | `src/app/(tessera)/projects/[projectId]/work-items/scoped-list.tsx`, `src/components/work-items/{project-tabs,quick-add}.ts`, `src/components/work-items/properties/{membership-rules,date-format}.ts`, `src/app/(tessera)/cycles/[cycleId]/page.tsx`, `src/app/(tessera)/modules/[moduleId]/page.tsx`, `tests/ui/{project-tabs,quick-add,property-controls}.test.ts` | `projects/[projectId]/work-items/page.tsx`, `src/components/work-items/{WorkItemsScreen,DisplayMenu,ListLayout,BoardLayout,ProjectFrame,types}.ts(x)`, `properties/{CycleControl,ModuleControl,DateControl}.tsx`, `src/components/shell/{Sidebar,recents,recents-store,shell-icons,shortcuts,useShortcuts,CommandBar}.ts(x)` (P3 edited `tab-registry.ts` and `TabBar.tsx`, which the layout rework merge replaced with the three recents files), `src/components/detail/{peek-url,activity-text,DescriptionEditor}.ts(x)`, `src/components/editor/links.ts`, `tests/ui/{recents,shortcuts,peek-url}.test.ts` (`tab-registry.test.ts` before the merge), `tests/editor/links.test.ts` | `src/components/planning/**` (renders `ProjectMenu` and `ProjectArchivedBanner` through stubs), `src/lib/tessera/**` |
 
 Stubs expected: E2 and E3 stub E1's `planning/types.ts`, `ProgressPanel`,
 `AddExistingItemsDialog`, `FeatureOffState` and `cycle-format.ts` as they need them;
@@ -1581,12 +1621,12 @@ Before step 1:
 
 Steps in order:
 
-1. `/projects` → New project "P3 Acceptance" (`P3A`) → the frame shows the tabs Work
-   items, Cycles, Modules, Archives and the sidebar lists Work items, Cycles, Modules
-   under it. MCP `list_projects` lists P3 Acceptance, which proves the client and
-   the server share one database (if not, stop: the server runs on another
-   `TESSERA_DB_PATH`). MCP `update_project_features '{"project_id":"<id>","cycles_enabled":false}'`
-   → within 5 s the Cycles tab, the sidebar entry and the Archives › Cycles tab
+1. `/projects` → New project "P3 Acceptance" (`P3A`) → the project's panel header
+   shows the tabs Work items, Cycles, Modules, Archives, and the sidebar lists P3
+   Acceptance as one flat row with no children. MCP `list_projects` lists P3
+   Acceptance, which proves the client and the server share one database (if not,
+   stop: the server runs on another `TESSERA_DB_PATH`). MCP `update_project_features '{"project_id":"<id>","cycles_enabled":false}'`
+   → within 5 s the Cycles tab of the panel header and the Archives › Cycles tab
    disappear; `/projects/<id>/cycles`, `/projects/<id>/cycles/00000000-0000-4000-8000-000000000000`
    and `/projects/<id>/archives/cycles` show "Cycles are turned off for this
    project". MCP `update_project_features` with `cycles_enabled: true` → all three
@@ -1598,8 +1638,10 @@ Steps in order:
 3. Open Sprint 1 → quick-add "Alpha" (`P3A-2`) and "Beta" (`P3A-3`) → both show
    Sprint 1 in the cycle property. Display → group by State → the Done and Cancelled
    groups have no quick-add row, Backlog and Todo do; set grouping back. "Add
-   existing" → filter "Existing" → add `P3A-1` → three items; the panel shows 0 of 3
-   and the tab reads "P3 Acceptance · Sprint 1".
+   existing" → filter "Existing" → add `P3A-1` → three items; the panel shows 0 of 3.
+   The Recent entry for the cycle reads "P3 Acceptance · Sprint 1" with the cycle
+   icon, on Home or in Power K's "Recent" group (open `mod+k` from another page: the
+   group leaves out the page on screen).
 4. Open `P3A-2` in the peek (the progress panel hides), set it to Done, close the
    peek → the panel shows 1 of 3; the burndown has a dashed ideal line, an actual
    line ending today, a "Today" marker and the sentence under it names pending and
@@ -1609,7 +1651,7 @@ Steps in order:
 5. Edit Sprint 1 → end date yesterday → the header says Completed, quick-add and
    "Add existing" are gone, the read-only line shows; a `P3A-1` peek shows the cycle
    control read-only. MCP `update_work_item '{"work_item_id":"<P3A-3 id>","priority":"high"}'`
-   → the open tab shows High within 5 s.
+   → the open cycle page shows High within 5 s.
 6. Cycles → New cycle "Sprint 2" with dates today … today + 13 → the summary card
    now shows Sprint 2; Sprint 1 sits under Completed with a "2 open" badge and its
    menu shows Archive enabled and Delete disabled ("Archive it first").
@@ -1637,13 +1679,13 @@ Steps in order:
     option; MCP `get_work_item_by_key '{"key":"P3A-1"}'` still lists Launch's id in
     `module_ids`. Open Launch from Archives › Modules → the archived Banner, read-only
     controls, no "Add link", no quick-add → Restore → back in Modules.
-11. Work items → open `P3A-2` (Done) → More → Archive → "This work item is archived"
+11. Work items → open `P3A-2` (Done) → More actions → Archive → "This work item is archived"
     Banner; the list no longer shows it. Archives › Work items lists `P3A-2` → open
     it (peek with the Banner) → Restore → it is back in Work items. On `P3A-1` (open)
     the Archive item is disabled with its reason. Archive `P3A-2` again → Archives ›
-    Work items → its menu → Delete… → confirm → Toast "Deleted P3A-2" and the tab
-    shows "No archived work items".
-12. Project actions (frame header) → Archive project → confirm → `/projects/archives`
+    Work items → its menu → Delete… → confirm → Toast "Deleted P3A-2" and Archives ›
+    Work items shows "No archived work items".
+12. Project actions (the "…" at the end of the project's panel header) → Archive project → confirm → `/projects/archives`
     lists P3 Acceptance and the sidebar no longer shows it; open it → the archived
     Banner; Restore → the sidebar shows it again. Create project "P3 Throwaway"
     (`P3T`), Delete project… → the button enables only after typing `P3T` → it
@@ -1656,11 +1698,12 @@ Steps in order:
     dialog (`mod+/`) shows no "Arrives in P3" hint; Views say "Arrives in P4".
 14. Copy Sprint 2's id from the URL; open `P3A-1`, switch its description to source,
     add `[Sprint 2](cycle:<id>)`, switch back → a chip; click it → `/cycles/<id>`
-    redirects to the cycle and the tab bar keeps one tab for it (the alias tab is
-    transient).
+    redirects to the cycle, and the recents (Home, or Power K's "Recent" group opened
+    from another page) hold one entry for it, "P3 Acceptance · Sprint 2", and none
+    for `/cycles/<id>` (the alias is transient).
 15. Sibling navigations, by clicking only (no typed URLs, no reloads): Work items tab
     → Cycles tab → Sprint 2 row → Archives tab → Cycles (archives) → Modules
-    (archives) → Modules frame tab → Launch row → Work items tab. Each screen
+    (archives) → Modules tab of the panel header → Launch row → Work items tab. Each screen
     renders, and no Next dev overlay, error or instant-navigation insight appears.
 16. The dev console shows no errors and no hydration warnings on any screen visited
     in steps 1–15 (only the two known dev-only entries under "Carried items" are
@@ -1691,8 +1734,8 @@ steps 7, 8, 10 and 11).
 | 8 | `get_cycle_progress` description promises "the ideal line"; `get_module_progress` "the completion percentage" | Neither is returned | Lane A rewrites the descriptions (tools.md) |
 | 9 | Public product docs show a new module starting in Backlog | Decision 5 and `createModule` default to `planned` | Keep `planned` |
 | 10 | Recharts declares `react-is` as a peer | The hoisted `react-is` is 16.13.1 (via `prop-types`); React 19 elements need `react-is` 19 to be recognised | E1 adds `react-is@19.3.0` as an exact direct dependency |
-| 11 | P2b tests pin the pre-P3 behaviour | `tests/ui/shortcuts.test.ts` 441–446 ("Arrives in P3"), `tests/ui/tab-registry.test.ts` 77–79 (cycles icon `"page"`), `tests/editor/links.test.ts` 76–78 (cycle and module routes `null`) | E4 updates them |
-| 12 | `/projects/archives` is a static route | Three copies of `projectIdFromPath` match `archives` as a project id: `Sidebar.tsx` 49, `useShortcuts.ts` 115 and `CommandBar.tsx` 104 (the palette scope at 147, which would send `scope=archives` to `/api/search`) | One guarded export in `tab-registry.ts`, imported by all three (E4); `tests/ui/tab-registry.test.ts` covers `/projects/archives` → `null` |
+| 11 | P2b tests pin the pre-P3 behaviour | `tests/ui/shortcuts.test.ts` 441–446 ("Arrives in P3"), `tests/ui/tab-registry.test.ts` 77–79 (cycles icon `"page"`), `tests/editor/links.test.ts` 76–78 (cycle and module routes `null`) | E4 updates them. Since the layout rework merge the route cases live in `tests/ui/recents.test.ts` (`/projects/<id>/cycles` has the `"cycles"` icon; the generic section case uses `/settings`) |
+| 12 | `/projects/archives` is a static route | Three copies of `projectIdFromPath` match `archives` as a project id: `Sidebar.tsx` 49, `useShortcuts.ts` 115 and `CommandBar.tsx` 104 (the palette scope at 147, which would send `scope=archives` to `/api/search`) | One guarded export, `recents.projectIdFromPath` (in `tab-registry.ts` until the layout rework merge), imported by all three (E4); `tests/ui/recents.test.ts` covers `/projects/archives` → `null` |
 | 13 | Astryx `Timestamp` formats dates | A `YYYY-MM-DD` string parses as UTC midnight, a day early west of UTC and a hydration risk | `formatShortDate` for dates, `RelativeTime` for timestamps |
 | 14 | This contract names Recharts props | Not verifiable before install | E1 checks `responsive`, `accessibilityLayer`, `Line` (`connectNulls`, `strokeDasharray`, `isAnimationActive`, `dot`), `ReferenceLine` (`x`, `y`, `label` as an object with `value`, `fill`, `position`), `XAxis` / `YAxis` (`allowDecimals`, `tick`, `stroke`; the `CartesianAxis` default stroke `#666` they override), `CartesianGrid vertical`, `Tooltip` (`contentStyle`, `labelStyle`, `itemStyle`, `cursor`, `isAnimationActive`) in `node_modules/recharts/types/` and records any deviation in its hand-off |
 | 15 | `DateRangeInput` constraints could take ISO strings | `dateConstraints: ReadonlyArray<(date: Date) => boolean>` (`dist/DateRangeInput/DateRangeInput.d.ts`) | Convert with local date getters |
@@ -1734,12 +1777,15 @@ Notes from the P3 integration run; the hand-off is in docs/PLAN-STATUS.md "P3
 - No page needed `instant = false`: the project layout keeps its P2a opt-out
   (row 26), and acceptance step 15 walked the sibling navigations with no Next
   overlay, error or instant-navigation insight.
-- Tabs: the project index `/projects/<id>` is transient like the alias routes
-  (`tab-registry.isTransientPath`). Deleting a cycle, a module or a project closes
-  its tab and every tab under it (`tab-registry.dropTabsUnder`, called through
-  `TabBar.forgetTabsUnder` by `CycleMenu`, `ModuleMenu`, `ArchivedCycles`,
-  `ArchivedModules` and `DeleteProjectDialog`). Tab labels of an archived project
-  keep its name: the tab bar reads active and archived projects.
+- Recents (P3 built this for the tab bar; the layout rework merge moved it to
+  recents): the project index `/projects/<id>` is transient like the alias routes
+  (`recents.isTransientPath`), so it never becomes a recent. Deleting a cycle, a
+  module or a project forgets its recent and every recent under it
+  (`recents-store.forgetRecentsUnder` over the pure `recents.removeRecentsUnder`,
+  called by `CycleMenu`, `ModuleMenu`, `ArchivedCycles`, `ArchivedModules` and
+  `DeleteProjectDialog`; P3's `TabBar.forgetTabsUnder` and
+  `tab-registry.dropTabsUnder` are gone). Recent labels of an archived project keep
+  its name: the recents tracker reads active and archived projects.
 - `CycleHeader`: a completed cycle reads "Completed cycles are read-only." and adds
   the transfer hint only while it has open items.
 - `ModuleControl`: an item whose only module is archived shows "No active modules
@@ -1823,7 +1869,9 @@ docs/PLAN-STATUS.md "Review fixes, logic and tests".
   after the delete. It removes `tessera.lastProject.v1` when the key names the
   deleted project, so `g i`, `g c`, `g m`, `n c`, `n m` and `c` off-project say
   "Open a project first" instead of opening a not-found route. Archiving keeps the
-  pointer.
+  pointer: an archived project's routes still render, read-only under the Banner,
+  and the layout rework merge kept that (see "As built (layout rework merge,
+  2026-10-11)").
 - Dialog names. Astryx `Dialog` takes its name from the `DialogHeader` title only
   when the `<dialog>` element attaches. A dialog whose form mounts only while
   `isOpen` is true therefore stayed unnamed. Each such dialog passes an `aria-label`
@@ -1845,3 +1893,108 @@ docs/PLAN-STATUS.md "Review fixes, logic and tests".
   unknown props on to the `<a>`. `src/app/providers.tsx` uses the documented
   `<LinkProvider component={Link}>` setup. Dropping `to` would need an adapter the
   Astryx docs do not describe, so it waits for a decision or an upstream fix.
+
+### As built (layout rework merge, 2026-10-11)
+
+The layout rework (`claude/app-visual-rework-250c6c`; the "Shell", "Theme" and
+"Work items screen" sections above) was merged into `main` over P3. Its shell and
+look stay as designed, and every P3 behaviour was ported onto them. Where the two
+contradicted, the rework decided look and layout and P3 decided cycles, modules
+and archives behaviour. The hand-off is in docs/PLAN-STATUS.md "Layout rework
+merge (2026-10-11)". Port rules:
+
+- No tab bar. `TabBar.tsx`, `tab-registry.ts` and `tests/ui/tab-registry.test.ts`
+  are deleted. The tab-only gestures (`alt+w`, middle-click close, the tab context
+  menu) are gone for good. What P3 gave the tabs now serves the recents (Home's
+  "Recent" list and Power K's "Recent" group):
+  - Labels and icons: `recents.resolveRoute` has P3's cases ("Routes and data
+    loading": the cycle and module lists, their details with the registered name,
+    "<project> · Archived work items / cycles / modules" (one label per
+    archives tab; P3's single "<project> · Archives" repeated three times in
+    Home's list), "Archived projects", the `/cycles/<id>` and
+    `/modules/<id>` aliases). `RouteIconKey` adds `cycles`, `cycle`, `modules`,
+    `module` and `archives`, drawn by `shell-icons.ROUTE_ICONS` (`CycleIcon`,
+    `ModuleIcon`, `ArchiveIcon`). `recents-store` resolves cycle and module names
+    through `entityLabel` from the `registerEntityLabel` store.
+  - Path guard: `recents.projectIdFromPath` (`/^\/projects\/(?!archives(?:[/?#]|$))([^/?#]+)/`)
+    never reads `/projects/archives` as a project, so the sidebar, `useShortcuts`
+    and `CommandBar` (all three import it) never scope to "archives".
+    `isTransientPath` keeps the aliases, the project index `/projects/<p>` and the
+    archives index `/projects/<p>/archives` out of the list; `/projects/archives`
+    is a page of its own and is recorded.
+  - Forget on delete and archive: `recents-store.forgetRecentsUnder` (over the pure
+    `recents.removeRecentsUnder`) drops a route and the routes under it. `CycleMenu`
+    and `ArchivedCycles` call it after a cycle delete
+    (`/projects/<p>/cycles/<id>`), `ModuleMenu` and `ArchivedModules` after a module
+    delete, `DeleteProjectDialog` after a project delete and `ProjectMenu` after a
+    project archive (`/projects/<id>`). A work item delete from the detail forgets
+    both of its routes (the rework). An archived cycle, module or work item keeps
+    its recents: its page still resolves, with the archived Banner.
+  - Names: `(tessera)/layout.tsx` reads active and archived projects for
+    `RecentsTracker`, so recents of an archived project keep its name.
+  - Peeks: `PeekHost` records an item once its peek has loaded (the rework), so
+    peeks on a cycle, a module and Archives › Work items become recents of the
+    item's full page, like peeks on the work items list.
+- Last project: P3's rule stands (P3 decides archives behaviour). Archiving a
+  project keeps `tessera.lastProject.v1`, and `ProjectProvider` writes the pointer
+  on every project route, archived or not, because an archived project's routes
+  still render (read-only, with the Banner; the engine refuses writes with
+  `ARCHIVED`). Only a delete clears it, through `forgetLastProject` in
+  `DeleteProjectDialog`, when it names the deleted project. A draft of the merge
+  that also cleared it on archive was dropped. Archiving does forget the project's
+  recents (`forgetRecentsUnder`), since the project leaves the sidebar.
+- Panel headers. P3's screens moved from their own header rows (20px inset) onto
+  the rework's `PanelHeader` and `PanelBar` (16px inline padding), and their list
+  rows line up with that 16px inset:
+  - Project frame: one 52px `PanelBar` (project token, name, a hairline, the
+    `projectTabs` tabs Work items, Cycles, Modules, Archives) with `ProjectMenu`
+    ("Project actions") at its end; `ProjectArchivedBanner` sits under the
+    `PanelHeader`, outside the scroller. The sidebar lists projects as flat rows;
+    "Projects" is selected on `/projects/archives` too.
+  - Cycles and Modules lists: a full-width `PanelPage` whose 44px sub-header holds
+    the "Cycles" or "Modules" heading (`Heading level={4} accessibilityLevel={2}`;
+    the frame's title is the `h1`) with the count `Badge`, and "New cycle" or "New
+    module" at its end.
+  - Cycle and module detail: a 44px sub-header (`PanelBar canWrap`) with the name,
+    the status and, for cycles, the range and days left at its start, and "Add
+    existing", the panel toggle and the menu at its end. The archived Banner and
+    the completed cycle's read-only line sit in padded rows under it. The scoped
+    work items list below brings its own sub-header ("Work items", the count, the
+    layout switch, Display, "New work item" while `canCreate`) and filters row;
+    the layout switch and the display menu save to the cycle or module settings
+    scope (decision 23).
+  - Archives: a `PanelHeader` "Archives" whose sub-header holds `ArchivesTabs`
+    (Work items, Cycles, Modules); the lists scroll under it. The strip is pulled
+    in by a tab's own 12px (`archives.css`), so the first tab's text sits on the
+    16px inset like the titles above and below it.
+  - `/projects/archives`: a reading `PanelPage` titled "Archived projects".
+  - `/projects`: "Archived projects" (`ArchivedProjectsLink`) and "New project" at
+    the end of the Projects panel header.
+- Detail: `DetailHeader` keeps the rework's pinned bar (breadcrumbs, Copy link,
+  "More actions", "Open as", Close). Its "More actions" menu reads Make a copy,
+  Copy ID, then Restore (archived) or Archive (`isDisabled` with the reason while
+  the state group is open), then Delete….
+- Power K: cycle and module hits open their project route, and its "Recent" group
+  leaves out the page on screen and its peek (the rework).
+- The two Astryx `ContextMenu` dev warnings listed under "Carried items" (an
+  unknown `moveTo` prop; invalid `start` and `cancel` props on a `div`) still appear
+  after the merge. They come from the Astryx `Table` (`tableContextMenu`), so they
+  show once the work items Table layout renders; they did not come from the tab
+  bar. They stay the only tolerated console entries.
+- Narrow panels (browser check at 375 and at 1100 with a side peek):
+  - Project frame: the token and the name no longer shrink
+    (`tessera-project-frame-token`, `tessera-project-frame-title`, the name capped
+    at 40% of the row, `shell.css`); the four tabs scroll in the room left. On a
+    phone the token had lost its label and the name read "P3 A…".
+  - Side panels: the side peek (`tessera-peek-panel`, `detail.css`) and the cycle
+    and module side panels (`tessera-planning-side-panel`, `planning.css`) are
+    capped at `max-width: 100%`. On a phone the peek's stored width (360–720px)
+    pushed More actions, Open as and Close off the screen, and the 360px planning
+    panels overflowed by 3px.
+  - List rows: the title's minimum share is 14rem (was 16rem), so in the 352px list
+    beside a 480px peek at 1100px the title stays beside its key and only the
+    properties wrap.
+- Fix round 2's "Work items toolbar" note describes P3's own toolbar row. The
+  rework's sub-header (`PanelBar canWrap`) and filters row replace it: the actions
+  drop under the title when both do not fit, and the filter field takes its own
+  row.

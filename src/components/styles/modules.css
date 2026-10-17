@@ -4,12 +4,6 @@
  * Theme section of docs/contracts/ui.md.
  */
 
-/* List screen: fills the frame's content area like the work items screen. */
-.tessera-modules-screen {
-  width: 100%;
-  min-height: 100%;
-}
-
 /* Rows: when the name would get less than its minimum, the end content wraps onto a second line under it. */
 .tessera-modules-row {
   min-width: 0;
@@ -36,16 +30,6 @@
 /* Structural width of the row progress bar. */
 .tessera-modules-row-bar {
   width: 96px;
-}
-
-/* Detail header: the title group takes the free width and truncates; the actions keep their size. */
-.tessera-modules-header {
-  justify-content: space-between;
-}
-
-.tessera-modules-header-title {
-  flex: 1;
-  min-width: 0;
 }
 
 /* The module description in the side panel keeps its line breaks (plain Markdown source). */

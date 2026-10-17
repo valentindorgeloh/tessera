@@ -3,9 +3,11 @@
  * Render smoke test of the detail panel (src/components/detail) under jsdom:
  * WorkItemDetail mounts inside ProjectProvider with fake data for every host,
  * shows the header, title, property wrappers, sub-items, links and activity,
- * registers the command context and the tab label, and turns the title into
- * an input on click. The Server Action wrappers and the router are mocked so
- * no database or Next runtime is involved.
+ * registers the command context and the recents label, turns the title into
+ * an input on click and lists the More menu (copy, copy ID, restore or
+ * archive, delete). The peek host records a loaded item in the recents. The
+ * Server Action wrappers and the router are mocked so no database or Next
+ * runtime is involved.
  */
 import { Fragment, act, createElement, useEffect, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -22,6 +24,8 @@ vi.mock("@/app/actions/work-items", () => ({
   updateWorkItemDescriptionAction: vi.fn(async () => ({ ok: true as const, data: { description_version: 2 }, cursor: 1 })),
   moveWorkItemAction: action(),
   deleteWorkItemAction: action(),
+  archiveWorkItemAction: action(),
+  unarchiveWorkItemAction: action(),
   setLabelsAction: action(),
   setAssigneesAction: action(),
   setModulesAction: action(),
@@ -64,9 +68,10 @@ const { ProjectProvider } = await import("@/components/work-items/project-provid
 const { WorkItemDetail } = await import("@/components/detail");
 const { useCommandContext } = await import("@/components/shell/command-context");
 const { useEntityLabels } = await import("@/components/shell/entity-labels");
-const { updateWorkItemAction, setAssigneesAction, setLabelsAction } = await import("@/app/actions/work-items");
+const { updateWorkItemAction, setAssigneesAction, setLabelsAction, archiveWorkItemAction, unarchiveWorkItemAction } = await import("@/app/actions/work-items");
 const { unsubscribeWorkItemAction } = await import("@/app/actions/detail");
 const { useDetailActions } = await import("@/components/detail");
+const { ARCHIVE_OPEN_ITEM_REASON } = await import("@/components/planning/archive-rules");
 type DetailActions = import("@/components/detail").DetailActions;
 
 const PROJECT = "11111111-1111-7111-8111-111111111111";
@@ -76,6 +81,7 @@ const PARENT = "44444444-4444-7444-8444-444444444444";
 const USER = "55555555-5555-7555-8555-555555555555";
 const STATE_BACKLOG = "66666666-6666-7666-8666-666666666666";
 const STATE_STARTED = "77777777-7777-7777-8777-777777777777";
+const STATE_DONE = "99999999-9999-7999-8999-999999999999";
 const LABEL = "88888888-8888-7888-8888-888888888888";
 const NOW = "2026-10-11T10:00:00.000Z";
 
@@ -291,14 +297,23 @@ describe("WorkItemDetail", () => {
     expect(el.querySelector(`a[href="https://docs.example.com/spec"][target="_blank"]`)).not.toBeNull();
   });
 
-  it("shows the close control for the peek only when a close handler exists, and the mode switcher", async () => {
+  it("shows the close control for the peek only when a close handler exists, and the mode menu", async () => {
     const el = await render(tree("peek"));
     expect(el.querySelector('button[aria-label="Close"]')).not.toBeNull();
-    expect(el.querySelector('button[aria-label="Full page"]')).not.toBeNull();
-    expect(el.querySelector('button[aria-label="Side panel"]')?.getAttribute("aria-pressed")).toBe("true");
+    const trigger = el.querySelector<HTMLButtonElement>('button[aria-label="Open as"]');
+    expect(trigger?.getAttribute("aria-haspopup")).toBe("menu");
+    await act(async () => {
+      trigger?.click();
+    });
+    const modes = [...document.querySelectorAll('[role="menuitemradio"]')].map((row) => [row.textContent?.trim(), row.getAttribute("aria-checked")]);
+    expect(modes).toEqual([
+      ["Side panel", "true"],
+      ["Modal", "false"],
+      ["Full page", "false"],
+    ]);
   });
 
-  it("registers the command context and the tab label", async () => {
+  it("registers the command context and the recents label", async () => {
     const el = await render(tree("page", createElement(Probe)));
     const probe = el.querySelector('[data-testid="probe"]');
     expect(probe?.getAttribute("data-item")).toBe("WEB-1");
@@ -351,6 +366,58 @@ describe("WorkItemDetail", () => {
     container?.remove();
     const peek = await render(tree("peek"));
     expect(peek.querySelector("h2.tessera-detail-title")?.textContent).toBe("Set up hosting");
+  });
+
+  /** Opens the header's More menu and returns its rows; the sub-item and link menus have labels of their own. */
+  async function moreMenuRows(el: HTMLElement) {
+    await act(async () => {
+      el.querySelector<HTMLButtonElement>('button[aria-label="More actions"]')?.click();
+    });
+    return [...document.querySelectorAll<HTMLElement>('[role="menu"][aria-label="More actions"] [role="menuitem"]')];
+  }
+
+  /** A row's label: its first text-only span (the description, when there is one, follows it). */
+  function rowLabel(row: HTMLElement): string {
+    const label = [...row.querySelectorAll("span")].find((span) => span.children.length === 0 && (span.textContent ?? "").trim() !== "");
+    return label?.textContent?.trim() ?? "";
+  }
+
+  it("lists the More menu as copy, copy ID, archive (disabled with the reason on an open item) and delete", async () => {
+    const el = await render(tree("page"));
+    const rows = await moreMenuRows(el);
+    expect(rows.map(rowLabel)).toEqual(["Make a copy", "Copy ID (WEB-1)", "Archive", "Delete…"]);
+    const archive = rows[2];
+    expect(archive?.getAttribute("aria-disabled")).toBe("true");
+    expect(archive?.textContent).toContain(ARCHIVE_OPEN_ITEM_REASON);
+    expect(el.textContent).not.toContain("This work item is archived");
+  });
+
+  it("archives a completed item from the More menu", async () => {
+    const done: State = { ...states[1], id: STATE_DONE, name: "Done", name_key: "done", state_group: "completed", sort_order: "a2" };
+    const completed = { ...data, item: { ...item, state_id: STATE_DONE } };
+    const providerProps = { bundle: { ...bundle, states: [...states, done] } } as ComponentProps<typeof ProjectProvider>;
+    vi.mocked(archiveWorkItemAction).mockClear();
+    const el = await render(createElement(ProjectProvider, providerProps, createElement(WorkItemDetail, { data: completed, host: "page", onOpenItem: vi.fn() })));
+    const archive = (await moreMenuRows(el)).find((row) => rowLabel(row) === "Archive");
+    expect(archive?.getAttribute("aria-disabled")).not.toBe("true");
+    await act(async () => {
+      archive?.click();
+    });
+    expect(archiveWorkItemAction).toHaveBeenCalledWith({ work_item_id: ITEM });
+  });
+
+  it("shows an archived item's Banner and offers Restore instead of copy and archive", async () => {
+    const archived = { ...data, item: { ...item, archived_at: NOW } };
+    const providerProps = { bundle } as ComponentProps<typeof ProjectProvider>;
+    vi.mocked(unarchiveWorkItemAction).mockClear();
+    const el = await render(createElement(ProjectProvider, providerProps, createElement(WorkItemDetail, { data: archived, host: "page", onOpenItem: vi.fn() })));
+    expect(el.textContent).toContain("This work item is archived");
+    const rows = await moreMenuRows(el);
+    expect(rows.map(rowLabel)).toEqual(["Copy ID (WEB-1)", "Restore", "Delete…"]);
+    await act(async () => {
+      rows[1]?.click();
+    });
+    expect(unarchiveWorkItemAction).toHaveBeenCalledWith({ work_item_id: ITEM });
   });
 
   it("shows an archived item's sub-items and links without any write control", async () => {
@@ -594,29 +661,35 @@ describe("PeekHost", () => {
     const detail = document.querySelector(".tessera-detail");
     expect(detail?.classList.contains("tessera-detail--peek")).toBe(true);
     expect(detail?.closest('[role="complementary"]')).not.toBeNull();
+    expect(detail?.closest(".tessera-peek-card")).not.toBeNull();
     const nextFrame = () => new Promise((resolve) => window.requestAnimationFrame(() => resolve(null)));
-    const modal = document.querySelector<HTMLButtonElement>('button[aria-label="Modal"]');
-    await act(async () => {
-      modal?.focus();
-      modal?.click();
-      await nextFrame();
-    });
+    // Picks a mode from the header's "Open as" menu, as a pointer user would.
+    const chooseMode = async (label: string) => {
+      const trigger = document.querySelector<HTMLButtonElement>('button[aria-label="Open as"]');
+      await act(async () => {
+        trigger?.focus();
+        trigger?.click();
+      });
+      const row = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find((element) => element.textContent?.trim() === label);
+      await act(async () => {
+        row?.focus();
+        row?.click();
+        await nextFrame();
+      });
+      return trigger;
+    };
+    const modalTrigger = await chooseMode("Modal");
     // Same element: React kept the instance (a remount would build a new one), only the chrome around it changed.
     expect(document.querySelector(".tessera-detail")).toBe(detail);
     expect(detail?.classList.contains("tessera-detail--modal")).toBe(true);
     expect(detail?.closest("dialog")).not.toBeNull();
-    // Focus stays on the button that switched the mode.
-    expect(document.activeElement).toBe(modal);
-    const side = document.querySelector<HTMLButtonElement>('button[aria-label="Side panel"]');
-    await act(async () => {
-      side?.focus();
-      side?.click();
-      await nextFrame();
-    });
+    // Focus goes back to the menu's trigger, which moved with the detail.
+    expect(document.activeElement).toBe(modalTrigger);
+    const sideTrigger = await chooseMode("Side panel");
     expect(document.querySelector(".tessera-detail")).toBe(detail);
     expect(detail?.closest("dialog")).toBeNull();
     expect(detail?.closest('[role="complementary"]')).not.toBeNull();
-    expect(document.activeElement).toBe(side);
+    expect(document.activeElement).toBe(sideTrigger);
   });
 
   it("closes with Back when the list pushed the peek entry, and with a replace otherwise", async () => {
@@ -673,6 +746,26 @@ describe("PeekHost", () => {
     });
     expect(document.querySelector('dialog[aria-label="Work item"]')).toBe(dialog);
     expect(dialog?.open).toBe(true);
+  });
+
+  it("records a loaded peek on a list of its project as a visit to the item's page, ahead of the list", async () => {
+    const { RECENTS_STORAGE_KEY } = await import("@/components/shell/recents");
+    window.localStorage.removeItem(RECENTS_STORAGE_KEY);
+    const cycleList = `/projects/${PROJECT}/cycles/${CHILD}`;
+    nav.pathname = cycleList;
+    nav.search = `peek=${ITEM}`;
+    await render(await host());
+    const stored: unknown = JSON.parse(window.localStorage.getItem(RECENTS_STORAGE_KEY) ?? "[]");
+    expect(stored).toEqual([`/projects/${PROJECT}/work-items/${ITEM}`, cycleList]);
+  });
+
+  it("records nothing for a peek outside its project's lists or one that shows not found", async () => {
+    const { RECENTS_STORAGE_KEY } = await import("@/components/shell/recents");
+    window.localStorage.removeItem(RECENTS_STORAGE_KEY);
+    // LIST belongs to another project id than the host's.
+    nav.search = `peek=${ITEM}`;
+    await render(await host());
+    expect(window.localStorage.getItem(RECENTS_STORAGE_KEY)).toBeNull();
   });
 
   it("renders a skeleton on the server and the detail after hydration, without a mismatch", async () => {

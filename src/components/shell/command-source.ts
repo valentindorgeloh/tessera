@@ -6,8 +6,9 @@
  * (tests/ui/shortcuts.test.ts).
  *
  * Item ids: hits are `hit:<type>:<id>`, commands are `CommandId`s (the
- * `ShortcutId`s plus the palette-only `theme.<scheme>` commands) and the
- * open-item command is `open:<workItemId>`. Every item carries its section in
+ * `ShortcutId`s plus the palette-only `theme.<scheme>` commands), the
+ * open-item command is `open:<workItemId>` and a recent route is
+ * `recent:<path>`. Every item carries its section in
  * `auxiliaryData.group`; the palette groups by it in insertion order, so the
  * source sorts by `SECTION_ORDER` before returning.
  */
@@ -15,6 +16,7 @@ import type { SearchSource, SearchableItem } from "@astryxdesign/core/Typeahead"
 import type { SearchHit, SearchType } from "@/lib/tessera/types";
 import { COLOR_SCHEME_LABELS, isColorScheme, type ColorScheme } from "./color-scheme";
 import type { CommandContextValue } from "./command-context";
+import type { LabelledRecent, RouteIconKey } from "./recents";
 import { SHORTCUTS, type CommandId, type ShortcutDef, type ShortcutId } from "./shortcuts";
 
 /** Keystrokes closer than this share one request. */
@@ -22,7 +24,7 @@ export const SEARCH_DEBOUNCE_MS = 150;
 export const SEARCH_LIMIT = 20;
 export const SEARCH_ENDPOINT = "/api/search";
 
-export const SECTION_ORDER = ["Work items", "Projects", "Cycles", "Modules", "Pages", "Actions", "Create", "Navigate", "Settings"] as const;
+export const SECTION_ORDER = ["Recent", "Work items", "Projects", "Cycles", "Modules", "Pages", "Actions", "Create", "Navigate", "Settings"] as const;
 
 export type CommandSection = (typeof SECTION_ORDER)[number];
 
@@ -41,16 +43,29 @@ export type CommandAux = {
   kind: "command";
   /** The shortcut's keys, shown as Kbd. */
   keys?: string;
-  /** "Arrives in P3" for targets that do not exist yet, or the shortcut's note. */
+  /** "Arrives in P4" for targets that do not exist yet, or the shortcut's note. */
   hint?: string;
   /** Extra words the search matches besides the label. */
   keywords: readonly string[];
 };
 
-export type CommandSearchItem = SearchableItem<HitAux | CommandAux>;
+/** A recently visited route (./recents.ts), listed while the query is empty. */
+export type RecentAux = { group: "Recent"; kind: "recent"; path: string; icon: RouteIconKey };
+
+export type CommandSearchItem = SearchableItem<HitAux | CommandAux | RecentAux>;
 
 export const HIT_PREFIX = "hit:";
 export const OPEN_ITEM_PREFIX = "open:";
+export const RECENT_PREFIX = "recent:";
+
+/** A recent route as a palette item. */
+export function recentToItem(recent: LabelledRecent): CommandSearchItem {
+  return {
+    id: `${RECENT_PREFIX}${recent.path}`,
+    label: recent.label,
+    auxiliaryData: { group: "Recent", kind: "recent", path: recent.path, icon: recent.icon },
+  };
+}
 
 export function hitItemId(hit: Pick<SearchHit, "type" | "id">): string {
   return `${HIT_PREFIX}${hit.type}:${hit.id}`;
@@ -135,7 +150,7 @@ export function paletteSection(def: ShortcutDef): CommandSection | null {
   }
 }
 
-/** "Arrives in P3" for a target that does not exist yet, else the shortcut's note, else nothing. */
+/** "Arrives in P4" for a target that does not exist yet, else the shortcut's note, else nothing. */
 export function shortcutHint(def: ShortcutDef): string | undefined {
   return def.arrives ? `Arrives in ${def.arrives}` : def.note;
 }
@@ -158,7 +173,7 @@ function themeCommand(scheme: ColorScheme): CommandSearchItem {
 }
 
 /**
- * The palette-only theme commands, labelled like the sidebar's colour scheme
+ * The palette-only theme commands, labelled like the top bar's colour scheme
  * menu. They have no key binding and are not entries in `SHORTCUTS`.
  */
 export const THEME_COMMANDS: readonly CommandSearchItem[] = (Object.keys(COLOR_SCHEME_LABELS) as ColorScheme[]).map(themeCommand);
@@ -287,6 +302,8 @@ export type FetchLike = (url: string, init: { signal: AbortSignal; cache: "no-st
 export type CommandSourceOptions = {
   /** The static commands for the current context (see `buildCommands`). */
   commands: () => readonly CommandSearchItem[];
+  /** The "Recent" group (`recentToItem`), shown above the commands while the query is empty. */
+  recents?: () => readonly CommandSearchItem[];
   /** The project id that scopes the search, or null for all projects. */
   scope: () => string | null;
   fetchImpl?: FetchLike;
@@ -327,7 +344,8 @@ async function fetchHits(fetchImpl: FetchLike, url: string, signal: AbortSignal)
 }
 
 /**
- * The palette's search source. `bootstrap()` returns the static commands;
+ * The palette's search source. `bootstrap()` and an empty `search("")` return
+ * the recents followed by the static commands;
  * `search(q)` aborts the previous request, waits `debounceMs`, fetches
  * `/api/search` and returns the hits followed by the commands whose label or
  * keywords contain `q`. A superseded or cancelled search resolves to an empty
@@ -344,9 +362,11 @@ export function createCommandSource(options: CommandSourceOptions): CommandSourc
     controller = null;
   };
 
+  const idle = () => sortBySection([...(options.recents?.() ?? []), ...options.commands()]);
+
   return {
     bootstrap() {
-      return sortBySection(options.commands());
+      return idle();
     },
     cancel,
     async search(query) {
@@ -354,8 +374,8 @@ export function createCommandSource(options: CommandSourceOptions): CommandSourc
       const current = new AbortController();
       controller = current;
       const q = query.trim();
+      if (q === "") return idle();
       const commands = sortBySection(options.commands().filter((item) => matchesCommand(item, q)));
-      if (q === "") return commands;
       const settled = await wait(debounceMs, current.signal);
       if (!settled) return [];
       const hits = await fetchHits(fetchImpl, searchUrl(q, options.scope(), limit), current.signal);

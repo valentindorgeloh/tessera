@@ -68,7 +68,7 @@ import {
   Trash,
   User,
   Users,
-  // Colour scheme switcher (shell footer).
+  // Colour scheme menu (top bar account menu).
   Monitor,
   Moon,
   Sun,
@@ -103,6 +103,14 @@ import {
   ChartLineDown,
   ChartLineUp,
   Timer,
+  // Shell frame: top bar help and the recents list.
+  ClockCounterClockwise,
+  Question,
+  // Detail rework: property rail labels and activity timeline tiles.
+  CircleHalf,
+  TextAlignLeft,
+  TreeStructure,
+  Triangle,
   type Icon as PhosphorIcon,
   type IconProps,
 } from "@phosphor-icons/react";
@@ -133,7 +141,7 @@ export const PlusIcon = duotoneIcon(Plus);
 export const FolderPlusIcon = duotoneIcon(FolderPlus);
 export const SearchIcon = duotoneIcon(MagnifyingGlass);
 
-// Tessera shell (lane B): navigation, tab bar and boundary glyphs.
+// Tessera shell (lane B): navigation, recents and boundary glyphs.
 export const HouseIcon = duotoneIcon(House);
 export const KanbanIcon = duotoneIcon(Kanban);
 export const ListBulletsIcon = duotoneIcon(ListBullets);
@@ -237,6 +245,18 @@ export const CalendarDotsIcon = duotoneIcon(CalendarDots);
 export const RestoreIcon = duotoneIcon(ArrowCounterClockwise);
 export const TimerIcon = duotoneIcon(Timer);
 export const TransferIcon = duotoneIcon(ArrowsLeftRight);
+
+// Shell frame: top bar help and the recents list.
+export const QuestionIcon = duotoneIcon(Question);
+export const RecentIcon = duotoneIcon(ClockCounterClockwise);
+
+// Detail rework: property rail labels and activity timeline tiles.
+export const StateIcon = duotoneIcon(CircleHalf);
+export const ParentIcon = duotoneIcon(TreeStructure);
+export const EstimateIcon = duotoneIcon(Triangle);
+export const ClockIcon = duotoneIcon(Clock);
+export const DescriptionIcon = duotoneIcon(TextAlignLeft);
+export const ReorderIcon = duotoneIcon(ArrowsDownUp);
 
 /**
  * Icons a project logo may use (`Logo.icon` holds the Phosphor name). The

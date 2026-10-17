@@ -1,23 +1,25 @@
 "use client";
 
 /**
- * Header of the module detail (docs/contracts/ui.md "Modules (E2)"): the
- * name, the status as an inline selector that saves on change, "Add
- * existing" (opens `AddExistingItemsDialog`), the side panel toggle and the
- * module menu. An archived module shows an info `Banner` with Restore, its
- * status is read-only, "Add existing" is gone and the menu offers Restore and
- * Delete only.
+ * Header of the module detail (docs/contracts/ui.md "Modules (E2)", "Shell" ›
+ * "Panel headers"): a panel header with one wrapping sub-header row, the name
+ * and the status as an inline selector that saves on change at its start,
+ * "Add existing" (opens `AddExistingItemsDialog`), the side panel toggle and
+ * the module menu at its end. An archived module shows an info `Banner` with
+ * Restore in a padded row under the header's hairline, its status is
+ * read-only, "Add existing" is gone and the menu offers Restore and Delete
+ * only.
  */
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { LayoutHeader } from "@astryxdesign/core/Layout";
-import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { VStack } from "@astryxdesign/core/Stack";
 import { Heading } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { addWorkItemsToModuleAction, unarchiveModuleAction } from "@/app/actions/modules";
+import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
 import type { ModuleDetail } from "@/lib/tessera/types";
 import { PlusIcon, RestoreIcon, SidebarIcon } from "@/themes/catppuccin/icons";
 import { AddExistingItemsDialog } from "./AddExistingItemsDialog";
@@ -70,38 +72,47 @@ export function ModuleHeader({ projectId, module, writer, candidates, isPanelOpe
   };
 
   return (
-    <LayoutHeader hasDivider padding={0} label={module.name}>
-      <VStack gap={3} paddingInline={5} paddingBlock={3}>
-        <HStack gap={3} vAlign="center" wrap="wrap" className="tessera-modules-header">
-          <HStack gap={2} vAlign="center" className="tessera-modules-header-title">
-            <Heading level={2} maxLines={1}>
-              {module.name}
-            </Heading>
-            <ModuleStatusControl size="sm" value={module.status} readOnly={isArchived} onChange={(status) => writer.update({ status })} />
-          </HStack>
-          <HStack gap={2} vAlign="center">
-            {isArchived ? null : <Button variant="secondary" size="sm" label="Add existing" icon={<PlusIcon />} onClick={() => setAddOpen(true)} />}
-            <IconButton
-              variant="ghost"
-              size="sm"
-              icon={<SidebarIcon />}
-              label={isPanelOpen ? "Hide details" : "Show details"}
-              tooltip={isPanelBlocked ? "Close the work item to show details" : isPanelOpen ? "Hide details" : "Show details"}
-              isDisabled={isPanelBlocked}
-              onClick={onTogglePanel}
-            />
-            <ModuleMenu projectId={projectId} module={module} onDeleted={() => router.push(`/projects/${projectId}/modules`)} />
-          </HStack>
-        </HStack>
-        {isArchived ? (
+    <>
+      <PanelHeader label={module.name}>
+        <PanelBar
+          size="subheader"
+          canWrap
+          className="tessera-planning-detail-bar"
+          start={
+            <>
+              <Heading level={4} accessibilityLevel={2} maxLines={1} className="tessera-planning-detail-title">
+                {module.name}
+              </Heading>
+              <ModuleStatusControl size="sm" value={module.status} readOnly={isArchived} onChange={(status) => writer.update({ status })} />
+            </>
+          }
+          end={
+            <>
+              {isArchived ? null : <Button variant="secondary" size="sm" label="Add existing" icon={<PlusIcon />} onClick={() => setAddOpen(true)} />}
+              <IconButton
+                variant="ghost"
+                size="sm"
+                icon={<SidebarIcon />}
+                label={isPanelOpen ? "Hide details" : "Show details"}
+                tooltip={isPanelBlocked ? "Close the work item to show details" : isPanelOpen ? "Hide details" : "Show details"}
+                isDisabled={isPanelBlocked}
+                onClick={onTogglePanel}
+              />
+              <ModuleMenu projectId={projectId} module={module} onDeleted={() => router.push(`/projects/${projectId}/modules`)} />
+            </>
+          }
+        />
+      </PanelHeader>
+      {isArchived ? (
+        <VStack paddingInline={4} paddingBlock={2}>
           <Banner
             status="info"
             title="This module is archived"
             description="Restore it to change it or add work items."
             endContent={<Button variant="secondary" size="sm" label="Restore" icon={<RestoreIcon />} onClick={restore} isLoading={isRestoring} />}
           />
-        ) : null}
-      </VStack>
+        </VStack>
+      ) : null}
       {isArchived ? null : (
         <AddExistingItemsDialog
           isOpen={isAddOpen}
@@ -112,6 +123,6 @@ export function ModuleHeader({ projectId, module, writer, candidates, isPanelOpe
           onAdd={addItems}
         />
       )}
-    </LayoutHeader>
+    </>
   );
 }

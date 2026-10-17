@@ -40,7 +40,7 @@ export function ModuleSidePanel({ module, writer }: ModuleSidePanelProps) {
   const readOnly = module.archived_at !== null;
   const { progress } = module;
   return (
-    <LayoutPanel width={360} hasDivider padding={4} isScrollable label="Module details" role="complementary">
+    <LayoutPanel width={360} hasDivider padding={4} isScrollable label="Module details" role="complementary" className="tessera-planning-side-panel">
       <VStack gap={6}>
         {module.description_md.trim() !== "" ? (
           <Text type="body" color="secondary" className="tessera-modules-description">

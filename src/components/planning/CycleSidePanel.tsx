@@ -50,7 +50,7 @@ export function CycleSidePanel({ cycle, pointsProgress, today, onAddDates }: Cyc
   );
 
   return (
-    <LayoutPanel width={360} hasDivider padding={4} isScrollable label="Cycle progress" role="complementary">
+    <LayoutPanel width={360} hasDivider padding={4} isScrollable label="Cycle progress" role="complementary" className="tessera-planning-side-panel">
       <ProgressPanel
         title="Progress"
         counts={cycle.progress}

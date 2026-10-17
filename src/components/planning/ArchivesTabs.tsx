@@ -1,8 +1,10 @@
 "use client";
 
 /**
- * Tabs of the project archives (docs/contracts/ui.md "Archives (E3)"):
- * Work items, Cycles, Modules, each a link to `/projects/<id>/archives/<kind>`.
+ * Tabs of the project archives (docs/contracts/ui.md "Archives (E3)"), in
+ * the archives' panel sub-header, docked on its hairline like the frame's own
+ * tabs: Work items, Cycles, Modules, each a link to
+ * `/projects/<id>/archives/<kind>`.
  * Navigation tabs, so no `role` and no `panelId`; the no-op `onChange` is the
  * frame's pattern for `href` tabs; the nav is named "Archives" so it is told
  * apart from the frame's own tabs. A feature that is turned off loses its
