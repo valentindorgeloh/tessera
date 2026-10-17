@@ -125,7 +125,7 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { id: "nav.modules", label: "Modules", keys: "g m", group: "Navigate" },
   { id: "nav.views", label: "Views", keys: "g v", group: "Navigate" },
   { id: "nav.pages", label: "Pages", keys: "g d", group: "Navigate", arrives: "P6" },
-  { id: "nav.inbox", label: "Inbox", keys: "g k", group: "Navigate", arrives: "P7" },
+  { id: "nav.inbox", label: "Inbox", keys: "g k", group: "Navigate" },
   { id: "nav.archives", label: "Archives", keys: "g r", group: "Navigate" },
   { id: "nav.settings", label: "Settings", keys: "g s", group: "Navigate" },
   { id: "nav.yourWork", label: "Your work", keys: "g j", group: "Navigate", arrives: "P9" },

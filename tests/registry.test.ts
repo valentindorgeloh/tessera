@@ -19,6 +19,8 @@ import * as labels from "@/lib/tessera/labels";
 import * as links from "@/lib/tessera/links";
 import * as modules from "@/lib/tessera/modules";
 import * as pages from "@/lib/tessera/pages";
+import * as comments from "@/lib/tessera/comments";
+import * as reactions from "@/lib/tessera/reactions";
 import * as relations from "@/lib/tessera/relations";
 import * as projects from "@/lib/tessera/projects";
 import {
@@ -89,6 +91,8 @@ const DOMAIN_MODULES = {
   views,
   pages,
   relations,
+  comments,
+  reactions,
   "work-items": workItems,
 };
 
@@ -291,6 +295,8 @@ const CONTRACT_CORE = [
   "update_page",
   "update_page_body",
   "list_relations",
+  "list_comments",
+  "create_comment",
   "get_counts",
   "search_all",
   "describe_filters",
@@ -356,6 +362,12 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   list_relations: "P7",
   add_relation: "P7",
   remove_relation: "P7",
+  list_comments: "P7",
+  create_comment: "P7",
+  update_comment: "P7",
+  delete_comment: "P7",
+  add_reaction: "P7",
+  remove_reaction: "P7",
 };
 
 describe("tool flags", () => {

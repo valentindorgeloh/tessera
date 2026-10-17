@@ -1,0 +1,20 @@
+/* Inbox (P7): the notification list beside the open work item. Tokens only. */
+
+.tessera-inbox {
+  min-width: 0;
+  min-height: 0;
+}
+
+.tessera-inbox-list {
+  min-width: 0;
+  min-height: 0;
+}
+
+.tessera-inbox-detail {
+  min-width: 0;
+  min-height: 0;
+}
+
+.tessera-inbox-row-meta {
+  flex-shrink: 0;
+}

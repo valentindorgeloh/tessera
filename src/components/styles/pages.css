@@ -1,0 +1,78 @@
+/*
+ * Tessera pages (P6): the wiki, the project Pages tab and a page.
+ * Tokens only. The search field width is structural.
+ */
+
+.tessera-pages-actions {
+  max-width: 100%;
+}
+
+.tessera-pages-search {
+  width: min(calc(var(--spacing-12) * 4), 40vw);
+}
+
+.tessera-page-row-end {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.tessera-page {
+  width: 100%;
+  min-width: 0;
+}
+
+.tessera-page-crumbs {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.tessera-page-meta {
+  max-width: 100%;
+}
+
+.tessera-page-body {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Title: a heading with an edit button until either is clicked, then a large input. */
+.tessera-page-title-row {
+  min-width: 0;
+}
+
+.tessera-page-title {
+  font-size: var(--text-heading-2-size);
+  line-height: var(--text-heading-2-leading);
+  flex: 1;
+  min-width: 0;
+  cursor: text;
+  border-radius: var(--radius-inner);
+  padding-inline: var(--spacing-1);
+  margin-inline: calc(-1 * var(--spacing-1));
+  overflow-wrap: anywhere;
+}
+
+.tessera-page-title:hover {
+  background: var(--color-overlay-hover);
+}
+
+.tessera-page-title--readonly {
+  cursor: default;
+}
+
+.tessera-page-title--readonly:hover {
+  background: none;
+}
+
+.tessera-page-title-edit {
+  flex-shrink: 0;
+  margin-block-start: var(--spacing-1);
+}
+
+.tessera-page-title-input input {
+  height: auto;
+  font-family: var(--font-family-heading);
+  font-size: var(--text-heading-2-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-heading-2-leading);
+}

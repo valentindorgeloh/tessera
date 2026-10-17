@@ -35,13 +35,17 @@ import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import { useProject } from "@/components/work-items/project-provider";
 import type { WorkItemDetail as WorkItemDetailModel } from "@/lib/tessera/types";
 import { PencilIcon, RestoreIcon } from "@/themes/catppuccin/icons";
-import { ActivityFeed } from "./ActivityFeed";
+import type { CommentView } from "./CommentItem";
 import { DescriptionEditor } from "./DescriptionEditor";
 import { DetailHeader, workItemPath } from "./DetailHeader";
 import { LinksList } from "./LinksList";
 import { PropertyRailFields, type PropertyName } from "./PropertyRail";
 import { SubItems } from "./SubItems";
-import type { DetailHost, WorkItemDetailProps } from "./types";
+// The `.tsx` extension is required here: `timeline.ts` sits beside this file, and a
+// case-insensitive volume resolves `./Timeline` to that module before `Timeline.tsx`.
+// @ts-expect-error TS5097 — extension import, see the comment above.
+import { Timeline } from "./Timeline.tsx";
+import type { DetailHost, WorkItemDetailData, WorkItemDetailProps } from "./types";
 import { useDetailActions, type DetailActions } from "./use-detail-actions";
 
 type TitleProps = {
@@ -106,6 +110,12 @@ function DetailTitle({ item, host, readOnly, actions }: TitleProps) {
   );
 }
 
+// ASSUMPTION: listComments is not on the detail payload yet. A loader that adds `comments` is picked up; until then the timeline shows updates only.
+function commentsFrom(data: WorkItemDetailData): CommentView[] {
+  const extra = data as WorkItemDetailData & { comments?: CommentView[] };
+  return Array.isArray(extra.comments) ? extra.comments : [];
+}
+
 /** Focuses and clicks the first button of a `data-property` wrapper (the P2a ghost selectors open on click); false when the property is not shown. */
 function openProperty(root: HTMLElement | null, name: PropertyName): boolean {
   const button = root?.querySelector<HTMLButtonElement>(`[data-property="${name}"] button`);
@@ -126,6 +136,7 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
   const rootRef = useRef<HTMLDivElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { statesById, bundle } = useProject();
+  const mentionActors = bundle.actors.filter((actor) => actor.deleted_at === null).map((actor) => ({ id: actor.id, name: actor.name }));
   // An archived project makes its items read-only as an archived item does (F3.4); the item's own Banner and Restore stay for archived items only.
   const itemArchived = item.archived_at !== null;
   const projectArchived = bundle.project.archived_at !== null;
@@ -251,7 +262,16 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
             {children}
           </SubItems>
           <LinksList workItemId={item.id} links={item.links} readOnly={readOnly} />
-          <ActivityFeed entries={activity} />
+          <Timeline
+            workItemId={item.id}
+            projectId={item.project_id}
+            comments={commentsFrom(data)}
+            activity={activity}
+            readOnly={readOnly}
+            currentActorId={currentActorId}
+            mentionActors={mentionActors}
+            onOpenItem={onOpenItem}
+          />
         </VStack>
       </VStack>
       <AlertDialog

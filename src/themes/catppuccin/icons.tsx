@@ -151,6 +151,8 @@ export function duotoneIcon(IconComponent: PhosphorIcon) {
 
 export const FolderIcon = duotoneIcon(Folder);
 export const PageIcon = duotoneIcon(FileText);
+export const GlobeIcon = duotoneIcon(Globe);
+export const EyeSlashIcon = duotoneIcon(EyeSlash);
 export const PlusIcon = duotoneIcon(Plus);
 export const FolderPlusIcon = duotoneIcon(FolderPlus);
 export const SearchIcon = duotoneIcon(MagnifyingGlass);

@@ -27,6 +27,7 @@ export const ACTIVITY_VERBS = [
   "locked",
   "unlocked",
   "reacted",
+  "unreacted",
   "registered",
 ] as const;
 

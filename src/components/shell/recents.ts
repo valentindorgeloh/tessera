@@ -121,7 +121,8 @@ function decodeSegment(segment: string): string {
  * `/projects/[id]/archives(/...)` ("Archived work items", "Archived cycles"
  * or "Archived modules" by tab), `/work-items/[workItemId]` (the global
  * detail, labelled by `workItemLabel` once the screen registers it),
- * `/browse/[key]` (the key, upper-cased) and the aliases `/cycles/[id]` and
+ * `/browse/[key]` (the key, upper-cased), `/inbox` ("Inbox", any query — the
+ * path is normalised first) and the aliases `/cycles/[id]` and
  * `/modules/[id]`. Any other project section (`/intake`, ...) resolves to
  * "<project> · <Section>" with the page icon, so later lanes get sensible
  * labels without editing this file; unknown top-level paths use their first
@@ -132,6 +133,8 @@ export function resolveRoute(pathname: string, lookup: RouteLookup): RouteInfo {
   const [root, projectId, section, entityId] = segments;
 
   if (root === undefined || root === "home") return { label: "Home", icon: "home" };
+  // ASSUMPTION: RouteIconKey has no inbox glyph, and InboxIcon is not exported, so the recent uses the page icon.
+  if (root === "inbox") return { label: "Inbox", icon: "page" };
 
   // Global detail routes: the second segment is the work item id or key, not a project.
   if (root === "work-items" && projectId !== undefined) {

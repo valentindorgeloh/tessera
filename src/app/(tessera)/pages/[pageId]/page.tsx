@@ -3,17 +3,17 @@ import { io } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { VStack } from "@astryxdesign/core/Stack";
-import { Text } from "@astryxdesign/core/Text";
-import { PanelBar, PanelHeader, PanelPage, PanelTitle } from "@/components/shell/PanelHeader";
+import { PageScreen } from "@/components/pages/PageScreen";
+import { loadPageBundle, pageSpaces } from "@/app/(tessera)/pages/load-page";
 import { IdSchema } from "@/lib/tessera/schemas";
-import { getPage, isTrackerError, readTessera } from "@/lib/tessera/server";
+import { isTrackerError, readTessera } from "@/lib/tessera/server";
 
 type Props = { params: Promise<{ pageId: string }> };
 
-/** Wiki page, or a redirect when the page belongs to a project (decision 45). */
-export default function PageScreen({ params }: Props) {
+/** A wiki page. A project page redirects to its project route. */
+export default function WikiPageScreen({ params }: Props) {
   return (
-    <Suspense fallback={<Skeleton height={48} />}>
+    <Suspense fallback={<PageFallback />}>
       <PageData params={params} />
     </Suspense>
   );
@@ -23,26 +23,28 @@ async function PageData({ params }: Props) {
   const { pageId } = await params;
   await io();
   if (!IdSchema.safeParse(pageId).success) notFound();
-  let page;
+  let data: Awaited<ReturnType<typeof load>>;
   try {
-    page = await readTessera((ctx) => getPage(ctx, pageId));
+    data = await load(pageId);
   } catch (err) {
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();
     throw err;
   }
-  if (page.project_id) redirect(`/projects/${page.project_id}/pages/${page.id}`);
+  if (data.page.project_id) redirect(`/projects/${data.page.project_id}/pages/${data.page.id}`);
+  return <PageScreen page={data.page} labels={data.labels} actors={data.actors} spaces={data.spaces} space={{ kind: "wiki" }} />;
+}
+
+function load(pageId: string) {
+  return readTessera((ctx) => ({ ...loadPageBundle(ctx, pageId), spaces: pageSpaces(ctx) }));
+}
+
+function PageFallback() {
   return (
-    <PanelPage
-      width="reading"
-      header={
-        <PanelHeader label={page.name}>
-          <PanelBar start={<PanelTitle>{page.name}</PanelTitle>} />
-        </PanelHeader>
-      }
-    >
-      <VStack gap={3} padding={4}>
-        <Text type="body">{page.description_md || "This page is empty."}</Text>
-      </VStack>
-    </PanelPage>
+    <VStack gap={4} padding={5}>
+      <Skeleton width={240} height={28} />
+      <Skeleton width={180} height={20} index={1} />
+      <Skeleton height={32} index={2} />
+      <Skeleton height={160} index={3} />
+    </VStack>
   );
 }

@@ -1,0 +1,26 @@
+/* Collaboration (P7). Relations and reactions sit above this marker when they land. */
+
+/* comments */
+
+.tessera-timeline {
+  min-width: 0;
+}
+
+.tessera-comment {
+  min-width: 0;
+  padding-block: var(--spacing-2);
+}
+
+.tessera-comment-body {
+  min-width: 0;
+}
+
+.tessera-comment-replies {
+  margin-inline-start: var(--spacing-6);
+  padding-inline-start: var(--spacing-3);
+  border-inline-start: var(--border-width) solid var(--color-border);
+}
+
+.tessera-comment-composer {
+  min-width: 0;
+}

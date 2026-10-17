@@ -2,6 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
@@ -9,7 +10,7 @@ import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from "@astryxdes
 import { Text } from "@astryxdesign/core/Text";
 import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provider";
 import type { Project } from "@/lib/tessera/types";
-import { FolderIcon, HouseIcon, PageIcon, PlusIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { BellIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { projectIdFromPath } from "./recents";
 import { formatKeys, SHORTCUT_BY_ID } from "./shortcuts";
 import { useShell } from "./TesseraShell";
@@ -141,7 +142,7 @@ export function useSidebarResize(): { key: string; resizable: { defaultWidth: nu
  * shell (`mod+b`, the top bar's toggle); the width and the last visited
  * project are remembered in localStorage.
  */
-export function Sidebar({ projects }: { projects: Project[] }) {
+export function Sidebar({ projects, unreadCount }: { projects: Project[]; unreadCount?: number }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isNavCollapsed, setNavCollapsed, openCreateProject } = useShell();
@@ -194,6 +195,14 @@ export function Sidebar({ projects }: { projects: Project[] }) {
     >
       <SideNavSection title="Workspace" isHeaderHidden>
         <SideNavItem label="Home" icon={HouseIcon} href="/home" isSelected={pathname === "/home"} />
+        {/* ASSUMPTION: getUnreadCount is not exported, and the layout does not pass a count, so the badge stays off until it does. InboxIcon is not in the icon module, so this uses BellIcon. */}
+        <SideNavItem
+          label="Inbox"
+          icon={BellIcon}
+          href="/inbox"
+          isSelected={pathname === "/inbox"}
+          endContent={unreadCount !== undefined && unreadCount > 0 ? <Badge label={String(unreadCount)} /> : undefined}
+        />
         <SideNavItem label="Wiki" icon={PageIcon} href="/wiki" isSelected={pathname === "/wiki" || pathname.startsWith("/pages/")} />
         <SideNavItem label="Projects" icon={FolderIcon} href="/projects" isSelected={isProjectsPage(pathname)} />
       </SideNavSection>
