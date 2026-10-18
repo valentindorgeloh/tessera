@@ -167,6 +167,14 @@ describe("resolveRoute", () => {
     expect(resolveRoute("/agents", lookup)).toEqual({ label: "Agents", icon: "agents" });
     expect(resolveRoute("/stickies", lookup)).toEqual({ label: "Stickies", icon: "stickies" });
     expect(resolveRoute("/settings/general", lookup)).toEqual({ label: "Settings · General", icon: "settings" });
+    expect(resolveRoute("/settings/exports", lookup)).toEqual({ label: "Exports", icon: "exports" });
+    expect(resolveRoute("/settings/webhooks", lookup)).toEqual({ label: "Webhooks", icon: "webhooks" });
+    expect(resolveRoute("/settings/webhooks/abc", lookup)).toEqual({ label: "Webhook", icon: "webhooks" });
+    const withWebhook: typeof lookup = {
+      ...lookup,
+      entityLabel: (id) => (id === "abc" ? "Deploy hook" : undefined),
+    };
+    expect(resolveRoute("/settings/webhooks/abc", withWebhook)).toEqual({ label: "Deploy hook", icon: "webhooks" });
   });
 
   it("labels the global detail route with the registered work item label", () => {

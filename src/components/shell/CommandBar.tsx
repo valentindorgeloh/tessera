@@ -280,16 +280,16 @@ export function CommandBar({ ref }: CommandBarProps) {
           if (hit.project_id) router.push(`/projects/${hit.project_id}/modules/${hit.id}`);
           return;
         case "view":
-          // A workspace view has no project; those screens arrive with P9.
           if (hit.project_id) router.push(`/projects/${hit.project_id}/views/${hit.id}`);
-          else notify("Workspace views arrive in P9");
+          else router.push(`/workspace-views/${hit.id}`);
           return;
         case "page":
-          notify("Arrives in P6");
+          if (hit.project_id) router.push(`/projects/${hit.project_id}/pages/${hit.id}`);
+          else router.push(`/pages/${hit.id}`);
           return;
       }
     },
-    [notify, router],
+    [router],
   );
 
   const handleSelect = useCallback(

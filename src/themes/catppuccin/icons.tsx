@@ -20,6 +20,7 @@ import {
   DotsThree,
   DownloadSimple,
   Export,
+  WebhooksLogo,
   EyeSlash,
   FileText,
   Folder,
@@ -322,6 +323,7 @@ export const FolderStarIcon = duotoneIcon(FolderSimpleStar);
 export const HistoryIcon = duotoneIcon(ClockCounterClockwise);
 export const ExportIcon = duotoneIcon(Export);
 export const DownloadIcon = duotoneIcon(DownloadSimple);
+export const WebhookIcon = duotoneIcon(WebhooksLogo);
 export const AdvancedFilterIcon = duotoneIcon(FunnelSimple);
 
 /**

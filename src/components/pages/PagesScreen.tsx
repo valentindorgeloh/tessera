@@ -11,7 +11,7 @@
  * ASSUMPTION: `spaces` is the active projects with Pages on, which the move
  * dialog needs and the plan's prop list does not name.
  */
-import { useState, useTransition, type ReactNode } from "react";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
@@ -96,6 +96,18 @@ export function PagesScreen({ space, tab, pages, labels, spaces }: PagesScreenPr
       router.push(pageHref(result.data));
     });
   };
+
+  // `?create=1` (what `n d` pushes) creates once and is dropped from the URL.
+  const createRequested = searchParams.get("create") === "1";
+  useEffect(() => {
+    if (!createRequested) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("create");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    if (canCreate) create();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the flag only
+  }, [createRequested]);
 
   const newButton = canCreate ? <Button variant="primary" size="sm" label="New page" icon={<PlusIcon />} onClick={create} isLoading={isCreating} /> : null;
   const tabs = (

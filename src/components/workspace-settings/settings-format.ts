@@ -1,15 +1,26 @@
 /**
- * Workspace settings (docs/drafts/p9-plan.md U1): General and AI. The view
- * matches `getWorkspaceSettings`.
+ * Workspace settings (docs/drafts/p9-plan.md U1, docs/drafts/p10-plan.md U2):
+ * General, AI, Exports and Webhooks. The General/AI view matches
+ * `getWorkspaceSettings`.
  */
 import { AiEffortSchema } from "@/lib/tessera/schemas";
 import type { WorkspaceSettingsView } from "@/lib/tessera/types";
 
 export type { WorkspaceSettingsView };
 
-export const SETTINGS_TABS = ["general", "ai"] as const;
+export const SETTINGS_TABS = [
+  { key: "general", label: "General", href: "/settings/general" },
+  { key: "ai", label: "AI", href: "/settings/ai" },
+  { key: "exports", label: "Exports", href: "/settings/exports" },
+  { key: "webhooks", label: "Webhooks", href: "/settings/webhooks" },
+] as const;
 
-export type SettingsTab = (typeof SETTINGS_TABS)[number];
+export type SettingsTab = (typeof SETTINGS_TABS)[number]["key"];
+
+/** Tabs that load workspace settings through `/settings/[tab]`. */
+export const WORKSPACE_SETTINGS_TABS = ["general", "ai"] as const;
+
+export type WorkspaceSettingsTab = (typeof WORKSPACE_SETTINGS_TABS)[number];
 
 export const EFFORT_UNSET = "default";
 
@@ -22,7 +33,11 @@ export const EFFORT_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export function isSettingsTab(value: string): value is SettingsTab {
-  return (SETTINGS_TABS as readonly string[]).includes(value);
+  return SETTINGS_TABS.some((tab) => tab.key === value);
+}
+
+export function isWorkspaceSettingsTab(value: string): value is WorkspaceSettingsTab {
+  return (WORKSPACE_SETTINGS_TABS as readonly string[]).includes(value);
 }
 
 /** Empty name and anything over 80 characters are rejected before a save. */

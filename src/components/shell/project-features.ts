@@ -10,7 +10,7 @@
 import type { Project } from "@/lib/tessera/types";
 import type { ShortcutId } from "./shortcuts";
 
-export type ProjectFeature = "cycles" | "modules" | "views" | "intake";
+export type ProjectFeature = "cycles" | "modules" | "views" | "pages" | "intake";
 
 export type ProjectFeatures = Readonly<Record<ProjectFeature, boolean>>;
 
@@ -24,18 +24,32 @@ export const SHORTCUT_FEATURE: Readonly<Partial<Record<ShortcutId, ProjectFeatur
   "nav.modules": "modules",
   "create.view": "views",
   "nav.views": "views",
+  "create.page": "pages",
+  "nav.pages": "pages",
 };
 
-const FEATURE_LABELS: Readonly<Record<ProjectFeature, string>> = { cycles: "Cycles", modules: "Modules", views: "Views", intake: "Intake" };
+const FEATURE_LABELS: Readonly<Record<ProjectFeature, string>> = {
+  cycles: "Cycles",
+  modules: "Modules",
+  views: "Views",
+  pages: "Pages",
+  intake: "Intake",
+};
 
 /** Project id → its feature flags, for the layout to hand to the shell. */
 export function projectFeatureMap(
-  projects: readonly Pick<Project, "id" | "cycles_enabled" | "modules_enabled" | "views_enabled" | "intake_enabled">[],
+  projects: readonly Pick<Project, "id" | "cycles_enabled" | "modules_enabled" | "views_enabled" | "pages_enabled" | "intake_enabled">[],
 ): ProjectFeatureMap {
   return Object.fromEntries(
     projects.map((project) => [
       project.id,
-      { cycles: project.cycles_enabled, modules: project.modules_enabled, views: project.views_enabled, intake: project.intake_enabled },
+      {
+        cycles: project.cycles_enabled,
+        modules: project.modules_enabled,
+        views: project.views_enabled,
+        pages: project.pages_enabled,
+        intake: project.intake_enabled,
+      },
     ]),
   );
 }

@@ -5,12 +5,12 @@ import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { VStack } from "@astryxdesign/core/Stack";
 import { PanelBar, PanelHeader, PanelPage, PanelTitle } from "@/components/shell/PanelHeader";
 import { WorkspaceSettingsScreen } from "@/components/workspace-settings/WorkspaceSettingsScreen";
-import { isSettingsTab, type WorkspaceSettingsView } from "@/components/workspace-settings/settings-format";
+import { isWorkspaceSettingsTab, type WorkspaceSettingsView } from "@/components/workspace-settings/settings-format";
 import { getWorkspaceSettings, readTessera } from "@/lib/tessera/server";
 
 type Props = { params: Promise<{ tab: string }> };
 
-/** Workspace settings (docs/drafts/p9-plan.md U1). Only General and AI exist. */
+/** Workspace settings General and AI. Exports and Webhooks have their own routes. */
 export default function WorkspaceSettingsPage({ params }: Props) {
   return (
     <Suspense fallback={<SettingsFallback />}>
@@ -21,7 +21,7 @@ export default function WorkspaceSettingsPage({ params }: Props) {
 
 async function SettingsBody({ params }: Props) {
   const { tab } = await params;
-  if (!isSettingsTab(tab)) notFound();
+  if (!isWorkspaceSettingsTab(tab)) notFound();
   await io();
   const settings: WorkspaceSettingsView = await readTessera((ctx) => getWorkspaceSettings(ctx));
   return <WorkspaceSettingsScreen tab={tab} settings={settings} />;

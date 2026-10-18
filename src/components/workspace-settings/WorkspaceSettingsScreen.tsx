@@ -14,13 +14,12 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
 import { updateWorkspaceSettingsAction } from "@/app/actions/workspace-settings";
 import { assistantUnavailableCopy, useAiStatus } from "@/components/ai/AiStatusProvider";
-import { PanelBar, PanelHeader, PanelPage, PanelTitle } from "@/components/shell/PanelHeader";
-import { Tab, TabList } from "@astryxdesign/core/TabList";
 import type { WorkspaceAiSettings } from "@/lib/tessera/types";
-import { EFFORT_OPTIONS, EFFORT_UNSET, isAiEffort, workspaceNameError, type SettingsTab, type WorkspaceSettingsView } from "./settings-format";
+import { WorkspaceSettingsChrome } from "./WorkspaceSettingsChrome";
+import { EFFORT_OPTIONS, EFFORT_UNSET, isAiEffort, workspaceNameError, type WorkspaceSettingsTab, type WorkspaceSettingsView } from "./settings-format";
 
 export type WorkspaceSettingsScreenProps = {
-  tab: SettingsTab;
+  tab: WorkspaceSettingsTab;
   settings: WorkspaceSettingsView;
 };
 
@@ -28,28 +27,11 @@ const EMPTY_AI: WorkspaceAiSettings = { model: null, effort: null, digest_enable
 
 export function WorkspaceSettingsScreen({ tab, settings }: WorkspaceSettingsScreenProps) {
   return (
-    <PanelPage
-      width="reading"
-      header={
-        <PanelHeader label="Settings">
-          <PanelBar start={<PanelTitle>Settings</PanelTitle>} />
-          <PanelBar
-            size="subheader"
-            hasDivider
-            start={
-              <TabList aria-label="Workspace settings" value={tab} onChange={() => {}} size="sm" layout="hug">
-                <Tab value="general" label="General" href="/settings/general" />
-                <Tab value="ai" label="AI" href="/settings/ai" />
-              </TabList>
-            }
-          />
-        </PanelHeader>
-      }
-    >
+    <WorkspaceSettingsChrome tab={tab}>
       <VStack gap={6} padding={6}>
         {tab === "general" ? <GeneralPane name={settings.name} /> : <AiPane ai={settings.ai ?? EMPTY_AI} />}
       </VStack>
-    </PanelPage>
+    </WorkspaceSettingsChrome>
   );
 }
 

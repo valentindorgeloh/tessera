@@ -159,10 +159,12 @@ const PROJECT_ROUTES = {
   "nav.cycles": "cycles",
   "nav.modules": "modules",
   "nav.views": "views",
+  "nav.pages": "pages",
   "nav.settings": "settings/general",
   "create.cycle": "cycles?create=1",
   "create.module": "modules?create=1",
   "create.view": "views?create=1",
+  "create.page": "pages?create=1",
 } as const satisfies Partial<Record<ShortcutId, string>>;
 
 function runFavoriteCommand(removing: boolean, notify: (message: string) => void): void {
@@ -241,6 +243,19 @@ function runShortcut(id: ShortcutId, options: ShortcutDispatchOptions, context: 
     case "nav.projects":
       options.push("/projects");
       return;
+    case "nav.pages":
+    case "create.page": {
+      // Wiki is always available; project pages follow the Pages feature toggle.
+      const project = currentOrLastProjectId();
+      if (!project) {
+        options.push(id === "create.page" ? "/wiki?create=1" : "/wiki");
+        return;
+      }
+      const off = shortcutOffMessage(id, readProjectFeatures(project));
+      if (off) options.notify(off);
+      else options.push(`/projects/${project}/${PROJECT_ROUTES[id]}`);
+      return;
+    }
     case "nav.workItems":
     case "nav.cycles":
     case "nav.modules":

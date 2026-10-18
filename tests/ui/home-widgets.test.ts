@@ -159,6 +159,8 @@ describe("home seen and settings", () => {
     expect(workspaceNameError("x".repeat(81))).toBe("Use 80 characters or fewer");
     expect(isSettingsTab("general")).toBe(true);
     expect(isSettingsTab("ai")).toBe(true);
+    expect(isSettingsTab("exports")).toBe(true);
+    expect(isSettingsTab("webhooks")).toBe(true);
     expect(isSettingsTab("features")).toBe(false);
     expect(digestsEnabled({ ai: null })).toBe(true);
     expect(digestsEnabled({ ai: { digest_enabled: false } })).toBe(false);

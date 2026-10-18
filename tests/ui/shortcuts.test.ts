@@ -506,26 +506,38 @@ describe("buildCommands", () => {
 
   it("leaves out the create and navigate commands of a feature the project has off (decision 31)", () => {
     const ids = (features?: ProjectFeatures | null) => buildCommands(null, features).map((item) => item.id);
-    const FEATURE_IDS = ["create.cycle", "create.module", "create.view", "nav.cycles", "nav.modules", "nav.views"];
-    const all: ProjectFeatures = { cycles: true, modules: true, views: true, intake: true };
-    // Outside a project (no features) and with everything on, all six stay.
+    const FEATURE_IDS = [
+      "create.cycle",
+      "create.module",
+      "create.view",
+      "create.page",
+      "nav.cycles",
+      "nav.modules",
+      "nav.views",
+      "nav.pages",
+    ];
+    const all: ProjectFeatures = { cycles: true, modules: true, views: true, pages: true, intake: true };
+    // Outside a project (no features) and with everything on, the feature shortcuts stay.
     for (const features of [undefined, null, all]) expect(ids(features)).toEqual(expect.arrayContaining(FEATURE_IDS));
     expect(ids({ ...all, cycles: false })).toEqual(expect.not.arrayContaining(["create.cycle", "nav.cycles"]));
-    expect(ids({ ...all, cycles: false })).toEqual(expect.arrayContaining(["create.module", "nav.modules", "create.view", "nav.views"]));
+    expect(ids({ ...all, cycles: false })).toEqual(expect.arrayContaining(["create.module", "nav.modules", "create.view", "nav.views", "create.page", "nav.pages"]));
     expect(ids({ ...all, modules: false })).toEqual(expect.not.arrayContaining(["create.module", "nav.modules"]));
-    expect(ids({ ...all, modules: false })).toEqual(expect.arrayContaining(["create.cycle", "nav.cycles", "create.view", "nav.views"]));
+    expect(ids({ ...all, modules: false })).toEqual(expect.arrayContaining(["create.cycle", "nav.cycles", "create.view", "nav.views", "create.page", "nav.pages"]));
     expect(ids({ ...all, views: false })).toEqual(expect.not.arrayContaining(["create.view", "nav.views"]));
-    expect(ids({ ...all, views: false })).toEqual(expect.arrayContaining(["create.cycle", "nav.cycles", "create.module", "nav.modules"]));
-    const none = ids({ cycles: false, modules: false, views: false, intake: false });
+    expect(ids({ ...all, views: false })).toEqual(expect.arrayContaining(["create.cycle", "nav.cycles", "create.module", "nav.modules", "create.page", "nav.pages"]));
+    expect(ids({ ...all, pages: false })).toEqual(expect.not.arrayContaining(["create.page", "nav.pages"]));
+    expect(ids({ ...all, pages: false })).toEqual(expect.arrayContaining(["create.cycle", "nav.cycles", "create.module", "nav.modules", "create.view", "nav.views"]));
+    const none = ids({ cycles: false, modules: false, views: false, pages: false, intake: false });
     for (const id of FEATURE_IDS) expect(none).not.toContain(id);
     // Everything else stays: work item, home, settings, theme commands.
     expect(none).toEqual(expect.arrayContaining(["create.workItem", "create.project", "nav.home", "nav.workItems", "nav.archives", "nav.settings", "theme.dark"]));
   });
 
-  it("shows the subscribe note: the subscription works, notifications arrive in P7", () => {
+  it("lists subscribe without a deferred-phase hint", () => {
     const items = buildCommands({ ...CONTEXT, actions: { "item.subscribe": () => undefined } });
     const subscribe = items.find((item) => item.id === "item.subscribe");
-    expect(subscribe?.auxiliaryData).toMatchObject({ group: "Actions", kind: "command", keys: "shift+s", hint: "Notifications arrive in P7" });
+    expect(subscribe?.auxiliaryData).toMatchObject({ group: "Actions", kind: "command", keys: "shift+s" });
+    expect(subscribe?.auxiliaryData && "hint" in subscribe.auxiliaryData ? subscribe.auxiliaryData.hint : undefined).toBeUndefined();
   });
 
   it("labels an action from the context's state when the context gives a label (Subscribe / Unsubscribe)", () => {
@@ -541,7 +553,7 @@ describe("buildCommands", () => {
     const subscribe = SHORTCUT_BY_ID.get("item.subscribe");
     const estimate = SHORTCUT_BY_ID.get("item.estimate");
     const state = SHORTCUT_BY_ID.get("item.state");
-    expect(subscribe && shortcutHint(subscribe)).toBe("Notifications arrive in P7");
+    expect(subscribe && shortcutHint(subscribe)).toBeUndefined();
     expect(estimate && shortcutHint(estimate)).toBeUndefined();
     expect(state && shortcutHint(state)).toBeUndefined();
     expect(shortcutHint({ id: "nav.pages", label: "Pages", keys: "g d", group: "Navigate", arrives: "P6", note: "ignored" })).toBe("Arrives in P6");
@@ -549,8 +561,8 @@ describe("buildCommands", () => {
 });
 
 describe("project features (decision 31)", () => {
-  const OFF: ProjectFeatures = { cycles: false, modules: false, views: false, intake: false };
-  const ON: ProjectFeatures = { cycles: true, modules: true, views: true, intake: true };
+  const OFF: ProjectFeatures = { cycles: false, modules: false, views: false, pages: false, intake: false };
+  const ON: ProjectFeatures = { cycles: true, modules: true, views: true, pages: true, intake: true };
   const FEATURE_SHORTCUTS: [ShortcutId, string][] = [
     ["nav.cycles", "Cycles are turned off for this project"],
     ["create.cycle", "Cycles are turned off for this project"],
@@ -558,6 +570,8 @@ describe("project features (decision 31)", () => {
     ["create.module", "Modules are turned off for this project"],
     ["nav.views", "Views are turned off for this project"],
     ["create.view", "Views are turned off for this project"],
+    ["nav.pages", "Pages are turned off for this project"],
+    ["create.page", "Pages are turned off for this project"],
   ];
 
   it("names a message for each shortcut of a feature that is off, and none otherwise", () => {
@@ -578,12 +592,26 @@ describe("project features (decision 31)", () => {
 
   it("builds the map from project rows and reads a project's flags, or null for no or an unknown project", () => {
     const map = projectFeatureMap([
-      { id: PROJECT, cycles_enabled: false, modules_enabled: true, views_enabled: false, intake_enabled: false },
-      { id: ITEM, cycles_enabled: true, modules_enabled: true, views_enabled: true, intake_enabled: true },
+      {
+        id: PROJECT,
+        cycles_enabled: false,
+        modules_enabled: true,
+        views_enabled: false,
+        pages_enabled: true,
+        intake_enabled: false,
+      },
+      {
+        id: ITEM,
+        cycles_enabled: true,
+        modules_enabled: true,
+        views_enabled: true,
+        pages_enabled: true,
+        intake_enabled: true,
+      },
     ]);
-    expect(map[PROJECT]).toEqual({ cycles: false, modules: true, views: false, intake: false });
+    expect(map[PROJECT]).toEqual({ cycles: false, modules: true, views: false, pages: true, intake: false });
     setProjectFeatures(map);
-    expect(readProjectFeatures(PROJECT)).toEqual({ cycles: false, modules: true, views: false, intake: false });
+    expect(readProjectFeatures(PROJECT)).toEqual({ cycles: false, modules: true, views: false, pages: true, intake: false });
     expect(readProjectFeatures(ITEM)).toEqual(ON);
     expect(readProjectFeatures("unknown")).toBeNull();
     expect(readProjectFeatures(null)).toBeNull();

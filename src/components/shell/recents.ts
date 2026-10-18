@@ -36,7 +36,9 @@ export type RouteIconKey =
   | "your-work"
   | "agents"
   | "analytics"
-  | "stickies";
+  | "stickies"
+  | "exports"
+  | "webhooks";
 
 export type RouteInfo = { label: string; icon: RouteIconKey };
 
@@ -160,7 +162,15 @@ export function resolveRoute(pathname: string, lookup: RouteLookup): RouteInfo {
   if (root === "active-cycles") return { label: "Active cycles", icon: "cycles" };
   if (root === "analytics") return { label: projectId === undefined ? "Analytics" : `Analytics · ${titleCase(projectId)}`, icon: "analytics" };
   if (root === "stickies") return { label: "Stickies", icon: "stickies" };
-  if (root === "settings") return { label: projectId === undefined ? "Settings" : `Settings · ${titleCase(projectId)}`, icon: "settings" };
+  if (root === "settings") {
+    if (projectId === undefined) return { label: "Settings", icon: "settings" };
+    if (projectId === "exports") return { label: "Exports", icon: "exports" };
+    if (projectId === "webhooks") {
+      if (section === undefined) return { label: "Webhooks", icon: "webhooks" };
+      return { label: lookup.entityLabel?.(section) ?? "Webhook", icon: "webhooks" };
+    }
+    return { label: `Settings · ${titleCase(projectId)}`, icon: "settings" };
+  }
 
   // Global detail routes: the second segment is the work item id or key, not a project.
   if (root === "work-items" && projectId !== undefined) {

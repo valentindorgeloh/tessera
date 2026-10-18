@@ -6,6 +6,7 @@ import {
   CycleIcon,
   DescriptionIcon,
   DraftIcon,
+  ExportIcon,
   FolderIcon,
   GearIcon,
   HouseIcon,
@@ -19,6 +20,7 @@ import {
   SunIcon,
   UserIcon,
   ViewIcon,
+  WebhookIcon,
 } from "@/themes/catppuccin/icons";
 import type { ColorScheme } from "./color-scheme";
 import type { RouteIconKey } from "./recents";
@@ -46,6 +48,8 @@ export const ROUTE_ICONS: Readonly<Record<RouteIconKey, IconType>> = {
   agents: AgentIcon,
   analytics: BurndownIcon,
   stickies: DescriptionIcon,
+  exports: ExportIcon,
+  webhooks: WebhookIcon,
 };
 
 /** Glyphs for the colour schemes, shared by the account menu and Power K's theme commands. */

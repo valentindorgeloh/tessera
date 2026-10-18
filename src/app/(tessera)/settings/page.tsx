@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Workspace settings index. The tabs live at `/settings/general` and `/settings/ai`. */
+/** Workspace settings index. Tabs live at `/settings/<tab>`. */
 export default function WorkspaceSettingsIndex() {
   redirect("/settings/general");
 }
