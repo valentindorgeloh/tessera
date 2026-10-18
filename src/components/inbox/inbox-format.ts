@@ -4,11 +4,8 @@
  * so Vitest covers them (tests/ui/inbox-format.test.ts) and render stays free
  * of `Date.now()`.
  *
- * ASSUMPTION: `NotificationView` is not exported from `@/lib/tessera/types`
- * yet (`notifications.ts` is absent). `InboxNote` is the slice the screen
- * renders. The table's stable key is `uid` (there is no `id` column).
- * `event_count` and `sort_at` are the planned columns; callers default them
- * to 1 and `created_at` until the migration lands.
+ * `InboxNote` is the slice the screen renders. The table's stable key is
+ * `uid`. `event_count` stays 1 until a coalesced count is stored.
  */
 import type { ActorKind } from "@/lib/tessera/types";
 

@@ -368,6 +368,13 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   delete_comment: "P7",
   add_reaction: "P7",
   remove_reaction: "P7",
+  list_notifications: "P7",
+  mark_notifications_read: "P7",
+  mark_notifications_unread: "P7",
+  archive_notifications: "P7",
+  unarchive_notifications: "P7",
+  snooze_notifications: "P7",
+  unsnooze_notifications: "P7",
 };
 
 describe("tool flags", () => {

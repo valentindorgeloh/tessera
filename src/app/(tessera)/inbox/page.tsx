@@ -8,7 +8,7 @@ import { loadProjectBundle, loadWorkItemDetail } from "@/app/(tessera)/work-item
 import { InboxScreen } from "@/components/inbox/InboxScreen";
 import { parseInboxQuery, type InboxNote } from "@/components/inbox/inbox-format";
 import { ProjectProvider } from "@/components/work-items/project-provider";
-import { isTrackerError, readTessera } from "@/lib/tessera/server";
+import { isTrackerError, listNotifications, readTessera } from "@/lib/tessera/server";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -16,8 +16,7 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
  * Inbox at `/inbox` (docs/drafts/p7-plan.md §5). The list and the selected
  * item each stream under their own Suspense boundary.
  *
- * ASSUMPTION: `listNotifications` is not exported, so the list is empty until
- * `notifications.ts` lands. Opening `?item=` still loads that work item.
+ * The list is the caller's notifications. Opening `?item=` loads that work item.
  */
 export default function InboxPage({ searchParams }: Props) {
   return (
@@ -31,8 +30,7 @@ async function InboxList({ searchParams }: Props) {
   const params = await searchParams;
   await io();
   const query = parseInboxQuery(params);
-  // ASSUMPTION: listNotifications(ctx, { tab, unread_only, limit: 200 }) is not exported yet.
-  const notifications: InboxNote[] = [];
+  const notifications: InboxNote[] = await readTessera((ctx) => listNotifications(ctx, { limit: 200 }));
   return (
     <InboxScreen query={query} notifications={notifications}>
       <Suspense fallback={<DetailSkeleton />}>

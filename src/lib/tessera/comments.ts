@@ -9,12 +9,13 @@ import { z } from "zod";
 import { logActivity } from "./activity";
 import { getActor } from "./actors";
 import type { TesseraContext } from "./core/context";
-import { conflict, notFound, rule, validation, validateInput } from "./core/errors";
-import { newId } from "./core/ids";
+import { conflict, isTrackerError, notFound, rule, validation, validateInput } from "./core/errors";
+import { isId, newId } from "./core/ids";
 import { withTx } from "./core/tx";
 import { actor, comment, mention } from "./db/schema";
 import { IdSchema } from "./schemas";
 import type { ActorKind, CommentRow } from "./types";
+import { notifyMentions } from "./notifications";
 import { reactionsFor, type ReactionSummary } from "./reactions";
 import { getWorkItemRow, insertSubscriber, loadWritableWorkItem } from "./work-items";
 
@@ -65,6 +66,34 @@ function stripMarks(text: string): string {
     next = stripped;
   }
   return next;
+}
+
+/** Actor ids written as `[@Name](actor:<id>)`. Unknown ids are dropped by `syncMentions`. */
+function mentionedActorIds(body: string): string[] {
+  const found = new Set<string>();
+  for (const match of body.matchAll(/\]\(actor:([^)]+)\)/gi)) {
+    const id = match[1];
+    if (isId(id)) found.add(id);
+  }
+  return [...found];
+}
+
+function syncMentions(ctx: TesseraContext, loaded: ReturnType<typeof loadWritableWorkItem>, commentId: string, body: string): string[] {
+  const ids = mentionedActorIds(body).filter((id) => id !== ctx.actor.id);
+  ctx.db.delete(mention).where(and(eq(mention.entity_type, "comment"), eq(mention.entity_id, commentId))).run();
+  const live: string[] = [];
+  for (const id of ids) {
+    try {
+      getActor(ctx, id);
+    } catch (err) {
+      if (isTrackerError(err) && err.code === "NOT_FOUND") continue;
+      throw err;
+    }
+    ctx.db.insert(mention).values({ entity_type: "comment", entity_id: commentId, actor_id: id, created_at: ctx.now() }).run();
+    insertSubscriber(ctx, loaded, id);
+    live.push(id);
+  }
+  return live;
 }
 
 function clip(text: string, limit: number): string {
@@ -193,13 +222,22 @@ export function createComment(ctx: TesseraContext, workItemId: string, input: z.
       })
       .run();
     insertSubscriber(ctx, loaded, ctx.actor.id);
+    const snippet = commentSnippet(data.body_md);
+    const mentioned = syncMentions(ctx, loaded, id, data.body_md);
     logActivity(ctx, {
       project_id: loaded.project.id,
       entity_type: "comment",
       entity_id: id,
       work_item_id: loaded.item.id,
       verb: "commented",
-      comment: commentSnippet(data.body_md),
+      comment: snippet,
+    });
+    notifyMentions(ctx, {
+      work_item_id: loaded.item.id,
+      entity_type: "comment",
+      entity_id: id,
+      actor_ids: mentioned,
+      snippet,
     });
     return getComment(ctx, id);
   });
@@ -228,6 +266,8 @@ export function updateComment(ctx: TesseraContext, id: string, input: z.input<ty
       .where(and(eq(comment.id, row.id), eq(comment.body_version, data.expected_body_version), isNull(comment.deleted_at)))
       .run();
     if (result.changes === 0) throw conflict("This comment changed", { current_version: loadLiveComment(ctx, row.id).body_version });
+    const snippet = commentSnippet(data.body_md);
+    const mentioned = syncMentions(ctx, loaded, row.id, data.body_md);
     logActivity(ctx, {
       project_id: loaded.project.id,
       entity_type: "comment",
@@ -235,7 +275,14 @@ export function updateComment(ctx: TesseraContext, id: string, input: z.input<ty
       work_item_id: row.work_item_id,
       verb: "updated",
       field: "body_md",
-      comment: commentSnippet(data.body_md),
+      comment: snippet,
+    });
+    notifyMentions(ctx, {
+      work_item_id: row.work_item_id,
+      entity_type: "comment",
+      entity_id: row.id,
+      actor_ids: mentioned,
+      snippet,
     });
     return getComment(ctx, row.id);
   });

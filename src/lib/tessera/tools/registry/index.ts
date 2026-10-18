@@ -26,6 +26,7 @@ import { viewTools } from "./views";
 import { pageTools } from "./pages";
 import { relationTools } from "./relations";
 import { commentTools } from "./comments";
+import { notificationTools } from "./notifications";
 import { metaTools } from "./meta";
 export type { DeleteResult, RemoveResult } from "./shared";
 
@@ -33,7 +34,7 @@ export type { DeleteResult, RemoveResult } from "./shared";
 // Registry
 // ---------------------------------------------------------------------------
 
-const TOOLS = [...projectTools, ...stateTools, ...labelTools, ...actorTools, ...workItemTools, ...linkTools, ...cycleTools, ...moduleTools, ...viewTools, ...pageTools, ...relationTools, ...commentTools, ...metaTools];
+const TOOLS = [...projectTools, ...stateTools, ...labelTools, ...actorTools, ...workItemTools, ...linkTools, ...cycleTools, ...moduleTools, ...viewTools, ...pageTools, ...relationTools, ...commentTools, ...notificationTools, ...metaTools];
 
 export type Tool = (typeof TOOLS)[number];
 export type ToolName = Tool["name"];

@@ -46,6 +46,7 @@ export * from "./import-handbook";
 export * from "./relations";
 export * from "./comments";
 export * from "./reactions";
+export * from "./notifications";
 export * from "./view-settings";
 export * from "./filters";
 export * from "./counts";

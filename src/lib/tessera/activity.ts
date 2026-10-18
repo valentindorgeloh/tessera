@@ -10,6 +10,7 @@ import { validateInput } from "./core/errors";
 import { newId } from "./core/ids";
 import { assertInTransaction } from "./core/tx";
 import { activity } from "./db/schema";
+import { notifyFromActivity } from "./notifications";
 import type { ActivityRow } from "./types";
 
 /** Verbs used by the engine; the column is free text so adapters can read new verbs without a migration. */
@@ -70,7 +71,7 @@ export function serializeActivityValue(value: unknown): string | null {
 export function logActivity(ctx: TesseraContext, entry: ActivityEntry): ActivityRow {
   assertInTransaction(ctx, "logActivity");
   const input = validateInput(ActivityEntrySchema, entry);
-  return ctx.db
+  const row = ctx.db
     .insert(activity)
     .values({
       uid: newId(),
@@ -90,6 +91,8 @@ export function logActivity(ctx: TesseraContext, entry: ActivityEntry): Activity
     })
     .returning()
     .get();
+  notifyFromActivity(ctx, input);
+  return row;
 }
 
 function valuesDiffer(a: unknown, b: unknown): boolean {

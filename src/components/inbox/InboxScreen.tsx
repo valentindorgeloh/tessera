@@ -5,10 +5,8 @@
  * work item. Tabs and the unread toggle are links. Mark all as read, archive
  * and snooze go through the inbox actions.
  *
- * ASSUMPTION: `getUnreadCount` and `listNotifications` are not exported yet.
- * The page passes whatever notes it could load (an empty list until the
- * engine lands). Mark-read on row open stays quiet when the action answers
- * UNAVAILABLE, so opening an item does not toast.
+ * The page passes the caller's notifications. Mark-read on row open stays
+ * quiet when the action is unavailable, so opening an item does not toast.
  */
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
