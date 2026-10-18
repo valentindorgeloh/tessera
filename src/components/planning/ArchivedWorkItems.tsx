@@ -11,6 +11,7 @@ import { useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AlertDialog } from "@/components/shell/dialogs";
 import { Button } from "@astryxdesign/core/Button";
+import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
@@ -22,21 +23,30 @@ import { notePeekPush } from "@/components/detail/peek-history";
 import { currentHref, peekHref, peekIdOf } from "@/components/detail/peek-url";
 import { RelativeTime } from "@/components/detail/RelativeTime";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
+import { BulkBar } from "@/components/work-items/BulkBar";
+import { FilterBar } from "@/components/work-items/FilterBar";
 import { stateGroupVariant } from "@/components/work-items/properties";
 import { useProject } from "@/components/work-items/project-provider";
-import type { WorkItem } from "@/lib/tessera/types";
+import { useSelection } from "@/components/work-items/use-selection";
+import type { UrlState } from "@/components/work-items/types";
+import type { Filters, WorkItem } from "@/lib/tessera/types";
 import { ArchiveIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { failureText } from "./archive-rules";
 
-export type ArchivedWorkItemsProps = { projectId: string; items: WorkItem[] };
+export type ArchivedWorkItemsProps = { projectId: string; items: WorkItem[]; filters: Filters; urlState: UrlState };
 
-export function ArchivedWorkItems({ items }: ArchivedWorkItemsProps) {
+export function ArchivedWorkItems({ items, filters, urlState }: ArchivedWorkItemsProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const toast = useToast();
   const [deleting, setDeleting] = useState<WorkItem | null>(null);
   const [isDeleting, startDelete] = useTransition();
+  const selection = useSelection(
+    items.map((item) => item.id),
+    true,
+  );
+  const filtered = Object.keys(filters).length > 0;
 
   const open = (id: string) => {
     const href = peekHref(pathname, searchParams, id);
@@ -63,27 +73,42 @@ export function ArchivedWorkItems({ items }: ArchivedWorkItemsProps) {
     });
   };
 
-  if (items.length === 0) {
-    return (
-      <VStack paddingInline={4} paddingBlock={6}>
-        <EmptyState
-          icon={<ArchiveIcon />}
-          title="No archived work items"
-          description="Completed or cancelled work items you archive are kept here, read-only, until you restore them."
-        />
-      </VStack>
-    );
-  }
-
   // The list is inset 8px and a row's text 8px more (Astryx's item inset), on the panel header's 16px. The extra end
   // padding lets the last row's menu scroll clear of the bottom-end toasts and the dev indicator.
   return (
-    <VStack gap={0} paddingInline={2} paddingBlockStart={2} paddingBlockEnd={10} className="tessera-archives-list">
-      <List hasDividers aria-label="Archived work items">
-        {items.map((item) => (
-          <ArchivedWorkItemRow key={item.id} item={item} onOpen={open} onDelete={setDeleting} />
-        ))}
-      </List>
+    <VStack
+      gap={0}
+      paddingInline={2}
+      paddingBlockStart={2}
+      paddingBlockEnd={10}
+      className={selection.selected.size > 0 ? "tessera-archives-list tessera-wi-list--selecting" : "tessera-archives-list"}
+    >
+      <FilterBar filters={filters} urlState={urlState} resultCount={items.length} />
+      {items.length === 0 ? (
+        <EmptyState
+          icon={<ArchiveIcon />}
+          title="No archived work items"
+          description={
+            filtered
+              ? "No archived work items match these filters."
+              : "Completed or cancelled work items you archive are kept here, read-only, until you restore them."
+          }
+        />
+      ) : (
+        <List hasDividers aria-label="Archived work items">
+          {items.map((item) => (
+            <ArchivedWorkItemRow
+              key={item.id}
+              item={item}
+              selected={selection.selected.has(item.id)}
+              onToggle={(shift) => selection.toggleId(item.id, shift)}
+              onOpen={open}
+              onDelete={setDeleting}
+            />
+          ))}
+        </List>
+      )}
+      {selection.selected.size > 0 ? <BulkBar variant="archived" items={items} selected={selection.selected} onClear={selection.clear} /> : null}
       <AlertDialog
         isOpen={deleting !== null}
         onOpenChange={(isOpen) => {
@@ -102,11 +127,13 @@ export function ArchivedWorkItems({ items }: ArchivedWorkItemsProps) {
 
 type RowProps = {
   item: WorkItem;
+  selected: boolean;
+  onToggle: (shift: boolean) => void;
   onOpen: (id: string) => void;
   onDelete: (item: WorkItem) => void;
 };
 
-function ArchivedWorkItemRow({ item, onOpen, onDelete }: RowProps) {
+function ArchivedWorkItemRow({ item, selected, onToggle, onOpen, onDelete }: RowProps) {
   const { statesById } = useProject();
   const toast = useToast();
   const [isRestoring, startRestore] = useTransition();
@@ -122,6 +149,7 @@ function ArchivedWorkItemRow({ item, onOpen, onDelete }: RowProps) {
 
   return (
     <ListItem
+      className="tessera-wi-row"
       label={`${item.key} ${item.name}`}
       description={
         // No hover card: the time sits inside the row's link or button, which holds no second control or tab stop.
@@ -132,7 +160,19 @@ function ArchivedWorkItemRow({ item, onOpen, onDelete }: RowProps) {
         )
       }
       onClick={() => onOpen(item.id)}
-      startContent={state ? <StatusDot variant={stateGroupVariant(state.state_group)} label={state.name} /> : <StatusDot variant="neutral" label="Removed" />}
+      startContent={
+        <HStack gap={2} vAlign="center" onClick={(event) => event.stopPropagation()}>
+          <CheckboxInput
+            className="tessera-wi-select"
+            size="sm"
+            isLabelHidden
+            label={`Select ${item.key}`}
+            value={selected}
+            onChange={(_checked, event) => onToggle("shiftKey" in event.nativeEvent && event.nativeEvent.shiftKey === true)}
+          />
+          {state ? <StatusDot variant={stateGroupVariant(state.state_group)} label={state.name} /> : <StatusDot variant="neutral" label="Removed" />}
+        </HStack>
+      }
       endContent={
         // The row opens the peek on a click anywhere outside a button; the menu's items are not buttons, so their clicks stop here.
         <HStack gap={1} vAlign="center" onClick={(event) => event.stopPropagation()}>

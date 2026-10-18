@@ -28,6 +28,7 @@ import {
   proportional,
   useTableColumnResize,
   useTableGroupedRows,
+  useTableSelection,
   useTableSortable,
   useTableSortableState,
   useTableStickyColumns,
@@ -39,7 +40,7 @@ import { Token } from "@astryxdesign/core/Token";
 import { PRIORITY_RANK } from "@/lib/tessera/core/group";
 import type { DisplayProperties, Group, GroupBy, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { isOptimisticId } from "./optimistic";
-import { ActorLabel, AssigneeControl, CycleControl, DateControl, LabelControl, ModuleControl, PriorityControl, PriorityLabel, StateControl, StateLabel, isPriority, paletteTokenColor } from "./properties";
+import { ActorLabel, AssigneeControl, CycleControl, DateControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, PriorityLabel, StateControl, StateLabel, isPriority, paletteTokenColor } from "./properties";
 import type { LayoutProps, ProjectBundle, UpdateWorkItemPatch } from "./types";
 
 /** One table row; a grouped result repeats an item under every group it belongs to, so the row id carries the group. */
@@ -54,10 +55,10 @@ function isDataRow(row: TableRow): boolean {
   return typeof row.item === "object" && row.item !== null;
 }
 
-type ColumnKey = "key" | "name" | "state" | "priority" | "assignees" | "labels" | "cycle" | "modules" | "start_date" | "target_date" | "created_at" | "updated_at";
+type ColumnKey = "key" | "name" | "state" | "priority" | "assignees" | "labels" | "cycle" | "modules" | "estimate" | "start_date" | "target_date" | "created_at" | "updated_at";
 
 /** Columns whose cells hold a control; clicks inside them do not open the row. */
-const EDITABLE: ReadonlySet<string> = new Set<ColumnKey>(["state", "priority", "assignees", "labels", "cycle", "modules", "start_date", "target_date"]);
+const EDITABLE: ReadonlySet<string> = new Set<ColumnKey>(["state", "priority", "assignees", "labels", "cycle", "modules", "estimate", "start_date", "target_date"]);
 
 const STATE_GROUPS: ReadonlySet<string> = new Set<StateGroup>(["backlog", "unstarted", "started", "completed", "cancelled", "triage"]);
 /** Id of the synthetic "no value" group (`NONE_GROUP_ID` in the engine's filters.ts). */
@@ -192,6 +193,17 @@ function buildColumns(
       ),
     });
   }
+  if (properties.estimate && bundle.project.estimates_enabled && bundle.estimate) {
+    columns.push({
+      key: "estimate",
+      header: "Estimate",
+      width: pixel(140),
+      sortable: true,
+      renderCell: (row) => (
+        <EstimateControl value={row.item.estimate_point_id} readOnly={locked(row)} size="sm" onChange={(estimate_point_id) => onUpdate(row.item.id, { estimate_point_id })} />
+      ),
+    });
+  }
   if (properties.created_at) {
     columns.push({
       key: "created_at",
@@ -218,9 +230,26 @@ function buildColumns(
       ),
     });
   }
-  // `bundle` is reserved for the estimate column (P8); the controls read the project context themselves.
-  void bundle;
   return columns;
+}
+
+/** Point order in the active system; missing points sort last. */
+function estimateRank(bundle: ProjectBundle, pointId: string | null): number {
+  if (pointId === null || bundle.estimate === null) return Number.MAX_SAFE_INTEGER;
+  const index = bundle.estimate.points.findIndex((point) => point.id === pointId);
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+}
+
+/** Work item ids the table can select, once each when a grouped result repeats a row. */
+function selectableIds(rows: readonly TableRow[]): string[] {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    if (!isDataRow(row) || isOptimisticId(row.item.id) || seen.has(row.item.id)) continue;
+    seen.add(row.item.id);
+    ids.push(row.item.id);
+  }
+  return ids;
 }
 
 /** Group section title: StatusDot for states, the priority glyph, a coloured Token for labels, cycles and modules. */
@@ -244,7 +273,7 @@ function GroupHeading({ group, field, bundle }: { group: Group | undefined; fiel
   return <Text weight="semibold">{group.name}</Text>;
 }
 
-export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false }: LayoutProps) {
+export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, selection }: LayoutProps) {
   const groups = useMemo(() => result.groups ?? [], [result.groups]);
   const grouped = display.group_by !== null && groups.length > 0;
 
@@ -273,6 +302,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
       name: (a, b) => collator.compare(a.item.name, b.item.name),
       state: (a, b) => (stateRank.get(a.item.state_id) ?? Number.MAX_SAFE_INTEGER) - (stateRank.get(b.item.state_id) ?? Number.MAX_SAFE_INTEGER),
       priority: (a, b) => PRIORITY_RANK[a.item.priority] - PRIORITY_RANK[b.item.priority],
+      estimate: (a, b) => estimateRank(bundle, a.item.estimate_point_id) - estimateRank(bundle, b.item.estimate_point_id),
       start_date: (a, b) => compareNullableText(a.item.start_date, b.item.start_date),
       target_date: (a, b) => compareNullableText(a.item.target_date, b.item.target_date),
       created_at: (a, b) => compareNullableText(a.item.created_at, b.item.created_at),
@@ -280,6 +310,23 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
     },
   });
   const sortPlugin = useTableSortable<TableRow>(sortConfig);
+  const selectable = useMemo(() => selectableIds(rows), [rows]);
+  const selectionPlugin = useTableSelection<TableRow>({
+    getIsItemSelected: (row) => isDataRow(row) && (selection?.selected.has(row.item.id) ?? false),
+    onSelectItem: ({ item, isSelected }) => {
+      if (!selection || !isDataRow(item) || selection.selected.has(item.item.id) === isSelected) return;
+      selection.onToggle(item.item.id, false);
+    },
+    onSelectAll: ({ isAllSelected }) => selection?.onToggleIds(selectable, isAllSelected),
+    getIsAllSelected: () => selectable.length > 0 && selectable.every((id) => selection?.selected.has(id) ?? false),
+    getIsIndeterminate: () => {
+      const count = selectable.filter((id) => selection?.selected.has(id)).length;
+      return count > 0 && count < selectable.length;
+    },
+    getIsItemSelectable: (row) => selection !== undefined && isDataRow(row) && !isOptimisticId(row.item.id),
+    getRowLabel: (row) => (isDataRow(row) ? row.item.key : "row"),
+    hasRowHighlight: true,
+  });
 
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const onToggleGroup = useCallback((key: string) => {
@@ -353,6 +400,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
 
   // Insertion order is the plugin order: the grouped plugin runs last so its header rows win over the open handler.
   const plugins: Record<string, TablePlugin<TableRow>> = {
+    ...(selection ? { selection: selectionPlugin } : {}),
     open: openPlugin,
     sticky: stickyPlugin,
     resize: resizePlugin,

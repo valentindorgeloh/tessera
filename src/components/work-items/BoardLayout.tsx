@@ -35,6 +35,7 @@ import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Heading, Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
+import { formatEstimateValue } from "@/components/estimates/estimate-format";
 import { usePointerDrag, type DragDropEvent, type ItemDragHandlers } from "@/components/dnd/use-pointer-drag";
 import type { Display, DisplayProperties, Group, GroupBy, PaletteColor, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { PlusIcon } from "@/themes/catppuccin/icons";
@@ -537,6 +538,10 @@ function CardProperties({ item, bundle, properties }: { item: WorkItem; bundle: 
   const cycle = properties.cycle && item.cycle_id !== null ? bundle.cycles.find((candidate) => candidate.id === item.cycle_id) : undefined;
   const assignees = properties.assignees ? bundle.actors.filter((actor) => item.assignee_ids.includes(actor.id)) : [];
   const showPriority = properties.priority && item.priority !== "none";
+  const estimatePoint =
+    properties.estimate && item.estimate_point_id !== null && bundle.estimate !== null
+      ? bundle.estimate.points.find((point) => point.id === item.estimate_point_id)
+      : undefined;
   const dates: string[] = [];
   if (properties.start_date && item.start_date !== null) dates.push(`Start ${item.start_date}`);
   if (properties.target_date && item.target_date !== null) dates.push(`Due ${item.target_date}`);
@@ -546,7 +551,7 @@ function CardProperties({ item, bundle, properties }: { item: WorkItem; bundle: 
   if (properties.created_at) counts.push(`Created ${item.created_at.slice(0, 10)}`);
   if (properties.updated_at) counts.push(`Updated ${item.updated_at.slice(0, 10)}`);
 
-  const hasTokens = state !== undefined || showPriority || labels.length > 0 || modules.length > 0 || cycle !== undefined || assignees.length > 0;
+  const hasTokens = state !== undefined || showPriority || labels.length > 0 || modules.length > 0 || cycle !== undefined || assignees.length > 0 || estimatePoint !== undefined;
   if (!hasTokens && dates.length === 0 && counts.length === 0) return null;
 
   return (
@@ -567,6 +572,7 @@ function CardProperties({ item, bundle, properties }: { item: WorkItem; bundle: 
             <Token key={label.id} size="sm" label={label.name} color={paletteTokenColor(label.color)} />
           ))}
           {cycle ? <Token key={cycle.id} size="sm" label={cycle.name} /> : null}
+          {estimatePoint !== undefined && bundle.estimate !== null ? <Token size="sm" label={formatEstimateValue(bundle.estimate.type, estimatePoint.value)} /> : null}
           {modules.map((module) => (
             <Token key={module.id} size="sm" label={module.name} />
           ))}

@@ -270,7 +270,7 @@ export function WorkItemsScreen({
     const ids = display.group_by && optimistic.groups ? optimistic.groups.flatMap((group) => group.item_ids) : optimistic.items.map((item) => item.id);
     return ids.filter((id) => !isOptimisticId(id));
   }, [display.group_by, optimistic]);
-  const selectionOn = allowSelection && !readOnly && display.layout === "list";
+  const selectionOn = allowSelection && !readOnly && (display.layout === "list" || display.layout === "table");
   const selection = useSelection(orderedIds, selectionOn);
   const layoutProps: LayoutProps = {
     result: optimistic,

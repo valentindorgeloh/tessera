@@ -5,8 +5,9 @@ import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { VStack } from "@astryxdesign/core/Stack";
 import { PeekHost } from "@/components/detail/PeekHost";
 import { ArchivedWorkItems } from "@/components/planning/ArchivedWorkItems";
+import { decodeUrlState, mergeFilters } from "@/components/work-items/url-state";
 import { IdSchema } from "@/lib/tessera/schemas";
-import { isTrackerError, listWorkItems, readTessera, type WorkItem } from "@/lib/tessera/server";
+import { isTrackerError, listWorkItems, readTessera, type Filters, type WorkItem } from "@/lib/tessera/server";
 import { loadPeek } from "../../work-items/scoped-list";
 
 type Props = {
@@ -19,9 +20,8 @@ const LIMIT = 2000;
 
 /**
  * Archives › Work items (docs/contracts/ui.md "Archives (E3)"): the project's
- * archived work items, last updated first, with Restore and Delete per row.
- * Rows open the peek (`?peek=<id>`), which shows the archived Banner and its
- * own Restore.
+ * archived work items, last updated first. Filters live in `q`. Rows open the
+ * peek (`?peek=<id>`), which shows the archived Banner and its own Restore.
  */
 export default function ArchivedWorkItemsPage({ params, searchParams }: Props) {
   return (
@@ -35,10 +35,13 @@ async function ArchivedWorkItemsData({ params, searchParams }: Props) {
   const [{ projectId }, query] = await Promise.all([params, searchParams]);
   await io();
   if (!IdSchema.safeParse(projectId).success) notFound();
+  const urlState = decodeUrlState(typeof query.q === "string" ? query.q : undefined);
+  const filters: Filters = mergeFilters({}, urlState.filters);
   let items: WorkItem[];
   try {
     items = await readTessera(
-      (ctx) => listWorkItems(ctx, { scope: { type: "archived", project_id: projectId }, display: { order_by: "-updated_at" }, limit: LIMIT }).items,
+      (ctx) =>
+        listWorkItems(ctx, { scope: { type: "archived", project_id: projectId }, filters, display: { order_by: "-updated_at" }, limit: LIMIT }).items,
     );
   } catch (err) {
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();
@@ -48,7 +51,7 @@ async function ArchivedWorkItemsData({ params, searchParams }: Props) {
   const peek = peekId === null ? null : await loadPeek(projectId, peekId);
   return (
     <PeekHost projectId={projectId} peek={peek}>
-      <ArchivedWorkItems projectId={projectId} items={items} />
+      <ArchivedWorkItems projectId={projectId} items={items} filters={filters} urlState={urlState} />
     </PeekHost>
   );
 }
