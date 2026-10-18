@@ -46,6 +46,7 @@ export type ShortcutId =
   | "item.modules"
   | "item.subscribe"
   | "item.delete"
+  | "item.history"
   | "item.copyId"
   | "item.copyTitle"
   | "item.copyUrl"
@@ -107,6 +108,7 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { id: "item.cycle", label: "Cycle…", keys: "shift+c", group: "Work item", needsItem: true },
   { id: "item.modules", label: "Modules…", keys: "shift+m", group: "Work item", needsItem: true },
   { id: "item.subscribe", label: "Subscribe or unsubscribe", keys: "shift+s", group: "Work item", needsItem: true, note: "Notifications arrive in P7" },
+  { id: "item.history", label: "Version history", keys: "shift+h", group: "Work item", needsItem: true },
   { id: "item.delete", label: "Delete…", keys: "mod+delete", group: "Work item", needsItem: true },
   { id: "item.copyId", label: "Copy ID", keys: "mod+.", group: "Work item", needsItem: true },
   { id: "item.copyTitle", label: "Copy title", keys: "mod+shift+'", group: "Work item", needsItem: true },

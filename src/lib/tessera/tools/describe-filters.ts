@@ -8,6 +8,7 @@
  */
 import { z } from "zod";
 import { USER_ACTOR_ID } from "../actors";
+import { RICH_FILTER_LIMITS, RICH_FILTER_OPS_BY_FIELD } from "../rich-filter-spec";
 import {
   CalendarLayoutSchema,
   DEFAULT_DISPLAY,
@@ -75,6 +76,8 @@ export type DescribeFiltersPayload = {
   /** What a list shows when nothing is saved; a display patch merges over it. */
   default_display: Display;
   examples: FilterExample[];
+  /** Operators per rich-filter field, plus the tree limits. Lists AND this tree with `filters`. */
+  rich_filters: { limits: typeof RICH_FILTER_LIMITS; ops: typeof RICH_FILTER_OPS_BY_FIELD; examples: { title: string; tree: unknown }[] };
 };
 
 // ---------------------------------------------------------------------------
@@ -211,6 +214,14 @@ export function describeFilters(): DescribeFiltersPayload {
       display: describeDisplay(),
       default_display: DisplaySchema.parse(DEFAULT_DISPLAY),
       examples: checkedExamples(),
+      rich_filters: {
+        limits: RICH_FILTER_LIMITS,
+        ops: RICH_FILTER_OPS_BY_FIELD,
+        examples: [
+          { title: "Urgent or blocked", tree: { or: [{ field: "priority", op: "eq", value: "urgent" }, { field: "blocked", op: "eq", value: true }] } },
+          { title: "Name contains, not completed", tree: { and: [{ field: "name", op: "contains", value: "login" }, { not: { field: "state_group", op: "eq", value: "completed" } }] } },
+        ],
+      },
     };
   }
   return cached;

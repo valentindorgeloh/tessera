@@ -188,6 +188,8 @@ export const RichFilterFieldSchema = z.enum([
   "updated_at",
   "completed_at",
   "estimate_point",
+  "blocked",
+  "relation_type",
 ]);
 
 export const RichFilterOpSchema = z.enum(["eq", "neq", "in", "not_in", "is_null", "is_not_null", "contains", "before", "after", "between"]);
@@ -222,6 +224,18 @@ const RichFilterOrSchema = z.object({ or: z.array(RichFiltersSchema).describe("A
 const RichFilterNotSchema = z.object({ not: RichFiltersSchema }).describe("The node must not match.");
 
 const RichFilterNodeSchema = z.union([RichFilterAndSchema, RichFilterOrSchema, RichFilterNotSchema, RichFilterConditionSchema]);
+
+export type RichFilterField = z.infer<typeof RichFilterFieldSchema>;
+export type RichFilterOp = z.infer<typeof RichFilterOpSchema>;
+
+export {
+  RELATION_DISPLAY_TYPES,
+  RICH_FILTER_FIELD_LABELS,
+  RICH_FILTER_LIMITS,
+  RICH_FILTER_OPS_BY_FIELD,
+  countRichConditions,
+  type RelationDisplayType,
+} from "./rich-filter-spec";
 
 export const GroupBySchema = z.enum(GROUPABLE_FIELDS);
 export const SubGroupBySchema = z.enum(["state", "state_group", "priority", "labels", "cycle", "module", "assignees", "created_by", "created_at", "target_date"]);
@@ -332,12 +346,16 @@ export const WorkspaceAiSettingsSchema = z.object({
   digest_enabled: z.boolean().default(true).describe("Whether the home digest is generated."),
 });
 
-/** What an export covers. */
+/** What an export covers. A view_id applies that view's saved filters, rich filters and order unless this scope overrides them. */
 export const ExportScopeSchema = z.object({
   project_id: IdSchema.nullable().default(null).describe("Project to export, or null for the whole workspace."),
   cycle_id: IdSchema.optional().describe("Restrict to one cycle."),
   module_id: IdSchema.optional().describe("Restrict to one module."),
-  filters: FiltersSchema.optional().describe("Extra list filters."),
+  view_id: IdSchema.optional().describe("Saved view whose filters, rich filters and order apply."),
+  filters: FiltersSchema.optional().describe("Extra list filters, merged over a view's saved filters."),
+  rich_filters: RichFiltersSchema.nullable().optional().describe("Rich filter tree. Null clears a view's saved tree."),
+  archived: z.boolean().default(false).describe("Include archived work items."),
+  order_by: OrderBySchema.optional().describe("Sort the rows. Omitted, a view keeps its saved order."),
 });
 
 export const ExportFormatSchema = z.enum(["csv", "json"]);

@@ -113,6 +113,23 @@ export type PageDetail = PageSummary & {
 };
 export type PageBacklink = { id: string; name: string; project_id: string | null; archived_at: string | null };
 export type PageVersionInfo = { id: string; version: number; name: string; actor_id: string; created_at: string; length: number; description_md?: string };
+
+/** Shared by work item and page version lists (decision 10). */
+export type VersionInfo = PageVersionInfo;
+
+export type HistoryActivity = {
+  seq: number;
+  verb: string;
+  field: string | null;
+  actor_id: string;
+  created_at: string;
+  comment: string | null;
+};
+
+export type HistoryResponse = {
+  versions: VersionInfo[];
+  activity?: HistoryActivity[];
+};
 export type ViewSettingsScope = z.infer<typeof ViewSettingsScopeSchema>;
 export type FavoriteEntityType = z.infer<typeof FavoriteEntityTypeSchema>;
 export type HomeWidgetId = z.infer<typeof HomeWidgetIdSchema>;
@@ -137,7 +154,7 @@ export type Logo = z.infer<typeof LogoSchema>;
 export type DateFilter = z.infer<typeof DateFilterSchema>;
 export type WorkItemTypeFilter = z.infer<typeof WorkItemTypeFilterSchema>;
 export type Filters = z.infer<typeof FiltersSchema>;
-export type { RichFilterCondition, RichFilters } from "./schemas";
+export type { RichFilterCondition, RichFilterField, RichFilterOp, RichFilters } from "./schemas";
 export type GroupBy = z.infer<typeof GroupBySchema>;
 export type SubGroupBy = z.infer<typeof SubGroupBySchema>;
 export type OrderBy = z.infer<typeof OrderBySchema>;
@@ -348,6 +365,18 @@ export type AnalyticsResult = AnalyticsOverview | AnalyticsWorkItems | Analytics
 export type ExportScope = z.infer<typeof ExportScopeSchema>;
 export type ExportFormat = z.infer<typeof ExportFormatSchema>;
 export type ExportStatus = z.infer<typeof ExportStatusSchema>;
+
+export type ExportJobView = {
+  id: string;
+  name: string;
+  format: ExportFormat;
+  status: ExportStatus;
+  row_count: number | null;
+  error: string | null;
+  file_name: string | null;
+  created_at: string;
+  created_by: string;
+};
 export type WebhookEvents = z.infer<typeof WebhookEventsSchema>;
 
 // ---------------------------------------------------------------------------

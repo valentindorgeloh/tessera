@@ -43,6 +43,13 @@
       "when": 1792500000000,
       "tag": "0005_automation_lease",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792600000000,
+      "tag": "0006_operations",
+      "breakpoints": true
     }
   ]
 }

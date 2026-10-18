@@ -9,8 +9,9 @@ import { normalizeIdentifier, parseKey } from "../core/keys";
 import { cycle, moduleTable, project, view, work_item, work_item_assignee, work_item_module, work_item_subscriber } from "../db/schema";
 import { buildOrder, buildWhere, groupItems } from "../filters";
 import { getProjectRow, resolveRetiredIdentifier } from "../projects";
-import { DEFAULT_DISPLAY, DisplaySchema, FiltersSchema, IdSchema } from "../schemas";
-import type { Display, Filters } from "../types";
+import { buildRichWhere } from "../rich-filters";
+import { DEFAULT_DISPLAY, DisplaySchema, FiltersSchema, IdSchema, RichFiltersSchema } from "../schemas";
+import type { Display, Filters, RichFilters } from "../types";
 import { DisplayPatchSchema, mergeDisplay } from "../view-settings";
 import { ENTITY, type WorkItem, type WorkItemDetail, type WorkItemListResult, getWorkItemRow } from "./model";
 import { hydrate, itemQuery, listLinks, listSubscriberIds, loadWorkItem } from "./hydrate";
@@ -84,6 +85,7 @@ export const ListWorkItemsInput = z
   .object({
     scope: ListScopeSchema.describe("Which list this is."),
     filters: FiltersSchema.optional().describe("Filters combined with AND; merged over a view's saved filters."),
+    rich_filters: RichFiltersSchema.nullable().optional().describe("Rich filter tree ANDed with filters. Replaces a view's saved tree; null clears it."),
     // A patch, not DisplaySchema.partial(): zod 4 would still apply the defaults and wipe a view's saved keys (A1).
     display: DisplayPatchSchema.optional().describe("Ordering, grouping and layout keys; omitted keys keep a view's saved display or the defaults."),
     limit: z.number().int().min(1).max(5000).optional().describe("Page size; all items when omitted."),
@@ -100,6 +102,8 @@ type ResolvedScope = {
   project_id: string | null;
   filters: Filters;
   display: Display;
+  /** Null when the list has no rich tree. A view uses its saved tree unless the caller passed one, including null to clear it. */
+  rich_filters: RichFilters | null;
   empty?: boolean;
 };
 
@@ -123,7 +127,8 @@ function resolveScope(ctx: TesseraContext, data: z.output<typeof ListWorkItemsIn
   const scope = data.scope;
   const callerFilters = data.filters ?? {};
   const callerDisplay = data.display ?? {};
-  const base = { filters: callerFilters, display: mergeDisplay(DEFAULT_DISPLAY, callerDisplay) };
+  const callerRich = data.rich_filters === undefined ? null : data.rich_filters;
+  const base = { filters: callerFilters, display: mergeDisplay(DEFAULT_DISPLAY, callerDisplay), rich_filters: callerRich };
   switch (scope.type) {
     case "project": {
       getProjectRow(ctx, scope.project_id);
@@ -170,10 +175,12 @@ function resolveScope(ctx: TesseraContext, data: z.output<typeof ListWorkItemsIn
       if (!row) throw notFound("view", scope.view_id);
       const filters = { ...FiltersSchema.parse(row.filters), ...stripUndefined(callerFilters) };
       const display = mergeDisplay(DisplaySchema.parse(row.display), callerDisplay);
+      const stored = row.rich_filters === null ? null : RichFiltersSchema.parse(row.rich_filters);
+      const rich_filters = data.rich_filters === undefined ? stored : data.rich_filters;
       if (row.project_id !== null) {
-        return { filters, display, where: eq(work_item.project_id, row.project_id), project_ids: [row.project_id], project_id: row.project_id };
+        return { filters, display, rich_filters, where: eq(work_item.project_id, row.project_id), project_ids: [row.project_id], project_id: row.project_id };
       }
-      return { filters, display, where: LIVE_PROJECT, project_ids: liveProjectIds(ctx), project_id: null };
+      return { filters, display, rich_filters, where: LIVE_PROJECT, project_ids: liveProjectIds(ctx), project_id: null };
     }
     case "workspace":
       return { ...base, where: LIVE_PROJECT, project_ids: liveProjectIds(ctx), project_id: null };
@@ -216,7 +223,8 @@ export function listWorkItems(ctx: TesseraContext, input: ListWorkItemsInputType
   const scope = resolveScope(ctx, data);
   if (scope.empty === true) return { items: [], total: 0, cursor: latestSeq(ctx) };
   const filters = effectiveFilters(scope.filters, scope.display);
-  const where = and(scope.where, buildWhere(ctx, filters, { project_id: scope.project_id }));
+  const rich = scope.rich_filters === null ? undefined : buildRichWhere(ctx, scope.rich_filters, { today: ctx.today() });
+  const where = and(scope.where, buildWhere(ctx, filters, { project_id: scope.project_id }), rich);
   const total =
     ctx.db
       .select({ n: count() })

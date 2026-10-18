@@ -34,8 +34,9 @@ import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
 import { SaveViewButton } from "@/components/views/SaveViewButton";
 import { normalizeFilters } from "@/components/views/view-state";
 import { isMultiValuedGroup } from "@/lib/tessera/core/group";
-import type { CreateWorkItemInputType, Display, Filters, GroupBy, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
-import { PlusIcon } from "@/themes/catppuccin/icons";
+import type { CreateWorkItemInputType, Display, Filters, GroupBy, RichFilters, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
+import { ExportDialog } from "@/components/exports/ExportDialog";
+import { ExportIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { BoardLayout } from "./BoardLayout";
 import { CalendarLayout } from "./CalendarLayout";
 import { BulkBar } from "./BulkBar";
@@ -107,6 +108,10 @@ export type WorkItemsScreenProps = {
   showProjectColumn?: boolean;
   /** `page` opens `/work-items/<id>`. A cross-project route has no peek host. */
   openMode?: "peek" | "page";
+  /** Effective rich filter tree when it is not only the URL (a saved view). */
+  richFilters?: RichFilters | null;
+  /** Narrows Export… to a cycle, module or view. Default is this project, or the workspace when crossProject. */
+  exportScope?: { project_id: string | null; cycle_id?: string; module_id?: string; view_id?: string };
 };
 
 const DEFAULT_TITLE = "Work items";
@@ -134,6 +139,8 @@ export function WorkItemsScreen({
   showLayoutSwitch = true,
   showProjectColumn = false,
   openMode = "peek",
+  richFilters,
+  exportScope,
 }: WorkItemsScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -310,7 +317,8 @@ export function WorkItemsScreen({
   const dialogDefaults = scopeDefaults ? withScopeDefaults(createDefaults ?? {}, scopeDefaults) : createDefaults;
   const shownCount = count === undefined ? optimistic.total : count;
   const showSaveView =
-    saveView && bundle.project.views_enabled && !readOnly && (Object.keys(normalizeFilters(filters)).length > 0 || urlState.display !== undefined);
+    saveView && bundle.project.views_enabled && !readOnly && (Object.keys(normalizeFilters(filters)).length > 0 || urlState.display !== undefined || urlState.rich_filters !== undefined);
+  const [exportOpen, setExportOpen] = useState(false);
 
   return (
     <>
@@ -334,6 +342,7 @@ export function WorkItemsScreen({
                 <>
                   {showLayoutSwitch ? <LayoutSwitch display={display} urlState={urlState} settingsScope={settingsScope} /> : null}
                   <DisplayMenu display={display} urlState={urlState} settingsScope={settingsScope} hiddenGroupFields={hiddenGroupFields} includeProject={crossProject} />
+                  <Button variant="ghost" size="sm" label="Export…" icon={<ExportIcon />} onClick={() => setExportOpen(true)} />
                   {canCreateItems ? <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" /> : null}
                   {subheaderEnd}
                 </>
@@ -343,8 +352,8 @@ export function WorkItemsScreen({
               size="filters"
               canWrap
               hasDivider
-              start={<FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} showProject={crossProject} />}
-              end={filtersEnd ?? (showSaveView ? <SaveViewButton projectId={projectId} filters={filters} display={display} /> : undefined)}
+              start={<FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} showProject={crossProject} richFilters={richFilters} />}
+              end={filtersEnd ?? (showSaveView ? <SaveViewButton projectId={projectId} filters={filters} display={display} richFilters={urlState.rich_filters ?? richFilters} /> : undefined)}
             />
           </PanelHeader>
         }
@@ -366,6 +375,20 @@ export function WorkItemsScreen({
         }
       />
       <CreateWorkItemDialog projectId={projectId} isOpen={isCreateOpen} onOpenChange={setCreateOpen} defaults={dialogDefaults} />
+      <ExportDialog
+        isOpen={exportOpen}
+        onOpenChange={setExportOpen}
+        title={title}
+        scope={{
+          project_id: exportScope?.project_id ?? (crossProject ? null : projectId),
+          cycle_id: exportScope?.cycle_id,
+          module_id: exportScope?.module_id,
+          view_id: exportScope?.view_id,
+          filters,
+          rich_filters: richFilters === undefined ? (urlState.rich_filters ?? null) : richFilters,
+          order_by: display.order_by,
+        }}
+      />
     </>
   );
 }

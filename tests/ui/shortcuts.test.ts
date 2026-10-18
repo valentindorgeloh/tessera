@@ -68,6 +68,7 @@ const ALL_IDS: ShortcutId[] = [
   "item.cycle",
   "item.modules",
   "item.subscribe",
+  "item.history",
   "item.delete",
   "item.copyId",
   "item.copyTitle",
@@ -273,7 +274,7 @@ describe("resolveShortcut: chords", () => {
 
   it("ignores a shifted second key", () => {
     const chord = { prefix: "g" as const, at: NOW };
-    expect(resolveShortcut(key("KeyH", { shiftKey: true }), chord, NOW + 10, MAC)).toBeNull();
+    expect(resolveShortcut(key("KeyZ", { shiftKey: true }), chord, NOW + 10, MAC)).toBeNull();
   });
 
   it("does not complete a chord inside an input", () => {

@@ -35,10 +35,12 @@ export type ViewWorkItemsProps = {
 
 export async function ViewWorkItems({ projectId, view, query }: ViewWorkItemsProps): Promise<React.JSX.Element> {
   const urlState = decodeUrlState(typeof query.q === "string" ? query.q : undefined);
-  const saved: ViewState = { filters: view.filters, display: mergeDisplay(DEFAULT_DISPLAY, view.display) };
+  const savedRich = view.rich_filters;
+  const saved: ViewState = { filters: view.filters, display: mergeDisplay(DEFAULT_DISPLAY, view.display), rich_filters: savedRich };
   const effective: ViewState = {
     filters: mergeFilters({}, view.filters, urlState.filters),
     display: mergeDisplay(DEFAULT_DISPLAY, view.display, urlState.display),
+    rich_filters: urlState.rich_filters !== undefined ? urlState.rich_filters : savedRich,
   };
   const peekId = typeof query.peek === "string" && query.peek !== "" ? query.peek : null;
   await io();
@@ -58,6 +60,7 @@ export async function ViewWorkItems({ projectId, view, query }: ViewWorkItemsPro
         result={result}
         display={effective.display}
         filters={effective.filters}
+        richFilters={effective.rich_filters ?? null}
         settingsDisplay={saved.display}
         settingsScope={null}
         scopeDefaults={viewScopeDefaults(effective.filters)}
@@ -67,11 +70,20 @@ export async function ViewWorkItems({ projectId, view, query }: ViewWorkItemsPro
         allowSelection={!view.is_locked}
         subheaderEnd={<ViewMenu projectId={projectId} view={view} placement="header" />}
         filtersEnd={<ViewBar projectId={projectId} view={view} isModified={isViewModified(saved, effective)} effective={effective} />}
+        exportScope={{ project_id: projectId, view_id: view.id }}
       />
     </PeekHost>
   );
 }
 
 function loadItems(viewId: string, effective: ViewState) {
-  return readTessera((ctx) => listWorkItems(ctx, { scope: { type: "view", view_id: viewId }, filters: effective.filters, display: effective.display, limit: LIMIT }));
+  return readTessera((ctx) =>
+    listWorkItems(ctx, {
+      scope: { type: "view", view_id: viewId },
+      filters: effective.filters,
+      display: effective.display,
+      limit: LIMIT,
+      ...(effective.rich_filters !== undefined ? { rich_filters: effective.rich_filters } : {}),
+    }),
+  );
 }

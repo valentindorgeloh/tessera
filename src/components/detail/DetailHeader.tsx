@@ -18,7 +18,7 @@ import { useClipboard } from "@astryxdesign/core/hooks";
 import { PanelBar } from "@/components/shell/PanelHeader";
 import { useProject } from "@/components/work-items/project-provider";
 import type { WorkItem, WorkItemDetail } from "@/lib/tessera/types";
-import { ArchiveIcon, ArrowSquareOutIcon, ArrowsOutIcon, CheckIcon, CopyIcon, HashIcon, LinkIcon, MoveToProjectIcon, RestoreIcon, SidebarIcon, TrashIcon, XIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { ArchiveIcon, ArrowSquareOutIcon, ArrowsOutIcon, CheckIcon, CopyIcon, HashIcon, HistoryIcon, LinkIcon, MoveToProjectIcon, RestoreIcon, SidebarIcon, TrashIcon, XIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import type { DetailHost } from "./types";
 
 export type DetailHeaderProps = {
@@ -38,6 +38,8 @@ export type DetailHeaderProps = {
   /** Restore entry, for an archived item. */
   onRestore?: () => void;
   archiveBlockedReason?: string;
+  /** Opens version history. */
+  onVersionHistory?: () => void;
 };
 
 /** Full page route of an item; the origin is added at copy time. */
@@ -114,6 +116,7 @@ export function DetailHeader({
   onArchive,
   onRestore,
   archiveBlockedReason,
+  onVersionHistory,
 }: DetailHeaderProps) {
   const { bundle } = useProject();
   const { project } = bundle;
@@ -132,6 +135,7 @@ export function DetailHeader({
     ...(onCopyToProject ? [{ id: "copy-project", label: "Copy to project…", icon: CopyIcon, onClick: onCopyToProject }] : []),
     ...(onMoveToProject ? [{ id: "move-project", label: "Move to project…", icon: MoveToProjectIcon, onClick: onMoveToProject }] : []),
     { id: "copy-id", label: `Copy ID (${item.key})`, icon: HashIcon, onClick: () => void copyId.copy(item.key) },
+    ...(onVersionHistory ? [{ id: "history", label: "Version history", icon: HistoryIcon, onClick: onVersionHistory }] : []),
     ...(onRestore ? [{ id: "restore", label: "Restore", icon: RestoreIcon, onClick: onRestore }] : []),
     ...(onArchive
       ? [{ id: "archive", label: "Archive", icon: ArchiveIcon, isDisabled: archiveBlockedReason !== undefined, description: archiveBlockedReason, onClick: onArchive }]

@@ -19,6 +19,7 @@ import {
   DisplaySchema,
   FiltersSchema,
   GroupBySchema,
+  RichFiltersSchema,
   LayoutSchema,
   OrderBySchema,
   SubGroupBySchema,
@@ -53,6 +54,7 @@ export const UrlDisplayPatchSchema = z.object({
 const UrlStateSchema = z.object({
   filters: FiltersSchema.partial().optional(),
   display: UrlDisplayPatchSchema.optional(),
+  rich_filters: RichFiltersSchema.nullable().optional(),
 });
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -106,6 +108,7 @@ export function encodeUrlState(state: UrlState): string {
   const payload: UrlState = {};
   if (hasKeys(filters)) payload.filters = filters;
   if (hasKeys(display)) payload.display = display;
+  if (state.rich_filters !== undefined) payload.rich_filters = state.rich_filters;
   if (!hasKeys(payload)) return "";
   return toBase64Url(JSON.stringify(payload));
 }
@@ -140,6 +143,7 @@ export function decodeUrlState(q?: string | null): UrlState {
     if (hasKeys(propertiesPatch)) display.properties = propertiesPatch as Display["properties"];
     if (hasKeys(display)) out.display = display;
   }
+  if (parsed.data.rich_filters !== undefined) out.rich_filters = parsed.data.rich_filters;
   return out;
 }
 

@@ -6,8 +6,8 @@
  * Every scope counts the population `listWorkItems` shows for it: non-deleted,
  * non-archived work items outside the hidden triage state, in live projects
  * for the workspace-wide scopes. The view scope applies the view's saved
- * filters (and its display `type` / `sub_items`) through `filters.buildWhere`,
- * exactly like the list does. A few grouped queries produce every number;
+ * filters and rich filter tree (and its display `type` / `sub_items`) through
+ * `buildWhere` and `buildRichWhere`, exactly like the list does. A few grouped queries produce every number;
  * nothing loops over items.
  */
 import { and, count, eq, gte, inArray, isNull, lt, lte, notInArray, sql, type SQL } from "drizzle-orm";
@@ -18,9 +18,10 @@ import { notFound, validateInput } from "./core/errors";
 import { addDays } from "./core/time";
 import { cycle, estimate, estimate_point, moduleTable, project, state, view, work_item, work_item_assignee, work_item_label, work_item_module, work_item_subscriber } from "./db/schema";
 import { buildWhere } from "./filters";
+import { buildRichWhere } from "./rich-filters";
 import { getProjectRow } from "./projects";
-import { DisplaySchema, FiltersSchema, IdSchema, PrioritySchema, ProfileCountsTabSchema, StateGroupSchema } from "./schemas";
-import type { Display, Filters, Priority, StateGroup } from "./types";
+import { DisplaySchema, FiltersSchema, IdSchema, PrioritySchema, ProfileCountsTabSchema, RichFiltersSchema, StateGroupSchema } from "./schemas";
+import type { Display, Filters, Priority, RichFilters, StateGroup } from "./types";
 
 export type Counts = {
   total: number;
@@ -79,6 +80,8 @@ const DUE_WINDOW_DAYS = 6;
 type ResolvedScope = {
   where: SQL;
   filters: Filters;
+  /** The view's saved tree; other scopes have none. */
+  rich_filters: RichFilters | null;
   /** The one project the scope belongs to (narrows full-text search), or null for cross-project scopes. */
   project_id: string | null;
   /** Projects whose estimate settings decide whether points are reported. */
@@ -130,11 +133,11 @@ function resolveScope(ctx: TesseraContext, scope: CountsScope): ResolvedScope {
   switch (scope.type) {
     case "workspace": {
       const resolved = resolveWorkspaceProjects(ctx, scope.project_ids);
-      return { where: resolved.where, filters: {}, project_id: null, project_ids: resolved.project_ids };
+      return { where: resolved.where, filters: {}, rich_filters: null, project_id: null, project_ids: resolved.project_ids };
     }
     case "project": {
       getProjectRow(ctx, scope.project_id);
-      return { where: eq(work_item.project_id, scope.project_id), filters: {}, project_id: scope.project_id, project_ids: [scope.project_id] };
+      return { where: eq(work_item.project_id, scope.project_id), filters: {}, rich_filters: null, project_id: scope.project_id, project_ids: [scope.project_id] };
     }
     case "cycle": {
       const row = ctx.db
@@ -143,7 +146,7 @@ function resolveScope(ctx: TesseraContext, scope: CountsScope): ResolvedScope {
         .where(and(eq(cycle.id, scope.cycle_id), isNull(cycle.deleted_at)))
         .get();
       if (!row) throw notFound("cycle", scope.cycle_id);
-      return { where: eq(work_item.cycle_id, scope.cycle_id), filters: {}, project_id: row.project_id, project_ids: [row.project_id] };
+      return { where: eq(work_item.cycle_id, scope.cycle_id), filters: {}, rich_filters: null, project_id: row.project_id, project_ids: [row.project_id] };
     }
     case "module": {
       const row = ctx.db
@@ -156,20 +159,21 @@ function resolveScope(ctx: TesseraContext, scope: CountsScope): ResolvedScope {
         work_item.id,
         ctx.db.select({ id: work_item_module.work_item_id }).from(work_item_module).where(eq(work_item_module.module_id, scope.module_id)),
       );
-      return { where: member, filters: {}, project_id: row.project_id, project_ids: [row.project_id] };
+      return { where: member, filters: {}, rich_filters: null, project_id: row.project_id, project_ids: [row.project_id] };
     }
     case "view": {
       const row = ctx.db
-        .select({ project_id: view.project_id, filters: view.filters, display: view.display })
+        .select({ project_id: view.project_id, filters: view.filters, rich_filters: view.rich_filters, display: view.display })
         .from(view)
         .where(and(eq(view.id, scope.view_id), isNull(view.deleted_at)))
         .get();
       if (!row) throw notFound("view", scope.view_id);
       const filters = withDisplayFilters(FiltersSchema.parse(row.filters), DisplaySchema.parse(row.display));
+      const rich_filters = row.rich_filters === null ? null : RichFiltersSchema.parse(row.rich_filters);
       if (row.project_id !== null) {
-        return { where: eq(work_item.project_id, row.project_id), filters, project_id: row.project_id, project_ids: [row.project_id] };
+        return { where: eq(work_item.project_id, row.project_id), filters, rich_filters, project_id: row.project_id, project_ids: [row.project_id] };
       }
-      return { where: inLiveProject(ctx), filters, project_id: null, project_ids: liveProjectIds(ctx) };
+      return { where: inLiveProject(ctx), filters, rich_filters, project_id: null, project_ids: liveProjectIds(ctx) };
     }
     case "profile": {
       getActor(ctx, scope.actor_id);
@@ -183,7 +187,7 @@ function resolveScope(ctx: TesseraContext, scope: CountsScope): ResolvedScope {
                 ? ctx.db.select({ id: work_item_subscriber.work_item_id }).from(work_item_subscriber).where(eq(work_item_subscriber.actor_id, scope.actor_id))
                 : ctx.db.select({ id: work_item_assignee.work_item_id }).from(work_item_assignee).where(eq(work_item_assignee.actor_id, scope.actor_id)),
             );
-      return { where: and(inLiveProject(ctx), relation) ?? relation, filters: {}, project_id: null, project_ids: liveProjectIds(ctx) };
+      return { where: and(inLiveProject(ctx), relation) ?? relation, filters: {}, rich_filters: null, project_id: null, project_ids: liveProjectIds(ctx) };
     }
   }
 }
@@ -359,7 +363,8 @@ export function countsPopulation(ctx: TesseraContext, scope: CountsScope, option
   const resolved = resolveScope(ctx, data.scope);
   const filters: Filters = options?.includeArchived ? { ...resolved.filters, archived: true } : resolved.filters;
   const archivedClause = options?.includeArchived ? undefined : isNull(work_item.archived_at);
-  const where = and(resolved.where, archivedClause, buildWhere(ctx, filters, { project_id: resolved.project_id })) ?? resolved.where;
+  const rich = resolved.rich_filters === null ? undefined : buildRichWhere(ctx, resolved.rich_filters, { today: ctx.today() });
+  const where = and(resolved.where, archivedClause, buildWhere(ctx, filters, { project_id: resolved.project_id }), rich) ?? resolved.where;
   return { where, project_ids: resolved.project_ids };
 }
 

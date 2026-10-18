@@ -22,19 +22,28 @@ export const work_item_version = sqliteTable(
       .references(() => actor.id, { onDelete: "restrict" }),
     created_at: text("created_at").notNull(),
   },
-  (t) => [index("work_item_version_item_version_idx").on(t.work_item_id, t.version)],
+  (t) => [
+    index("work_item_version_item_version_idx").on(t.work_item_id, t.version),
+    index("work_item_version_item_created_idx").on(t.work_item_id, t.created_at),
+  ],
 );
 
-export const export_job = sqliteTable("export_job", {
-  id: text("id").primaryKey(),
-  scope: text("scope", { mode: "json" }).$type<ExportScope>().notNull(),
-  format: text("format").$type<ExportFormat>().notNull(),
-  status: text("status").$type<ExportStatus>().notNull().default("pending"),
-  file_path: text("file_path"),
-  error: text("error"),
-  ...createdColumns(),
-  updated_at: text("updated_at").notNull(),
-});
+export const export_job = sqliteTable(
+  "export_job",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull().default(""),
+    scope: text("scope", { mode: "json" }).$type<ExportScope>().notNull(),
+    format: text("format").$type<ExportFormat>().notNull(),
+    status: text("status").$type<ExportStatus>().notNull().default("pending"),
+    file_path: text("file_path"),
+    row_count: integer("row_count"),
+    error: text("error"),
+    ...createdColumns(),
+    updated_at: text("updated_at").notNull(),
+  },
+  (t) => [index("export_job_created_idx").on(t.created_at)],
+);
 
 export const webhook = sqliteTable("webhook", {
   id: text("id").primaryKey(),

@@ -18,11 +18,14 @@ import {
   Compass,
   Copy,
   DotsThree,
+  DownloadSimple,
+  Export,
   EyeSlash,
   FileText,
   Folder,
   FolderPlus,
   Funnel,
+  FunnelSimple,
   House,
   Info,
   Kanban,
@@ -316,6 +319,10 @@ export const NoteIcon = duotoneIcon(Note);
 export const UserCircleIcon = duotoneIcon(UserCircle);
 export const RobotIcon = duotoneIcon(Robot);
 export const FolderStarIcon = duotoneIcon(FolderSimpleStar);
+export const HistoryIcon = duotoneIcon(ClockCounterClockwise);
+export const ExportIcon = duotoneIcon(Export);
+export const DownloadIcon = duotoneIcon(DownloadSimple);
+export const AdvancedFilterIcon = duotoneIcon(FunnelSimple);
 
 /**
  * Icons a project logo may use (`Logo.icon` holds the Phosphor name). The

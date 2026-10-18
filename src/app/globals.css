@@ -25,6 +25,7 @@
 @import "../components/styles/workspace-views.css";
 @import "../components/styles/calendar.css";
 @import "../components/styles/gantt.css";
+@import "../components/styles/history.css";
 
 html,
 body {

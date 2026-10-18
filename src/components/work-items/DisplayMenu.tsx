@@ -114,6 +114,7 @@ function useDisplayWriter(settingsScope: SettingsScope | null, urlState: UrlStat
   const writeUrl = (nextDisplay: Partial<Display> | undefined) => {
     const state: UrlState = {};
     if (urlState.filters) state.filters = urlState.filters;
+    if (urlState.rich_filters !== undefined) state.rich_filters = urlState.rich_filters;
     if (nextDisplay && Object.keys(nextDisplay).length > 0) state.display = nextDisplay;
     // Only `q` changes: the other params (an open `peek`) stay.
     router.replace(withSearchParam(pathname, searchParams, "q", encodeUrlState(state) || null), { scroll: false });

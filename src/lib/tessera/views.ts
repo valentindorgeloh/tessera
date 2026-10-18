@@ -24,6 +24,7 @@ import { lastSortOrder, sortOrderAfter, sortOrderForMove } from "./core/order";
 import { withTx } from "./core/tx";
 import { view } from "./db/schema";
 import { assertFeatureEnabled, getProjectRow } from "./projects";
+import { validateRichFilters } from "./rich-filters";
 import { DEFAULT_DISPLAY, DisplaySchema, FiltersSchema, IdSchema, LogoSchema, RichFiltersSchema } from "./schemas";
 import type { Display, ViewRow } from "./types";
 import { DisplayPatchSchema, mergeDisplay, type DisplayPatch } from "./view-settings";
@@ -158,7 +159,7 @@ export const CreateViewInput = z
     name: VIEW_NAME.describe("View name, unique within its project or among workspace views (case-insensitive)."),
     description: VIEW_DESCRIPTION.optional().describe("Short description shown under the name."),
     filters: FiltersSchema.optional().describe("Saved filters; empty when omitted."),
-    rich_filters: RichFiltersSchema.nullable().optional().describe("Stored only; lists and counts do not apply it until P10. Use filters."),
+    rich_filters: RichFiltersSchema.nullable().optional().describe("Rich filter tree applied with filters by lists, counts and exports. Null clears a saved tree."),
     display: DisplayPatchSchema.optional().describe("Display settings over the defaults; workspace views accept only layout table."),
     logo: LogoSchema.optional().describe("Icon and palette colour."),
   })
@@ -168,6 +169,7 @@ export type CreateViewInputType = z.input<typeof CreateViewInput>;
 
 export function createView(ctx: TesseraContext, input: CreateViewInputType): View {
   const data = validateInput(CreateViewInput, input);
+  if (data.rich_filters) validateRichFilters(data.rich_filters);
   const display = initialDisplay(data.project_id, data.display);
   assertLayoutAllowed(data.project_id, display);
   return withTx(ctx, () => {
@@ -205,7 +207,7 @@ export const UpdateViewInput = z
     name: VIEW_NAME.describe("New name, unique within the view's scope."),
     description: VIEW_DESCRIPTION.describe("New description."),
     filters: FiltersSchema.describe("Replaces the saved filters."),
-    rich_filters: RichFiltersSchema.nullable().describe("Stored only; lists and counts do not apply it until P10. Use filters."),
+    rich_filters: RichFiltersSchema.nullable().describe("Rich filter tree applied with filters by lists, counts and exports. Null clears a saved tree."),
     display: DisplayPatchSchema.describe("Merged over the saved display; workspace views stay on layout table."),
     logo: LogoSchema.nullable().describe("Icon and colour, or null to clear."),
   })
@@ -218,6 +220,7 @@ const VIEW_UPDATE_FIELDS = ["name", "description", "filters", "rich_filters", "d
 
 export function updateView(ctx: TesseraContext, id: string, patch: UpdateViewInputType): View {
   const data = validateInput(UpdateViewInput, patch);
+  if (data.rich_filters) validateRichFilters(data.rich_filters);
   return withTx(ctx, () => {
     const before = getView(ctx, id);
     assertWritableScope(ctx, before.project_id);
@@ -324,6 +327,7 @@ function copyName(ctx: TesseraContext, projectId: string | null, sourceName: str
 export function duplicateView(ctx: TesseraContext, id: string): View {
   return withTx(ctx, () => {
     const source = getView(ctx, id);
+    if (source.rich_filters) validateRichFilters(source.rich_filters);
     assertWritableScope(ctx, source.project_id, true);
     const name = copyName(ctx, source.project_id, source.name);
     const now = ctx.now();

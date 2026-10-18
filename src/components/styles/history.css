@@ -1,0 +1,24 @@
+/*
+ * Version history diff marks. Tokens only.
+ */
+.tessera-history-pane {
+  max-height: 70vh;
+  overflow: auto;
+  min-width: 0;
+}
+
+.tessera-diff-line[data-change="added"] {
+  background: var(--color-success-muted);
+}
+
+.tessera-diff-line[data-change="removed"] {
+  background: var(--color-error-muted);
+}
+
+.tessera-diff-word[data-change="added"] {
+  background: var(--color-success-muted);
+}
+
+.tessera-diff-word[data-change="removed"] {
+  background: var(--color-error-muted);
+}

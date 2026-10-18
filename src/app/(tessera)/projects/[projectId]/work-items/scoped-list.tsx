@@ -66,7 +66,13 @@ function loadWorkItems(scope: WorkItemsScope, settingsScope: SettingsScope, urlS
     const settings = getViewSettings(ctx, settingsScope.scope_type, settingsScope.scope_id);
     const display = withoutHiddenGroups(mergeDisplay(DEFAULT_DISPLAY, settings.display, urlState.display), hidden);
     const filters = mergeFilters({}, settings.filters, urlState.filters);
-    const result = listWorkItems(ctx, { scope, filters, display, limit: LIMIT });
+    const result = listWorkItems(ctx, {
+      scope,
+      filters,
+      display,
+      limit: LIMIT,
+      ...(urlState.rich_filters !== undefined ? { rich_filters: urlState.rich_filters } : {}),
+    });
     return { settings, display, filters, result };
   });
 }
@@ -111,6 +117,11 @@ export async function ScopedWorkItems({
         title={title}
         count={count}
         saveView={scope.type === "project"}
+        exportScope={{
+          project_id: projectId,
+          cycle_id: scope.type === "cycle" ? scope.cycle_id : undefined,
+          module_id: scope.type === "module" ? scope.module_id : undefined,
+        }}
       />
     </PeekHost>
   );

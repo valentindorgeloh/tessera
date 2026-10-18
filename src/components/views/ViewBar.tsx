@@ -59,7 +59,12 @@ export function ViewBar({ projectId, view, isModified, effective }: ViewBarProps
   const update = () => {
     setUpdating(true);
     startTransition(async () => {
-      const result = await updateViewAction({ view_id: view.id, filters: normalizeFilters(effective.filters), display: effective.display });
+      const result = await updateViewAction({
+        view_id: view.id,
+        filters: normalizeFilters(effective.filters),
+        display: effective.display,
+        rich_filters: effective.rich_filters ?? null,
+      });
       setUpdating(false);
       if (!result.ok) {
         toast({ type: "error", body: `Could not update ${view.name}: ${result.message}` });

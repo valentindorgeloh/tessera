@@ -12,6 +12,7 @@ import { intakeRequired, intakeSourceFor, recordIntakeItem } from "../intake-pol
 import { IdListSchema, IdSchema, IntakeSourceSchema, IsoDateSchema, PrioritySchema } from "../schemas";
 import { ensureTriageState } from "../states";
 import type { ProjectRow, StateRow, WorkItemRow } from "../types";
+import { writeWorkItemVersion } from "./versions";
 import {
   DESCRIPTION,
   ENTITY,
@@ -140,6 +141,9 @@ export function insertWorkItem(ctx: TesseraContext, projectRow: ProjectRow, data
   // The creator follows the item; assignees are auto-subscribed (schema.md "setAssignees").
   addSubscribers(ctx, row.id, [ctx.actor.id, ...data.assignee_ids]);
   upsertWorkItemFts(ctx.sqlite, { id: row.id, project_id: row.project_id, name: row.name, body: row.description_md });
+  if (row.description_md !== "") {
+    writeWorkItemVersion(ctx, { id: row.id, name: row.name, description_md: row.description_md, description_version: row.description_version });
+  }
   logActivity(ctx, { project_id: row.project_id, entity_type: ENTITY, entity_id: row.id, work_item_id: row.id, verb: "created", new_identifier: itemKey(projectRow, row) });
   return row;
 }

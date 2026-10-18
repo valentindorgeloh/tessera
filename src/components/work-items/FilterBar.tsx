@@ -10,9 +10,10 @@
  * "Clear" writes an explicit empty value for keys the saved view settings
  * still carry (./filter-state.ts), so the saved filter cannot come back.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
+import { Token } from "@astryxdesign/core/Token";
 import {
   PowerSearch,
   type DateTimeRangePart,
@@ -22,11 +23,13 @@ import {
   type PowerSearchFilter,
 } from "@astryxdesign/core/PowerSearch";
 import { HStack } from "@astryxdesign/core/Stack";
+import { RichFilterDialog, richFilterChip } from "@/components/filters/RichFilterDialog";
 import { withSearchParam } from "@/components/detail/peek-url";
-import type { DateFilter, Filters, Priority, StateGroup } from "@/lib/tessera/types";
+import type { DateFilter, Filters, Priority, RichFilters, StateGroup } from "@/lib/tessera/types";
 import { DATE_FIELDS, LIST_FIELDS, isDateField, isListField, withExplicitClears, type DateField, type ListField } from "./filter-state";
 import { useProject } from "./project-provider";
 import { PRIORITY_OPTIONS, isPriority, stateGroupLabel } from "./properties";
+import { AdvancedFilterIcon } from "@/themes/catppuccin/icons";
 import type { UrlState } from "./types";
 import { encodeUrlState } from "./url-state";
 
@@ -38,6 +41,8 @@ export type FilterBarProps = {
   resultCount?: number;
   /** Workspace and profile lists can filter by project. Names of per-project fields gain the project identifier. */
   showProject?: boolean;
+  /** Effective rich tree (URL, or a view's saved tree when the URL does not override it). */
+  richFilters?: RichFilters | null;
 };
 
 const RELATIVE_WINDOWS = ["today", "1w", "2w", "1m"] as const;
@@ -213,11 +218,22 @@ function dateField(key: DateField, label: string): PowerSearchField {
   };
 }
 
-export function FilterBar({ filters, urlState, resultCount, showProject = false }: FilterBarProps) {
+export function FilterBar({ filters, urlState, resultCount, showProject = false, richFilters }: FilterBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { bundle } = useProject();
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const tree = richFilters === undefined ? (urlState.rich_filters ?? null) : richFilters;
+  const chip = richFilterChip(tree);
+
+  const writeRich = (next: RichFilters | null) => {
+    const state: UrlState = {};
+    if (urlState.display) state.display = urlState.display;
+    if (urlState.filters) state.filters = urlState.filters;
+    state.rich_filters = next;
+    router.replace(withSearchParam(pathname, searchParams, "q", encodeUrlState(state) || null), { scroll: false });
+  };
 
   const config = useMemo<PowerSearchConfig>(() => {
     const identifier = new Map(bundle.projects.map((project) => [project.id, project.identifier]));
@@ -248,6 +264,7 @@ export function FilterBar({ filters, urlState, resultCount, showProject = false 
   const write = (next: Filters) => {
     const state: UrlState = {};
     if (urlState.display) state.display = urlState.display;
+    if (urlState.rich_filters !== undefined) state.rich_filters = urlState.rich_filters;
     if (Object.keys(next).length > 0) state.filters = next;
     // Only `q` changes: the other params (an open `peek`) stay.
     router.replace(withSearchParam(pathname, searchParams, "q", encodeUrlState(state) || null), { scroll: false });
@@ -267,6 +284,9 @@ export function FilterBar({ filters, urlState, resultCount, showProject = false 
         resultCount={resultCount}
       />
       {tokens.length > 0 ? <Button variant="ghost" size="sm" label="Clear" onClick={() => write(withExplicitClears(filters, {}))} /> : null}
+      <Button variant="ghost" size="sm" label="Advanced" icon={<AdvancedFilterIcon />} onClick={() => setAdvancedOpen(true)} />
+      {chip ? <Token label={chip} onRemove={() => writeRich(null)} /> : null}
+      <RichFilterDialog isOpen={advancedOpen} onOpenChange={setAdvancedOpen} tree={tree} onApply={writeRich} />
     </HStack>
   );
 }

@@ -88,6 +88,7 @@ function ViewForm({ projectId, onOpenChange, mode, title, view, initial }: Omit<
         description: description.trim() ? description.trim() : undefined,
         filters: initial ? normalizeFilters(initial.filters) : undefined,
         display: initial?.display,
+        rich_filters: initial?.rich_filters,
       });
       if (!result.ok) return fail(result.code, result.message);
       onOpenChange(false);

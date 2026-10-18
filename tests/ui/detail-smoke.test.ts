@@ -386,8 +386,8 @@ describe("WorkItemDetail", () => {
   it("lists the More menu as copy, copy ID, archive (disabled with the reason on an open item) and delete", async () => {
     const el = await render(tree("page"));
     const rows = await moreMenuRows(el);
-    expect(rows.map(rowLabel)).toEqual(["Make a copy", "Copy to project…", "Move to project…", "Copy ID (WEB-1)", "Archive", "Delete…"]);
-    const archive = rows[4];
+    expect(rows.map(rowLabel)).toEqual(["Make a copy", "Copy to project…", "Move to project…", "Copy ID (WEB-1)", "Version history", "Archive", "Delete…"]);
+    const archive = rows[5];
     expect(archive?.getAttribute("aria-disabled")).toBe("true");
     expect(archive?.textContent).toContain(ARCHIVE_OPEN_ITEM_REASON);
     expect(el.textContent).not.toContain("This work item is archived");
@@ -414,9 +414,9 @@ describe("WorkItemDetail", () => {
     const el = await render(createElement(ProjectProvider, providerProps, createElement(WorkItemDetail, { data: archived, host: "page", onOpenItem: vi.fn() })));
     expect(el.textContent).toContain("This work item is archived");
     const rows = await moreMenuRows(el);
-    expect(rows.map(rowLabel)).toEqual(["Copy ID (WEB-1)", "Restore", "Delete…"]);
+    expect(rows.map(rowLabel)).toEqual(["Copy ID (WEB-1)", "Version history", "Restore", "Delete…"]);
     await act(async () => {
-      rows[1]?.click();
+      rows.find((row) => rowLabel(row) === "Restore")?.click();
     });
     expect(unarchiveWorkItemAction).toHaveBeenCalledWith({ work_item_id: ITEM });
   });

@@ -318,6 +318,8 @@ const CONTRACT_CORE = [
   "get_analytics",
   "search_all",
   "describe_filters",
+  "list_work_item_versions",
+  "restore_work_item_version",
 ].sort();
 
 /** Phase per contract row for everything that is not P1 (the link tools moved to P1 with their service, D19). */
@@ -442,6 +444,13 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   reorder_project: "P9",
   run_automations: "P10",
   get_automation_status: "P10",
+  list_work_item_versions: "P10",
+  get_work_item_version: "P10",
+  restore_work_item_version: "P10",
+  create_export: "P10",
+  list_exports: "P10",
+  get_export: "P10",
+  delete_export: "P10",
 };
 
 describe("tool flags", () => {

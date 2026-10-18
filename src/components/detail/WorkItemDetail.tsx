@@ -26,6 +26,7 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
+import { VersionHistoryDialog } from "@/components/history/VersionHistoryDialog";
 import { ProjectTransferDialog } from "@/components/detail/ProjectTransferDialog";
 import { copyWorkItemAction } from "@/app/actions/detail";
 import { archiveWorkItemAction, deleteWorkItemAction, unarchiveWorkItemAction } from "@/app/actions/work-items";
@@ -136,6 +137,7 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
   const clipboard = useClipboard({ announce: "Copied" });
   const rootRef = useRef<HTMLDivElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [transfer, setTransfer] = useState<"copy" | "move" | null>(null);
   const { statesById, bundle } = useProject();
   const mentionActors = bundle.actors.filter((actor) => actor.deleted_at === null).map((actor) => ({ id: actor.id, name: actor.name }));
@@ -224,6 +226,7 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
           toast({ type: "info", body: subscribed ? "Subscribed. Notifications arrive in P7" : "Unsubscribed" });
         },
         "item.delete": () => setConfirmDelete(true),
+        "item.history": () => setHistoryOpen(true),
         "item.copyId": () => void copy(itemKey),
         "item.copyTitle": () => void copy(itemName),
         "item.copyUrl": () => void copy(`${window.location.origin}${url}`),
@@ -248,6 +251,7 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
         onArchive={readOnly ? undefined : archiveItem}
         archiveBlockedReason={readOnly || canArchive ? undefined : ARCHIVE_OPEN_ITEM_REASON}
         onRestore={itemArchived && !projectArchived ? restoreItem : undefined}
+        onVersionHistory={() => setHistoryOpen(true)}
       />
       {/* Grid areas (detail.css): title, rail and main stack in one column; the page host from 960px puts the rail in a right column. */}
       <VStack gap={0} className="tessera-detail-body" as="section" aria-label={label}>
@@ -294,6 +298,11 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
           projects={bundle.projects}
         />
       ) : null}
+      <VersionHistoryDialog
+        isOpen={historyOpen}
+        onOpenChange={setHistoryOpen}
+        entity={{ type: "work_item", id: item.id, title: item.key, descriptionVersion: item.description_version, currentText: item.description_md, readOnly }}
+      />
       <AlertDialog
         isOpen={confirmDelete}
         onOpenChange={setConfirmDelete}

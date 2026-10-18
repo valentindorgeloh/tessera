@@ -7,14 +7,14 @@
  */
 import { useState } from "react";
 import { Button } from "@astryxdesign/core/Button";
-import type { Display, Filters } from "@/lib/tessera/types";
+import type { Display, Filters, RichFilters } from "@/lib/tessera/types";
 import { SaveIcon } from "@/themes/catppuccin/icons";
 import { ViewDialog } from "./ViewDialog";
 import { normalizeFilters } from "./view-state";
 
-export type SaveViewButtonProps = { projectId: string; filters: Filters; display: Display };
+export type SaveViewButtonProps = { projectId: string; filters: Filters; display: Display; richFilters?: RichFilters | null };
 
-export function SaveViewButton({ projectId, filters, display }: SaveViewButtonProps) {
+export function SaveViewButton({ projectId, filters, display, richFilters }: SaveViewButtonProps) {
   const [isOpen, setOpen] = useState(false);
   return (
     <>
@@ -25,7 +25,7 @@ export function SaveViewButton({ projectId, filters, display }: SaveViewButtonPr
         projectId={projectId}
         mode="create"
         title="Save view"
-        initial={{ filters: normalizeFilters(filters), display }}
+        initial={{ filters: normalizeFilters(filters), display, rich_filters: richFilters }}
       />
     </>
   );

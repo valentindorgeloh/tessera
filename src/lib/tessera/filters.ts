@@ -104,7 +104,7 @@ function timestampColumnCondition(column: SQLiteColumn, resolved: ResolvedDateFi
   return and(gte(column, localDayStart(resolved.from)), lt(column, localDayStart(addDays(resolved.to, 1))));
 }
 
-function dateCondition(column: SQLiteColumn, timestamp: boolean, filter: DateFilter | undefined, today: string): SQL | undefined {
+export function dateCondition(column: SQLiteColumn, timestamp: boolean, filter: DateFilter | undefined, today: string): SQL | undefined {
   if (filter === undefined) return undefined;
   const resolved = resolveDateFilter(filter, today);
   if (resolved === null) return undefined;
@@ -124,7 +124,7 @@ export type WhereOptions = {
 
 const ACTIVE_GROUPS: StateGroup[] = ["unstarted", "started"];
 
-function stateIdsInGroups(ctx: TesseraContext, groups: StateGroup[]): SQL {
+export function stateIdsInGroups(ctx: TesseraContext, groups: StateGroup[]): SQL {
   return inArray(
     work_item.state_id,
     ctx.db
@@ -134,7 +134,7 @@ function stateIdsInGroups(ctx: TesseraContext, groups: StateGroup[]): SQL {
   );
 }
 
-function hasAnyLabel(ctx: TesseraContext, ids: string[]): SQL {
+export function hasAnyLabel(ctx: TesseraContext, ids: string[]): SQL {
   return exists(
     ctx.db
       .select({ one: sql`1` })
@@ -143,7 +143,7 @@ function hasAnyLabel(ctx: TesseraContext, ids: string[]): SQL {
   );
 }
 
-function hasAnyModule(ctx: TesseraContext, ids: string[]): SQL {
+export function hasAnyModule(ctx: TesseraContext, ids: string[]): SQL {
   return exists(
     ctx.db
       .select({ one: sql`1` })
@@ -152,7 +152,7 @@ function hasAnyModule(ctx: TesseraContext, ids: string[]): SQL {
   );
 }
 
-function hasAnyAssignee(ctx: TesseraContext, ids: string[]): SQL {
+export function hasAnyAssignee(ctx: TesseraContext, ids: string[]): SQL {
   return exists(
     ctx.db
       .select({ one: sql`1` })
@@ -161,7 +161,7 @@ function hasAnyAssignee(ctx: TesseraContext, ids: string[]): SQL {
   );
 }
 
-function hasAnySubscriber(ctx: TesseraContext, ids: string[]): SQL {
+export function hasAnySubscriber(ctx: TesseraContext, ids: string[]): SQL {
   return exists(
     ctx.db
       .select({ one: sql`1` })
@@ -170,7 +170,7 @@ function hasAnySubscriber(ctx: TesseraContext, ids: string[]): SQL {
   );
 }
 
-function mentionsAny(ctx: TesseraContext, ids: string[]): SQL {
+export function mentionsAny(ctx: TesseraContext, ids: string[]): SQL {
   return exists(
     ctx.db
       .select({ one: sql`1` })

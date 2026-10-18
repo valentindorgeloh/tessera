@@ -4,11 +4,11 @@
  * imply and the one-line summary of a view row. Directive-free and client-safe
  * (types only from the engine), so Vitest covers it (tests/ui/view-state.test.ts).
  */
-import type { Display, Filters, Layout, View } from "@/lib/tessera/types";
+import type { Display, Filters, Layout, RichFilters, View } from "@/lib/tessera/types";
 import { GROUP_LABELS } from "@/components/work-items/display-options";
 import type { ScopeDefaults } from "@/components/work-items/types";
 
-export type ViewState = { filters: Filters; display: Display };
+export type ViewState = { filters: Filters; display: Display; rich_filters?: RichFilters | null };
 
 const LAYOUT_LABELS: Record<Layout, string> = { list: "List", board: "Board", table: "Table", calendar: "Calendar", gantt: "Gantt" };
 
@@ -46,7 +46,8 @@ export function stableJson(value: unknown): string {
 export function isViewModified(saved: ViewState, effective: ViewState): boolean {
   return (
     stableJson(normalizeFilters(saved.filters)) !== stableJson(normalizeFilters(effective.filters)) ||
-    stableJson(saved.display) !== stableJson(effective.display)
+    stableJson(saved.display) !== stableJson(effective.display) ||
+    stableJson(saved.rich_filters ?? null) !== stableJson(effective.rich_filters ?? null)
   );
 }
 

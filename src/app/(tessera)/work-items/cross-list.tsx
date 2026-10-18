@@ -213,7 +213,13 @@ function loadList(
     const settingsDisplay = coerceDisplay(mergeDisplay(DEFAULT_DISPLAY, stored.display), forceTable);
     const display = coerceDisplay(mergeDisplay(DEFAULT_DISPLAY, stored.display, urlState.display), forceTable);
     const filters = mergeFilters({}, stored.filters, urlState.filters);
-    const result = listWorkItems(ctx, { scope, filters, display, limit: LIMIT });
+    const result = listWorkItems(ctx, {
+      scope,
+      filters,
+      display,
+      limit: LIMIT,
+      ...(urlState.rich_filters !== undefined ? { rich_filters: urlState.rich_filters } : {}),
+    });
     const ids = [...new Set(result.items.map((item) => item.project_id))];
     const bundles = loadProjectBundles(ctx, ids);
     const host = hostBundle(bundles, listProjects(ctx, {}), listActors(ctx), ctx.today(), latestSeq(ctx), ctx.now());

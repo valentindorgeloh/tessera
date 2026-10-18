@@ -11,6 +11,7 @@ import type {
   Label,
   Module,
   Priority,
+  RichFilters,
   EstimateView,
   Project,
   State,
@@ -99,4 +100,6 @@ export type LayoutProps = {
 export type UrlState = {
   filters?: Filters;
   display?: Partial<Display>;
+  /** Absent keeps a view's saved tree. Null clears it for this listing. */
+  rich_filters?: RichFilters | null;
 };

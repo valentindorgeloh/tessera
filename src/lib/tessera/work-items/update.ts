@@ -2,12 +2,13 @@ import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { diffFields, logActivity, type IdentifierResolver } from "../activity";
 import type { TesseraContext } from "../core/context";
-import { conflict, rule, validateInput } from "../core/errors";
+import { conflict, notFound, rule, validateInput } from "../core/errors";
 import { assertInTransaction, withTx } from "../core/tx";
 import { upsertWorkItemFts } from "../db/fts";
-import { work_item } from "../db/schema";
+import { work_item, work_item_version } from "../db/schema";
 import { IdSchema, IsoDateSchema, PrioritySchema } from "../schemas";
 import type { WorkItemRow } from "../types";
+import { RestoreWorkItemVersionInput, writeWorkItemVersion } from "./versions";
 import {
   DESCRIPTION,
   ENTITY,
@@ -171,7 +172,7 @@ export function updateWorkItemDescription(ctx: TesseraContext, id: string, input
       .run();
     if (result.changes === 0) throw conflict("Description changed concurrently", { id });
     upsertWorkItemFts(ctx.sqlite, { id, project_id: item.project_id, name: item.name, body: data.description_md });
-    // Bodies are not copied into the log; versions.ts (P10) keeps the snapshots.
+    writeWorkItemVersion(ctx, { id, name: item.name, description_md: data.description_md, description_version: item.description_version + 1 });
     logActivity(ctx, {
       project_id: projectRow.id,
       entity_type: ENTITY,
@@ -183,5 +184,33 @@ export function updateWorkItemDescription(ctx: TesseraContext, id: string, input
       new_value: String(item.description_version + 1),
     });
     return loadWorkItem(ctx, id);
+  });
+}
+
+/** Compare-and-set of a stored description. The name stays. The description write records the snapshot; this adds the `restored` activity row. */
+export function restoreWorkItemVersion(ctx: TesseraContext, input: z.input<typeof RestoreWorkItemVersionInput>): WorkItem {
+  const data = validateInput(RestoreWorkItemVersionInput, input);
+  return withTx(ctx, () => {
+    const { item, project: projectRow } = loadWritableWorkItem(ctx, data.work_item_id);
+    const version = ctx.db
+      .select()
+      .from(work_item_version)
+      .where(and(eq(work_item_version.id, data.version_id), eq(work_item_version.work_item_id, item.id)))
+      .get();
+    if (!version) throw notFound("work_item_version", data.version_id);
+    const updated = updateWorkItemDescription(ctx, item.id, {
+      description_md: version.description_md,
+      expected_description_version: data.expected_description_version,
+    });
+    logActivity(ctx, {
+      project_id: projectRow.id,
+      entity_type: ENTITY,
+      entity_id: item.id,
+      work_item_id: item.id,
+      verb: "restored",
+      field: "description",
+      new_value: String(version.version),
+    });
+    return updated;
   });
 }
