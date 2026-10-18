@@ -22,7 +22,8 @@
     "db:backup": "tsx scripts/db-backup.ts",
     "mcp:stdio": "tsx scripts/mcp-stdio.ts",
     "automations": "tsx scripts/automations.ts",
-    "import:handbook": "tsx scripts/import-handbook.ts"
+    "import:handbook": "tsx scripts/import-handbook.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.133.0",
@@ -61,6 +62,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.3.1",
+    "@playwright/test": "1.63.0",
     "@types/better-sqlite3": "9.6.0",
     "@types/node": "22.20.5",
     "@types/react": "^19",

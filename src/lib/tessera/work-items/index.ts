@@ -77,3 +77,4 @@ export {
   moveWorkItemToProject,
 } from "./transfer";
 export { archiveWorkItem, unarchiveWorkItem, deleteWorkItem } from "./lifecycle";
+export { UNDO_NOTE, undoLastWorkItemChange, type WorkItemUndo } from "./undo";
