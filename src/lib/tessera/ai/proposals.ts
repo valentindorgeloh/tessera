@@ -137,7 +137,11 @@ function recordFailure(ctx: TesseraContext, id: string, err: unknown): void {
 }
 
 /** Applies one stored proposal as the context actor. The caller passes an assistant context. */
-export function applyProposal(ctx: TesseraContext, id: string, options: { confirmed: boolean }): ApplyOutcome {
+export function applyProposal(
+  ctx: TesseraContext,
+  id: string,
+  options: { confirmed: boolean; batch_id?: string },
+): ApplyOutcome {
   const row = load(ctx, id);
   if (row.status !== "pending") throw conflict("already_decided", { status: row.status });
   if (expired(row, ctx.now())) throw rule("proposal_expired", "This proposal is older than 24 hours");
@@ -159,7 +163,14 @@ export function applyProposal(ctx: TesseraContext, id: string, options: { confir
       const seqTo = latestSeq(ctx);
       const saved = ctx.db
         .update(ai_proposal)
-        .set({ status: "applied", result: out, seq_from: seqFrom, seq_to: seqTo, decided_at: ctx.now() })
+        .set({
+          status: "applied",
+          result: out,
+          seq_from: seqFrom,
+          seq_to: seqTo,
+          apply_batch_id: options.batch_id ?? newId(),
+          decided_at: ctx.now(),
+        })
         .where(eq(ai_proposal.id, id))
         .returning()
         .get();
@@ -182,9 +193,10 @@ export function applyProposals(handles: DbHandles, input: z.input<typeof ApplyPr
   const data = validateInput(ApplyProposalsInput, input);
   const ctx = createContext({ db: handles.db, sqlite: handles.sqlite, actorId: ASSISTANT_ACTOR_ID });
   const confirmed = new Set(data.confirmed_ids);
+  const batchId = newId();
   return data.ids.map((id) => {
     try {
-      return applyProposal(ctx, id, { confirmed: confirmed.has(id) });
+      return applyProposal(ctx, id, { confirmed: confirmed.has(id), batch_id: batchId });
     } catch (err) {
       return caught(id, err);
     }

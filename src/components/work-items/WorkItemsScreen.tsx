@@ -34,7 +34,7 @@ import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
 import { SaveViewButton } from "@/components/views/SaveViewButton";
 import { normalizeFilters } from "@/components/views/view-state";
 import { isMultiValuedGroup } from "@/lib/tessera/core/group";
-import type { CreateWorkItemInputType, Display, Filters, GroupBy, RichFilters, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
+import type { CreateWorkItemInputType, Display, Filters, GroupBy, ListScope, RichFilters, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 import { ExportDialog } from "@/components/exports/ExportDialog";
 import { ExportIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { BoardLayout } from "./BoardLayout";
@@ -55,9 +55,12 @@ import { createDefaultsFromScope, openMemberships, quickAddAllowed, quickAddInpu
 import { TableLayout } from "./TableLayout";
 import type { LayoutProps, MoveInput, QuickAddGroup, ScopeDefaults, SettingsScope, UpdateWorkItemPatch } from "./types";
 import { decodeUrlState } from "./url-state";
+import { usePagedList } from "./use-paged-list";
 
 export type WorkItemsScreenProps = {
   projectId: string;
+  /** The list the result came from, for "Show more" and the re-fetch after a refresh. Default is this project. */
+  listScope?: ListScope;
   result: WorkItemListResult;
   /** Effective display and filters (defaults, saved settings and URL merged). */
   display: Display;
@@ -120,6 +123,7 @@ const NO_HIDDEN_FIELDS: readonly GroupBy[] = [];
 
 export function WorkItemsScreen({
   projectId,
+  listScope: listScopeProp,
   result,
   display,
   filters,
@@ -158,8 +162,10 @@ export function WorkItemsScreen({
   // Open modules and cycles: groups of an archived module or a completed or archived cycle get no quick-add row.
   const quickAddContext: QuickAddContext = { projectId, states: bundle.states, ...openMemberships(bundle), scopeDefaults };
   const stateGroupOf: StateGroupOf = (stateId) => statesById.get(stateId)?.state_group;
+  const listScope: ListScope = listScopeProp ?? { type: "project", project_id: projectId };
+  const paged = usePagedList({ scope: listScope, display, filters, richFilters, server: result });
 
-  const [optimistic, applyOptimistic] = useOptimistic(result, (state: WorkItemListResult, action: OptimisticAction) =>
+  const [optimistic, applyOptimistic] = useOptimistic(paged.result, (state: WorkItemListResult, action: OptimisticAction) =>
     reduceOptimisticList(state, action, { display, stateGroupOf, firstStateByGroup }),
   );
 
@@ -300,6 +306,8 @@ export function WorkItemsScreen({
   }, [display.group_by, optimistic]);
   const selectionOn = allowSelection && !readOnly && (display.layout === "list" || display.layout === "table");
   const selection = useSelection(orderedIds, selectionOn);
+  // Distinct loaded rows: a multi-valued grouping lists one item in several groups.
+  const loadedCount = useMemo(() => new Set(orderedIds).size, [orderedIds]);
   const layoutProps: LayoutProps = {
     result: optimistic,
     display,
@@ -312,6 +320,9 @@ export function WorkItemsScreen({
     readOnly,
     showProject: showProjectColumn,
     selection: selectionOn ? { selected: selection.selected, onToggle: selection.toggleId, onToggleIds: selection.toggleIds } : undefined,
+    onLoadMore: paged.loadMore,
+    onLoadMoreUngrouped: paged.loadMoreUngrouped,
+    isLoadingMore: paged.isLoading,
   };
   // The dialog starts in the scope: `{ ...scopeDefaults, ...createDefaults }` with module ids united.
   const dialogDefaults = scopeDefaults ? withScopeDefaults(createDefaults ?? {}, scopeDefaults) : createDefaults;
@@ -370,7 +381,7 @@ export function WorkItemsScreen({
             ) : (
               <GanttLayout {...layoutProps} />
             )}
-            {selectionOn && selection.selected.size > 0 ? <BulkBar items={optimistic.items} selected={selection.selected} onClear={selection.clear} /> : null}
+            {selectionOn && selection.selected.size > 0 ? <BulkBar items={optimistic.items} selected={selection.selected} onClear={selection.clear} loaded={loadedCount} total={optimistic.total} /> : null}
           </LayoutContent>
         }
       />

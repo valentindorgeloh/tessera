@@ -15,6 +15,7 @@ import type { Display, Filters, RichFilters } from "../types";
 import { DisplayPatchSchema, mergeDisplay } from "../view-settings";
 import { ENTITY, type WorkItem, type WorkItemDetail, type WorkItemListResult, getWorkItemRow } from "./model";
 import { hydrate, itemQuery, listLinks, listSubscriberIds, loadWorkItem } from "./hydrate";
+import { listGroupPage, planGroupPaging } from "./paging";
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -88,8 +89,22 @@ export const ListWorkItemsInput = z
     rich_filters: RichFiltersSchema.nullable().optional().describe("Rich filter tree ANDed with filters. Replaces a view's saved tree; null clears it."),
     // A patch, not DisplaySchema.partial(): zod 4 would still apply the defaults and wipe a view's saved keys (A1).
     display: DisplayPatchSchema.optional().describe("Ordering, grouping and layout keys; omitted keys keep a view's saved display or the defaults."),
-    limit: z.number().int().min(1).max(5000).optional().describe("Page size; all items when omitted."),
-    offset: z.number().int().min(0).optional().describe("Rows to skip."),
+    limit: z.number().int().min(1).max(5000).optional().describe("Page size; all items when omitted. With group_value it pages inside that group."),
+    offset: z.number().int().min(0).optional().describe("Rows to skip. With group_value it skips rows of that group."),
+    per_group_limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(500)
+      .optional()
+      .describe("Rows per group (per sub-group cell on a board) when display.group_by is set. Group counts, total and has_more stay exact over the whole filtered set. Ignored on an ungrouped list."),
+    group_value: z.string().min(1).optional().describe("Page inside one group: its id (a state or label id, an enum value, a date or none). Needs display.group_by; limit and offset page within it."),
+    sub_group_value: z.string().min(1).optional().describe("With group_value, page inside one sub-group cell. Needs display.sub_group_by."),
+    group_limits: z
+      .record(z.string(), z.number().int().min(1).max(2000))
+      .refine((limits) => Object.keys(limits).length <= 100, { message: "At most 100 group_limits entries" })
+      .optional()
+      .describe("Rows to load for named groups instead of per_group_limit, keyed by group id or group_id/sub_group_id, to refetch expanded groups in one call."),
   })
   .strict();
 
@@ -225,6 +240,9 @@ export function listWorkItems(ctx: TesseraContext, input: ListWorkItemsInputType
   const filters = effectiveFilters(scope.filters, scope.display);
   const rich = scope.rich_filters === null ? undefined : buildRichWhere(ctx, scope.rich_filters, { today: ctx.today() });
   const where = and(scope.where, buildWhere(ctx, filters, { project_id: scope.project_id }), rich);
+  // Group paging (decisions 112, 113): exact counts over the whole filtered set, a page per group.
+  const plan = planGroupPaging(data, scope.display);
+  if (plan !== null) return listGroupPage(ctx, { where, display: scope.display, project_ids: scope.project_ids, plan });
   const total =
     ctx.db
       .select({ n: count() })
@@ -239,6 +257,7 @@ export function listWorkItems(ctx: TesseraContext, input: ListWorkItemsInputType
   if (data.offset !== undefined) query = query.offset(data.offset);
   const items = hydrate(ctx, query.all());
   const result: WorkItemListResult = { items, total, cursor: latestSeq(ctx) };
+  if (data.limit !== undefined || data.offset !== undefined) result.has_more = (data.offset ?? 0) + items.length < total;
   if (scope.display.group_by !== null) result.groups = groupItems(ctx, items, scope.display, { project_ids: scope.project_ids });
   return result;
 }

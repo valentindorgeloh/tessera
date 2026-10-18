@@ -57,6 +57,13 @@
       "when": 1792700000000,
       "tag": "0007_webhooks",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792800000000,
+      "tag": "0008_hardening",
+      "breakpoints": true
     }
   ]
 }

@@ -9,7 +9,7 @@ import { fromSqliteError } from "../core/errors";
 const EMPTY_HOLDER = "";
 const EXPIRED = "1970-01-01T00:00:00.000Z";
 
-export type LeaseId = "automation" | "webhooks";
+export type LeaseId = "automation" | "webhooks" | "maintenance";
 
 /** How long a crashed runner may keep the row before another process may take it. */
 export const LEASE_TTL_MS = 15 * 60 * 1000;

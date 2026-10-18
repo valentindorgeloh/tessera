@@ -7,6 +7,7 @@ import { ViewBar } from "@/components/views/ViewBar";
 import { ViewLockIndicator } from "@/components/views/ViewRow";
 import { ViewMenu } from "@/components/views/ViewMenu";
 import { isViewModified, viewScopeDefaults, type ViewState } from "@/components/views/view-state";
+import { pageSizeFor } from "@/components/work-items/paging";
 import { decodeUrlState, mergeDisplay, mergeFilters } from "@/components/work-items/url-state";
 import { WorkItemsScreen } from "@/components/work-items/WorkItemsScreen";
 import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
@@ -23,8 +24,6 @@ import type { View } from "@/lib/tessera/types";
  * `?peek=<id>` opens that item next to the list.
  */
 
-/** Page size; the engine caps a list at 5000 rows and P11 adds paging. */
-const LIMIT = 2000;
 
 export type ViewWorkItemsProps = {
   projectId: string;
@@ -57,6 +56,7 @@ export async function ViewWorkItems({ projectId, view, query }: ViewWorkItemsPro
     <PeekHost projectId={projectId} peek={peek}>
       <WorkItemsScreen
         projectId={projectId}
+        listScope={{ type: "view", view_id: view.id }}
         result={result}
         display={effective.display}
         filters={effective.filters}
@@ -82,7 +82,7 @@ function loadItems(viewId: string, effective: ViewState) {
       scope: { type: "view", view_id: viewId },
       filters: effective.filters,
       display: effective.display,
-      limit: LIMIT,
+      ...pageSizeFor(effective.display),
       ...(effective.rich_filters !== undefined ? { rich_filters: effective.rich_filters } : {}),
     }),
   );

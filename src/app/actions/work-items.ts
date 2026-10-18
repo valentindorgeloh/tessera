@@ -8,6 +8,7 @@
  */
 import { toolAction } from "./_run";
 
+export const listWorkItemsAction = toolAction("list_work_items");
 export const createWorkItemAction = toolAction("create_work_item");
 export const updateWorkItemAction = toolAction("update_work_item");
 export const updateWorkItemDescriptionAction = toolAction("update_work_item_description");

@@ -85,5 +85,6 @@ export const automation_lease = sqliteTable("automation_lease", {
   holder: text("holder").notNull(),
   expires_at: text("expires_at").notNull(),
   last_run_at: text("last_run_at"),
-  last_summary: text("last_summary", { mode: "json" }).$type<AutomationSummary>(),
+  /** AutomationSummary for id "automation"; MaintenanceSummary for id "maintenance". */
+  last_summary: text("last_summary", { mode: "json" }).$type<AutomationSummary | Record<string, unknown>>(),
 });

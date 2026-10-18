@@ -12,7 +12,9 @@
  * (created by, created at, project; see ./moves.ts) accept no drops and offer
  * no "Move to"; neither do the columns and lanes of an archived module or a
  * completed or archived cycle, in either direction (./quick-add.ts
- * `acceptsGroupMove`). Quick-add placeholders render as inert cards.
+ * `acceptsGroupMove`). Quick-add placeholders render as inert cards. A paged
+ * column or lane cell ends in a "Show more" footer (decision 112) and a drop
+ * at its end lands after the last loaded card (decision 114).
  *
  * Layout idea ported from the Astryx `kanban-board` page template (MIT,
  * Meta Platforms; THIRD_PARTY_NOTICES.md): className + tokens
@@ -21,103 +23,38 @@
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Avatar } from "@astryxdesign/core/Avatar";
-import { AvatarGroup } from "@astryxdesign/core/AvatarGroup";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Card } from "@astryxdesign/core/Card";
-import { ClickableCard } from "@astryxdesign/core/ClickableCard";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Layout, LayoutContent, LayoutFooter, LayoutHeader } from "@astryxdesign/core/Layout";
-import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
-import { Heading, Text } from "@astryxdesign/core/Text";
+import { Heading } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
-import { formatEstimateValue } from "@/components/estimates/estimate-format";
-import { usePointerDrag, type DragDropEvent, type ItemDragHandlers } from "@/components/dnd/use-pointer-drag";
-import type { Display, DisplayProperties, Group, GroupBy, PaletteColor, StateGroup, WorkItem } from "@/lib/tessera/types";
+import { groupLimitKey } from "@/lib/tessera/core/group";
+import { usePointerDrag, type DragDropEvent } from "@/components/dnd/use-pointer-drag";
+import type { Display, GroupBy, PaletteColor, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { PlusIcon } from "@/themes/catppuccin/icons";
+import { BoardCard, BoardCardBody } from "./BoardCards";
 import { dragKey, itemIdOf } from "./board-keys";
+import { NONE_GROUP, closedColumnText, containerId, groupValue, useBoardModel, type Column } from "./board-model";
 import { isMovableGroup } from "./moves";
+import { UNGROUPED_KEY } from "./paging";
 import { isOptimisticId } from "./optimistic";
 import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } from "./properties";
+import { GroupFooter, GroupPoints } from "./GroupFooter";
 import { QuickAdd } from "./QuickAdd";
 import { acceptsGroupMove, isOpenGroupValue, openMemberships } from "./quick-add";
 import type { LayoutProps, MoveInput, ProjectBundle, QuickAddGroup } from "./types";
 
-/** Id of the synthetic "no value" group (`NONE_GROUP_ID` in the engine's filters.ts). */
-const NONE_GROUP = "none";
 /** Structural column width in px; board.css repeats the number for the flex basis. */
 const COLUMN_WIDTH = 350;
 
 const STATE_GROUPS: ReadonlySet<string> = new Set<StateGroup>(["backlog", "unstarted", "started", "completed", "cancelled", "triage"]);
 
-/** The engine's group id for a move: the none group becomes null, except for priority where "none" is a real value. */
-function groupValue(id: string, field: GroupBy): string | null {
-  return id === NONE_GROUP && field !== "priority" ? null : id;
-}
-
-type Column = { id: string; name: string; color: PaletteColor | null; count: number; itemIds: string[] };
-type Lane = { id: string; name: string; color: PaletteColor | null; count: number; cells: Map<string, string[]> };
-type Container = { columnId: string; laneId: string | null; itemIds: string[] };
-
-function containerId(columnId: string, laneId: string | null): string {
-  return laneId === null ? `col:${columnId}` : `cell:${laneId}::${columnId}`;
-}
-
-function toColumn(group: Group): Column {
-  return { id: group.id, name: group.name, color: group.color, count: group.count, itemIds: group.item_ids };
-}
-
-/** Empty-column text for a column no item may join (an archived module, a completed or archived cycle). */
-function closedColumnText(field: GroupBy | null): string {
-  return field === "module" ? "This module is archived, so work items cannot join it." : "This cycle is completed or archived, so work items cannot join it.";
-}
-
-/** Columns, swimlanes and drop containers derived from the grouped list result. */
-function useBoardModel(result: LayoutProps["result"], display: Display) {
-  return useMemo(() => {
-    const groups = result.groups ?? [];
-    const grouped = display.group_by !== null && groups.length > 0;
-    const columns: Column[] = grouped
-      ? groups.filter((group) => display.show_empty_groups || group.count > 0).map(toColumn)
-      : [{ id: "all", name: "All work items", color: null, count: result.items.length, itemIds: result.items.map((item) => item.id) }];
-
-    let lanes: Lane[] | null = null;
-    if (grouped && display.sub_group_by !== null) {
-      const laneMap = new Map<string, Lane>();
-      for (const group of groups) {
-        for (const sub of group.sub_groups ?? []) {
-          let lane = laneMap.get(sub.id);
-          if (!lane) {
-            lane = { id: sub.id, name: sub.name, color: sub.color, count: 0, cells: new Map() };
-            laneMap.set(sub.id, lane);
-          }
-          lane.count += sub.count;
-          lane.cells.set(group.id, sub.item_ids);
-        }
-      }
-      lanes = [...laneMap.values()].filter((lane) => display.show_empty_groups || lane.count > 0);
-    }
-
-    const containers = new Map<string, Container>();
-    if (lanes === null) {
-      for (const column of columns) containers.set(containerId(column.id, null), { columnId: column.id, laneId: null, itemIds: column.itemIds });
-    } else {
-      for (const lane of lanes) {
-        for (const column of columns) {
-          containers.set(containerId(column.id, lane.id), { columnId: column.id, laneId: lane.id, itemIds: lane.cells.get(column.id) ?? [] });
-        }
-      }
-    }
-    const byId = new Map(result.items.map((item) => [item.id, item]));
-    return { columns, lanes, containers, byId };
-  }, [display.group_by, display.show_empty_groups, display.sub_group_by, result.groups, result.items]);
-}
-
-export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAdd, canQuickAdd, readOnly = false }: LayoutProps) {
+export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAdd, canQuickAdd, readOnly = false, onLoadMore, onLoadMoreUngrouped, isLoadingMore }: LayoutProps) {
   const { columns, lanes, containers, byId } = useBoardModel(result, display);
   // Collapsed swimlanes (F3.2): their cells stay mounted but hidden and take no drops.
   const [collapsedLanes, setCollapsedLanes] = useState<ReadonlySet<string>>(() => new Set());
@@ -314,6 +251,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
       column={column}
       field={display.group_by}
       bundle={bundle}
+      display={display}
       onAdd={canAddTo(column) ? () => setQuickAddNonces((current) => ({ ...current, [column.id]: (current[column.id] ?? 0) + 1 })) : undefined}
     />
   );
@@ -325,7 +263,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
   };
 
   return (
-    <VStack className="tessera-board" gap={0}>
+    <VStack className="tessera-board" gap={0} data-list-ready="">
       {lanes === null ? (
         <HStack gap={4} vAlign="stretch" className="tessera-board-strip" ref={registerScroller} aria-label="Board columns">
           {columns.map((column) => (
@@ -342,7 +280,23 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
                     {renderCards(containerId(column.id, null), column)}
                   </LayoutContent>
                 }
-                footer={canAddTo(column) ? <LayoutFooter padding={2}>{quickAddRow(column)}</LayoutFooter> : undefined}
+                footer={
+                  column.hasMore || canAddTo(column) ? (
+                    <LayoutFooter padding={2}>
+                      {column.hasMore && (display.group_by === null ? onLoadMoreUngrouped : onLoadMore) ? (
+                        <GroupFooter
+                          display={display}
+                          variant="card"
+                          loaded={column.itemIds.length}
+                          total={column.count}
+                          isLoading={isLoadingMore?.(display.group_by === null ? UNGROUPED_KEY : groupLimitKey(column.id))}
+                          onLoadMore={() => (display.group_by === null ? onLoadMoreUngrouped?.() : onLoadMore?.(column.id))}
+                        />
+                      ) : null}
+                      {quickAddRow(column)}
+                    </LayoutFooter>
+                  ) : undefined
+                }
               />
             </Card>
           ))}
@@ -379,6 +333,16 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
                   return (
                     <Card key={column.id} variant="muted" padding={2} width={COLUMN_WIDTH} className="tessera-board-cell" ref={registerContainer(cell)}>
                       {renderCards(cell, column)}
+                      {containers.get(cell)?.hasMore && onLoadMore ? (
+                        <GroupFooter
+                          display={display}
+                          variant="card"
+                          loaded={containers.get(cell)?.itemIds.length ?? 0}
+                          total={containers.get(cell)?.count ?? 0}
+                          isLoading={isLoadingMore?.(groupLimitKey(column.id, lane.id))}
+                          onLoadMore={() => onLoadMore(column.id, lane.id)}
+                        />
+                      ) : null}
                     </Card>
                   );
                 })}
@@ -404,12 +368,13 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
 // ---------------------------------------------------------------------------
 
 /** `onAdd` absent: the column takes no quick-add (closed scope or a closed state in a cycle), so no plus button. */
-function ColumnHeader({ column, field, bundle, onAdd }: { column: Column; field: GroupBy | null; bundle: ProjectBundle; onAdd?: () => void }) {
+function ColumnHeader({ column, field, bundle, display, onAdd }: { column: Column; field: GroupBy | null; bundle: ProjectBundle; display: Display; onAdd?: () => void }) {
   return (
     <HStack hAlign="between" vAlign="center" gap={2}>
       <HStack gap={2} vAlign="center" className="tessera-board-column-title">
         <GroupTitle name={column.name} color={column.color} id={column.id} field={field} bundle={bundle} level={4} />
         <Badge label={column.count} variant="neutral" />
+        <GroupPoints points={column.points} display={display} />
       </HStack>
       {onAdd ? <IconButton label={`Add a work item to ${column.name}`} tooltip="Add work item" size="sm" variant="ghost" icon={<Icon icon={PlusIcon} size="sm" />} onClick={onAdd} /> : null}
     </HStack>
@@ -447,154 +412,4 @@ function GroupTitle({ name, color, id, field, bundle, level }: { name: string; c
     return <Token label={name} size="md" color={paletteTokenColor(color)} />;
   }
   return heading;
-}
-
-// ---------------------------------------------------------------------------
-// Cards
-// ---------------------------------------------------------------------------
-
-function BoardCard({
-  item,
-  bundle,
-  properties,
-  columns,
-  currentColumn,
-  cardRef,
-  handlers,
-  onOpen,
-  onMoveTo,
-}: {
-  item: WorkItem;
-  bundle: ProjectBundle;
-  properties: DisplayProperties;
-  /** "Move to" targets; empty when the grouped field cannot be moved between. */
-  columns: Column[];
-  currentColumn: string;
-  /** Absent when the board is read-only: the card is not a drag source. */
-  cardRef?: (el: HTMLDivElement | null) => void;
-  handlers?: ItemDragHandlers;
-  onOpen: (id: string) => void;
-  onMoveTo: (itemId: string, fromColumn: string, toColumn: string) => void;
-}) {
-  const targets = columns.filter((column) => column.id !== currentColumn);
-  const menu = (
-    <MoreMenu
-      label={`Actions for ${item.key}`}
-      size="sm"
-      alignment="end"
-      items={[
-        { id: "open", label: "Open", onClick: () => onOpen(item.id) },
-        ...(targets.length > 0
-          ? [
-              { type: "divider" as const },
-              {
-                id: "move",
-                label: "Move to",
-                items: targets.map((column) => ({ id: column.id, label: column.name, onClick: () => onMoveTo(item.id, currentColumn, column.id) })),
-              },
-            ]
-          : []),
-      ]}
-    />
-  );
-  return (
-    <ClickableCard
-      ref={cardRef}
-      label={`${item.key} ${item.name}`}
-      padding={3}
-      className={handlers ? "tessera-board-card" : "tessera-board-card tessera-board-card-readonly"}
-      onClick={() => onOpen(item.id)}
-      onPointerDown={handlers?.onPointerDown}
-      onClickCapture={handlers?.onClickCapture}
-    >
-      <BoardCardBody item={item} bundle={bundle} properties={properties} menu={menu} />
-    </ClickableCard>
-  );
-}
-
-/** Card contents, shared by the column card and the drag overlay clone so both stay identical. */
-function BoardCardBody({ item, bundle, properties, menu }: { item: WorkItem; bundle: ProjectBundle; properties: DisplayProperties; menu: ReactNode }) {
-  return (
-    <VStack gap={2}>
-      <HStack hAlign="between" vAlign="center" gap={2}>
-        <Text type="supporting" color="secondary" hasTabularNumbers>
-          {properties.key ? item.key : ""}
-        </Text>
-        {menu}
-      </HStack>
-      <Text weight="medium" maxLines={3}>
-        {item.name}
-      </Text>
-      <CardProperties item={item} bundle={bundle} properties={properties} />
-    </VStack>
-  );
-}
-
-/** Compact property tokens enabled in display.properties. */
-function CardProperties({ item, bundle, properties }: { item: WorkItem; bundle: ProjectBundle; properties: DisplayProperties }) {
-  const state = properties.state ? bundle.states.find((candidate) => candidate.id === item.state_id) : undefined;
-  const labels = properties.labels ? bundle.labels.filter((label) => item.label_ids.includes(label.id)) : [];
-  const modules = properties.modules ? bundle.modules.filter((module) => item.module_ids.includes(module.id)) : [];
-  const cycle = properties.cycle && item.cycle_id !== null ? bundle.cycles.find((candidate) => candidate.id === item.cycle_id) : undefined;
-  const assignees = properties.assignees ? bundle.actors.filter((actor) => item.assignee_ids.includes(actor.id)) : [];
-  const showPriority = properties.priority && item.priority !== "none";
-  const estimatePoint =
-    properties.estimate && item.estimate_point_id !== null && bundle.estimate !== null
-      ? bundle.estimate.points.find((point) => point.id === item.estimate_point_id)
-      : undefined;
-  const dates: string[] = [];
-  if (properties.start_date && item.start_date !== null) dates.push(`Start ${item.start_date}`);
-  if (properties.target_date && item.target_date !== null) dates.push(`Due ${item.target_date}`);
-  const counts: string[] = [];
-  if (properties.sub_items_count && item.sub_items_count > 0) counts.push(item.sub_items_count === 1 ? "1 sub-item" : `${item.sub_items_count} sub-items`);
-  if (properties.links && item.links_count > 0) counts.push(item.links_count === 1 ? "1 link" : `${item.links_count} links`);
-  if (properties.created_at) counts.push(`Created ${item.created_at.slice(0, 10)}`);
-  if (properties.updated_at) counts.push(`Updated ${item.updated_at.slice(0, 10)}`);
-
-  const hasTokens = state !== undefined || showPriority || labels.length > 0 || modules.length > 0 || cycle !== undefined || assignees.length > 0 || estimatePoint !== undefined;
-  if (!hasTokens && dates.length === 0 && counts.length === 0) return null;
-
-  return (
-    <VStack gap={1}>
-      {hasTokens ? (
-        <HStack gap={1.5} vAlign="center" wrap="wrap">
-          {state ? (
-            <Text type="supporting" color="secondary">
-              <StateLabel state={state} />
-            </Text>
-          ) : null}
-          {showPriority ? (
-            <Text type="supporting" color="secondary">
-              <PriorityLabel value={item.priority} />
-            </Text>
-          ) : null}
-          {labels.map((label) => (
-            <Token key={label.id} size="sm" label={label.name} color={paletteTokenColor(label.color)} />
-          ))}
-          {cycle ? <Token key={cycle.id} size="sm" label={cycle.name} /> : null}
-          {estimatePoint !== undefined && bundle.estimate !== null ? <Token size="sm" label={formatEstimateValue(bundle.estimate.type, estimatePoint.value)} /> : null}
-          {modules.map((module) => (
-            <Token key={module.id} size="sm" label={module.name} />
-          ))}
-          {assignees.length > 0 ? (
-            <AvatarGroup size="xsm">
-              {assignees.map((actor) => (
-                <Avatar key={actor.id} name={actor.name} size="xsm" tooltip={actor.name} />
-              ))}
-            </AvatarGroup>
-          ) : null}
-        </HStack>
-      ) : null}
-      {dates.length > 0 ? (
-        <Text type="supporting" color="secondary" hasTabularNumbers>
-          {dates.join(" · ")}
-        </Text>
-      ) : null}
-      {counts.length > 0 ? (
-        <Text type="supporting" color="secondary" hasTabularNumbers>
-          {counts.join(" · ")}
-        </Text>
-      ) : null}
-    </VStack>
-  );
 }

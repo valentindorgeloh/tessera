@@ -279,6 +279,7 @@ const CONTRACT_DESTRUCTIVE = new Set([
   "update_estimate",
   "bulk_archive_work_items",
   "bulk_delete_work_items",
+  "undo_last_assistant_batch",
 ]);
 
 /** The ★ tools of the P1 to P4 and P7 rows of the contract table. */
@@ -459,6 +460,11 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   test_webhook: "P10",
   list_webhook_deliveries: "P10",
   redeliver_webhook_delivery: "P10",
+  list_backups: "P11",
+  create_backup: "P11",
+  run_maintenance: "P11",
+  get_undoable_assistant_batch: "P11",
+  undo_last_assistant_batch: "P11",
 };
 
 describe("tool flags", () => {
@@ -588,7 +594,10 @@ describe("listTools", () => {
     const p9 = listTools({ phase: "P9" });
     expect(p9.length).toBeLessThan(TOOLS.length);
     expect(p9.every((def) => def.phase !== "P10")).toBe(true);
-    expect(listTools({ phase: "P10" }).length).toBe(TOOLS.length);
+    const p10 = listTools({ phase: "P10" });
+    expect(p10.length).toBeLessThan(TOOLS.length);
+    expect(p10.every((def) => def.phase !== "P11")).toBe(true);
+    expect(listTools({ phase: "P11" }).length).toBe(TOOLS.length);
   });
 
   it("combines toolset and phase", () => {

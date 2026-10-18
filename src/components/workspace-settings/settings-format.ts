@@ -13,6 +13,7 @@ export const SETTINGS_TABS = [
   { key: "ai", label: "AI", href: "/settings/ai" },
   { key: "exports", label: "Exports", href: "/settings/exports" },
   { key: "webhooks", label: "Webhooks", href: "/settings/webhooks" },
+  { key: "backups", label: "Backups", href: "/settings/backups" },
 ] as const;
 
 export type SettingsTab = (typeof SETTINGS_TABS)[number]["key"];

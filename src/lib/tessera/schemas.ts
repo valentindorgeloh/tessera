@@ -570,3 +570,31 @@ export const AutomationStatusSchema = z
     projects: z.array(AutomationProjectStatusSchema),
   })
   .strict();
+
+// ---------------------------------------------------------------------------
+// Backups and maintenance (P11)
+// ---------------------------------------------------------------------------
+
+export const BackupKindSchema = z.enum(["auto", "manual", "migration", "pre-restore"]);
+
+export const BackupFileSchema = z
+  .object({
+    path: z.string(),
+    name: z.string(),
+    kind: BackupKindSchema,
+    created_at: IsoTimestampSchema,
+    size: z.number().int().nonnegative(),
+    check: z.string().nullable(),
+  })
+  .strict();
+
+export const AppliedBatchSchema = z
+  .object({
+    batch_id: z.string().min(1),
+    applied_at: IsoTimestampSchema,
+    proposal_ids: z.array(IdSchema).min(1),
+    seq_from: z.number().int().nonnegative(),
+    seq_to: z.number().int().nonnegative(),
+    titles: z.array(z.string()),
+  })
+  .strict();

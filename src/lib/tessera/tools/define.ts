@@ -11,7 +11,7 @@ import type { z } from "zod";
 import type { TesseraContext } from "../core/context";
 
 /** Phases in shipping order (docs/PLAN.md); `listTools({ phase })` returns what ships by that phase. */
-export const TOOL_PHASES = ["P1", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10"] as const;
+export const TOOL_PHASES = ["P1", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11"] as const;
 
 export type ToolPhase = (typeof TOOL_PHASES)[number];
 

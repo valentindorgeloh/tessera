@@ -596,27 +596,17 @@ describe("migrateIfNeeded", () => {
       const probe = new Database(filePath);
       // The migrator's `id SERIAL` column is NULL in SQLite, so the newest row is found by created_at.
       probe.prepare(`DELETE FROM "${MIGRATIONS_TABLE}" WHERE created_at = (SELECT max(created_at) FROM "${MIGRATIONS_TABLE}")`).run();
-      // 0007 adds webhook columns and rebuilds webhook_delivery, so a re-apply needs them gone first.
-      probe.exec(`DROP INDEX IF EXISTS webhook_delivery_due_idx;`);
-      probe.exec(`DROP INDEX IF EXISTS webhook_delivery_webhook_status_idx;`);
-      probe.exec(`CREATE TABLE __old_webhook_delivery (
-        id text PRIMARY KEY NOT NULL,
-        webhook_id text NOT NULL,
-        activity_seq integer NOT NULL,
-        status text DEFAULT 'pending' NOT NULL,
-        attempts integer DEFAULT 0 NOT NULL,
-        last_error text,
-        created_at text NOT NULL,
-        updated_at text NOT NULL,
-        FOREIGN KEY (webhook_id) REFERENCES webhook(id) ON DELETE cascade,
-        FOREIGN KEY (activity_seq) REFERENCES activity(seq) ON DELETE cascade
-      );`);
-      probe.exec(`INSERT INTO __old_webhook_delivery SELECT id, webhook_id, activity_seq, status, attempts, last_error, created_at, updated_at FROM webhook_delivery WHERE activity_seq IS NOT NULL;`);
-      probe.exec(`DROP TABLE webhook_delivery;`);
-      probe.exec(`ALTER TABLE __old_webhook_delivery RENAME TO webhook_delivery;`);
-      probe.exec(`CREATE INDEX webhook_delivery_webhook_status_idx ON webhook_delivery (webhook_id, status);`);
-      probe.exec(`ALTER TABLE webhook DROP COLUMN name;`);
-      probe.exec(`ALTER TABLE webhook DROP COLUMN last_seq;`);
+      // 0008 adds auto_backup and assistant undo columns; drop them so a re-apply can run.
+      probe.exec(`DROP INDEX IF EXISTS ai_proposal_batch_idx;`);
+      probe.exec(`DROP INDEX IF EXISTS ai_proposal_applied_idx;`);
+      probe.exec(`DROP INDEX IF EXISTS notification_archived_idx;`);
+      probe.exec(`DROP INDEX IF EXISTS work_item_project_live_sort_idx;`);
+      probe.exec(`DROP INDEX IF EXISTS activity_workspace_seq_idx;`);
+      probe.exec(`ALTER TABLE workspace_settings DROP COLUMN auto_backup;`);
+      probe.exec(`ALTER TABLE ai_proposal DROP COLUMN apply_batch_id;`);
+      probe.exec(`ALTER TABLE ai_proposal DROP COLUMN undone_at;`);
+      probe.exec(`ALTER TABLE ai_proposal DROP COLUMN undo_seq_from;`);
+      probe.exec(`ALTER TABLE ai_proposal DROP COLUMN undo_seq_to;`);
       expect(pendingMigrations(probe)).toBe(1);
       probe.close();
 

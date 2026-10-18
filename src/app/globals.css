@@ -26,6 +26,7 @@
 @import "../components/styles/calendar.css";
 @import "../components/styles/gantt.css";
 @import "../components/styles/history.css";
+@import "../components/styles/paging.css";
 
 html,
 body {

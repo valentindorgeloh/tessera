@@ -25,11 +25,14 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
 import { formatEstimateValue } from "@/components/estimates/estimate-format";
+import { groupLimitKey } from "@/lib/tessera/core/group";
 import type { Display, Group, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { isOptimisticId } from "./optimistic";
 import { useProject } from "./project-provider";
 import { RowProject } from "./row-project";
 import { ActorLabel, CycleControl, DateControl, PriorityControl, PriorityLabel, StateControl, StateLabel, paletteTokenColor } from "./properties";
+import { GroupFooter, GroupPoints } from "./GroupFooter";
+import { UNGROUPED_KEY, loadedOfTotal } from "./paging";
 import { QuickAdd } from "./QuickAdd";
 import type { LayoutProps, QuickAddGroup, UpdateWorkItemPatch } from "./types";
 
@@ -81,7 +84,7 @@ function GroupMarker({ group }: { group: Group }) {
   }
 }
 
-function GroupHeader({ group, selection, ids }: { group: Group; selection?: LayoutProps["selection"]; ids: readonly string[] }) {
+function GroupHeader({ group, display, selection, ids }: { group: Group; display: Display; selection?: LayoutProps["selection"]; ids: readonly string[] }) {
   const selectedCount = selection ? ids.filter((id) => selection.selected.has(id)).length : 0;
   const value = !selection || selectedCount === 0 ? false : selectedCount === ids.length ? true : "indeterminate";
   return (
@@ -91,7 +94,7 @@ function GroupHeader({ group, selection, ids }: { group: Group; selection?: Layo
           className="tessera-wi-select"
           size="sm"
           isLabelHidden
-          label={`Select ${group.name}`}
+          label={group.has_more ? `Select ${group.name} (${loadedOfTotal(ids.length, group.count)})` : `Select ${group.name}`}
           value={value}
           onClick={(event) => event.stopPropagation()}
           onChange={(checked) => selection.onToggleIds(ids, checked === true || value === "indeterminate")}
@@ -103,6 +106,7 @@ function GroupHeader({ group, selection, ids }: { group: Group; selection?: Layo
         </Text>
       </HStack>
       <Badge label={group.count} />
+      <GroupPoints points={group.estimate_points} display={display} />
     </HStack>
   );
 }
@@ -309,9 +313,24 @@ type GroupSectionProps = {
   canQuickAdd: LayoutProps["canQuickAdd"];
   readOnly: boolean;
   selection?: LayoutProps["selection"];
+  /** "Show more" for a group with unloaded rows (decision 112); absent when everything is loaded. */
+  more?: { loaded: number; total: number; isLoading: boolean; onLoadMore: () => void };
 };
 
-function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpen, onQuickAdd, canQuickAdd, readOnly, selection }: GroupSectionProps) {
+function GroupSection({
+  group,
+  items,
+  display,
+  isOpen,
+  onToggle,
+  onUpdate,
+  onOpen,
+  onQuickAdd,
+  canQuickAdd,
+  readOnly,
+  selection,
+  more,
+}: GroupSectionProps) {
   const quickAddGroup: QuickAddGroup = group ? { field: group.field, value: group.id === NONE_GROUP_ID ? null : group.id } : { field: null, value: null };
   // No row when the list cannot create items, or when this group pins a state the scope refuses (a closed state in a cycle).
   const showQuickAdd = !readOnly && onQuickAdd !== undefined && canQuickAdd?.(quickAddGroup) !== false;
@@ -324,6 +343,7 @@ function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpe
           ))}
         </List>
       ) : null}
+      {more ? <GroupFooter display={display} loaded={more.loaded} total={more.total} isLoading={more.isLoading} onLoadMore={more.onLoadMore} /> : null}
       {showQuickAdd ? <QuickAdd onSubmit={(name) => onQuickAdd(quickAddGroup, name)} /> : null}
     </VStack>
   );
@@ -331,7 +351,7 @@ function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpe
   return (
     <VStack gap={0} className="tessera-wi-group">
       <Collapsible
-        trigger={<GroupHeader group={group} selection={selection} ids={items.filter((item) => !isOptimisticId(item.id)).map((item) => item.id)} />}
+        trigger={<GroupHeader group={group} display={display} selection={selection} ids={items.filter((item) => !isOptimisticId(item.id)).map((item) => item.id)} />}
         isOpen={isOpen}
         onOpenChange={onToggle}
         chevronPosition="start"
@@ -346,7 +366,19 @@ function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpe
 // Layout
 // ---------------------------------------------------------------------------
 
-export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQuickAdd, readOnly = false, selection }: LayoutProps) {
+export function ListLayout({
+  result,
+  display,
+  onUpdate,
+  onOpen,
+  onQuickAdd,
+  canQuickAdd,
+  readOnly = false,
+  selection,
+  onLoadMore,
+  onLoadMoreUngrouped,
+  isLoadingMore,
+}: LayoutProps) {
   const itemsById = useMemo(() => new Map(result.items.map((item) => [item.id, item])), [result.items]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const { listRef, handleKeyDown, handleFocus } = useListFocus<HTMLElement>({
@@ -378,6 +410,7 @@ export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQ
       gap={groups ? 2 : 0}
       className={selection && selection.selected.size > 0 ? "tessera-wi-list tessera-wi-list--selecting" : "tessera-wi-list"}
       paddingBlock={2}
+      data-list-ready=""
     >
       {isEmpty ? (
         <EmptyState
@@ -404,6 +437,11 @@ export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQ
             canQuickAdd={canQuickAdd}
             readOnly={readOnly}
             selection={selection}
+            more={
+              group.has_more && onLoadMore
+                ? { loaded: group.item_ids.length, total: group.count, isLoading: isLoadingMore?.(groupLimitKey(group.id)) ?? false, onLoadMore: () => onLoadMore(group.id) }
+                : undefined
+            }
           />
         ))
       ) : (
@@ -419,6 +457,11 @@ export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQ
           canQuickAdd={canQuickAdd}
           readOnly={readOnly}
           selection={selection}
+          more={
+            result.has_more && onLoadMoreUngrouped
+              ? { loaded: result.items.length, total: result.total, isLoading: isLoadingMore?.(UNGROUPED_KEY) ?? false, onLoadMore: onLoadMoreUngrouped }
+              : undefined
+          }
         />
       )}
     </VStack>

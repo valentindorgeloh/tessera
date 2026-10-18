@@ -21,7 +21,9 @@ import type { WorkItem } from "@/lib/tessera/types";
 import { CalendarDotsIcon, CalendarIcon } from "@/themes/catppuccin/icons";
 import { isWeekend, monthLabel, weekendShift } from "./calendar-math";
 import { applyDayDelta, barPlacement, barSpan, eachDay, previewEnds, scheduleOnDay, timelineRange, type BarDragMode, type DateEnds } from "./date-span";
+import { GroupFooter } from "./GroupFooter";
 import { isOptimisticId } from "./optimistic";
+import { UNGROUPED_KEY } from "./paging";
 import { DateControl } from "./properties/DateControl";
 import { stateGroupLabel, stateGroupVariant } from "./properties/StateControl";
 import { useProject } from "./project-provider";
@@ -43,7 +45,7 @@ function monthSpans(days: readonly string[]): { key: string; label: string; span
   return spans;
 }
 
-export function GanttLayout({ result, onUpdate, onOpen, readOnly = false }: LayoutProps) {
+export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = false, onLoadMoreUngrouped, isLoadingMore }: LayoutProps) {
   const { bundle } = useProject();
   const today = bundle.today;
   const range = timelineRange(
@@ -146,6 +148,9 @@ export function GanttLayout({ result, onUpdate, onOpen, readOnly = false }: Layo
         />
       ))}
       </VStack>
+      {result.has_more && onLoadMoreUngrouped ? (
+        <GroupFooter display={display} loaded={result.items.length} total={result.total} isLoading={isLoadingMore?.(UNGROUPED_KEY)} onLoadMore={onLoadMoreUngrouped} />
+      ) : null}
     </VStack>
   );
 }

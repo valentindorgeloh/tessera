@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Shared frame for workspace settings tabs (General, AI, Exports, Webhooks).
+ * Shared frame for workspace settings tabs (General, AI, Exports, Webhooks, Backups).
  */
 import type { ReactNode } from "react";
 import { Tab, TabList } from "@astryxdesign/core/TabList";

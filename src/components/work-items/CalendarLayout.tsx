@@ -8,6 +8,7 @@
  */
 import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { DateInput } from "@astryxdesign/core/DateInput";
 import { Grid } from "@astryxdesign/core/Grid";
@@ -96,6 +97,13 @@ export function CalendarLayout({ result, display, onUpdate, onOpen, onQuickAdd, 
 
   return (
     <VStack gap={2} className="tessera-cal">
+      {result.has_more ? (
+        <Banner
+          status="info"
+          title={`Showing the first ${result.items.length} of ${result.total} work items`}
+          description="The calendar loads at most 1000 work items. Narrow the filters to see the rest."
+        />
+      ) : null}
       <PanelBar
         size="filters"
         canWrap

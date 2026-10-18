@@ -37,9 +37,11 @@ import {
 } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
-import { PRIORITY_RANK } from "@/lib/tessera/core/group";
+import { PRIORITY_RANK, groupLimitKey } from "@/lib/tessera/core/group";
 import type { DisplayProperties, Group, GroupBy, StateGroup, WorkItem } from "@/lib/tessera/types";
+import { GroupFooter, GroupPoints } from "./GroupFooter";
 import { isOptimisticId } from "./optimistic";
+import { UNGROUPED_KEY } from "./paging";
 import { RowProject } from "./row-project";
 import { ActorLabel, AssigneeControl, CycleControl, DateControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, PriorityLabel, StateControl, StateLabel, isPriority, paletteTokenColor } from "./properties";
 import type { LayoutProps, ProjectBundle, UpdateWorkItemPatch } from "./types";
@@ -303,7 +305,7 @@ function GroupHeading({ group, field, bundle }: { group: Group | undefined; fiel
   return <Text weight="semibold">{group.name}</Text>;
 }
 
-export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection }: LayoutProps) {
+export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection, onLoadMore, onLoadMoreUngrouped, isLoadingMore }: LayoutProps) {
   const groups = useMemo(() => result.groups ?? [], [result.groups]);
   const grouped = display.group_by !== null && groups.length > 0;
 
@@ -369,13 +371,28 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
     });
   }, []);
   const renderGroupHeader = useCallback(
-    (groupKey: string, count: number): ReactNode => (
-      <HStack gap={2} vAlign="center">
-        <GroupHeading group={groupsById.get(groupKey)} field={display.group_by} bundle={bundle} />
-        <Badge label={count} variant="neutral" />
-      </HStack>
-    ),
-    [bundle, display.group_by, groupsById],
+    (groupKey: string, loadedCount: number): ReactNode => {
+      const group = groupsById.get(groupKey);
+      return (
+        <HStack gap={2} vAlign="center">
+          <GroupHeading group={group} field={display.group_by} bundle={bundle} />
+          {/* The badge is the group's full count (decision 113); the rows under it may be only the first page. */}
+          <Badge label={group?.count ?? loadedCount} variant="neutral" />
+          <GroupPoints points={group?.estimate_points} display={display} />
+          {group?.has_more && onLoadMore ? (
+            <GroupFooter
+              display={display}
+              variant="inline"
+              loaded={group.item_ids.length}
+              total={group.count}
+              isLoading={isLoadingMore?.(groupLimitKey(group.id))}
+              onLoadMore={() => onLoadMore(group.id)}
+            />
+          ) : null}
+        </HStack>
+      );
+    },
+    [bundle, display, groupsById, isLoadingMore, onLoadMore],
   );
   const groupedRows = useTableGroupedRows<TableRow>({
     data: sortedData,
@@ -440,18 +457,24 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
   };
 
   return (
-    <Table<TableRow>
-      className="tessera-table"
-      data={grouped ? groupedRows.data : sortedData}
-      columns={columns}
-      idKey={grouped ? groupedRows.idKey : "id"}
-      plugins={plugins}
-      density="compact"
-      dividers="rows"
-      hasHover
-      textOverflow="truncate"
-      rowCount={result.total}
-      emptyState={<EmptyState isCompact title="No work items" description={readOnly ? "Change the filters to see more." : "Create a work item or change the filters."} />}
-    />
+    <>
+      <Table<TableRow>
+        className="tessera-table"
+        data-list-ready=""
+        data={grouped ? groupedRows.data : sortedData}
+        columns={columns}
+        idKey={grouped ? groupedRows.idKey : "id"}
+        plugins={plugins}
+        density="compact"
+        dividers="rows"
+        hasHover
+        textOverflow="truncate"
+        rowCount={result.total}
+        emptyState={<EmptyState isCompact title="No work items" description={readOnly ? "Change the filters to see more." : "Create a work item or change the filters."} />}
+      />
+      {!grouped && result.has_more && onLoadMoreUngrouped ? (
+        <GroupFooter display={display} loaded={result.items.length} total={result.total} isLoading={isLoadingMore?.(UNGROUPED_KEY)} onLoadMore={onLoadMoreUngrouped} />
+      ) : null}
+    </>
   );
 }

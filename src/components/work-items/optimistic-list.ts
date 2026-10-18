@@ -65,24 +65,36 @@ function placeIn(ids: string[], id: string, member: boolean): string[] {
  * on a board grouped by state keeps the card in its column. Ids the groups do
  * not know stay unassigned until the server re-renders; a grouping the client
  * cannot derive leaves the groups alone.
+ *
+ * On a paged list a group holds only its first rows (decision 114): the item
+ * joins the end of a group's loaded ids, and the counts move by one between
+ * groups according to the item's values before (`before`, absent for a new
+ * item) and after the change, never by the loaded length. The server result
+ * after `refresh()` replaces all of it.
  */
-function regroupItem(groups: Group[] | undefined, item: WorkItem, display: Display, stateGroupOf: StateGroupOf): Group[] | undefined {
+function regroupItem(groups: Group[] | undefined, before: WorkItem | undefined, item: WorkItem, display: Display, stateGroupOf: StateGroupOf): Group[] | undefined {
   if (!groups || !display.group_by) return groups;
   const values = groupValues(display.group_by, item, stateGroupOf);
   if (values === undefined) return groups;
   const subValues = display.sub_group_by ? groupValues(display.sub_group_by, item, stateGroupOf) : undefined;
   const targets = targetsOf(values);
+  const wasValues = before ? groupValues(display.group_by, before, stateGroupOf) : undefined;
+  const wasTargets = wasValues ? targetsOf(wasValues) : [];
+  const wasSubTargets = before && display.sub_group_by ? groupValues(display.sub_group_by, before, stateGroupOf) : undefined;
   return groups.map((group) => {
     const member = targets.includes(group.id);
+    const wasMember = wasTargets.includes(group.id);
     const item_ids = placeIn(group.item_ids, item.id, member);
     const sub_groups =
       group.sub_groups && subValues !== undefined
         ? group.sub_groups.map((sub) => {
-            const ids = placeIn(sub.item_ids, item.id, member && targetsOf(subValues).includes(sub.id));
-            return { ...sub, item_ids: ids, count: ids.length };
+            const subMember = member && targetsOf(subValues).includes(sub.id);
+            const wasSub = wasMember && wasSubTargets !== undefined && targetsOf(wasSubTargets).includes(sub.id);
+            const ids = placeIn(sub.item_ids, item.id, subMember);
+            return { ...sub, item_ids: ids, count: Math.max(0, sub.count + Number(subMember) - Number(wasSub)) };
           })
         : group.sub_groups;
-    return { ...group, item_ids, count: item_ids.length, sub_groups };
+    return { ...group, item_ids, count: Math.max(0, group.count + Number(member) - Number(wasMember)), sub_groups };
   });
 }
 
@@ -92,7 +104,8 @@ function reorder(ids: string[], id: string, before_id?: string, after_id?: strin
   const anchor = before_id ?? after_id;
   const index = anchor ? rest.indexOf(anchor) : -1;
   if (index < 0) return ids;
-  rest.splice(before_id ? index : index + 1, 0, id);
+  // `before_id` is the neighbour that sits directly before the dropped item, `after_id` the one directly after it.
+  rest.splice(before_id ? index + 1 : index, 0, id);
   return rest;
 }
 
@@ -154,14 +167,16 @@ export function reduceOptimisticList(
   switch (action.type) {
     case "update": {
       const patch = stripUndefined(action.patch);
+      const before = state.items.find((candidate) => candidate.id === action.id);
       const items = state.items.map((item) => (item.id === action.id ? { ...item, ...patch } : item));
       const item = items.find((candidate) => candidate.id === action.id);
-      const groups = item ? regroupItem(state.groups, item, display, stateGroupOf) : state.groups;
+      const groups = item && before ? regroupItem(state.groups, before, item, display, stateGroupOf) : state.groups;
       return { ...state, items, groups };
     }
     case "move": {
       const { id, group_by, value, from_value, before_id, after_id, sub_group_by, sub_value, sub_from_value } = action.input;
       let moved: WorkItem | undefined;
+      const before = state.items.find((candidate) => candidate.id === id);
       const items = state.items.map((item) => {
         if (item.id !== id) return item;
         let next = group_by ? applyGroupValue(item, group_by, value, from_value, firstStateByGroup) : item;
@@ -182,7 +197,7 @@ export function reduceOptimisticList(
         const item = byId.get(entry);
         return item ? [item] : [];
       });
-      let groups = group_by || sub_group_by ? regroupItem(state.groups, moved, display, stateGroupOf) : state.groups;
+      let groups = group_by || sub_group_by ? regroupItem(state.groups, before, moved, display, stateGroupOf) : state.groups;
       if (groups && (before_id || after_id)) {
         groups = groups.map((group) => ({
           ...group,
@@ -194,7 +209,7 @@ export function reduceOptimisticList(
     }
     case "create": {
       const items = [...state.items, action.item];
-      const groups = regroupItem(state.groups, action.item, display, stateGroupOf);
+      const groups = regroupItem(state.groups, undefined, action.item, display, stateGroupOf);
       return { ...state, items, total: state.total + 1, groups };
     }
   }

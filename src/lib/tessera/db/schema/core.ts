@@ -135,6 +135,8 @@ export const work_item = sqliteTable(
     index("work_item_project_cycle_idx").on(t.project_id, t.cycle_id),
     index("work_item_parent_idx").on(t.parent_id),
     index("work_item_project_sort_idx").on(t.project_id, t.sort_order),
+    // Workspace-scope list/count (decision 126): covers deleted_at / archived_at filters.
+    index("work_item_project_live_sort_idx").on(t.project_id, t.deleted_at, t.archived_at, t.sort_order),
   ],
 );
 
@@ -336,5 +338,7 @@ export const activity = sqliteTable(
     index("activity_project_seq_idx").on(t.project_id, t.seq),
     index("activity_work_item_seq_idx").on(t.work_item_id, t.seq),
     index("activity_actor_seq_idx").on(t.actor_id, t.seq),
+    // Decision 109 workspaceRev: MAX(seq) WHERE project_id IS NULL.
+    index("activity_workspace_seq_idx").on(t.seq).where(sql`project_id IS NULL`),
   ],
 );

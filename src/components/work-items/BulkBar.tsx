@@ -19,6 +19,7 @@ import {
 } from "@/app/actions/work-items";
 import { AlertDialog } from "@/components/shell/dialogs";
 import { useProject } from "@/components/work-items/project-provider";
+import { hasUnloaded, loadedOfTotal } from "@/components/work-items/paging";
 import { CycleControl, DateControl, EstimateControl, PriorityControl, StateControl } from "@/components/work-items/properties";
 import type { Priority, WorkItem } from "@/lib/tessera/types";
 import { ArchiveIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
@@ -28,9 +29,12 @@ export type BulkBarProps = {
   selected: ReadonlySet<string>;
   onClear: () => void;
   variant?: "active" | "archived";
+  /** Rows the list holds and the size of the whole filtered set. A selection reaches only the loaded rows (decision 114). */
+  loaded?: number;
+  total?: number;
 };
 
-export function BulkBar({ items, selected, onClear, variant = "active" }: BulkBarProps) {
+export function BulkBar({ items, selected, onClear, variant = "active", loaded, total }: BulkBarProps) {
   const toast = useToast();
   const { bundle } = useProject();
   const [isPending, startTransition] = useTransition();
@@ -70,6 +74,11 @@ export function BulkBar({ items, selected, onClear, variant = "active" }: BulkBa
     <>
       <HStack gap={2} vAlign="center" wrap="wrap" className="tessera-bulk-bar" role="region" aria-label="Bulk actions">
         <Text weight="medium">{count} selected</Text>
+        {loaded !== undefined && total !== undefined && hasUnloaded(loaded, total) ? (
+          <Text type="supporting" color="secondary">
+            Loaded rows only ({loadedOfTotal(loaded, total)})
+          </Text>
+        ) : null}
         <Button variant="ghost" size="sm" label="Clear" onClick={onClear} />
         {variant === "archived" ? (
           <Button

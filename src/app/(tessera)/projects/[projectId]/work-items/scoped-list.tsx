@@ -5,12 +5,15 @@ import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { loadWorkItemDetail } from "@/app/(tessera)/work-items/load-detail";
 import { PeekHost, type PeekData } from "@/components/detail/PeekHost";
-import type { ScopeDefaults, SettingsScope, UrlState } from "@/components/work-items/types";
+import { pageSizeFor } from "@/components/work-items/paging";
+import type { ScopeDefaults, SettingsScope, UrlState, WorkItemsScope } from "@/components/work-items/types";
 import { decodeUrlState, mergeDisplay, mergeFilters } from "@/components/work-items/url-state";
 import { WorkItemsScreen, type WorkItemsScreenProps } from "@/components/work-items/WorkItemsScreen";
 import { DEFAULT_DISPLAY, IdSchema } from "@/lib/tessera/schemas";
 import { getViewSettings, isTrackerError, listWorkItems, readTessera } from "@/lib/tessera/server";
 import type { Display, GroupBy } from "@/lib/tessera/types";
+
+export type { WorkItemsScope };
 
 /**
  * The work items list of a project, a cycle or a module (docs/contracts/ui.md
@@ -26,7 +29,6 @@ import type { Display, GroupBy } from "@/lib/tessera/types";
  * cycle or module, whose own header above names the scope).
  */
 
-export type WorkItemsScope = { type: "project"; project_id: string } | { type: "cycle"; cycle_id: string } | { type: "module"; module_id: string };
 export type { ScopeDefaults, SettingsScope };
 
 export type ScopedWorkItemsProps = {
@@ -43,9 +45,6 @@ export type ScopedWorkItemsProps = {
   /** Cycle scope ["cycle"], module scope ["module"]: grouping by these fields is dropped. */
   hiddenGroupFields?: readonly GroupBy[];
 } & Pick<WorkItemsScreenProps, "title" | "count">;
-
-/** Page size; the engine caps a list at 5000 rows and P2 adds paging. */
-const LIMIT = 2000;
 
 const NO_HIDDEN_FIELDS: readonly GroupBy[] = [];
 
@@ -66,11 +65,12 @@ function loadWorkItems(scope: WorkItemsScope, settingsScope: SettingsScope, urlS
     const settings = getViewSettings(ctx, settingsScope.scope_type, settingsScope.scope_id);
     const display = withoutHiddenGroups(mergeDisplay(DEFAULT_DISPLAY, settings.display, urlState.display), hidden);
     const filters = mergeFilters({}, settings.filters, urlState.filters);
+    const paging = pageSizeFor(display);
     const result = listWorkItems(ctx, {
       scope,
       filters,
       display,
-      limit: LIMIT,
+      ...paging,
       ...(urlState.rich_filters !== undefined ? { rich_filters: urlState.rich_filters } : {}),
     });
     return { settings, display, filters, result };
@@ -105,6 +105,7 @@ export async function ScopedWorkItems({
     <PeekHost projectId={projectId} peek={peek}>
       <WorkItemsScreen
         projectId={projectId}
+        listScope={scope}
         result={data.result}
         display={data.display}
         filters={data.filters}

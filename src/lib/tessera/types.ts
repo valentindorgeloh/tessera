@@ -12,8 +12,11 @@ import type {
   AssistantScopeSchema,
   AssistMessageSchema,
   AssistRequestSchema,
+  AppliedBatchSchema,
   AutomationStatusSchema,
   AutomationSummarySchema,
+  BackupFileSchema,
+  BackupKindSchema,
   CalendarDisplaySchema,
   CycleProgressSchema,
   CycleStatusSchema,
@@ -278,6 +281,8 @@ export type WorkspaceSettingsView = {
   ai: WorkspaceAiSettings;
   last_seen_seq: number | null;
   last_seen_at: string | null;
+  /** When true, the maintenance job writes a daily auto backup (decision 120). */
+  auto_backup: boolean;
 };
 
 export type AnalyticsScopeInfo = {
@@ -413,6 +418,9 @@ export type DigestView = z.infer<typeof DigestViewSchema>;
 export type AiStatus = z.infer<typeof AiStatusSchema>;
 export type AutomationSummary = z.infer<typeof AutomationSummarySchema>;
 export type AutomationStatus = z.infer<typeof AutomationStatusSchema>;
+export type BackupKind = z.infer<typeof BackupKindSchema>;
+export type BackupFile = z.infer<typeof BackupFileSchema>;
+export type AppliedBatch = z.infer<typeof AppliedBatchSchema>;
 
 // ---------------------------------------------------------------------------
 // Row types (Drizzle select and insert models), one pair per table

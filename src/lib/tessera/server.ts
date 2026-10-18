@@ -15,7 +15,7 @@ import { withTx } from "./core/tx";
 import { getDb } from "./db/client";
 
 export * from "./index";
-export { closeDb, getDb } from "./db/client";
+export { closeDb, getDb, MEMORY_DB, resolveDbPath } from "./db/client";
 
 /** Context for the human user over the app database. */
 function userContext(): TesseraContext {
@@ -46,6 +46,7 @@ export {
   createProposal,
   currentDigestSeq,
   discardProposals,
+  findLatestUndoableBatch,
   generateDigest,
   getAiStatus,
   getProposal,
@@ -53,6 +54,7 @@ export {
   listProposals,
   runAssistant,
   toAiError,
+  undoLastAssistantBatch,
   viewFromPrompt,
 } from "./ai";
 export { setHomeSeen } from "./workspace/home-seen";

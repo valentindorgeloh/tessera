@@ -65,6 +65,8 @@ export * from "./workspace";
 export * from "./analytics";
 export * from "./automations";
 export * from "./webhooks";
+export * from "./maintenance";
+export * from "./db/backups";
 export * from "./tools/define";
 export * from "./tools/describe-filters";
 export * from "./tools/registry";

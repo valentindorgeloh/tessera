@@ -155,7 +155,7 @@ export function getAutomationStatus(ctx: TesseraContext): AutomationStatus {
   const held = lease !== undefined && lease.holder !== "" && lease.expires_at > now;
   return {
     last_run_at: lease?.last_run_at ?? null,
-    last_summary: lease?.last_summary ?? null,
+    last_summary: (lease?.last_summary as AutomationSummary | null | undefined) ?? null,
     next_run_at: held && lease ? lease.expires_at : lease?.last_run_at ? new Date(Date.parse(lease.last_run_at) + HOUR_MS).toISOString() : null,
     projects: loadProjects(ctx).map((row) => ({
       project_id: row.id,

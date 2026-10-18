@@ -281,8 +281,15 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           return;
         }
         update({ type: "outcomes", outcomes: result.data });
+        const applied = result.data.filter((outcome) => outcome.status === "applied");
         const failed = result.data.find((outcome) => outcome.status === "failed");
         if (failed?.error) toast({ type: "error", body: failed.error.message });
+        else if (applied.length > 0) {
+          toast({
+            type: "info",
+            body: applied.length === 1 ? "Applied 1 change" : `Applied ${applied.length} changes`,
+          });
+        }
         setConfirmIds(null);
       } catch {
         toast({ type: "error", body: "Could not apply" });

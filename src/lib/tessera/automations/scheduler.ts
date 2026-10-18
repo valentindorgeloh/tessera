@@ -1,14 +1,15 @@
 /**
- * Hourly automation timer (decision 28) and 10 s webhook dispatcher. Timers
- * are unref'd so they do not keep a process alive. `TESSERA_AUTOMATIONS=off`
- * skips automations; `TESSERA_WEBHOOKS=off` skips webhook dispatch,
- * independently.
+ * Hourly automation timer (decision 28), maintenance job (decision 120) and
+ * 10 s webhook dispatcher. Timers are unref'd so they do not keep a process
+ * alive. `TESSERA_AUTOMATIONS=off` skips automations and maintenance;
+ * `TESSERA_WEBHOOKS=off` skips webhook dispatch, independently.
  */
 import { randomUUID } from "node:crypto";
 import { acquireLease, LEASE_TTL_MS, releaseLease } from "./lease";
 
 const MARK = Symbol.for("tessera.automationScheduler");
 const FIRST_DELAY_MS = 60 * 1000;
+const MAINTENANCE_FIRST_MS = 5 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 const WEBHOOK_INTERVAL_MS = 10_000;
 
@@ -29,6 +30,13 @@ export function startScheduler(): void {
       hourly.unref();
     }, FIRST_DELAY_MS);
     first.unref();
+
+    const maintenanceFirst = setTimeout(() => {
+      void runMaintenanceOnce();
+      const hourly = setInterval(() => void runMaintenanceOnce(), HOUR_MS);
+      hourly.unref();
+    }, MAINTENANCE_FIRST_MS);
+    maintenanceFirst.unref();
   }
 
   if (process.env.TESSERA_WEBHOOKS !== "off") {
@@ -47,6 +55,19 @@ async function runAutomationsOnce(): Promise<void> {
     runAutomations(createContext({ db, sqlite, actorId: SYSTEM_ACTOR_ID }), {});
   } catch (err) {
     console.error("[tessera] automation run failed", err);
+  }
+}
+
+async function runMaintenanceOnce(): Promise<void> {
+  try {
+    const { SYSTEM_ACTOR_ID } = await import("../actors");
+    const { createContext } = await import("../core/context");
+    const { getDb } = await import("../db/client");
+    const { runMaintenance } = await import("../maintenance");
+    const { db, sqlite } = getDb();
+    runMaintenance(createContext({ db, sqlite, actorId: SYSTEM_ACTOR_ID }), {});
+  } catch (err) {
+    console.error("[tessera] maintenance run failed", err);
   }
 }
 

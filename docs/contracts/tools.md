@@ -206,3 +206,26 @@ docs/contracts/tools.md. Service details: docs/drafts/p4-service-api.md.
   `DeleteProjectDialog` calls `deleteProjectAction({ project_id })`).
 - Not added: a tool for `getTaxonomyUsage` (server read only), `reorder_project`
   (P9), `list_activity` by actor (P9), an actor permission field (P8).
+
+## P11 changes (lane A, list paging; decisions 112 and 113)
+
+- No new tools. `list_work_items` and `list_archived_work_items` take four more
+  optional inputs from `ListWorkItemsInput` (strict, no tool code change):
+  `per_group_limit` (1 to 500), `group_value`, `sub_group_value` and
+  `group_limits` (record of 1 to 2000, at most 100 entries). `limit` and `offset`
+  keep paging the flat list (and now return `has_more`). Callers that send none
+  of the new keys get today's result.
+- The result's `groups[]` carry `has_more` (always present) and, for a points
+  estimate, `estimate_points`; with the new keys `count` and `total` are exact
+  over the whole filtered set and `item_ids` / `items` hold the loaded pages (see
+  `service-api.md` "List paging").
+- Description text (exact), replacing the `list_work_items` one: "Lists work items
+  for a scope (project, cycle, module, saved view, workspace, profile tab, archived
+  or draft) with Filters combined by AND and Display for ordering and grouping; a
+  view scope merges the caller's filters over the saved ones. Returns items, total,
+  the change cursor and groups when display.group_by is set. With
+  display.group_by, per_group_limit pages every group (counts and has_more stay
+  exact), group_value (and sub_group_value) pages inside one group with
+  limit/offset. Use describe_filters for the vocabulary."
+- Errors: `VALIDATION` at `group_value` without `display.group_by`, and at
+  `sub_group_value` without `group_value` or `display.sub_group_by`.

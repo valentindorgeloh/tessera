@@ -18,4 +18,10 @@ export {
   getProposal,
   listProposals,
 } from "./proposals";
+export {
+  findLatestUndoableBatch,
+  undoLastAssistantBatch,
+  UNDO_BATCH_TTL_MS,
+  type AppliedBatch,
+} from "./undo";
 export { currentDigestSeq, digestInputs, getStoredDigest, saveDigest } from "./digest-store";

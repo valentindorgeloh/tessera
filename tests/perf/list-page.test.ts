@@ -12,10 +12,10 @@ import { listStates } from "@/lib/tessera/states";
 import { listWorkItems } from "@/lib/tessera/work-items";
 import { createTestContext, createTestDb } from "../helpers/db";
 
-const ITEM_COUNT = 3000;
+const ITEM_COUNT = 10_000;
 const PAGE_SIZE = 200;
-/** Wall-clock ceiling for one warmed first page. Loose on purpose so a busy machine does not flake. */
-const PAGE_BUDGET_MS = 1500;
+/** Wall-clock ceiling for one warmed first page on 10k items (decision 115 engine bound is 40 ms; Vitest stays loose). */
+const PAGE_BUDGET_MS = 2000;
 
 describe("listWorkItems performance", () => {
   it("returns the first page of a few thousand items under the budget", () => {

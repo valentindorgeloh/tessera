@@ -7,6 +7,7 @@ import { ViewBar } from "@/components/views/ViewBar";
 import { ViewMenu } from "@/components/views/ViewMenu";
 import { ViewLockIndicator } from "@/components/views/ViewRow";
 import { isViewModified, type ViewState } from "@/components/views/view-state";
+import { pageSizeFor } from "@/components/work-items/paging";
 import { ProjectScope } from "@/components/work-items/project-provider";
 import { BundlesProvider } from "@/components/work-items/row-project";
 import type { ProjectBundle, SettingsScope } from "@/components/work-items/types";
@@ -35,8 +36,6 @@ import {
  * grouping stay off because those values belong to one project. Each row's
  * controls read that project's bundle.
  */
-
-const LIMIT = 2000;
 
 const HIDDEN_GROUPS = ["state", "labels", "cycle", "module"] as const;
 
@@ -178,6 +177,7 @@ export async function CrossProjectWorkList({
       <BundlesProvider bundles={loaded.bundles}>
         <WorkItemsScreen
           projectId={loaded.host.project.id}
+          listScope={scope}
           result={loaded.result}
           display={loaded.display}
           filters={loaded.filters}
@@ -217,12 +217,15 @@ function loadList(
       scope,
       filters,
       display,
-      limit: LIMIT,
+      ...pageSizeFor(display),
       ...(urlState.rich_filters !== undefined ? { rich_filters: urlState.rich_filters } : {}),
     });
-    const ids = [...new Set(result.items.map((item) => item.project_id))];
+    const projects = listProjects(ctx, {});
+    // A later "Show more" page can bring rows of projects the first page did not touch, so a paged list loads every bundle.
+    const partial = result.items.length < result.total;
+    const ids = [...new Set([...result.items.map((item) => item.project_id), ...(partial ? projects.map((project) => project.id) : [])])];
     const bundles = loadProjectBundles(ctx, ids);
-    const host = hostBundle(bundles, listProjects(ctx, {}), listActors(ctx), ctx.today(), latestSeq(ctx), ctx.now());
+    const host = hostBundle(bundles, projects, listActors(ctx), ctx.today(), latestSeq(ctx), ctx.now());
     return { result, display, filters, settingsDisplay, storedFilters: stored.filters, bundles, host };
   });
 }

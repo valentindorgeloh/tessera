@@ -94,6 +94,12 @@ export type LayoutProps = {
     onToggle: (id: string, shift: boolean) => void;
     onToggleIds: (ids: readonly string[], on: boolean) => void;
   };
+  /** Load the next page of a group (decision 112). */
+  onLoadMore?: (groupId: string, subGroupId?: string) => void;
+  /** Load the next page of an ungrouped list. */
+  onLoadMoreUngrouped?: () => void;
+  /** Which group key (`id` or `id/sub`) is fetching. */
+  isLoadingMore?: (key: string) => boolean;
 };
 
 /** URL state carried in the `q` search param (base64url JSON). */
@@ -103,3 +109,9 @@ export type UrlState = {
   /** Absent keeps a view's saved tree. Null clears it for this listing. */
   rich_filters?: RichFilters | null;
 };
+
+/** Scope of a project, cycle or module list (matches `list_work_items` scope). */
+export type WorkItemsScope =
+  | { type: "project"; project_id: string }
+  | { type: "cycle"; cycle_id: string }
+  | { type: "module"; module_id: string };

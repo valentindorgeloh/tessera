@@ -1,0 +1,37 @@
+/*
+ * Paging (decision 112): the "Show more" footer of a paged group, column,
+ * lane cell or flat list, and the estimate total beside a group's count.
+ * Tokens only.
+ */
+.tessera-paging-footer {
+  min-width: 0;
+}
+
+/* Under the rows of a list group or the table: lines up with the row inset. */
+.tessera-paging-footer[data-variant="row"] {
+  padding-inline: var(--spacing-4);
+  padding-block: var(--spacing-2);
+}
+
+/* In a board column or lane cell the card's own padding already insets it. */
+.tessera-paging-footer[data-variant="card"] {
+  padding-block: var(--spacing-1);
+}
+
+/* Inside a table group header, next to the count. */
+.tessera-paging-footer[data-variant="inline"] {
+  padding-inline: var(--spacing-2);
+}
+
+/* "N pts" beside a group's count: tabular so the header does not jitter while counts move. */
+.tessera-paging-points {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The gantt is wider than its scroller: keep the footer at the left edge while the timeline scrolls. */
+.tessera-gantt .tessera-paging-footer {
+  position: sticky;
+  inset-inline-start: 0;
+  width: fit-content;
+}

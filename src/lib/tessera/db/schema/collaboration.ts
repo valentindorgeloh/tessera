@@ -115,5 +115,8 @@ export const notification = sqliteTable(
     snoozed_till: text("snoozed_till"),
     created_at: text("created_at").notNull(),
   },
-  (t) => [index("notification_recipient_read_seq_idx").on(t.recipient_actor_id, t.read_at, t.seq)],
+  (t) => [
+    index("notification_recipient_read_seq_idx").on(t.recipient_actor_id, t.read_at, t.seq),
+    index("notification_archived_idx").on(t.archived_at),
+  ],
 );

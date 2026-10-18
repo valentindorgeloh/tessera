@@ -161,6 +161,7 @@ describe("home seen and settings", () => {
     expect(isSettingsTab("ai")).toBe(true);
     expect(isSettingsTab("exports")).toBe(true);
     expect(isSettingsTab("webhooks")).toBe(true);
+    expect(isSettingsTab("backups")).toBe(true);
     expect(isSettingsTab("features")).toBe(false);
     expect(digestsEnabled({ ai: null })).toBe(true);
     expect(digestsEnabled({ ai: { digest_enabled: false } })).toBe(false);

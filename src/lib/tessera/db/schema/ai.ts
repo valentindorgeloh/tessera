@@ -34,11 +34,22 @@ export const ai_proposal = sqliteTable(
     /** Activity range Apply wrote; lets P11 undo find the rows. */
     seq_from: integer("seq_from"),
     seq_to: integer("seq_to"),
+    /** Shared id for every proposal applied in one Apply call (decision 116). */
+    apply_batch_id: text("apply_batch_id"),
+    /** When this applied proposal was undone with the rest of its batch. */
+    undone_at: text("undone_at"),
+    undo_seq_from: integer("undo_seq_from"),
+    undo_seq_to: integer("undo_seq_to"),
     created_at: text("created_at").notNull(),
     /** Set at apply, fail or discard. */
     decided_at: text("decided_at"),
   },
-  (t) => [index("ai_proposal_conversation_idx").on(t.conversation_id, t.created_at), index("ai_proposal_status_idx").on(t.status, t.created_at)],
+  (t) => [
+    index("ai_proposal_conversation_idx").on(t.conversation_id, t.created_at),
+    index("ai_proposal_status_idx").on(t.status, t.created_at),
+    index("ai_proposal_batch_idx").on(t.apply_batch_id),
+    index("ai_proposal_applied_idx").on(t.status, t.decided_at),
+  ],
 );
 
 /** The stored digest of one cycle, module or inbox (decision 37); regenerating overwrites the row. */

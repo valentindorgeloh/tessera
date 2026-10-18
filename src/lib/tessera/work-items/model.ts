@@ -41,7 +41,14 @@ export type ListResult<T> = {
   cursor: number;
 };
 
-export type WorkItemListResult = ListResult<WorkItem> & { groups?: Group[] };
+/**
+ * `items` is the loaded union and `total` always counts the whole filtered set.
+ * With group paging (decision 113) `groups` carry the full counts, `item_ids`
+ * list the loaded page and `has_more` says whether anything is left; the same
+ * flag on the result is true when any group (or, with `limit`, the flat list)
+ * has more rows than were returned.
+ */
+export type WorkItemListResult = ListResult<WorkItem> & { groups?: Group[]; has_more?: boolean };
 
 export const WORK_ITEM_NAME = z.string().trim().min(1).max(255);
 export const DESCRIPTION = z.string().max(1_000_000);

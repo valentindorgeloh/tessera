@@ -3,7 +3,7 @@
  * `migrate()` applies the drizzle/ folder through the drizzle migrator;
  * `migrateIfNeeded()` is the file-database path used by getDb() and
  * `npm run db:migrate`: lock file, VACUUM INTO backup when something is
- * pending, keep the newest 10 backups, then migrate.
+ * pending, rotate backups by kind, then migrate.
  *
  * Paths are resolved from this module's location so the engine works from the
  * source tree (tsx, Vitest) and from a Next server bundle alike.
@@ -15,7 +15,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { busy } from "../core/errors";
+import { backupDatabase, rotateBackups } from "./backups";
 import { schema } from "./schema";
+
+export { BACKUP_KEEP, backupDatabase, backupDir, pruneBackups, rotateBackups } from "./backups";
+export type { BackupFile, BackupKind } from "./backups";
 
 type MigrateDb = Parameters<typeof runDrizzleMigrations>[0];
 
@@ -37,7 +41,6 @@ function findRepoRoot(startDir: string): string {
 export const REPO_ROOT = findRepoRoot(path.dirname(fileURLToPath(import.meta.url)));
 export const MIGRATIONS_DIR = path.join(REPO_ROOT, "drizzle");
 export const MIGRATIONS_TABLE = "__drizzle_migrations";
-export const BACKUP_KEEP = 10;
 export const LOCK_TIMEOUT_MS = 30_000;
 
 type JournalEntry = { idx: number; when: number; tag: string; breakpoints: boolean };
@@ -79,47 +82,6 @@ export function migrate(db: MigrateDb, sqlite: SqliteDatabase): number {
   if (pending === 0) return 0;
   runDrizzleMigrations(db, { migrationsFolder: MIGRATIONS_DIR, migrationsTable: MIGRATIONS_TABLE });
   return pending;
-}
-
-/** `data/backups` next to the database file. */
-export function backupDir(filePath: string): string {
-  return path.join(path.dirname(filePath), "backups");
-}
-
-function backupStamp(now = new Date()): string {
-  // Colons are not safe in file names on every platform.
-  return now.toISOString().replace(/:/g, "-");
-}
-
-/** Copies the live database with VACUUM INTO and returns the backup path. */
-export function backupDatabase(filePath: string, now = new Date()): string {
-  const dir = backupDir(filePath);
-  fs.mkdirSync(dir, { recursive: true });
-  const target = path.join(dir, `tessera-${backupStamp(now)}.db`);
-  const sqlite = new Database(filePath);
-  try {
-    sqlite.exec(`VACUUM INTO '${target.replace(/'/g, "''")}'`);
-  } finally {
-    sqlite.close();
-  }
-  return target;
-}
-
-/** Deletes all but the newest `keep` `tessera-*.db` files in `dir`; returns the removed paths. */
-export function pruneBackups(dir: string, keep = BACKUP_KEEP): string[] {
-  if (!fs.existsSync(dir)) return [];
-  const backups = fs
-    .readdirSync(dir)
-    .filter((name) => /^tessera-.*\.db$/.test(name))
-    .sort()
-    .reverse();
-  const removed: string[] = [];
-  for (const name of backups.slice(keep)) {
-    const full = path.join(dir, name);
-    fs.rmSync(full, { force: true });
-    removed.push(full);
-  }
-  return removed;
 }
 
 function sleepSync(ms: number): void {
@@ -173,8 +135,8 @@ export function migrateIfNeeded(filePath: string, options: MigrateOptions = {}):
       const pending = pendingMigrations(sqlite);
       if (pending === 0) return { applied: 0, backup, pruned };
       if (existed) {
-        backup = backupDatabase(filePath);
-        pruned = pruneBackups(backupDir(filePath));
+        backup = backupDatabase(filePath, "migration").path;
+        pruned = rotateBackups(filePath);
       }
       const db = drizzle(sqlite, { schema });
       const applied = migrate(db, sqlite);

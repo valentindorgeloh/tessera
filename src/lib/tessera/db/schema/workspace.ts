@@ -62,6 +62,8 @@ export const workspace_settings = sqliteTable("workspace_settings", {
   /** Activity seq Home has already shown. Null means the since-last-visit window is the last 7 days. */
   last_seen_seq: integer("last_seen_seq"),
   last_seen_at: text("last_seen_at"),
+  /** When on, the maintenance job writes a daily `auto` backup (decision 120). */
+  auto_backup: integer("auto_backup", { mode: "boolean" }).notNull().default(true),
   created_at: text("created_at").notNull(),
   updated_at: text("updated_at").notNull(),
 });

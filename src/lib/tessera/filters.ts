@@ -290,9 +290,14 @@ export type Group = {
   id: string;
   name: string;
   color: PaletteColor | null;
+  /** Items in the group. On a group-paged list (decision 113) this is the full count over the whole filtered set, not the loaded page. */
   count: number;
-  /** Ids into the list's `items`; multi-valued fields repeat an id across groups. */
+  /** Ids into the list's `items`; multi-valued fields repeat an id across groups. On a group-paged list only the loaded page. */
   item_ids: string[];
+  /** True when the group holds more items than `item_ids` lists. Always false outside group paging (decision 113). */
+  has_more: boolean;
+  /** Sum of the numeric points estimates over the whole group; set only on a group-paged list whose items carry a points estimate (decisions 106, 113). */
+  estimate_points?: number;
   sub_groups?: Group[];
 };
 
@@ -498,18 +503,18 @@ function buildGroups(items: GroupableItem[], field: GroupBy, vocab: Vocabulary, 
     seen.add(entry.id);
     const ids = buckets.get(entry.id) ?? [];
     if (ids.length === 0 && !showEmpty) continue;
-    groups.push({ field, id: entry.id, name: entry.name, color: entry.color, count: ids.length, item_ids: ids });
+    groups.push({ field, id: entry.id, name: entry.name, color: entry.color, count: ids.length, item_ids: ids, has_more: false });
   }
   // "none" is a real priority value, not the synthetic group; every other field may yield the none group.
   const noneCapable = field !== "priority";
   // Values outside the vocabulary (a deleted actor, a state of another project) keep their items visible under the raw id.
   for (const [key, ids] of buckets) {
     if (seen.has(key) || (noneCapable && key === NONE_GROUP_ID)) continue;
-    groups.push({ field, id: key, name: key, color: null, count: ids.length, item_ids: ids });
+    groups.push({ field, id: key, name: key, color: null, count: ids.length, item_ids: ids, has_more: false });
   }
   const none = noneCapable ? (buckets.get(NONE_GROUP_ID) ?? []) : [];
   if (none.length > 0 || (showEmpty && NONE_GROUP_FIELDS.has(field))) {
-    groups.push({ field, id: NONE_GROUP_ID, name: "None", color: null, count: none.length, item_ids: none });
+    groups.push({ field, id: NONE_GROUP_ID, name: "None", color: null, count: none.length, item_ids: none, has_more: false });
   }
   return groups;
 }

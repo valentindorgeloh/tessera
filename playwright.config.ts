@@ -1,13 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "node:path";
 
 /**
- * Chromium smoke runner. Not part of `npm run check`.
- *
- * The Playwright browser build is not downloaded into this repo. `channel`
- * is the installed Google Chrome, and `npx playwright install` was not run.
- * There is no `webServer` here, so a run cannot open data/tessera.db on its own.
- * Start the app yourself against a scratch database, then `npm run test:e2e`.
+ * Chromium smoke suite (decision 123). Not part of `npm run check`.
+ * `npm run test:e2e` builds nothing; start against a scratch database via
+ * webServer. Never points at data/tessera.db.
  */
+const E2E_DB = path.resolve("data/e2e.db");
+
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: false,
@@ -20,6 +20,18 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:3100",
     trace: "retain-on-failure",
     ...devices["Desktop Chrome"],
-    channel: "chrome",
+  },
+  webServer: {
+    command: `npx tsx scripts/migrate.ts && npx next dev -H 127.0.0.1 -p 3100`,
+    url: "http://127.0.0.1:3100",
+    reuseExistingServer: !process.env.CI,
+    timeout: 180_000,
+    env: {
+      ...process.env,
+      TESSERA_DB_PATH: E2E_DB,
+      TESSERA_AUTOMATIONS: "off",
+      TESSERA_WEBHOOKS: "off",
+      PORT: "3100",
+    },
   },
 });

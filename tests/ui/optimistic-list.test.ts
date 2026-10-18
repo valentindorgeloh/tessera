@@ -24,7 +24,7 @@ function item(overrides: Partial<WorkItem> = {}): WorkItem {
 }
 
 function group(field: Group["field"], id: string, itemIds: string[], subGroups?: Group[]): Group {
-  return { field, id, name: id, color: null, count: itemIds.length, item_ids: itemIds, sub_groups: subGroups };
+  return { field, id, name: id, color: null, count: itemIds.length, item_ids: itemIds, has_more: false, sub_groups: subGroups };
 }
 
 function listOf(items: WorkItem[], groups: Group[]): WorkItemListResult {

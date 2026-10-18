@@ -29,7 +29,7 @@ export function itemQuery(ctx: TesseraContext) {
     .$dynamic();
 }
 
-function chunked<T>(values: T[]): T[][] {
+export function chunked<T>(values: T[]): T[][] {
   const slices: T[][] = [];
   for (let i = 0; i < values.length; i += CHUNK) slices.push(values.slice(i, i + CHUNK));
   return slices;

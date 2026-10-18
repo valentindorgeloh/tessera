@@ -28,6 +28,11 @@ export function isMultiValuedGroup(field: GroupBy): boolean {
   return (MULTI_VALUED_GROUP_FIELDS as readonly string[]).includes(field);
 }
 
+/** Joins a group id and a sub-group id into the key `group_limits` uses for one board cell (decision 112). Ids never contain a slash. */
+export function groupLimitKey(groupId: string, subGroupId?: string): string {
+  return subGroupId === undefined ? groupId : `${groupId}/${subGroupId}`;
+}
+
 /** Fields a list can be ordered by; prefix with `-` for descending (`-created_at`). */
 export const ORDERABLE_FIELDS = [
   "sort_order",
