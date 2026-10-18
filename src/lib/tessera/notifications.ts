@@ -5,7 +5,7 @@
  * their own notification. An unread row for the same recipient, kind and work
  * item is updated in place.
  */
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { z } from "zod";
 import type { TesseraContext } from "./core/context";
 import { notFound, validateInput, validation } from "./core/errors";
@@ -102,6 +102,24 @@ export function notifyMentions(
     work_item_id: item.id,
     project_id: item.project_id,
   });
+}
+
+/** Count of the caller's notifications that are unread, not archived, and not currently snoozed. */
+export function getUnreadCount(ctx: TesseraContext): number {
+  const now = ctx.now();
+  const row = ctx.db
+    .select({ n: count() })
+    .from(notification)
+    .where(
+      and(
+        eq(notification.recipient_actor_id, ctx.actor.id),
+        isNull(notification.read_at),
+        isNull(notification.archived_at),
+        or(isNull(notification.snoozed_till), lte(notification.snoozed_till, now)),
+      ),
+    )
+    .get();
+  return row?.n ?? 0;
 }
 
 export function listNotifications(ctx: TesseraContext, input: z.input<typeof ListInput> = {}): NotificationView[] {

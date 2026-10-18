@@ -142,7 +142,7 @@ export function useSidebarResize(): { key: string; resizable: { defaultWidth: nu
  * shell (`mod+b`, the top bar's toggle); the width and the last visited
  * project are remembered in localStorage.
  */
-export function Sidebar({ projects, unreadCount }: { projects: Project[]; unreadCount?: number }) {
+export function Sidebar({ projects, unreadCount }: { projects: Project[]; unreadCount: number }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isNavCollapsed, setNavCollapsed, openCreateProject } = useShell();
@@ -195,13 +195,12 @@ export function Sidebar({ projects, unreadCount }: { projects: Project[]; unread
     >
       <SideNavSection title="Workspace" isHeaderHidden>
         <SideNavItem label="Home" icon={HouseIcon} href="/" isSelected={pathname === "/"} />
-        {/* ASSUMPTION: getUnreadCount is not exported, and the layout does not pass a count, so the badge stays off until it does. InboxIcon is not in the icon module, so this uses BellIcon. */}
         <SideNavItem
           label="Inbox"
           icon={BellIcon}
           href="/inbox"
           isSelected={pathname === "/inbox"}
-          endContent={unreadCount !== undefined && unreadCount > 0 ? <Badge label={String(unreadCount)} /> : undefined}
+          endContent={unreadCount > 0 ? <Badge label={String(unreadCount)} /> : undefined}
         />
         <SideNavItem label="Wiki" icon={PageIcon} href="/wiki" isSelected={pathname === "/wiki" || pathname.startsWith("/pages/")} />
         <SideNavItem label="Projects" icon={FolderIcon} href="/projects" isSelected={isProjectsPage(pathname)} />
