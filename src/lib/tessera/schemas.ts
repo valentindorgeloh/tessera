@@ -305,8 +305,8 @@ export const ProposalStatusSchema = z.enum(["pending", "applying", "applied", "f
 /** Where a proposal came from: the chat (`assistant`) or the Describe a view dialog. */
 export const ProposalSourceSchema = z.enum(["assistant", "view_from_prompt"]);
 
-/** Digest subjects; P7 and P9 add `inbox`, `home` and `analytics`. */
-export const DigestKindSchema = z.enum(["cycle", "module"]);
+/** Digest subjects. P9 adds `home` and `analytics`. */
+export const DigestKindSchema = z.enum(["cycle", "module", "inbox"]);
 
 /** The route on screen that the assistant answers about. Every key is optional. */
 export const AssistantScopeSchema = z.object({
@@ -380,10 +380,10 @@ export const ProposalViewSchema = z.object({
   decided_at: IsoTimestampSchema.nullable().describe("When it was applied, failed or discarded."),
 });
 
-/** A stored digest of a cycle or module. */
+/** A stored digest of a cycle, a module, or one actor's inbox. */
 export const DigestViewSchema = z.object({
-  kind: DigestKindSchema.describe("Cycle or module."),
-  entity_id: IdSchema.describe("Cycle or module id."),
+  kind: DigestKindSchema.describe("Cycle, module or inbox."),
+  entity_id: IdSchema.describe("Cycle id, module id, or the recipient actor id for an inbox digest."),
   body_md: z.string().describe("Digest text in markdown."),
   input_seq: z.number().int().nonnegative().describe("Highest activity seq the digest summarised."),
   model: z.string().describe("Model id that wrote it."),

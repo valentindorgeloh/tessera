@@ -5,7 +5,8 @@
  * work item. Tabs and the unread toggle are links. Mark all as read, archive
  * and snooze go through the inbox actions.
  *
- * The page passes the caller's notifications. Mark-read on row open stays
+ * The page passes the caller's notifications and any stored inbox digest.
+ * The digest card generates nothing on its own. Mark-read on row open stays
  * quiet when the action is unavailable, so opening an item does not toast.
  */
 import { useState, useTransition, type ReactNode } from "react";
@@ -26,7 +27,9 @@ import {
   unarchiveNotificationsAction,
   unsnoozeNotificationsAction,
 } from "@/app/actions/inbox";
+import { DigestCard } from "@/components/ai/DigestCard";
 import { PanelBar, PanelHeader, PanelTitle } from "@/components/shell/PanelHeader";
+import type { DigestView } from "@/lib/tessera/types";
 import { CheckIcon } from "@/themes/catppuccin/icons";
 import { inboxHref, INBOX_TABS, matchesInboxTab, sortInbox, type InboxNote, type InboxQuery, type InboxTab } from "./inbox-format";
 import { NotificationRow } from "./NotificationRow";
@@ -48,10 +51,13 @@ type InboxResult = { ok: true } | { ok: false; code: string; message: string };
 export type InboxScreenProps = {
   query: InboxQuery;
   notifications: readonly InboxNote[];
+  /** Stored inbox digest for `actorId`. Null until the person clicks Summarise. */
+  digest: DigestView | null;
+  actorId: string;
   children?: ReactNode;
 };
 
-export function InboxScreen({ query, notifications, children }: InboxScreenProps) {
+export function InboxScreen({ query, notifications, digest, actorId, children }: InboxScreenProps) {
   const router = useRouter();
   const toast = useToast();
   const [, startTransition] = useTransition();
@@ -122,6 +128,7 @@ export function InboxScreen({ query, notifications, children }: InboxScreenProps
       start={
         <>
           <LayoutPanel className="tessera-inbox-list" resizable={region.props} hasDivider padding={0} isScrollable label="Notifications">
+            <DigestCard kind="inbox" id={actorId} digest={digest} />
             <List aria-label="Notifications" hasDividers>
               {visible.length === 0 ? (
                 <ListItem label="No notifications" description={query.unread ? "Nothing unread in this tab." : "You are caught up."} />

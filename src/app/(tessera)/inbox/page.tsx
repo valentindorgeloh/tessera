@@ -8,7 +8,8 @@ import { loadProjectBundle, loadWorkItemDetail } from "@/app/(tessera)/work-item
 import { InboxScreen } from "@/components/inbox/InboxScreen";
 import { parseInboxQuery, type InboxNote } from "@/components/inbox/inbox-format";
 import { ProjectProvider } from "@/components/work-items/project-provider";
-import { isTrackerError, listNotifications, readTessera } from "@/lib/tessera/server";
+import { getStoredDigest, isTrackerError, listNotifications, readTessera } from "@/lib/tessera/server";
+import type { DigestView } from "@/lib/tessera/types";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -17,6 +18,8 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
  * item each stream under their own Suspense boundary.
  *
  * The list is the caller's notifications. Opening `?item=` loads that work item.
+ * A stored inbox digest is read here and never generated; Summarise and
+ * Refresh live on the card and post to `/api/ai/digest`.
  */
 export default function InboxPage({ searchParams }: Props) {
   return (
@@ -30,9 +33,13 @@ async function InboxList({ searchParams }: Props) {
   const params = await searchParams;
   await io();
   const query = parseInboxQuery(params);
-  const notifications: InboxNote[] = await readTessera((ctx) => listNotifications(ctx, { limit: 200 }));
+  const inbox: { notifications: InboxNote[]; digest: DigestView | null; actorId: string } = await readTessera((ctx) => ({
+    notifications: listNotifications(ctx, { limit: 200 }),
+    digest: getStoredDigest(ctx, "inbox", ctx.actor.id),
+    actorId: ctx.actor.id,
+  }));
   return (
-    <InboxScreen query={query} notifications={notifications}>
+    <InboxScreen query={query} notifications={inbox.notifications} digest={inbox.digest} actorId={inbox.actorId}>
       <Suspense fallback={<DetailSkeleton />}>
         <InboxItem itemId={query.item} />
       </Suspense>

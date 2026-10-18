@@ -14,8 +14,9 @@ import {
 
 /**
  * `POST /api/ai/digest` (docs/drafts/p5-plan.md §5): body `{ kind, id }`
- * generates (or returns the stored, still current) digest of a cycle or
- * module as `DigestView` JSON. Errors: 400 for a bad body, a tracker RULE
+ * generates (or returns the stored, still current) digest of a cycle, a
+ * module, or an inbox (`id` is the recipient actor id) as `DigestView` JSON.
+ * Errors: 400 for a bad body, a tracker RULE
  * (`digest_refused`) 422 `{ code, message }` and the other tracker codes the
  * same statuses as the description beacon, and a model failure 401 / 429 /
  * 502 `{ kind, message }` (`toAiError`). Never cached.

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Stored digest of a cycle or module (docs/drafts/p5-plan.md §6 "U3",
+ * Stored digest of a cycle, module or inbox (docs/drafts/p5-plan.md §6 "U3",
  * decision 37). Hidden while the assistant is unavailable and nothing is
  * stored. Summarise and Refresh post to `/api/ai/digest` and keep the answer
  * in local state; the page does not refresh.

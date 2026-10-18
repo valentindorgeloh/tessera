@@ -41,12 +41,12 @@ export const ai_proposal = sqliteTable(
   (t) => [index("ai_proposal_conversation_idx").on(t.conversation_id, t.created_at), index("ai_proposal_status_idx").on(t.status, t.created_at)],
 );
 
-/** The stored digest of one cycle or module (decision 37); regenerating overwrites the row. */
+/** The stored digest of one cycle, module or inbox (decision 37); regenerating overwrites the row. */
 export const ai_digest = sqliteTable(
   "ai_digest",
   {
     kind: text("kind").$type<DigestKind>().notNull(),
-    /** Cycle or module id; no foreign key because the target table depends on `kind`. */
+    /** Cycle id, module id, or the recipient actor id. No foreign key: the target table depends on `kind`. */
     entity_id: text("entity_id").notNull(),
     /** Highest activity seq the digest summarised. */
     input_seq: integer("input_seq").notNull(),

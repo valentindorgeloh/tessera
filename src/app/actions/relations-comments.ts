@@ -15,10 +15,10 @@ export const removeReactionAction = toolAction("remove_reaction");
 const updateComment = toolAction("update_comment");
 const deleteComment = toolAction("delete_comment");
 
-export function updateCommentAction(input: { id: string; body_md: string; expected_body_version: number }) {
+export async function updateCommentAction(input: { id: string; body_md: string; expected_body_version: number }) {
   return updateComment({ comment_id: input.id, body_md: input.body_md, expected_body_version: input.expected_body_version });
 }
 
-export function deleteCommentAction(input: { id: string }) {
+export async function deleteCommentAction(input: { id: string }) {
   return deleteComment({ comment_id: input.id });
 }
