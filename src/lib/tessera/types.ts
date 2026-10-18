@@ -24,8 +24,13 @@ import type {
   ExportFormatSchema,
   ExportScopeSchema,
   ExportStatusSchema,
+  AnalyticsDimensionSchema,
+  AnalyticsMeasureSchema,
+  AnalyticsRangeSchema,
+  AnalyticsTabSchema,
   FavoriteEntityTypeSchema,
   FiltersSchema,
+  HomeWidgetIdSchema,
   GroupBySchema,
   HomeWidgetsSchema,
   IntakeSourceSchema,
@@ -41,6 +46,8 @@ import type {
   PageTabSchema,
   PaletteColorSchema,
   PointsCountsSchema,
+  ProfileCountsTabSchema,
+  ProfileTabSchema,
   PrioritySchema,
   ProposalErrorSchema,
   ProposalPreviewSchema,
@@ -52,12 +59,15 @@ import type {
   ProgressModeSchema,
   RelationTypeSchema,
   StateGroupSchema,
+  StaticViewKeySchema,
   SubGroupBySchema,
   ViewSettingsScopeSchema,
   WebhookEventsSchema,
   WorkItemTypeFilterSchema,
   WorkspaceAiSettingsSchema,
 } from "./schemas";
+import type { ActivityLogEntry } from "./changes";
+import type { Counts } from "./counts";
 import type * as tables from "./db/schema";
 
 export type ActorKind = z.infer<typeof ActorKindSchema>;
@@ -103,6 +113,14 @@ export type PageBacklink = { id: string; name: string; project_id: string | null
 export type PageVersionInfo = { id: string; version: number; name: string; actor_id: string; created_at: string; length: number; description_md?: string };
 export type ViewSettingsScope = z.infer<typeof ViewSettingsScopeSchema>;
 export type FavoriteEntityType = z.infer<typeof FavoriteEntityTypeSchema>;
+export type HomeWidgetId = z.infer<typeof HomeWidgetIdSchema>;
+export type StaticViewKey = z.infer<typeof StaticViewKeySchema>;
+export type ProfileTab = z.infer<typeof ProfileTabSchema>;
+export type ProfileCountsTab = z.infer<typeof ProfileCountsTabSchema>;
+export type AnalyticsTab = z.infer<typeof AnalyticsTabSchema>;
+export type AnalyticsRange = z.infer<typeof AnalyticsRangeSchema>;
+export type AnalyticsDimension = z.infer<typeof AnalyticsDimensionSchema>;
+export type AnalyticsMeasure = z.infer<typeof AnalyticsMeasureSchema>;
 
 /** Error codes thrown by the service layer as TrackerError (docs/contracts/service-api.md). */
 export type TrackerErrorCode = "NOT_FOUND" | "VALIDATION" | "CONFLICT" | "RULE" | "ARCHIVED" | "LOCKED" | "BUSY";
@@ -136,6 +154,195 @@ export type LinkMetadata = z.infer<typeof LinkMetadataSchema>;
 export type HomeWidgets = z.infer<typeof HomeWidgetsSchema>;
 export type AiEffort = z.infer<typeof AiEffortSchema>;
 export type WorkspaceAiSettings = z.infer<typeof WorkspaceAiSettingsSchema>;
+
+export type FavoriteView = {
+  id: string;
+  entity_type: FavoriteEntityType;
+  entity_id: string;
+  folder_id: string | null;
+  sort_order: string;
+  name: string;
+  href: string;
+  logo: Logo | null;
+  project_id: string | null;
+  project_name: string | null;
+};
+
+export type FavoriteFolderView = { id: string; name: string; sort_order: string };
+
+export type FavoritesTree = {
+  folders: (FavoriteFolderView & { items: FavoriteView[] })[];
+  items: FavoriteView[];
+  order: ({ kind: "folder"; id: string } | { kind: "favorite"; id: string })[];
+};
+
+export type StickyView = {
+  id: string;
+  name: string;
+  description_md: string;
+  color: PaletteColor;
+  sort_order: string;
+  updated_at: string;
+};
+
+export type QuickLinkView = { id: string; title: string; url: string; sort_order: string };
+
+export type SinceEntry = {
+  actor: { id: string; name: string; kind: ActorKind; color: PaletteColor };
+  target: { type: string; id: string; label: string; href: string };
+  verbs: string[];
+  fields: string[];
+  count: number;
+  last_at: string;
+  last_seq: number;
+};
+
+export type YourWorkNumbers = {
+  assigned_open: number;
+  assigned_overdue: number;
+  assigned_due_this_week: number;
+  created_open: number;
+  subscribed_open: number;
+  by_state_group: Record<StateGroup, number>;
+};
+
+export type HomeSummary = {
+  widgets: { widget: HomeWidgetId; enabled: boolean }[];
+  since: {
+    anchor_seq: number | null;
+    anchor_at: string | null;
+    latest_seq: number;
+    entries: SinceEntry[];
+    more: number;
+  };
+  quick_links: QuickLinkView[];
+  your_work: YourWorkNumbers;
+  stickies: StickyView[];
+  digest: DigestView | null;
+};
+
+export type ProfileActor = {
+  id: string;
+  name: string;
+  kind: ActorKind;
+  color: PaletteColor;
+  access: ActorAccess;
+  last_seen_at: string | null;
+};
+
+export type ProfileSummary = {
+  actor: ProfileActor;
+  assigned: Counts;
+  created: Counts;
+  subscribed: Counts;
+  completed_last_30d: number;
+  projects: { project_id: string; name: string; assigned_open: number }[];
+  recent_activity: ActivityLogEntry[];
+};
+
+export type AgentProfileRow = {
+  actor: ProfileActor;
+  assigned_open: number;
+  last_activity_at: string | null;
+  activity_7d: number;
+};
+
+export type WorkspaceSettingsView = {
+  name: string;
+  home_widgets: HomeWidgets;
+  ai: WorkspaceAiSettings;
+  last_seen_seq: number | null;
+  last_seen_at: string | null;
+};
+
+export type AnalyticsScopeInfo = {
+  project_ids: string[] | null;
+  range: AnalyticsRange;
+  from: string;
+  to: string;
+};
+
+export type TrendPoint = { date: string; created: number; completed: number };
+
+export type AnalyticsBucket = {
+  key: string;
+  label: string;
+  color: PaletteColor | null;
+  total: number;
+  segments: Record<string, number>;
+};
+
+export type AnalyticsSegmentKey = { key: string; label: string; color: PaletteColor | null };
+
+type AnalyticsMeta = { scope: AnalyticsScopeInfo; computed_seq: number };
+
+export type AnalyticsOverview = AnalyticsMeta & {
+  tab: "overview";
+  kpis: {
+    projects: number;
+    work_items: number;
+    open: number;
+    completed: number;
+    overdue: number;
+    due_this_week: number;
+    active_cycles: number;
+    active_agents: number;
+  };
+  by_state_group: Record<StateGroup, number>;
+  by_priority: Record<Priority, number>;
+  trend: TrendPoint[];
+  top_assignees: { actor_id: string; name: string; open: number; completed: number }[];
+  projects: { id: string; name: string; identifier: string; logo: Logo | null; total: number; open: number; completed: number }[];
+};
+
+export type AnalyticsWorkItems = AnalyticsMeta & {
+  tab: "work-items";
+  x_axis: AnalyticsDimension;
+  segment: AnalyticsDimension | null;
+  measure: AnalyticsMeasure;
+  buckets: AnalyticsBucket[];
+  segment_keys: AnalyticsSegmentKey[];
+  total: number;
+  trend: TrendPoint[];
+};
+
+export type AnalyticsCycles = AnalyticsMeta & {
+  tab: "cycles";
+  rows: {
+    cycle_id: string;
+    project_id: string;
+    project_name: string;
+    name: string;
+    status: CycleStatus;
+    start_date: string | null;
+    end_date: string | null;
+    total: number;
+    completed: number;
+    pending: number;
+    completion: number;
+    points: { total: number; completed: number } | null;
+  }[];
+  by_status: Record<CycleStatus, number>;
+};
+
+export type AnalyticsModules = AnalyticsMeta & {
+  tab: "modules";
+  rows: {
+    module_id: string;
+    project_id: string;
+    project_name: string;
+    name: string;
+    status: ModuleStatus;
+    lead_id: string | null;
+    target_date: string | null;
+    total: number;
+    completed: number;
+    completion: number;
+  }[];
+  by_status: Record<ModuleStatus, number>;
+};
+
+export type AnalyticsResult = AnalyticsOverview | AnalyticsWorkItems | AnalyticsCycles | AnalyticsModules;
 export type ExportScope = z.infer<typeof ExportScopeSchema>;
 export type ExportFormat = z.infer<typeof ExportFormatSchema>;
 export type ExportStatus = z.infer<typeof ExportStatusSchema>;

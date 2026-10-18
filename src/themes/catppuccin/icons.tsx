@@ -67,6 +67,7 @@ import {
   Target,
   Trash,
   User,
+  UserCircle,
   Users,
   // Colour scheme menu (top bar account menu).
   Monitor,
@@ -122,8 +123,11 @@ import {
   TrayArrowDown,
   // P8 intake, drafts, estimates, bulk.
   ArrowBendDownRight,
+  ChartBar,
   CheckSquare,
   CopySimple,
+  FolderSimpleStar,
+  Note,
   NotePencil,
   // P5 assistant: panel, proposals, stop, retry and the view-from-prompt action.
   ArrowClockwise,
@@ -301,6 +305,16 @@ export const ProposalIcon = duotoneIcon(ListChecks);
 export const StopIcon = duotoneIcon(Stop);
 export const RetryIcon = duotoneIcon(ArrowClockwise);
 export const MagicIcon = duotoneIcon(MagicWand);
+export const StarIcon = duotoneIcon(Star);
+export function StarFillIcon(props: SVGProps<SVGSVGElement>) {
+  return <Star weight="fill" {...(props as IconProps)} />;
+}
+StarFillIcon.displayName = "StarFillIcon";
+export const ChartBarIcon = duotoneIcon(ChartBar);
+export const NoteIcon = duotoneIcon(Note);
+export const UserCircleIcon = duotoneIcon(UserCircle);
+export const RobotIcon = duotoneIcon(Robot);
+export const FolderStarIcon = duotoneIcon(FolderSimpleStar);
 
 /**
  * Icons a project logo may use (`Logo.icon` holds the Phosphor name). The

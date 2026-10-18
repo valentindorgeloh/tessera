@@ -15,9 +15,10 @@ import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import type { ButtonSize } from "@astryxdesign/core/Button";
 import { useToast } from "@astryxdesign/core/Toast";
 import { archiveModuleAction, deleteModuleAction, unarchiveModuleAction } from "@/app/actions/modules";
+import { useFavoriteToggle } from "@/components/shell/FavoriteButton";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import { useOptionalProject } from "@/components/work-items/project-provider";
-import { ArchiveIcon, PencilIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
+import { ArchiveIcon, PencilIcon, RestoreIcon, TrashIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { ModuleDialog, type EditableModule } from "./ModuleDialog";
 import { DELETE_MODULE_DESCRIPTION, deleteModuleTitle, moduleActions, type ModuleActionId } from "./module-format";
 
@@ -46,6 +47,7 @@ export function ModuleMenu({ projectId, module, size = "sm", onDeleted }: Module
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, startDelete] = useTransition();
   const [, startTransition] = useTransition();
+  const favorite = useFavoriteToggle("module", module.id);
 
   const run = (call: () => Promise<Outcome>, done: string, failed: string) => {
     startTransition(async () => {
@@ -62,7 +64,9 @@ export function ModuleMenu({ projectId, module, size = "sm", onDeleted }: Module
     delete: () => setDeleteOpen(true),
   };
 
-  const items: DropdownMenuItemData[] = moduleActions(module).map((action) => ({
+  const items: DropdownMenuItemData[] = [
+    { id: "favorite", label: favorite.label, icon: resolveLogoIcon("Star"), onClick: favorite.toggle },
+    ...moduleActions(module).map((action) => ({
     id: action.id,
     label: action.label,
     icon: ICONS[action.id],
@@ -70,7 +74,8 @@ export function ModuleMenu({ projectId, module, size = "sm", onDeleted }: Module
     description: action.description,
     variant: action.variant,
     onClick: handlers[action.id],
-  }));
+  })),
+  ];
 
   const confirmDelete = () => {
     startDelete(async () => {

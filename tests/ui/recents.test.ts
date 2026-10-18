@@ -154,8 +154,19 @@ describe("resolveRoute", () => {
   });
 
   it("falls back to the first segment for unknown routes", () => {
-    expect(resolveRoute("/your-work/assigned", lookup)).toEqual({ label: "Your work", icon: "page" });
+    expect(resolveRoute("/not-a-route/child", lookup)).toEqual({ label: "Not a route", icon: "page" });
     expect(resolveRoute("/", lookup)).toEqual({ label: "Home", icon: "home" });
+  });
+
+  it("labels the workspace routes", () => {
+    expect(resolveRoute("/your-work/assigned", lookup)).toEqual({ label: "Your work · Assigned", icon: "your-work" });
+    expect(resolveRoute("/analytics/overview", lookup)).toEqual({ label: "Analytics · Overview", icon: "analytics" });
+    expect(resolveRoute("/active-cycles", lookup)).toEqual({ label: "Active cycles", icon: "cycles" });
+    expect(resolveRoute("/workspace-views", lookup)).toEqual({ label: "Workspace views", icon: "views" });
+    expect(resolveRoute("/workspace-views/all", lookup)).toEqual({ label: "All", icon: "views" });
+    expect(resolveRoute("/agents", lookup)).toEqual({ label: "Agents", icon: "agents" });
+    expect(resolveRoute("/stickies", lookup)).toEqual({ label: "Stickies", icon: "stickies" });
+    expect(resolveRoute("/settings/general", lookup)).toEqual({ label: "Settings · General", icon: "settings" });
   });
 
   it("labels the global detail route with the registered work item label", () => {

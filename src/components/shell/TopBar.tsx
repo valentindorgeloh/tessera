@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import { useLayoutEffect, useSyncExternalStore, type KeyboardEvent } from "react";
 import { useAppShellMobile } from "@astryxdesign/core/AppShell";
 import { Avatar } from "@astryxdesign/core/Avatar";
 import { DropdownMenu, DropdownMenuDivider, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@astryxdesign/core/DropdownMenu";
@@ -21,6 +21,39 @@ import { useShell } from "./TesseraShell";
 
 /** The account the app runs as; the local install has one user (src/lib/tessera/actors.ts). */
 const ACCOUNT_NAME = "You";
+
+/** Workspace name from `getWorkspaceSettings`, published by the layout. The first render stays "Tessera". */
+let brand = "Tessera";
+const brandListeners = new Set<() => void>();
+
+function emitBrand() {
+  for (const listener of brandListeners) listener();
+}
+
+function subscribeBrand(listener: () => void) {
+  brandListeners.add(listener);
+  return () => {
+    brandListeners.delete(listener);
+  };
+}
+
+function readBrand() {
+  return brand;
+}
+
+function serverBrand() {
+  return "Tessera";
+}
+
+/** Renders nothing. The top bar reads the name this publishes. */
+export function WorkspaceName({ name }: { name: string }) {
+  useLayoutEffect(() => {
+    if (brand === name) return;
+    brand = name;
+    emitBrand();
+  }, [name]);
+  return null;
+}
 
 /** Keys that open Power K from the search field: Enter, Space, the arrow down and any printable character. */
 function opensSearch(event: KeyboardEvent<HTMLInputElement>): boolean {
@@ -117,13 +150,14 @@ function AccountMenu({ onShortcuts }: { onShortcuts: () => void }) {
 export function TopBar() {
   const { isNavCollapsed, setNavCollapsed, openCommandBar, openShortcuts } = useShell();
   const { isMobile } = useAppShellMobile();
+  const name = useSyncExternalStore(subscribeBrand, readBrand, serverBrand);
   return (
     <TopNav
-      label="Tessera"
+      label={name}
       heading={
         <HStack gap={1} vAlign="center">
           {isMobile ? null : <SideNavCollapseButton size="sm" collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed }} />}
-          <TopNavHeading heading="Tessera" headingHref="/" logo={<NavIcon icon={<Icon icon={SquaresFourIcon} size="sm" />} />} />
+          <TopNavHeading heading={name} headingHref="/" logo={<NavIcon icon={<Icon icon={SquaresFourIcon} size="sm" />} />} />
         </HStack>
       }
       centerContent={<SearchTrigger onOpen={openCommandBar} />}

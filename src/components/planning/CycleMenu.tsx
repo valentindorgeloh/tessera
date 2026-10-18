@@ -17,10 +17,11 @@ import type { DropdownMenuItemData } from "@astryxdesign/core/DropdownMenu";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { useToast } from "@astryxdesign/core/Toast";
 import { archiveCycleAction, deleteCycleAction, unarchiveCycleAction } from "@/app/actions/cycles";
+import { useFavoriteToggle } from "@/components/shell/FavoriteButton";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import { useOptionalProject } from "@/components/work-items/project-provider";
 import type { Cycle } from "@/lib/tessera/types";
-import { ArchiveIcon, PencilIcon, RestoreIcon, TransferIcon, TrashIcon } from "@/themes/catppuccin/icons";
+import { ArchiveIcon, PencilIcon, RestoreIcon, TransferIcon, TrashIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { CycleDialog } from "./CycleDialog";
 import { cycleActions, type CycleActionId } from "./cycle-format";
 import { TransferDialog } from "./TransferDialog";
@@ -60,6 +61,7 @@ export function CycleMenu({ projectId, cycle, today, size = "sm", onDeleted, isE
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, startDelete] = useTransition();
   const [, startTransition] = useTransition();
+  const favorite = useFavoriteToggle("cycle", cycle.id);
 
   const isEditOpen = editOpenProp ?? editOpenState;
   const setEditOpen = (open: boolean) => {
@@ -83,7 +85,9 @@ export function CycleMenu({ projectId, cycle, today, size = "sm", onDeleted, isE
     delete: () => setDeleteOpen(true),
   };
 
-  const items: DropdownMenuItemData[] = cycleActions(cycle, today).map((action) => ({
+  const items: DropdownMenuItemData[] = [
+    { id: "favorite", label: favorite.label, icon: resolveLogoIcon("Star"), onClick: favorite.toggle },
+    ...cycleActions(cycle, today).map((action) => ({
     id: action.id,
     label: action.label,
     icon: ICONS[action.id],
@@ -91,7 +95,8 @@ export function CycleMenu({ projectId, cycle, today, size = "sm", onDeleted, isE
     description: action.description,
     variant: action.variant,
     onClick: handlers[action.id],
-  }));
+  })),
+  ];
 
   const confirmDelete = () => {
     startDelete(async () => {

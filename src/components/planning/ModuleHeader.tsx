@@ -19,6 +19,7 @@ import { VStack } from "@astryxdesign/core/Stack";
 import { Heading } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { addWorkItemsToModuleAction, unarchiveModuleAction } from "@/app/actions/modules";
+import { FavoriteButton } from "@/components/shell/FavoriteButton";
 import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
 import type { ModuleDetail } from "@/lib/tessera/types";
 import { PlusIcon, RestoreIcon, SidebarIcon } from "@/themes/catppuccin/icons";
@@ -100,6 +101,7 @@ export function ModuleHeader({ projectId, module, writer, readOnly = false, cand
                 isDisabled={isPanelBlocked}
                 onClick={onTogglePanel}
               />
+              <FavoriteButton entityType="module" entityId={module.id} />
               <ModuleMenu projectId={projectId} module={module} onDeleted={() => router.push(`/projects/${projectId}/modules`)} />
             </>
           }

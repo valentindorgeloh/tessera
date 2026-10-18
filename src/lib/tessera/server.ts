@@ -55,3 +55,4 @@ export {
   toAiError,
   viewFromPrompt,
 } from "./ai";
+export { setHomeSeen } from "./workspace/home-seen";

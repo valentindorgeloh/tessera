@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { startTransition, useEffect, useOptimistic, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
@@ -8,9 +8,14 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
+import { useToast } from "@astryxdesign/core/Toast";
+import { usePointerDrag } from "@/components/dnd/use-pointer-drag";
+import { isFavoriteInTree, reorderByPlacement, stepPlacement, type FavoritesTree } from "@/components/favorites/tree";
 import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provider";
 import type { Project } from "@/lib/tessera/types";
-import { BellIcon, DraftIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { AgentIcon, BellIcon, BurndownIcon, CycleIcon, DraftIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, TableIcon, UserIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { FavoritesSection } from "./FavoritesSection";
+import { ProjectMenu, projectMove } from "./ProjectMenu";
 import { projectIdFromPath } from "./recents";
 import { formatKeys, SHORTCUT_BY_ID } from "./shortcuts";
 import { useShell } from "./TesseraShell";
@@ -134,18 +139,19 @@ export function useSidebarResize(): { key: string; resizable: { defaultWidth: nu
 /**
  * SideNav of the Tessera shell (docs/contracts/ui.md "Shell"), on the wash
  * beside the content panel: the "Work" heading, a quiet "New work item"
- * button for the last visited (else first) project, Home, the workspace
- * items that exist (Projects) and the projects as flat rows (logo, name,
- * count; the current one selected) under a "Projects" section whose "+"
- * opens Create project. A project's own pages are the tabs in its panel
- * header (`ProjectFrame`), not children here. Collapse state comes from the
- * shell (`mod+b`, the top bar's toggle); the width and the last visited
- * project are remembered in localStorage.
+ * button for the last visited (else first) project, then Home, Inbox,
+ * Your work, Drafts, Wiki, Favourites, the projects, and Workspace views,
+ * Active cycles, Analytics and Agents. A project's own pages are the tabs
+ * in its panel header (`ProjectFrame`), not children here. Collapse state
+ * comes from the shell (`mod+b`, the top bar's toggle); the width and the
+ * last visited project are remembered in localStorage.
  */
-export function Sidebar({ projects, unreadCount, draftCount }: { projects: Project[]; unreadCount: number; draftCount: number }) {
+export function Sidebar({ projects, unreadCount, draftCount, favorites }: { projects: Project[]; unreadCount: number; draftCount: number; favorites: FavoritesTree }) {
   const pathname = usePathname();
   const router = useRouter();
+  const toast = useToast();
   const { isNavCollapsed, setNavCollapsed, openCreateProject } = useShell();
+  const [ordered, applyOrder] = useOptimistic(projects, (_current: Project[], next: Project[]) => next);
   const { lastProjectId: lastProject } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const resize = useSidebarResize();
   const activeProjectId = projectIdFromPath(pathname);
@@ -154,7 +160,31 @@ export function Sidebar({ projects, unreadCount, draftCount }: { projects: Proje
     if (activeProjectId && projects.some((project) => project.id === activeProjectId)) rememberProject(activeProjectId);
   }, [activeProjectId, projects]);
 
-  const createTarget = projects.find((project) => project.id === lastProject) ?? projects[0] ?? null;
+  const createTarget = ordered.find((project) => project.id === lastProject) ?? ordered[0] ?? null;
+  const projectIds = ordered.map((project) => project.id);
+  const moveProject = (projectId: string, direction: "up" | "down") => {
+    const placement = stepPlacement(projectIds, projectId, direction);
+    if (!placement) return;
+    const next = reorderByPlacement(ordered, projectId, placement);
+    startTransition(async () => {
+      applyOrder(next);
+      const result = await projectMove(projectId, placement);
+      if (!result.ok) toast({ type: "error", body: result.message });
+    });
+  };
+  const { registerContainer, registerItem, itemHandlers } = usePointerDrag({
+    onDrop: (event) => {
+      const placement = { before_id: event.before_id, after_id: event.after_id };
+      const next = reorderByPlacement(ordered, event.id, placement);
+      startTransition(async () => {
+        applyOrder(next);
+        const result = await projectMove(event.id, placement);
+        if (!result.ok) toast({ type: "error", body: result.message });
+      });
+    },
+    itemsOf: () => projectIds,
+    ignoreSelector: 'button, input, textarea, select, [role="menuitem"], [role="menu"], [role="dialog"]',
+  });
   const createTooltip = createTarget === null ? "Create a project first" : `Create a work item (${CREATE_ITEM_KEYS})`;
   const openCreate = () => {
     if (createTarget) router.push(`/projects/${createTarget.id}/work-items?create=1`);
@@ -202,6 +232,7 @@ export function Sidebar({ projects, unreadCount, draftCount }: { projects: Proje
           isSelected={pathname === "/inbox"}
           endContent={unreadCount > 0 ? <Badge label={String(unreadCount)} /> : undefined}
         />
+        <SideNavItem label="Your work" icon={UserIcon} href="/your-work" isSelected={pathname === "/your-work" || pathname.startsWith("/your-work/")} />
         <SideNavItem
           label="Drafts"
           icon={DraftIcon}
@@ -210,20 +241,25 @@ export function Sidebar({ projects, unreadCount, draftCount }: { projects: Proje
           endContent={draftCount > 0 ? <Badge label={String(draftCount)} /> : undefined}
         />
         <SideNavItem label="Wiki" icon={PageIcon} href="/wiki" isSelected={pathname === "/wiki" || pathname.startsWith("/pages/")} />
-        <SideNavItem label="Projects" icon={FolderIcon} href="/projects" isSelected={isProjectsPage(pathname)} />
       </SideNavSection>
+      <FavoritesSection tree={favorites} />
       <SideNavSection
+        ref={registerContainer("projects")}
         title="Projects"
         endContent={<IconButton label="Create project" variant="ghost" size="sm" icon={<Icon icon={PlusIcon} />} tooltip="Create project" onClick={openCreateProject} />}
       >
-        {projects.length === 0 ? (
+        <SideNavItem label="Projects" icon={FolderIcon} href="/projects" isSelected={isProjectsPage(pathname)} />
+        {ordered.length === 0 ? (
           <Text type="supporting" color="secondary" as="p">
             No projects yet.
           </Text>
         ) : (
-          projects.map((project) => (
+          ordered.map((project, index) => (
             <SideNavItem
               key={project.id}
+              ref={registerItem(project.id)}
+              {...itemHandlers(project.id, "projects")}
+              className="tessera-project-row"
               label={project.name}
               icon={resolveLogoIcon(project.logo?.icon)}
               href={`/projects/${project.id}/work-items`}
@@ -233,9 +269,24 @@ export function Sidebar({ projects, unreadCount, draftCount }: { projects: Proje
                   {project.counts.total}
                 </Text>
               }
+              actions={
+                <ProjectMenu
+                  project={project}
+                  isFavorite={isFavoriteInTree(favorites, "project", project.id)}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < ordered.length - 1}
+                  onMove={(direction) => moveProject(project.id, direction)}
+                />
+              }
             />
           ))
         )}
+      </SideNavSection>
+      <SideNavSection title="Workspace" isHeaderHidden>
+        <SideNavItem label="Workspace views" icon={TableIcon} href="/workspace-views" isSelected={pathname === "/workspace-views" || pathname.startsWith("/workspace-views/")} />
+        <SideNavItem label="Active cycles" icon={CycleIcon} href="/active-cycles" isSelected={pathname === "/active-cycles" || pathname.startsWith("/active-cycles/")} />
+        <SideNavItem label="Analytics" icon={BurndownIcon} href="/analytics" isSelected={pathname === "/analytics" || pathname.startsWith("/analytics/")} />
+        <SideNavItem label="Agents" icon={AgentIcon} href="/agents" isSelected={pathname === "/agents" || pathname.startsWith("/agents/")} />
       </SideNavSection>
     </SideNav>
   );

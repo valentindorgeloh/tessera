@@ -1,0 +1,270 @@
+import {
+  addFavorite,
+  AddFavoriteInput,
+  addQuickLink,
+  AddQuickLinkInput,
+  createFavoriteFolder,
+  CreateFavoriteFolderInput,
+  createSticky,
+  CreateStickyInput,
+  deleteFavoriteFolder,
+  DeleteFavoriteFolderInput,
+  deleteSticky,
+  getHomeSummary,
+  getProfileSummary,
+  GetProfileSummaryInput,
+  getWorkspaceSettings,
+  listFavorites,
+  listQuickLinks,
+  listStickies,
+  moveFavorite,
+  MoveFavoriteInput,
+  moveFavoriteFolder,
+  MoveFavoriteFolderInput,
+  moveQuickLink,
+  MoveQuickLinkInput,
+  moveSticky,
+  MoveStickyInput,
+  removeFavorite,
+  RemoveFavoriteInput,
+  removeQuickLink,
+  renameFavoriteFolder,
+  RenameFavoriteFolderInput,
+  updateQuickLink,
+  UpdateQuickLinkInput,
+  updateSticky,
+  UpdateStickyInput,
+  updateWorkspaceSettings,
+  UpdateWorkspaceSettingsInput,
+} from "../../workspace";
+import { defineTool } from "../define";
+import { deleted, EmptyInput, removed, toListResult } from "./shared";
+import { z } from "zod";
+import { IdSchema } from "../../schemas";
+
+const ListStickiesToolInput = z
+  .object({
+    query: z.string().optional().describe("Case-insensitive search over the sticky name and body."),
+    limit: z.number().int().min(1).max(500).optional().describe("Most stickies to return. Defaults to 200."),
+  })
+  .strict();
+
+const UpdateStickyToolInput = UpdateStickyInput.extend({ sticky_id: IdSchema.describe("Sticky to update.") });
+const DeleteStickyInput = z.object({ sticky_id: IdSchema.describe("Sticky to delete.") }).strict();
+const UpdateQuickLinkToolInput = UpdateQuickLinkInput.extend({ quick_link_id: IdSchema.describe("Quick link to update.") });
+const RemoveQuickLinkInput = z.object({ quick_link_id: IdSchema.describe("Quick link to remove.") }).strict();
+
+export const workspaceTools = [
+  defineTool({
+    name: "list_favorites",
+    title: "List favourites",
+    description: "Returns the favourites tree: folders with their items, unfoldered favourites, and the mixed top-level order. Rows whose entity is deleted, archived, or in an archived project are omitted.",
+    input: EmptyInput,
+    mutates: false,
+    phase: "P9",
+    run: (ctx) => listFavorites(ctx),
+  }),
+  defineTool({
+    name: "add_favorite",
+    title: "Add favourite",
+    description: "Favourites a live project, cycle, module, saved view or page and appends it to the top level or to a folder. CONFLICT favorite_exists when it is already a favourite. Static workspace views cannot be favourited.",
+    input: AddFavoriteInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, input) => addFavorite(ctx, input),
+  }),
+  defineTool({
+    name: "remove_favorite",
+    title: "Remove favourite",
+    description: "Removes the favourite for an entity. NOT_FOUND when that entity is not a favourite. The entity itself is left unchanged.",
+    input: RemoveFavoriteInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, input) => {
+      removeFavorite(ctx, input);
+      return { entity_type: input.entity_type, entity_id: input.entity_id, removed: true as const };
+    },
+  }),
+  defineTool({
+    name: "move_favorite",
+    title: "Move favourite",
+    description: "Moves a favourite into a folder or to the top level, and optionally places it before or after a sibling at that level. Omit both neighbours to append it.",
+    input: MoveFavoriteInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, input) => moveFavorite(ctx, input),
+  }),
+  defineTool({
+    name: "create_favorite_folder",
+    title: "Create favourite folder",
+    description: "Creates a favourites folder and appends it to the top level. Folder names are free text and do not have to be unique. Folders are one level deep.",
+    input: CreateFavoriteFolderInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, input) => createFavoriteFolder(ctx, input),
+  }),
+  defineTool({
+    name: "rename_favorite_folder",
+    title: "Rename favourite folder",
+    description: "Renames a favourites folder. The name is free text from 1 to 80 characters and does not have to be unique among folders.",
+    input: RenameFavoriteFolderInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, input) => renameFavoriteFolder(ctx, input),
+  }),
+  defineTool({
+    name: "move_favorite_folder",
+    title: "Move favourite folder",
+    description: "Moves a favourites folder among the top-level folders and unfoldered favourites. before_id or after_id names a sibling at that level; omit both to append.",
+    input: MoveFavoriteFolderInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, input) => moveFavoriteFolder(ctx, input),
+  }),
+  defineTool({
+    name: "delete_favorite_folder",
+    title: "Delete favourite folder",
+    description: "Deletes a favourites folder and moves its favourites to the top level, appended in their previous order. The favourites are kept, so this is not destructive.",
+    input: DeleteFavoriteFolderInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, { folder_id }) => {
+      deleteFavoriteFolder(ctx, { folder_id });
+      return deleted(folder_id);
+    },
+  }),
+  defineTool({
+    name: "list_stickies",
+    title: "List stickies",
+    description: "Lists workspace stickies in display order. query searches the name and the markdown body. Deleted stickies are omitted.",
+    input: ListStickiesToolInput,
+    mutates: false,
+    phase: "P9",
+    run: (ctx, { query, limit }) => toListResult(ctx, listStickies(ctx, { q: query, limit })),
+  }),
+  defineTool({
+    name: "create_sticky",
+    title: "Create sticky",
+    description: "Creates a workspace sticky and places it before the current first one. Name and body are optional. The colour defaults to yellow.",
+    input: CreateStickyInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, input) => createSticky(ctx, input),
+  }),
+  defineTool({
+    name: "update_sticky",
+    title: "Update sticky",
+    description: "Updates a sticky's name, markdown body or colour. A body edit logs one updated activity row with no old or new value. Last write wins.",
+    input: UpdateStickyToolInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, { sticky_id, ...patch }) => updateSticky(ctx, sticky_id, patch),
+  }),
+  defineTool({
+    name: "move_sticky",
+    title: "Move sticky",
+    description: "Moves a sticky before or after another sticky. Omit both neighbours to move it to the front. Pointer drag is not required.",
+    input: MoveStickyInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, input) => moveSticky(ctx, input),
+  }),
+  defineTool({
+    name: "delete_sticky",
+    title: "Delete sticky",
+    description: "Soft-deletes a workspace sticky. The note leaves the home widget and the stickies page. This cannot be undone from the tool.",
+    input: DeleteStickyInput,
+    mutates: true,
+    destructive: true,
+    phase: "P9",
+    run: (ctx, { sticky_id }) => {
+      deleteSticky(ctx, sticky_id);
+      return deleted(sticky_id);
+    },
+  }),
+  defineTool({
+    name: "list_quick_links",
+    title: "List quick links",
+    description: "Lists the home quick links in display order. A link with an empty title is shown as its host or its path.",
+    input: EmptyInput,
+    mutates: false,
+    phase: "P9",
+    run: (ctx) => toListResult(ctx, listQuickLinks(ctx)),
+  }),
+  defineTool({
+    name: "add_quick_link",
+    title: "Add quick link",
+    description: "Adds a home quick link. The url must be http(s) or an app path starting with /. javascript: and other schemes are rejected. The title is optional.",
+    input: AddQuickLinkInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, input) => addQuickLink(ctx, input),
+  }),
+  defineTool({
+    name: "update_quick_link",
+    title: "Update quick link",
+    description: "Changes a quick link's url or title. The url must stay http(s) or an app path starting with /. An empty title shows the host or the path.",
+    input: UpdateQuickLinkToolInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, { quick_link_id, ...patch }) => updateQuickLink(ctx, quick_link_id, patch),
+  }),
+  defineTool({
+    name: "move_quick_link",
+    title: "Move quick link",
+    description: "Moves a quick link before or after another link. Omit both neighbours to append it. Removing a link is a separate tool.",
+    input: MoveQuickLinkInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, input) => moveQuickLink(ctx, input),
+  }),
+  defineTool({
+    name: "remove_quick_link",
+    title: "Remove quick link",
+    description: "Removes a home quick link. This is not destructive: there is nothing to confirm, and the rest of the workspace is unchanged.",
+    input: RemoveQuickLinkInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, { quick_link_id }) => {
+      removeQuickLink(ctx, quick_link_id);
+      return removed(quick_link_id);
+    },
+  }),
+  defineTool({
+    name: "get_home_summary",
+    title: "Get home summary",
+    description: "Returns every server-side home widget: widget order, since you were last here, quick links, your work counts, six recent stickies and the stored home digest if one exists.",
+    input: EmptyInput,
+    mutates: false,
+    core: true,
+    phase: "P9",
+    run: (ctx) => getHomeSummary(ctx),
+  }),
+  defineTool({
+    name: "get_profile_summary",
+    title: "Get profile summary",
+    description: "Returns an actor's profile summary: assigned, created and subscribed counts from get_counts, completed work in the last 30 days, projects and the ten newest activity rows.",
+    input: GetProfileSummaryInput,
+    mutates: false,
+    phase: "P9",
+    run: (ctx, input) => getProfileSummary(ctx, input),
+  }),
+  defineTool({
+    name: "get_workspace_settings",
+    title: "Get workspace settings",
+    description: "Returns the workspace name, the normalized home widget list, AI overrides and the last time Home was marked seen.",
+    input: EmptyInput,
+    mutates: false,
+    phase: "P9",
+    run: (ctx) => getWorkspaceSettings(ctx),
+  }),
+  defineTool({
+    name: "update_workspace_settings",
+    title: "Update workspace settings",
+    description: "Updates the workspace name, the home widget order and visibility, or the AI model, effort and digest switch. Omitted keys are left as stored. Unknown widget ids are dropped.",
+    input: UpdateWorkspaceSettingsInput,
+    mutates: true,
+    phase: "P9",
+    run: (ctx, input) => updateWorkspaceSettings(ctx, input),
+  }),
+];

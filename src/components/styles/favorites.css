@@ -1,0 +1,9 @@
+/*
+ * Favourites and project rows in the sidebar (U2). The drag overlay reuses
+ * .tessera-drag-overlay from board.css. Tokens only.
+ */
+
+.tessera-favorites-row,
+.tessera-project-row {
+  touch-action: none;
+}

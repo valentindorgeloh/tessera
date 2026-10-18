@@ -24,7 +24,10 @@ import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provid
 import { useCommandContext, type CommandContextValue } from "./command-context";
 import { readProjectFeatures, shortcutOffMessage } from "./project-features";
 import { projectIdFromPath } from "./recents";
-import { isQuietTarget, resolveShortcut, SHORTCUT_BY_ID, type ChordState, type ShortcutId } from "./shortcuts";
+import { addFavoriteAction, removeFavoriteAction } from "@/app/actions/favorites";
+import { favoriteTarget } from "@/components/favorites/tree";
+import { goCommandPath } from "./command-source";
+import { isQuietTarget, isShellCommandId, resolveShortcut, SHORTCUT_BY_ID, type ChordState, type ShortcutId } from "./shortcuts";
 
 // ---------------------------------------------------------------------------
 // Preferences store (localStorage), read after mount so server and client
@@ -162,7 +165,29 @@ const PROJECT_ROUTES = {
   "create.view": "views?create=1",
 } as const satisfies Partial<Record<ShortcutId, string>>;
 
+function runFavoriteCommand(removing: boolean, notify: (message: string) => void): void {
+  const target = favoriteTarget(window.location.pathname);
+  if (!target) {
+    notify("Open a project, cycle, module, view or page first");
+    return;
+  }
+  void (async () => {
+    const result = removing ? await removeFavoriteAction(target) : await addFavoriteAction(target);
+    if (!result.ok) notify(result.message);
+  })();
+}
+
 function runShortcut(id: ShortcutId, options: ShortcutDispatchOptions, context: CommandContextValue | null): void {
+  if (isShellCommandId(id)) {
+    if (id === "favorite.add" || id === "favorite.remove") {
+      runFavoriteCommand(id === "favorite.remove", options.notify);
+      return;
+    }
+    const href = goCommandPath(id);
+    if (href) options.push(href);
+    else options.notify("Not available yet");
+    return;
+  }
   const def = SHORTCUT_BY_ID.get(id);
   const arrival = def?.arrives ? `Arrives in ${def.arrives}` : null;
   switch (id) {
@@ -189,6 +214,12 @@ function runShortcut(id: ShortcutId, options: ShortcutDispatchOptions, context: 
       return;
     case "nav.inbox":
       options.push("/inbox");
+      return;
+    case "nav.yourWork":
+      options.push("/your-work");
+      return;
+    case "nav.analytics":
+      options.push("/analytics");
       return;
     case "nav.drafts":
       options.push("/drafts");

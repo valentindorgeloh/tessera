@@ -1,0 +1,19 @@
+/* Home widgets (P9 U1). Tokens only. */
+
+.tessera-home-links {
+  min-width: 0;
+}
+
+.tessera-quick-link {
+  min-width: 0;
+  max-width: 100%;
+  padding-block: var(--spacing-1);
+  padding-inline: var(--spacing-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+}
+
+.tessera-home-groups {
+  min-width: 0;
+}

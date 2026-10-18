@@ -1,5 +1,7 @@
 import { Suspense, cache, type ReactNode } from "react";
 import { io } from "next/cache";
+import { FavoritesPublisher } from "@/components/favorites/store";
+import { EMPTY_FAVORITES, type FavoritesTree } from "@/components/favorites/tree";
 import { ChangesPoller } from "@/components/shell/ChangesPoller";
 import { projectFeatureMap } from "@/components/shell/project-features";
 import { projectNameMap } from "@/components/shell/recents";
@@ -7,7 +9,10 @@ import { RecentsTracker } from "@/components/shell/RecentsTracker";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { SidebarSkeleton } from "@/components/shell/SidebarSkeleton";
 import { TesseraShell } from "@/components/shell/TesseraShell";
+import { WorkspaceName } from "@/components/shell/TopBar";
+import * as engineModule from "@/lib/tessera/server";
 import { countDrafts, getUnreadCount, latestSeq, listProjects, readTessera } from "@/lib/tessera/server";
+import "../../components/styles/favorites.css";
 
 /**
  * Tessera frame (docs/contracts/ui.md "Shell"): the client shell renders the
@@ -38,12 +43,38 @@ export default function TesseraLayout({ children }: { children: ReactNode }) {
 /** One projects read per request, shared by the sidebar and the recents labels. */
 const loadProjects = cache(() => readTessera((ctx) => listProjects(ctx, {})));
 
-/** Projects and the caller's unread inbox count for the sidebar. */
+/**
+ * Projects, the unread and draft counts, favourites and the workspace name.
+ * `listFavorites` and `getWorkspaceSettings` are read when the engine exports
+ * them; until then the sidebar gets an empty tree and the name "Tessera".
+ */
 async function SidebarData() {
   await io();
-  const [projects, counts] = await Promise.all([loadProjects(), readTessera((ctx) => ({ unread: getUnreadCount(ctx), drafts: countDrafts(ctx) }))]);
-  return <Sidebar projects={projects} unreadCount={counts.unread} draftCount={counts.drafts} />;
+  const [projects, counts] = await Promise.all([
+    loadProjects(),
+    readTessera((ctx) => {
+      const engine = engineModule as EngineExtras;
+      return {
+        unread: getUnreadCount(ctx),
+        drafts: countDrafts(ctx),
+        favorites: engine.listFavorites?.(ctx) ?? EMPTY_FAVORITES,
+        workspaceName: engine.getWorkspaceSettings?.(ctx)?.name || "Tessera",
+      };
+    }),
+  ]);
+  return (
+    <>
+      <WorkspaceName name={counts.workspaceName} />
+      <FavoritesPublisher tree={counts.favorites} />
+      <Sidebar projects={projects} unreadCount={counts.unread} draftCount={counts.drafts} favorites={counts.favorites} />
+    </>
+  );
 }
+
+type EngineExtras = {
+  listFavorites?: (ctx: Parameters<Parameters<typeof readTessera>[0]>[0]) => FavoritesTree;
+  getWorkspaceSettings?: (ctx: Parameters<Parameters<typeof readTessera>[0]>[0]) => { name?: string };
+};
 
 /**
  * The two watchers that render nothing: the recents tracker, which reads the

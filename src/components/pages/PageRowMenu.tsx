@@ -21,6 +21,7 @@ import {
   unlockPageAction,
   updatePageAction,
 } from "@/app/actions/pages";
+import { useFavoriteToggle } from "@/components/shell/FavoriteButton";
 import type { PageSummary } from "@/lib/tessera/types";
 import {
   ArchiveIcon,
@@ -37,6 +38,7 @@ import {
   TransferIcon,
   TrashIcon,
   UnlockIcon,
+  resolveLogoIcon,
 } from "@/themes/catppuccin/icons";
 import { DeletePageDialog } from "./DeletePageDialog";
 import { MovePageDialog } from "./MovePageDialog";
@@ -84,6 +86,7 @@ export function PageRowMenu({ page, spaces, spaceName, includeOpen = true, previ
   const [isMoveOpen, setMoveOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [, startTransition] = useTransition();
+  const favorite = useFavoriteToggle("page", page.id);
 
   const fail = (verb: string, message: string) => toast({ type: "error", body: failure(verb, page.name, message) });
 
@@ -173,7 +176,9 @@ export function PageRowMenu({ page, spaces, spaceName, includeOpen = true, previ
     delete: () => setDeleteOpen(true),
   };
 
-  const items: DropdownMenuOption[] = [];
+  const items: DropdownMenuOption[] = [
+    { id: "favorite", label: favorite.label, icon: resolveLogoIcon("Star"), onClick: favorite.toggle },
+  ];
   for (const row of pageMenuEntries({ page, includeOpen, canMoveUp: previousId !== undefined, canMoveDown: nextId !== undefined })) {
     if (row.dividerBefore) items.push({ type: "divider" });
     const Icon = ICONS[row.id];

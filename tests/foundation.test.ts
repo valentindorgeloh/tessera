@@ -596,15 +596,8 @@ describe("migrateIfNeeded", () => {
       const probe = new Database(filePath);
       // The migrator's `id SERIAL` column is NULL in SQLite, so the newest row is found by created_at.
       probe.prepare(`DELETE FROM "${MIGRATIONS_TABLE}" WHERE created_at = (SELECT max(created_at) FROM "${MIGRATIONS_TABLE}")`).run();
-      // 0003 adds a column and replaces an index, so a re-apply needs those effects undone first.
-      probe.exec(`
-        DROP INDEX IF EXISTS draft_work_item_updated_idx;
-        DROP INDEX IF EXISTS estimate_active_uq;
-        DROP INDEX IF EXISTS intake_item_status_snooze_idx;
-        DROP INDEX IF EXISTS intake_item_work_item_uq;
-        CREATE INDEX IF NOT EXISTS intake_item_work_item_idx ON intake_item (work_item_id);
-        ALTER TABLE actor DROP COLUMN access;
-      `);
+      // 0004 adds last_seen_seq, so a re-apply needs that column gone first.
+      probe.exec(`ALTER TABLE workspace_settings DROP COLUMN last_seen_seq;`);
       expect(pendingMigrations(probe)).toBe(1);
       probe.close();
 

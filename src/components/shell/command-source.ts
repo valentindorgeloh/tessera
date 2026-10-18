@@ -13,12 +13,14 @@
  * source sorts by `SECTION_ORDER` before returning.
  */
 import type { SearchSource, SearchableItem } from "@astryxdesign/core/Typeahead";
+import { favoriteTarget, isFavoriteInTree } from "@/components/favorites/tree";
+import { readFavoritesTree } from "@/components/favorites/state";
 import type { SearchHit, SearchType } from "@/lib/tessera/types";
 import { COLOR_SCHEME_LABELS, isColorScheme, type ColorScheme } from "./color-scheme";
 import type { CommandContextValue } from "./command-context";
 import { isShortcutHidden, type ProjectFeatures } from "./project-features";
 import type { LabelledRecent, RouteIconKey } from "./recents";
-import { SHORTCUTS, type CommandId, type ShortcutDef, type ShortcutId } from "./shortcuts";
+import { SHORTCUTS, type CommandId, type ShellCommandId, type ShortcutDef, type ShortcutId } from "./shortcuts";
 
 /** Keystrokes closer than this share one request. */
 export const SEARCH_DEBOUNCE_MS = 150;
@@ -217,6 +219,58 @@ export const DESCRIBE_VIEW_ID = "ai.describeView";
 /** Opens `/drafts?draft=new`. Not a shortcut: the drafts list is `g y`. */
 export const NEW_DRAFT_ID = "create.draft";
 
+/** Palette destinations that are not chords. `g j` and `g a` stay on the shortcut rows. */
+const GO_PATHS = {
+  "go.yourWork": "/your-work",
+  "go.agents": "/agents",
+  "go.workspaceViews": "/workspace-views",
+  "go.activeCycles": "/active-cycles",
+  "go.analytics": "/analytics",
+  "go.stickies": "/stickies",
+  "go.workspaceSettings": "/settings",
+  "go.newSticky": "/stickies?create=1",
+} as const satisfies Partial<Record<ShellCommandId, string>>;
+
+const GO_COMMANDS: readonly { id: keyof typeof GO_PATHS; label: string; group: "Navigate" | "Create"; keywords: readonly string[] }[] = [
+  { id: "go.yourWork", label: "Go to Your work", group: "Navigate", keywords: ["go", "assigned", "mine"] },
+  { id: "go.agents", label: "Go to Agents", group: "Navigate", keywords: ["go", "robots", "actors"] },
+  { id: "go.workspaceViews", label: "Go to Workspace views", group: "Navigate", keywords: ["go", "views", "filters"] },
+  { id: "go.activeCycles", label: "Go to Active cycles", group: "Navigate", keywords: ["go", "cycles", "current"] },
+  { id: "go.analytics", label: "Go to Analytics", group: "Navigate", keywords: ["go", "charts", "reports"] },
+  { id: "go.stickies", label: "Go to Stickies", group: "Navigate", keywords: ["go", "notes"] },
+  { id: "go.workspaceSettings", label: "Go to Workspace settings", group: "Navigate", keywords: ["go", "settings", "workspace"] },
+  { id: "go.newSticky", label: "New sticky", group: "Create", keywords: ["new", "note", "sticky"] },
+];
+
+/** Path a palette go-to command opens, or null for any other id. */
+export function goCommandPath(id: string): string | null {
+  if (Object.prototype.hasOwnProperty.call(GO_PATHS, id)) return GO_PATHS[id as keyof typeof GO_PATHS];
+  return null;
+}
+
+function workspaceGoItems(): CommandSearchItem[] {
+  return GO_COMMANDS.map((command) => ({
+    id: command.id,
+    label: command.label,
+    auxiliaryData: { group: command.group, kind: "command" as const, keywords: command.keywords },
+  }));
+}
+
+/**
+ * Add or remove the favourite for the page on screen. Omitted when the path
+ * names nothing that can be favourited (and under Vitest, where there is no window).
+ */
+export function favoritePaletteCommand(pathname: string): CommandSearchItem | null {
+  const target = favoriteTarget(pathname);
+  if (!target) return null;
+  const on = isFavoriteInTree(readFavoritesTree(), target.entity_type, target.entity_id);
+  return {
+    id: on ? "favorite.remove" : "favorite.add",
+    label: on ? "Remove from favorites" : "Add to favorites",
+    auxiliaryData: { group: "Actions", kind: "command", keywords: ["star", "favorite", "favourite", "pin", target.entity_type] },
+  };
+}
+
 /**
  * "Describe a view…" for the project in scope, in the Create section. Left out
  * outside a project, while the project has views off (decision 31) and while the
@@ -293,6 +347,9 @@ export function buildCommands(context: CommandContextValue | null, features?: Pr
     label: "New draft",
     auxiliaryData: { group: "Create", kind: "command", keywords: ["draft", "new", "save"] },
   });
+  rest.push(...workspaceGoItems());
+  const favorite = favoritePaletteCommand(typeof window === "undefined" ? "" : window.location.pathname);
+  if (favorite) rest.push(favorite);
   if (context) {
     actions.push({
       id: `${OPEN_ITEM_PREFIX}${context.item.id}`,

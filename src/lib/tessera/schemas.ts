@@ -53,6 +53,53 @@ export const ViewSettingsScopeSchema = z.enum(["project", "cycle", "module", "wo
 
 export const FavoriteEntityTypeSchema = z.enum(["project", "cycle", "module", "view", "page"]);
 
+/** Home widget ids, in the default order. */
+export const HomeWidgetIdSchema = z.enum(["since_last_visit", "quick_links", "recents", "your_work", "stickies"]);
+
+export const HOME_WIDGET_IDS = HomeWidgetIdSchema.options;
+
+/** Virtual workspace views. They are not rows and cannot be favourited. */
+export const StaticViewKeySchema = z.enum(["all", "assigned", "created", "subscribed"]);
+
+export const STATIC_WORKSPACE_VIEWS = [
+  { key: "all", name: "All work items", description: "Every work item in live projects." },
+  { key: "assigned", name: "Assigned", description: "Work items assigned to you." },
+  { key: "created", name: "Created", description: "Work items you created." },
+  { key: "subscribed", name: "Subscribed", description: "Work items you are subscribed to." },
+] as const satisfies readonly { key: z.infer<typeof StaticViewKeySchema>; name: string; description: string }[];
+
+export const ProfileTabSchema = z.enum(["summary", "assigned", "created", "subscribed", "activity"]);
+
+/** Profile counts and list tabs that select work items. `summary` and `activity` are not counts. */
+export const ProfileCountsTabSchema = z.enum(["assigned", "created", "subscribed"]);
+
+export const AnalyticsTabSchema = z.enum(["overview", "work-items", "cycles", "modules"]);
+
+export const AnalyticsRangeSchema = z.enum(["7d", "30d", "90d", "365d"]);
+
+export const AnalyticsDimensionSchema = z.enum([
+  "state_group",
+  "state",
+  "priority",
+  "assignee",
+  "label",
+  "cycle",
+  "module",
+  "project",
+  "created_by",
+  "target_week",
+]);
+
+export const AnalyticsMeasureSchema = z.enum(["count", "points"]);
+
+/** `http(s)://…` or an in-app path. Anything else, including `javascript:`, is rejected. */
+export const QuickLinkUrlSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(2000)
+  .refine((value) => /^https?:\/\/\S+$/i.test(value) || (value.startsWith("/") && !value.startsWith("//")), "Use an http(s) URL or an app path starting with /.");
+
 /** `^[A-Z][A-Z0-9]{1,11}$`, uppercased by the service before validation (decision 3). */
 export const PROJECT_IDENTIFIER_PATTERN = /^[A-Z][A-Z0-9]{1,11}$/;
 export const ProjectIdentifierSchema = z.string().regex(PROJECT_IDENTIFIER_PATTERN, "2 to 12 characters, A-Z and 0-9, starting with a letter");
@@ -268,10 +315,10 @@ export const CycleProgressSchema = ProgressCountsSchema.extend({
 /** Free-form metadata stored next to a link (favicon, title fetched later, ...). */
 export const LinkMetadataSchema = z.record(z.string(), z.unknown());
 
-/** Widgets shown on the home screen, in order. */
+/** Widgets shown on the home screen, in order. Unknown ids are dropped by normalizeHomeWidgets. */
 export const HomeWidgetsSchema = z.array(
   z.object({
-    widget: z.string().min(1).describe("Widget id, e.g. quick_links, recents, assigned, created, stickies."),
+    widget: HomeWidgetIdSchema.describe("Home widget id."),
     enabled: z.boolean().default(true).describe("Whether the widget is shown."),
   }),
 );
@@ -311,8 +358,8 @@ export const ProposalStatusSchema = z.enum(["pending", "applying", "applied", "f
 /** Where a proposal came from: the chat (`assistant`) or the Describe a view dialog. */
 export const ProposalSourceSchema = z.enum(["assistant", "view_from_prompt"]);
 
-/** Digest subjects. P9 adds `home` and `analytics`. */
-export const DigestKindSchema = z.enum(["cycle", "module", "inbox"]);
+/** Digest subjects: a cycle, a module, an inbox, the home summary, or one analytics tab. */
+export const DigestKindSchema = z.enum(["cycle", "module", "inbox", "home", "analytics"]);
 
 /** The route on screen that the assistant answers about. Every key is optional. */
 export const AssistantScopeSchema = z.object({
@@ -388,7 +435,7 @@ export const ProposalViewSchema = z.object({
 
 /** A stored digest of a cycle, a module, or one actor's inbox. */
 export const DigestViewSchema = z.object({
-  kind: DigestKindSchema.describe("Cycle, module or inbox."),
+  kind: DigestKindSchema.describe("Cycle, module, inbox, home or analytics."),
   entity_id: IdSchema.describe("Cycle id, module id, or the recipient actor id for an inbox digest."),
   body_md: z.string().describe("Digest text in markdown."),
   input_seq: z.number().int().nonnegative().describe("Highest activity seq the digest summarised."),

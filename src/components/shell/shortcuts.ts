@@ -128,8 +128,8 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { id: "nav.inbox", label: "Inbox", keys: "g k", group: "Navigate" },
   { id: "nav.archives", label: "Archives", keys: "g r", group: "Navigate" },
   { id: "nav.settings", label: "Settings", keys: "g s", group: "Navigate" },
-  { id: "nav.yourWork", label: "Your work", keys: "g j", group: "Navigate", arrives: "P9" },
-  { id: "nav.analytics", label: "Analytics", keys: "g a", group: "Navigate", arrives: "P9" },
+  { id: "nav.yourWork", label: "Your work", keys: "g j", group: "Navigate" },
+  { id: "nav.analytics", label: "Analytics", keys: "g a", group: "Navigate" },
   { id: "nav.projects", label: "Projects", keys: "g p", group: "Navigate" },
   { id: "nav.intake", label: "Intake", keys: "g x", group: "Navigate" },
   { id: "nav.drafts", label: "Drafts", keys: "g y", group: "Navigate" },
@@ -137,9 +137,37 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
 
 export const SHORTCUT_BY_ID: ReadonlyMap<ShortcutId, ShortcutDef> = new Map(SHORTCUTS.map((def) => [def.id, def]));
 
-/** True for the id of a registered shortcut (the palette's command ids). */
+/**
+ * Palette commands that are not key bindings. CommandBar runs whatever
+ * `isShortcutId` accepts, so these ids share that path (./useShortcuts.ts)
+ * without joining the help dialog's shortcut table.
+ */
+export const SHELL_COMMAND_IDS = [
+  "go.yourWork",
+  "go.agents",
+  "go.workspaceViews",
+  "go.activeCycles",
+  "go.analytics",
+  "go.stickies",
+  "go.workspaceSettings",
+  "go.newSticky",
+  "favorite.add",
+  "favorite.remove",
+] as const;
+
+export type ShellCommandId = (typeof SHELL_COMMAND_IDS)[number];
+
+export function isShellCommandId(value: string): value is ShellCommandId {
+  return (SHELL_COMMAND_IDS as readonly string[]).includes(value);
+}
+
+/**
+ * True for a shortcut id or a palette command CommandBar should run.
+ * The predicate is named for the shortcut table; shell command ids are
+ * included so the command bar's existing `isShortcutId` branch dispatches them.
+ */
 export function isShortcutId(value: string): value is ShortcutId {
-  return SHORTCUT_BY_ID.has(value as ShortcutId);
+  return SHORTCUT_BY_ID.has(value as ShortcutId) || isShellCommandId(value);
 }
 
 /** How long a chord prefix (`g`, `n`) waits for its second key. */

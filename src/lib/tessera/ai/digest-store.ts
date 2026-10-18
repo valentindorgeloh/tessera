@@ -7,6 +7,8 @@
  * those notifications point at. Opening a page only reads a stored row.
  */
 import { and, desc, eq, isNull, lte, or } from "drizzle-orm";
+import { latestSeq } from "../activity";
+import { analyticsForDigest } from "../analytics";
 import { getActor } from "../actors";
 import { collapseDescriptionEdits, listActivity, maxFeedSeq, type ActivityLogEntry } from "../changes";
 import type { TesseraContext } from "../core/context";
@@ -14,7 +16,8 @@ import { formatKey } from "../core/keys";
 import { activity, actor, ai_digest, notification, project, work_item } from "../db/schema";
 import { getCycle } from "../cycles";
 import { getModule } from "../modules";
-import type { DigestKind, DigestView } from "../types";
+import type { AnalyticsResult, DigestKind, DigestView, SinceEntry } from "../types";
+import { homeDigestPayload, homeDigestSeq } from "../workspace/since";
 
 const INBOX_NOTE_LIMIT = 200;
 const INBOX_ACTIVITY_LIMIT = 300;
@@ -41,15 +44,27 @@ export type DigestInputs = {
   activity: ActivityLogEntry[];
   input_seq: number;
   notifications?: InboxDigestNote[];
+  entries?: SinceEntry[];
+  analytics?: AnalyticsResult;
 };
 
 export function currentDigestSeq(ctx: TesseraContext, kind: DigestKind, id: string): number {
   if (kind === "inbox") return inboxInputs(ctx, id).input_seq;
+  if (kind === "home") return homeDigestSeq(ctx);
+  if (kind === "analytics") return latestSeq(ctx);
   return maxFeedSeq(ctx, kind === "cycle" ? { cycle_id: id } : { module_id: id });
 }
 
 export function digestInputs(ctx: TesseraContext, kind: DigestKind, id: string): DigestInputs {
   if (kind === "inbox") return inboxInputs(ctx, id);
+  if (kind === "home") {
+    const home = homeDigestPayload(ctx);
+    return { subject: home.subject, activity: [], entries: home.entries, input_seq: home.input_seq };
+  }
+  if (kind === "analytics") {
+    const analytics = analyticsForDigest(ctx, id);
+    return { subject: analytics.subject, activity: [], analytics: analytics.result, input_seq: analytics.input_seq };
+  }
   const subject = kind === "cycle" ? getCycle(ctx, id).name : getModule(ctx, id).name;
   const activityRows = listActivity(ctx, kind === "cycle" ? { cycle_id: id, limit: 300 } : { module_id: id, limit: 300 });
   return { subject, activity: activityRows, input_seq: currentDigestSeq(ctx, kind, id) };

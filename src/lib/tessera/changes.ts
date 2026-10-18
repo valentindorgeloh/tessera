@@ -8,9 +8,10 @@
  * read-time collapse of consecutive description edits by the same actor within
  * five minutes into one entry. Both are reads: no transaction, nothing written.
  */
-import { and, asc, desc, eq, gt, notInArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gt, lt, notInArray, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { latestSeq } from "./activity";
+import { getActor } from "./actors";
 import type { TesseraContext } from "./core/context";
 import { validateInput } from "./core/errors";
 import { getCycleRow } from "./cycles";
@@ -107,13 +108,16 @@ export const ListActivityInput = z
     project_id: IdSchema.optional().describe("Feed of a whole project."),
     cycle_id: IdSchema.optional().describe("Feed of a cycle: its own rows, the rows of the work items in it now and the membership rows that name it."),
     module_id: IdSchema.optional().describe("Feed of a module: its own rows, the rows of the work items in it now and the membership rows that name it."),
+    actor_id: IdSchema.optional().describe("Feed of one actor: rows that actor wrote."),
     since_seq: z.number().int().min(0).optional().describe("Only rows after this seq."),
+    before_seq: z.number().int().min(1).optional().describe("Only rows before this seq, for loading an older page."),
     limit: z.number().int().min(1).max(5000).optional().describe("Newest raw rows to read before collapsing (default 500)."),
   })
   .strict()
-  .refine((value) => [value.work_item_id, value.project_id, value.cycle_id, value.module_id].filter((scope) => scope !== undefined).length === 1, {
-    message: "exactly one of work_item_id, project_id, cycle_id or module_id is required",
-  });
+  .refine(
+    (value) => [value.work_item_id, value.project_id, value.cycle_id, value.module_id, value.actor_id].filter((scope) => scope !== undefined).length === 1,
+    { message: "exactly one of work_item_id, project_id, cycle_id, module_id or actor_id is required" },
+  );
 
 export type ListActivityInputType = z.input<typeof ListActivityInput>;
 
@@ -225,7 +229,12 @@ export function listActivity(ctx: TesseraContext, input: ListActivityInputType):
     getModuleRow(ctx, data.module_id);
     conditions.push(moduleFeedCondition(data.module_id));
   }
+  if (data.actor_id !== undefined) {
+    getActor(ctx, data.actor_id);
+    conditions.push(eq(activity.actor_id, data.actor_id));
+  }
   if (data.since_seq !== undefined) conditions.push(gt(activity.seq, data.since_seq));
+  if (data.before_seq !== undefined) conditions.push(lt(activity.seq, data.before_seq));
   const rows = ctx.db
     .select({ row: activity, actor_name: actor.name })
     .from(activity)

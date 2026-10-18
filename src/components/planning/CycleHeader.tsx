@@ -19,6 +19,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { Token, type TokenColor } from "@astryxdesign/core/Token";
 import { unarchiveCycleAction } from "@/app/actions/cycles";
+import { FavoriteButton } from "@/components/shell/FavoriteButton";
 import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
 import type { Cycle, CycleStatus } from "@/lib/tessera/types";
 import { BurndownIcon, CalendarDotsIcon, PlusIcon, RestoreIcon, TimerIcon } from "@/themes/catppuccin/icons";
@@ -109,6 +110,7 @@ export function CycleHeader({
                 isDisabled={isPanelBlocked}
                 onClick={onTogglePanel}
               />
+              <FavoriteButton entityType="cycle" entityId={cycle.id} />
               <CycleMenu projectId={projectId} cycle={cycle} today={today} isEditOpen={isEditOpen} onEditOpenChange={onEditOpenChange} onDeleted={onDeleted} />
             </>
           }

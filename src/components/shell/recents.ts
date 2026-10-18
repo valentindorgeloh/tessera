@@ -32,7 +32,11 @@ export type RouteIconKey =
   | "settings"
   | "archives"
   | "intake"
-  | "drafts";
+  | "drafts"
+  | "your-work"
+  | "agents"
+  | "analytics"
+  | "stickies";
 
 export type RouteInfo = { label: string; icon: RouteIconKey };
 
@@ -47,6 +51,8 @@ export type RouteLookup = {
   projectName: (projectId: string) => string | undefined;
   workItemLabel?: (workItemId: string) => string | undefined;
   entityLabel?: (id: string) => string | undefined;
+  /** Name of an actor, for `/agents/<id>`. */
+  actorLabel?: (actorId: string) => string | undefined;
 };
 
 /** Project names by id, read by the Tessera layout and handed to the recents store. */
@@ -139,6 +145,22 @@ export function resolveRoute(pathname: string, lookup: RouteLookup): RouteInfo {
   // ASSUMPTION: RouteIconKey has no inbox glyph, and InboxIcon is not exported, so the recent uses the page icon.
   if (root === "inbox") return { label: "Inbox", icon: "page" };
   if (root === "drafts") return { label: "Drafts", icon: "drafts" };
+  if (root === "your-work") return { label: projectId === undefined ? "Your work" : `Your work · ${titleCase(projectId)}`, icon: "your-work" };
+  if (root === "agents") {
+    if (projectId === undefined) return { label: "Agents", icon: "agents" };
+    const actor = lookup.actorLabel?.(projectId) ?? "Agent";
+    return { label: section === undefined ? actor : `${actor} · ${titleCase(section)}`, icon: "agents" };
+  }
+  if (root === "workspace-views") {
+    if (projectId === undefined) return { label: "Workspace views", icon: "views" };
+    const named = lookup.entityLabel?.(projectId);
+    // A saved view's id is a uuid; a static key is a short word ("all", "assigned").
+    return { label: named ?? (projectId.length < 24 ? titleCase(projectId) : "View"), icon: "views" };
+  }
+  if (root === "active-cycles") return { label: "Active cycles", icon: "cycles" };
+  if (root === "analytics") return { label: projectId === undefined ? "Analytics" : `Analytics · ${titleCase(projectId)}`, icon: "analytics" };
+  if (root === "stickies") return { label: "Stickies", icon: "stickies" };
+  if (root === "settings") return { label: projectId === undefined ? "Settings" : `Settings · ${titleCase(projectId)}`, icon: "settings" };
 
   // Global detail routes: the second segment is the work item id or key, not a project.
   if (root === "work-items" && projectId !== undefined) {

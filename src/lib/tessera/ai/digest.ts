@@ -9,7 +9,7 @@ import { getModuleProgress } from "../modules";
 import type { DigestKind, DigestView } from "../types";
 import { AI_BETAS, AI_FALLBACKS, AI_MODEL, aiEffort, assistantContext, getAnthropic } from "./client";
 import { digestInputs, getStoredDigest, saveDigest } from "./digest-store";
-import { DIGEST_SYSTEM, INBOX_DIGEST_SYSTEM } from "./prompts";
+import { DIGEST_SYSTEM, HOME_DIGEST_SYSTEM, INBOX_DIGEST_SYSTEM, ANALYTICS_DIGEST_SYSTEM } from "./prompts";
 
 const DIGEST_MAX_TOKENS = 16_000;
 
@@ -19,10 +19,12 @@ export async function generateDigest(handles: DbHandles, kind: DigestKind, id: s
   const stored = getStoredDigest(ctx, kind, id);
   if (stored && stored.input_seq === inputs.input_seq) return stored;
 
-  // ASSUMPTION: digestInputs returns the subject, activity and input_seq. Cycle and module
-  // progress is attached here so those digests can quote counts. An inbox digest
-  // already carries its unread notifications; it has no progress block.
-  const payload = kind === "inbox" ? inputs : { ...inputs, progress: kind === "cycle" ? getCycleProgress(ctx, id) : getModuleProgress(ctx, id) };
+  const payload =
+    kind === "cycle" || kind === "module"
+      ? { ...inputs, progress: kind === "cycle" ? getCycleProgress(ctx, id) : getModuleProgress(ctx, id) }
+      : inputs;
+  const system =
+    kind === "inbox" ? INBOX_DIGEST_SYSTEM : kind === "home" ? HOME_DIGEST_SYSTEM : kind === "analytics" ? ANALYTICS_DIGEST_SYSTEM : DIGEST_SYSTEM;
   const response = await getAnthropic().beta.messages.create({
     model: AI_MODEL,
     max_tokens: DIGEST_MAX_TOKENS,
@@ -30,7 +32,7 @@ export async function generateDigest(handles: DbHandles, kind: DigestKind, id: s
     output_config: { effort: aiEffort() },
     betas: [...AI_BETAS],
     fallbacks: AI_FALLBACKS,
-    system: kind === "inbox" ? INBOX_DIGEST_SYSTEM : DIGEST_SYSTEM,
+    system,
     messages: [{ role: "user", content: JSON.stringify(payload) }],
   });
   if (response.stop_reason === "refusal") {

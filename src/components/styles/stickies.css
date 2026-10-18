@@ -1,0 +1,32 @@
+/* Stickies (P9 U1). Palette tints are the theme's background tokens. */
+
+.tessera-sticky-grid {
+  min-width: 0;
+}
+
+.tessera-sticky {
+  min-width: 0;
+  scroll-margin-block-start: var(--spacing-6);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-container);
+}
+
+.tessera-sticky--red { background-color: var(--color-background-red); }
+.tessera-sticky--orange { background-color: var(--color-background-orange); }
+.tessera-sticky--yellow { background-color: var(--color-background-yellow); }
+.tessera-sticky--green { background-color: var(--color-background-green); }
+.tessera-sticky--teal { background-color: var(--color-background-teal); }
+.tessera-sticky--cyan { background-color: var(--color-background-cyan); }
+.tessera-sticky--blue { background-color: var(--color-background-blue); }
+.tessera-sticky--purple { background-color: var(--color-background-purple); }
+.tessera-sticky--pink { background-color: var(--color-background-pink); }
+.tessera-sticky--gray { background-color: var(--color-background-gray); }
+
+.tessera-stickies-search {
+  inline-size: 16rem;
+  max-inline-size: 100%;
+}
+
+.tessera-sticky-name {
+  background: transparent;
+}

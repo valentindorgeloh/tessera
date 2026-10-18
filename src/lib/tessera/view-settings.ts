@@ -121,13 +121,19 @@ export const ViewSettingsScopeInput = z
       .trim()
       .min(1)
       .max(200)
-      .describe('Id of the scoped entity (project, cycle, module or actor); "workspace" for the workspace scope.'),
+      .describe('Id of the scoped entity (project, cycle, module or actor); "workspace" or "static:<key>" for the workspace scope.'),
   })
   .strict()
-  .refine((value) => value.scope_type !== "workspace" || value.scope_id === WORKSPACE_SCOPE_ID, {
-    message: `the workspace scope uses scope_id "${WORKSPACE_SCOPE_ID}"`,
+  .refine((value) => value.scope_type !== "workspace" || isWorkspaceScopeId(value.scope_id), {
+    message: `the workspace scope uses scope_id "${WORKSPACE_SCOPE_ID}" or static:all, static:assigned, static:created, static:subscribed`,
     path: ["scope_id"],
   });
+
+const STATIC_WORKSPACE_SCOPE_IDS = new Set(["static:all", "static:assigned", "static:created", "static:subscribed"]);
+
+function isWorkspaceScopeId(scopeId: string): boolean {
+  return scopeId === WORKSPACE_SCOPE_ID || STATIC_WORKSPACE_SCOPE_IDS.has(scopeId);
+}
 
 export type ViewSettingsScopeInputType = z.input<typeof ViewSettingsScopeInput>;
 

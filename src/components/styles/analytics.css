@@ -1,0 +1,42 @@
+/*
+ * Tessera analytics (docs/drafts/p9-plan.md U4): chart frame, legend swatches,
+ * the breakdown controls and the completion bars. Tokens only.
+ */
+
+.tessera-analytics-chart-frame {
+  inline-size: 100%;
+  min-inline-size: 0;
+  font-size: var(--text-supporting-size);
+}
+
+.tessera-analytics-chart-swatch {
+  inline-size: var(--spacing-6);
+  block-size: var(--spacing-2);
+  flex: none;
+}
+
+/*
+ * "Data table" collapsible: an Astryx Table bleeds into the nearest
+ * container's padding, which pulls its header up over the trigger. The
+ * block-axis inset is zero inside the collapsible.
+ */
+.tessera-analytics-data-table {
+  --container-padding-block-start: var(--spacing-0);
+  --container-padding-block-end: var(--spacing-0);
+}
+
+.tessera-analytics-projects {
+  inline-size: calc(var(--spacing-10) * 5);
+  max-inline-size: 100%;
+  flex: none;
+}
+
+.tessera-analytics-axis {
+  inline-size: calc(var(--spacing-10) * 4);
+  max-inline-size: 100%;
+}
+
+.tessera-analytics-bar {
+  inline-size: calc(var(--spacing-8) * 3);
+  flex: none;
+}

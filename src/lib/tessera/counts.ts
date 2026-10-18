@@ -16,10 +16,10 @@ import { getActor } from "./actors";
 import type { TesseraContext } from "./core/context";
 import { notFound, validateInput } from "./core/errors";
 import { addDays } from "./core/time";
-import { cycle, estimate, estimate_point, moduleTable, project, state, view, work_item, work_item_assignee, work_item_label, work_item_module } from "./db/schema";
+import { cycle, estimate, estimate_point, moduleTable, project, state, view, work_item, work_item_assignee, work_item_label, work_item_module, work_item_subscriber } from "./db/schema";
 import { buildWhere } from "./filters";
 import { getProjectRow } from "./projects";
-import { DisplaySchema, FiltersSchema, IdSchema, PrioritySchema, StateGroupSchema } from "./schemas";
+import { DisplaySchema, FiltersSchema, IdSchema, PrioritySchema, ProfileCountsTabSchema, StateGroupSchema } from "./schemas";
 import type { Display, Filters, Priority, StateGroup } from "./types";
 
 export type Counts = {
@@ -42,12 +42,23 @@ export type Counts = {
 };
 
 export const CountsScopeSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("workspace") }).strict(),
+  z
+    .object({
+      type: z.literal("workspace"),
+      project_ids: z.array(IdSchema).min(1).max(50).optional().describe("Live projects to count. Omit for every live project."),
+    })
+    .strict(),
   z.object({ type: z.literal("project"), project_id: IdSchema.describe("Project whose items are counted.") }).strict(),
   z.object({ type: z.literal("cycle"), cycle_id: IdSchema.describe("Cycle whose items are counted.") }).strict(),
   z.object({ type: z.literal("module"), module_id: IdSchema.describe("Module whose items are counted.") }).strict(),
   z.object({ type: z.literal("view"), view_id: IdSchema.describe("Saved view whose filters select the items.") }).strict(),
-  z.object({ type: z.literal("profile"), actor_id: IdSchema.describe("Actor whose assigned items are counted.") }).strict(),
+  z
+    .object({
+      type: z.literal("profile"),
+      actor_id: IdSchema.describe("Actor whose items are counted."),
+      tab: ProfileCountsTabSchema.optional().describe("Assigned, created or subscribed items. Defaults to assigned."),
+    })
+    .strict(),
 ]);
 
 export type CountsScope = z.infer<typeof CountsScopeSchema>;
@@ -103,10 +114,24 @@ function withDisplayFilters(filters: Filters, display: Display): Filters {
   };
 }
 
+function resolveWorkspaceProjects(ctx: TesseraContext, projectIds: string[] | undefined): { where: SQL; project_ids: string[] } {
+  if (projectIds === undefined) return { where: inLiveProject(ctx), project_ids: liveProjectIds(ctx) };
+  const unique = [...new Set(projectIds)];
+  const live = new Set(liveProjectIds(ctx));
+  for (const id of unique) {
+    if (live.has(id)) continue;
+    getProjectRow(ctx, id);
+    throw notFound("project", id);
+  }
+  return { where: inArray(work_item.project_id, unique), project_ids: unique };
+}
+
 function resolveScope(ctx: TesseraContext, scope: CountsScope): ResolvedScope {
   switch (scope.type) {
-    case "workspace":
-      return { where: inLiveProject(ctx), filters: {}, project_id: null, project_ids: liveProjectIds(ctx) };
+    case "workspace": {
+      const resolved = resolveWorkspaceProjects(ctx, scope.project_ids);
+      return { where: resolved.where, filters: {}, project_id: null, project_ids: resolved.project_ids };
+    }
     case "project": {
       getProjectRow(ctx, scope.project_id);
       return { where: eq(work_item.project_id, scope.project_id), filters: {}, project_id: scope.project_id, project_ids: [scope.project_id] };
@@ -148,11 +173,17 @@ function resolveScope(ctx: TesseraContext, scope: CountsScope): ResolvedScope {
     }
     case "profile": {
       getActor(ctx, scope.actor_id);
-      const assigned = inArray(
-        work_item.id,
-        ctx.db.select({ id: work_item_assignee.work_item_id }).from(work_item_assignee).where(eq(work_item_assignee.actor_id, scope.actor_id)),
-      );
-      return { where: and(inLiveProject(ctx), assigned) ?? assigned, filters: {}, project_id: null, project_ids: liveProjectIds(ctx) };
+      const tab = scope.tab ?? "assigned";
+      const relation =
+        tab === "created"
+          ? eq(work_item.created_by, scope.actor_id)
+          : inArray(
+              work_item.id,
+              tab === "subscribed"
+                ? ctx.db.select({ id: work_item_subscriber.work_item_id }).from(work_item_subscriber).where(eq(work_item_subscriber.actor_id, scope.actor_id))
+                : ctx.db.select({ id: work_item_assignee.work_item_id }).from(work_item_assignee).where(eq(work_item_assignee.actor_id, scope.actor_id)),
+            );
+      return { where: and(inLiveProject(ctx), relation) ?? relation, filters: {}, project_id: null, project_ids: liveProjectIds(ctx) };
     }
   }
 }
@@ -317,19 +348,31 @@ export function getTaxonomyUsage(ctx: TesseraContext, projectId: string): Taxono
 // Public read
 // ---------------------------------------------------------------------------
 
-/** Counts for one scope; NOT_FOUND when the scoped entity does not exist. */
-export function getCounts(ctx: TesseraContext, scope: CountsScope): Counts {
+export type CountsPopulation = { where: SQL; project_ids: string[] };
+
+/**
+ * The WHERE getCounts uses. Analytics reads this so its totals cannot drift.
+ * includeArchived keeps deleted and triage rows out but leaves archived items in (trend series).
+ */
+export function countsPopulation(ctx: TesseraContext, scope: CountsScope, options?: { includeArchived?: boolean }): CountsPopulation {
   const data = validateInput(GetCountsInput, { scope });
   const resolved = resolveScope(ctx, data.scope);
-  // buildWhere excludes deleted and triage rows; archived rows are excluded here even when a view asks for them.
-  const where = and(resolved.where, isNull(work_item.archived_at), buildWhere(ctx, resolved.filters, { project_id: resolved.project_id })) ?? resolved.where;
+  const filters: Filters = options?.includeArchived ? { ...resolved.filters, archived: true } : resolved.filters;
+  const archivedClause = options?.includeArchived ? undefined : isNull(work_item.archived_at);
+  const where = and(resolved.where, archivedClause, buildWhere(ctx, filters, { project_id: resolved.project_id })) ?? resolved.where;
+  return { where, project_ids: resolved.project_ids };
+}
+
+/** Counts for one scope; NOT_FOUND when the scoped entity does not exist. */
+export function getCounts(ctx: TesseraContext, scope: CountsScope): Counts {
+  const population = countsPopulation(ctx, scope);
   const counts: Counts = {
-    ...countByState(ctx, where),
-    by_priority: countByPriority(ctx, where),
-    by_assignee: countByAssignee(ctx, where),
-    by_label: countByLabel(ctx, where),
-    ...countDates(ctx, where),
+    ...countByState(ctx, population.where),
+    by_priority: countByPriority(ctx, population.where),
+    by_assignee: countByAssignee(ctx, population.where),
+    by_label: countByLabel(ctx, population.where),
+    ...countDates(ctx, population.where),
   };
-  if (pointsEnabled(ctx, resolved.project_ids)) Object.assign(counts, sumPoints(ctx, where));
+  if (pointsEnabled(ctx, population.project_ids)) Object.assign(counts, sumPoints(ctx, population.where));
   return counts;
 }

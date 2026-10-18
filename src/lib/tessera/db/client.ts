@@ -10,6 +10,7 @@ import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3"
 import fs from "node:fs";
 import path from "node:path";
 import { ensureSystemActors } from "../actors";
+import { ensureWorkspaceSettings } from "../workspace/settings";
 import { ensureFtsTables } from "./fts";
 import { migrate, migrateIfNeeded, REPO_ROOT } from "./migrate";
 import { schema } from "./schema";
@@ -47,6 +48,7 @@ export function openDatabase(filePath: string = MEMORY_DB): DbHandles {
   migrate(db, sqlite);
   ensureFtsTables(sqlite);
   ensureSystemActors(db);
+  ensureWorkspaceSettings(db);
   return { sqlite, db };
 }
 

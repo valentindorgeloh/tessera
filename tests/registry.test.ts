@@ -260,6 +260,9 @@ describe("tool names", () => {
 // 4. Flags: destructive, core, phase, mutates
 // ---------------------------------------------------------------------------
 
+/** delete_favorite_folder keeps the favourites, so it is not destructive. */
+const NOT_DESTRUCTIVE_DELETES = new Set(["delete_favorite_folder"]);
+
 /** docs/contracts/tools.md: destructive tools besides every delete_*. */
 const CONTRACT_DESTRUCTIVE = new Set([
   "transfer_cycle_work_items",
@@ -309,6 +312,8 @@ const CONTRACT_CORE = [
   "list_comments",
   "create_comment",
   "get_counts",
+  "get_home_summary",
+  "get_analytics",
   "search_all",
   "describe_filters",
 ].sort();
@@ -409,12 +414,36 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   bulk_archive_work_items: "P8",
   bulk_unarchive_work_items: "P8",
   bulk_delete_work_items: "P8",
+  list_favorites: "P9",
+  add_favorite: "P9",
+  remove_favorite: "P9",
+  move_favorite: "P9",
+  create_favorite_folder: "P9",
+  rename_favorite_folder: "P9",
+  move_favorite_folder: "P9",
+  delete_favorite_folder: "P9",
+  list_stickies: "P9",
+  create_sticky: "P9",
+  update_sticky: "P9",
+  move_sticky: "P9",
+  delete_sticky: "P9",
+  list_quick_links: "P9",
+  add_quick_link: "P9",
+  update_quick_link: "P9",
+  move_quick_link: "P9",
+  remove_quick_link: "P9",
+  get_home_summary: "P9",
+  get_analytics: "P9",
+  get_profile_summary: "P9",
+  get_workspace_settings: "P9",
+  update_workspace_settings: "P9",
+  reorder_project: "P9",
 };
 
 describe("tool flags", () => {
   it("every delete_* tool and every contract-listed tool is destructive, nothing else", () => {
     for (const def of TOOLS) {
-      const expected = def.name.startsWith("delete_") || CONTRACT_DESTRUCTIVE.has(def.name);
+      const expected = (def.name.startsWith("delete_") && !NOT_DESTRUCTIVE_DELETES.has(def.name)) || CONTRACT_DESTRUCTIVE.has(def.name);
       expect(def.destructive === true, def.name).toBe(expected);
     }
   });
@@ -532,7 +561,10 @@ describe("listTools", () => {
     const p7 = listTools({ phase: "P7" });
     expect(p7.length).toBeLessThan(TOOLS.length);
     expect(p7.every((def) => def.phase !== "P8")).toBe(true);
-    expect(listTools({ phase: "P8" }).length).toBe(TOOLS.length);
+    const p8 = listTools({ phase: "P8" });
+    expect(p8.every((def) => def.phase !== "P9")).toBe(true);
+    expect(p8.length).toBeLessThan(TOOLS.length);
+    expect(listTools({ phase: "P9" }).length).toBe(TOOLS.length);
   });
 
   it("combines toolset and phase", () => {

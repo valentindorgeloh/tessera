@@ -1,7 +1,10 @@
 import type { IconType } from "@astryxdesign/core/Icon";
 import {
+  AgentIcon,
   ArchiveIcon,
+  BurndownIcon,
   CycleIcon,
+  DescriptionIcon,
   DraftIcon,
   FolderIcon,
   GearIcon,
@@ -14,6 +17,7 @@ import {
   MoonIcon,
   PageIcon,
   SunIcon,
+  UserIcon,
   ViewIcon,
 } from "@/themes/catppuccin/icons";
 import type { ColorScheme } from "./color-scheme";
@@ -36,6 +40,12 @@ export const ROUTE_ICONS: Readonly<Record<RouteIconKey, IconType>> = {
   archives: ArchiveIcon,
   intake: IntakeIcon,
   drafts: DraftIcon,
+  // UserCircleIcon, ChartBarIcon, RobotIcon and NoteIcon are not exported.
+  // User, the burndown chart, the agent robot and the description glyph stand in.
+  "your-work": UserIcon,
+  agents: AgentIcon,
+  analytics: BurndownIcon,
+  stickies: DescriptionIcon,
 };
 
 /** Glyphs for the colour schemes, shared by the account menu and Power K's theme commands. */

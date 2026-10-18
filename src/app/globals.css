@@ -20,6 +20,7 @@
 @import "../components/styles/drafts.css";
 @import "../components/styles/estimates.css";
 @import "../components/styles/bulk.css";
+@import "../components/styles/analytics.css";
 
 html,
 body {

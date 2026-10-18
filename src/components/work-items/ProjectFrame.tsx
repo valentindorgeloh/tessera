@@ -17,11 +17,12 @@ import { usePathname } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
-import { VStack } from "@astryxdesign/core/Stack";
+import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Token } from "@astryxdesign/core/Token";
 import { ProjectArchivedBanner, ProjectMenu } from "@/components/planning/ProjectArchive";
+import { FavoriteButton } from "@/components/shell/FavoriteButton";
 import { PanelBar, PanelHeader, PanelTitle } from "@/components/shell/PanelHeader";
 import type { Project } from "@/lib/tessera/types";
 import { ArchiveIcon, CycleIcon, GearIcon, IntakeIcon, KanbanIcon, ModuleIcon, PageIcon, ViewIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
@@ -79,7 +80,12 @@ export function ProjectFrame({ children }: { children: ReactNode }) {
                   </TabList>
                 </>
               }
-              end={<ProjectMenu project={project} />}
+              end={
+                <HStack gap={1} vAlign="center">
+                  <FavoriteButton entityType="project" entityId={project.id} />
+                  <ProjectMenu project={project} />
+                </HStack>
+              }
             />
           </PanelHeader>
           {project.archived_at !== null ? (

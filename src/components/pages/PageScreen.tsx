@@ -22,6 +22,7 @@ import { useClipboard, useHotkeys } from "@astryxdesign/core/hooks";
 import { useToast } from "@astryxdesign/core/Toast";
 import { archivePageAction, lockPageAction, unarchivePageAction, unlockPageAction, updatePageAction } from "@/app/actions/pages";
 import { registerEntityLabel } from "@/components/shell/entity-labels";
+import { FavoriteButton } from "@/components/shell/FavoriteButton";
 import { PanelBar, PanelHeader, PanelPage } from "@/components/shell/PanelHeader";
 import type { ActorRow, Label, PageDetail } from "@/lib/tessera/types";
 import { LockIcon, UnlockIcon } from "@/themes/catppuccin/icons";
@@ -138,6 +139,7 @@ export function PageScreen({ page, labels, actors, spaces, space }: PageScreenPr
             }
             end={
               <HStack gap={1} vAlign="center">
+                <FavoriteButton entityType="page" entityId={page.id} />
                 <IconButton
                   variant="ghost"
                   size="sm"

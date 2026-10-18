@@ -12,6 +12,7 @@ import {
   updateProjectFeatures,
   UpdateProjectFeaturesInput,
 } from "../../projects";
+import { reorderProject, ReorderProjectInput } from "../../projects-order";
 import { defineTool } from "../define";
 import { ProjectId, EmptyInput, ProjectIdInput, GetProjectInput, deleted, toListResult } from "./shared";
 
@@ -112,5 +113,14 @@ export const projectTools = [
     mutates: false,
     phase: "P1",
     run: (ctx) => toListResult(ctx, listProjects(ctx, { archived: true })),
+  }),
+  defineTool({
+    name: "reorder_project",
+    title: "Reorder project",
+    description: "Moves a project directly before or after another live project. before_id or after_id is required. Archived projects cannot be reordered (ARCHIVED).",
+    input: ReorderProjectInput.extend({ project_id: ProjectId }),
+    mutates: true,
+    phase: "P9",
+    run: (ctx, { project_id, ...input }) => reorderProject(ctx, project_id, input),
   }),
 ];
