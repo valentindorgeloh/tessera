@@ -26,6 +26,15 @@ describe("decision references", () => {
     expect(unknownDecisionRefs(lines, known)).toEqual([]);
   });
 
+  it("reads every number of a list citation", () => {
+    const lines = ["// decisions 1, 23 and 40", "// decisions 106, 113"];
+    expect(unknownDecisionRefs(lines, known)).toEqual([
+      { line: 1, number: "40" },
+      { line: 2, number: "106" },
+      { line: 2, number: "113" },
+    ]);
+  });
+
   it("reports unknown numbers with their line, and ignores string literals", () => {
     const lines = ["const a = 'decision 5';", "// decision 5 is missing", "/*", " * decision U9 too", " */", "const b = 1; // decision 23 ok, decision 40 not"];
     expect(unknownDecisionRefs(lines, known)).toEqual([

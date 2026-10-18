@@ -46,7 +46,7 @@ export const metaTools = [
     name: "describe_filters",
     title: "Describe filters",
     description:
-      "Returns the enums, the type of every Filters field (ids with the entity kind, enum, date, text, boolean), the allowed values of every Display key, the default display and worked examples, so an agent can build list_work_items and view inputs without reading the schema.",
+      "Returns the enums, the type of every Filters field (ids with the entity kind, enum, date, text, boolean), the allowed values of every Display key, the default display, the paging keys of list_work_items (per_group_limit, group_value, sub_group_value, group_limits, calendar_window) and worked examples, so an agent can build list_work_items and view inputs without reading the schema.",
     input: EmptyInput,
     mutates: false,
     core: true,

@@ -7,7 +7,7 @@ import { ViewBar } from "@/components/views/ViewBar";
 import { ViewLockIndicator } from "@/components/views/ViewRow";
 import { ViewMenu } from "@/components/views/ViewMenu";
 import { isViewModified, viewScopeDefaults, type ViewState } from "@/components/views/view-state";
-import { pageSizeFor } from "@/components/work-items/paging";
+import { listPaging } from "@/components/work-items/paging";
 import { decodeUrlState, mergeDisplay, mergeFilters } from "@/components/work-items/url-state";
 import { WorkItemsScreen } from "@/components/work-items/WorkItemsScreen";
 import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
@@ -45,7 +45,7 @@ export async function ViewWorkItems({ projectId, view, query }: ViewWorkItemsPro
   await io();
   let result: Awaited<ReturnType<typeof loadItems>>;
   try {
-    result = await loadItems(view.id, effective);
+    result = await loadItems(view.id, effective, typeof query.cal === "string" ? query.cal : undefined);
   } catch (err) {
     // The view may have been deleted since the page loaded; a malformed id lands here too.
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();
@@ -76,13 +76,13 @@ export async function ViewWorkItems({ projectId, view, query }: ViewWorkItemsPro
   );
 }
 
-function loadItems(viewId: string, effective: ViewState) {
+function loadItems(viewId: string, effective: ViewState, cal: string | undefined) {
   return readTessera((ctx) =>
     listWorkItems(ctx, {
       scope: { type: "view", view_id: viewId },
       filters: effective.filters,
       display: effective.display,
-      ...pageSizeFor(effective.display),
+      ...listPaging(effective.display, cal, ctx.today()),
       ...(effective.rich_filters !== undefined ? { rich_filters: effective.rich_filters } : {}),
     }),
   );

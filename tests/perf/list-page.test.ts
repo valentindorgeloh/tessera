@@ -14,8 +14,23 @@ import { createTestContext, createTestDb } from "../helpers/db";
 
 const ITEM_COUNT = 10_000;
 const PAGE_SIZE = 200;
-/** Wall-clock ceiling for one warmed first page on 10k items (decision 115 engine bound is 40 ms; Vitest stays loose). */
-const PAGE_BUDGET_MS = 2000;
+/**
+ * Wall-clock ceiling for the best of five warmed first pages on 10k items. Decision 115's engine bound is 40 ms
+ * (`npm run perf:bench` gates that); Vitest allows 5x for the other test files running beside it.
+ */
+const PAGE_BUDGET_MS = 200;
+const SAMPLES = 5;
+
+function bestOf<T>(run: () => T): { result: T; best: number } {
+  let best = Infinity;
+  let result = run();
+  for (let i = 0; i < SAMPLES; i += 1) {
+    const started = performance.now();
+    result = run();
+    best = Math.min(best, performance.now() - started);
+  }
+  return { result, best };
+}
 
 describe("listWorkItems performance", () => {
   it("returns the first page of a few thousand items under the budget", () => {
@@ -55,14 +70,17 @@ describe("listWorkItems performance", () => {
     })();
 
     const input = { scope: { type: "project" as const, project_id: project.id }, limit: PAGE_SIZE };
-    listWorkItems(ctx, input);
-    const started = performance.now();
-    const page = listWorkItems(ctx, input);
-    const elapsed = performance.now() - started;
+    const { result: page, best: elapsed } = bestOf(() => listWorkItems(ctx, input));
 
     expect(page.total).toBe(ITEM_COUNT);
     expect(page.items).toHaveLength(PAGE_SIZE);
     expect(elapsed).toBeLessThan(PAGE_BUDGET_MS);
+
+    // The grouped first page (exact counts over all 10k rows, 50 rows per group) has the same bound.
+    const grouped = bestOf(() => listWorkItems(ctx, { scope: input.scope, display: { group_by: "state" }, per_group_limit: 50 }));
+    expect(grouped.result.total).toBe(ITEM_COUNT);
+    expect(grouped.result.items).toHaveLength(50);
+    expect(grouped.best).toBeLessThan(PAGE_BUDGET_MS);
 
     const plan = handles.sqlite
       .prepare("EXPLAIN QUERY PLAN SELECT id FROM work_item WHERE project_id = ? AND deleted_at IS NULL ORDER BY sort_order LIMIT ?")

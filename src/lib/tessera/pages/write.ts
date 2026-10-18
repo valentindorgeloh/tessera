@@ -1,5 +1,5 @@
 /**
- * Creating and editing page properties (decisions 40, 42, 48).
+ * Creating and editing page properties (decision 40).
  */
 import { and, eq, isNull } from "drizzle-orm";
 import type { z } from "zod";

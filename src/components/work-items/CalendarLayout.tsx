@@ -32,7 +32,7 @@ import {
   periodLabel,
   shiftPeriod,
   weekdayLabels,
-  type WeekStart,
+  WEEK_STARTS_ON,
 } from "./calendar-math";
 import { isOptimisticId } from "./optimistic";
 import { stateGroupLabel, stateGroupVariant } from "./properties/StateControl";
@@ -41,8 +41,6 @@ import { QuickAdd } from "./QuickAdd";
 import { useBundles } from "./row-project";
 import type { LayoutProps } from "./types";
 
-/** Monday until the workspace week-start setting exists. */
-const WEEK_STARTS_ON: WeekStart = 1;
 const MAX_IN_CELL = 4;
 
 type IsoDate = Parameters<typeof DateInput>[0]["value"];
@@ -101,7 +99,7 @@ export function CalendarLayout({ result, display, onUpdate, onOpen, onQuickAdd, 
         <Banner
           status="info"
           title={`Showing the first ${result.items.length} of ${result.total} work items`}
-          description="The calendar loads at most 1000 work items. Narrow the filters to see the rest."
+          description="The calendar loads at most 1000 work items of the shown period, plus the unscheduled ones. Narrow the filters to see the rest."
         />
       ) : null}
       <PanelBar

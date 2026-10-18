@@ -78,6 +78,21 @@ export type DescribeFiltersPayload = {
   examples: FilterExample[];
   /** Operators per rich-filter field, plus the tree limits. Lists AND this tree with `filters`. */
   rich_filters: { limits: typeof RICH_FILTER_LIMITS; ops: typeof RICH_FILTER_OPS_BY_FIELD; examples: { title: string; tree: unknown }[] };
+  /** The paging keys of list_work_items next to filters and display (decisions 112, 113): what each does and its range. */
+  paging: Record<PagingKey, string>;
+};
+
+/** list_work_items input keys that page or window the list; a test keeps this in step with the input schema. */
+export type PagingKey = "limit" | "offset" | "per_group_limit" | "group_value" | "sub_group_value" | "group_limits" | "calendar_window";
+
+const PAGING: DescribeFiltersPayload["paging"] = {
+  limit: "Rows per page, 1 to 5000; all items when omitted. With group_value it pages inside that group.",
+  offset: "Rows to skip. With group_value it skips rows of that group.",
+  per_group_limit: "Rows per group (per sub-group cell), 1 to 500, when display.group_by is set. Group count, total and has_more stay exact over the whole filtered set. Omit all paging keys to get every item.",
+  group_value: "Page inside one group by its id (a state or label id, an enum value, a date or none); needs display.group_by. Use limit and offset to page.",
+  sub_group_value: "With group_value, page inside one sub-group cell; needs display.sub_group_by.",
+  group_limits: "Rows per named group, up to 100 entries of 1 to 2000, keyed by group id or group_id/sub_group_id, to re-read expanded groups in one call.",
+  calendar_window: "{ from, to } YYYY-MM-DD, inclusive: keeps items whose target date is inside it plus items with no target date (the calendar's shown period).",
 };
 
 // ---------------------------------------------------------------------------
@@ -222,6 +237,7 @@ export function describeFilters(): DescribeFiltersPayload {
           { title: "Name contains, not completed", tree: { and: [{ field: "name", op: "contains", value: "login" }, { not: { field: "state_group", op: "eq", value: "completed" } }] } },
         ],
       },
+      paging: PAGING,
     };
   }
   return cached;

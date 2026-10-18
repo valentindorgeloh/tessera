@@ -226,6 +226,13 @@ docs/contracts/tools.md. Service details: docs/drafts/p4-service-api.md.
   the change cursor and groups when display.group_by is set. With
   display.group_by, per_group_limit pages every group (counts and has_more stay
   exact), group_value (and sub_group_value) pages inside one group with
-  limit/offset. Use describe_filters for the vocabulary."
+  limit/offset. calendar_window keeps the items targeted inside a period plus the
+  unscheduled ones. Use describe_filters for the vocabulary."
+- `list_work_items` also takes `calendar_window` (`{ from, to }`, `YYYY-MM-DD`,
+  inclusive): items whose target date is inside it plus items with no target date.
+- `describe_filters` gains a `paging` object (one sentence per key: `limit`,
+  `offset`, `per_group_limit`, `group_value`, `sub_group_value`, `group_limits`,
+  `calendar_window`); `tests/paging.test.ts` keeps it in step with
+  `ListWorkItemsInput`. Its description names the keys.
 - Errors: `VALIDATION` at `group_value` without `display.group_by`, and at
   `sub_group_value` without `group_value` or `display.sub_group_by`.

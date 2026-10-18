@@ -47,6 +47,7 @@ import { GanttLayout } from "./GanttLayout";
 import { ListLayout } from "./ListLayout";
 import { toEngineMove } from "./moves";
 import { isOptimisticId, optimisticId } from "./optimistic";
+import { effectiveRichFilters } from "./paging";
 import { realNeighbour, reduceOptimisticList, type OptimisticAction, type StateGroupOf } from "./optimistic-list";
 import { firstStateByGroupOf, useProject } from "./project-provider";
 import { useBundles } from "./row-project";
@@ -163,7 +164,7 @@ export function WorkItemsScreen({
   const quickAddContext: QuickAddContext = { projectId, states: bundle.states, ...openMemberships(bundle), scopeDefaults };
   const stateGroupOf: StateGroupOf = (stateId) => statesById.get(stateId)?.state_group;
   const listScope: ListScope = listScopeProp ?? { type: "project", project_id: projectId };
-  const paged = usePagedList({ scope: listScope, display, filters, richFilters, server: result });
+  const paged = usePagedList({ scope: listScope, display, filters, richFilters: effectiveRichFilters(richFilters, urlState.rich_filters), server: result });
 
   const [optimistic, applyOptimistic] = useOptimistic(paged.result, (state: WorkItemListResult, action: OptimisticAction) =>
     reduceOptimisticList(state, action, { display, stateGroupOf, firstStateByGroup }),
@@ -396,7 +397,7 @@ export function WorkItemsScreen({
           module_id: exportScope?.module_id,
           view_id: exportScope?.view_id,
           filters,
-          rich_filters: richFilters === undefined ? (urlState.rich_filters ?? null) : richFilters,
+          rich_filters: effectiveRichFilters(richFilters, urlState.rich_filters),
           order_by: display.order_by,
         }}
       />

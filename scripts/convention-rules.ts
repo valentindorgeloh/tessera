@@ -55,12 +55,12 @@ export function commentTexts(lines: string[]): { line: number; text: string }[] 
   return out;
 }
 
-/** Decision numbers cited in a comment as `decision N` or `decision UN` (uppercased). */
+/** Decision numbers cited in a comment as `decision N`, `decision UN` or a list (`decisions 12, 13`, `decisions 5 and 7`), uppercased. */
 export function decisionRefs(comment: string): string[] {
   const refs: string[] = [];
-  const re = /\bdecision (U?\d+)\b/gi;
+  const re = /\bdecisions? (U?\d+(?:(?:\s*,\s*|\s+and\s+|\s+to\s+|\s*&\s*)U?\d+)*)\b/gi;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(comment)) !== null) refs.push(m[1].toUpperCase());
+  while ((m = re.exec(comment)) !== null) for (const number of m[1].match(/U?\d+/gi) ?? []) refs.push(number.toUpperCase());
   return refs;
 }
 

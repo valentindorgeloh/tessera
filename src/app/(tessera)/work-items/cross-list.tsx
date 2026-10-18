@@ -7,7 +7,7 @@ import { ViewBar } from "@/components/views/ViewBar";
 import { ViewMenu } from "@/components/views/ViewMenu";
 import { ViewLockIndicator } from "@/components/views/ViewRow";
 import { isViewModified, type ViewState } from "@/components/views/view-state";
-import { pageSizeFor } from "@/components/work-items/paging";
+import { listPaging } from "@/components/work-items/paging";
 import { ProjectScope } from "@/components/work-items/project-provider";
 import { BundlesProvider } from "@/components/work-items/row-project";
 import type { ProjectBundle, SettingsScope } from "@/components/work-items/types";
@@ -158,7 +158,7 @@ export async function CrossProjectWorkList({
   let loaded: Awaited<ReturnType<typeof loadList>> | undefined;
   let missing = false;
   try {
-    loaded = await loadList(scope, settingsScope, saved, urlState, forceTable);
+    loaded = await loadList(scope, settingsScope, saved, urlState, forceTable, typeof query.cal === "string" ? query.cal : undefined);
   } catch (err) {
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) missing = true;
     else throw err;
@@ -207,6 +207,7 @@ function loadList(
   saved: { filters: Filters; display: Display } | undefined,
   urlState: ReturnType<typeof decodeUrlState>,
   forceTable: boolean,
+  cal: string | undefined,
 ) {
   return readTessera((ctx) => {
     const stored = settingsScope ? getViewSettings(ctx, settingsScope.scope_type, settingsScope.scope_id) : (saved ?? { filters: {}, display: DEFAULT_DISPLAY });
@@ -217,7 +218,7 @@ function loadList(
       scope,
       filters,
       display,
-      ...pageSizeFor(display),
+      ...listPaging(display, cal, ctx.today()),
       ...(urlState.rich_filters !== undefined ? { rich_filters: urlState.rich_filters } : {}),
     });
     const projects = listProjects(ctx, {});

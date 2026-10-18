@@ -7,6 +7,9 @@ import { addDays } from "@/lib/tessera/core/time";
 export type CalendarView = "month" | "week";
 export type WeekStart = 0 | 1;
 
+/** Monday until the workspace week-start setting exists. */
+export const WEEK_STARTS_ON: WeekStart = 1;
+
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 function pad(value: number): string {

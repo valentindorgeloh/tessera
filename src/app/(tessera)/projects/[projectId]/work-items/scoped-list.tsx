@@ -5,7 +5,7 @@ import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { loadWorkItemDetail } from "@/app/(tessera)/work-items/load-detail";
 import { PeekHost, type PeekData } from "@/components/detail/PeekHost";
-import { pageSizeFor } from "@/components/work-items/paging";
+import { listPaging } from "@/components/work-items/paging";
 import type { ScopeDefaults, SettingsScope, UrlState, WorkItemsScope } from "@/components/work-items/types";
 import { decodeUrlState, mergeDisplay, mergeFilters } from "@/components/work-items/url-state";
 import { WorkItemsScreen, type WorkItemsScreenProps } from "@/components/work-items/WorkItemsScreen";
@@ -60,12 +60,12 @@ function withoutHiddenGroups(display: Display, hidden: readonly GroupBy[]): Disp
   };
 }
 
-function loadWorkItems(scope: WorkItemsScope, settingsScope: SettingsScope, urlState: UrlState, hidden: readonly GroupBy[]) {
+function loadWorkItems(scope: WorkItemsScope, settingsScope: SettingsScope, urlState: UrlState, hidden: readonly GroupBy[], cal: string | undefined) {
   return readTessera((ctx) => {
     const settings = getViewSettings(ctx, settingsScope.scope_type, settingsScope.scope_id);
     const display = withoutHiddenGroups(mergeDisplay(DEFAULT_DISPLAY, settings.display, urlState.display), hidden);
     const filters = mergeFilters({}, settings.filters, urlState.filters);
-    const paging = pageSizeFor(display);
+    const paging = listPaging(display, cal, ctx.today());
     const result = listWorkItems(ctx, {
       scope,
       filters,
@@ -94,7 +94,7 @@ export async function ScopedWorkItems({
   await io();
   let data: Awaited<ReturnType<typeof loadWorkItems>>;
   try {
-    data = await loadWorkItems(scope, settingsScope, urlState, hiddenGroupFields);
+    data = await loadWorkItems(scope, settingsScope, urlState, hiddenGroupFields, typeof query.cal === "string" ? query.cal : undefined);
   } catch (err) {
     // Pages render in parallel with their layout: a missing or malformed project, cycle or module id lands here too.
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();

@@ -28,7 +28,8 @@
     "mcp:stdio": "tsx scripts/mcp-stdio.ts",
     "automations": "tsx scripts/automations.ts",
     "import:handbook": "tsx scripts/import-handbook.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:e2e": "next build && npm run check:bundle && playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.133.0",

@@ -105,9 +105,8 @@ describe("query plans (decision 126)", () => {
    * no project predicate, so it must visit every row once for the total and once
    * for the page: no index can change that (a partial index on the live rows
    * still scans all of them), so the plan is pinned at two instead of zero.
-   * The cycle scope filters `cycle_id` without `project_id`, which the only
-   * cycle index `(project_id, cycle_id)` cannot serve; it scans today (2) and
-   * the case below turns strict once `work_item_cycle_idx` exists.
+   * The cycle scope names the cycle's project as well as `cycle_id`, so it uses
+   * the `(project_id, cycle_id)` index and allows no scan.
    */
   const cases: [string, () => unknown, number][] = [
     ["list page, ungrouped", () => listWorkItems(ctx, { scope: scope(), limit: 200 }), 0],
@@ -115,7 +114,7 @@ describe("query plans (decision 126)", () => {
     ["list page, filtered by priority", () => listWorkItems(ctx, { scope: scope(), filters: { priority: ["high"] }, limit: 200 }), 0],
     ["list page, filtered by label", () => listWorkItems(ctx, { scope: scope(), filters: { labels: [labelId] }, limit: 200 }), 0],
     ["list page, filtered by assignee", () => listWorkItems(ctx, { scope: scope(), filters: { assignees: [USER_ACTOR_ID] }, limit: 200 }), 0],
-    ["list page, cycle scope", () => listWorkItems(ctx, { scope: { type: "cycle", cycle_id: cycleId }, limit: 200 }), 2],
+    ["list page, cycle scope", () => listWorkItems(ctx, { scope: { type: "cycle", cycle_id: cycleId }, limit: 200 }), 0],
     ["list page, grouped by state", () => listWorkItems(ctx, { scope: scope(), display: { group_by: "state" }, per_group_limit: 50 }), 0],
     ["group projection, priority", () => listWorkItems(ctx, { scope: scope(), display: { group_by: "priority" }, per_group_limit: 50 }), 0],
     ["group projection, labels", () => listWorkItems(ctx, { scope: scope(), display: { group_by: "labels" }, per_group_limit: 50 }), 0],
@@ -136,16 +135,14 @@ describe("query plans (decision 126)", () => {
     expect(scans.length, plans.find((entry) => bareScans(entry.lines).length > 0)?.sql).toBeLessThanOrEqual(allowedScans);
   });
 
-  it("cycle scope searches work_item by cycle_id once work_item_cycle_idx exists", (t) => {
-    const indexed = sqlite.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'work_item_cycle_idx'").get();
-    if (!indexed) t.skip();
+  it("cycle scope searches work_item through the project and cycle index", () => {
     const plans = plansOf(sqlite, () => listWorkItems(ctx, { scope: { type: "cycle", cycle_id: cycleId }, limit: 200 }));
     expect(plans.flatMap((entry) => bareScans(entry.lines))).toEqual([]);
-    expect(plans.flatMap((entry) => entry.lines).join("\n")).toMatch(/work_item_cycle_idx/);
+    expect(plans.flatMap((entry) => entry.lines).join("\n")).toMatch(/work_item_project_cycle_idx/);
   });
 
-  // Recommended by the decision 126 perf pass (plan section 3): CREATE INDEX work_item_cycle_idx ON work_item(cycle_id) WHERE cycle_id IS NOT NULL;
-  test.todo("migration adds work_item_cycle_idx (cycle detail, progress and list read by cycle_id alone)");
+  // Not needed by the list any more. Cycle detail and progress (cycles.ts) still read by cycle_id alone; a migration owner may add:
+  // CREATE INDEX work_item_cycle_idx ON work_item(cycle_id) WHERE cycle_id IS NOT NULL;
 
   it("revision probes use their activity indexes", () => {
     const probes: [string, unknown[], RegExp][] = [

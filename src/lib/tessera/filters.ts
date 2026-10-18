@@ -296,7 +296,7 @@ export type Group = {
   item_ids: string[];
   /** True when the group holds more items than `item_ids` lists. Always false outside group paging (decision 113). */
   has_more: boolean;
-  /** Sum of the numeric points estimates over the whole group; set only on a group-paged list whose items carry a points estimate (decisions 106, 113). */
+  /** Sum of the numeric points estimates over the whole group; set only on a group-paged list whose items carry a points estimate (decision 113). */
   estimate_points?: number;
   sub_groups?: Group[];
 };

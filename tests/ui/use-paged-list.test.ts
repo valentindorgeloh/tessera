@@ -12,7 +12,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { PagedList, UsePagedListArgs } from "@/components/work-items/use-paged-list";
 import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
-import type { Display, Group, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
+import type { Display, Group, RichFilters, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 
 const listWorkItemsAction = vi.hoisted(() => vi.fn());
 vi.mock("@/app/actions/work-items", () => ({ listWorkItemsAction }));
@@ -145,6 +145,24 @@ describe("usePagedList", () => {
     await update({ scope: SCOPE, display, filters: { priority: ["high"] }, server: listOf(50, 90) });
     expect(rowsOf()).toBe(50);
     expect(listWorkItemsAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the rich filter with Show more and the re-request, and starts over when only it changes", async () => {
+    const rich = { op: "and", conditions: [{ field: "priority", op: "is", value: ["high"] }] } as unknown as RichFilters;
+    listWorkItemsAction.mockResolvedValueOnce(ok(listOf(50, 120, 51)));
+    await mount({ scope: SCOPE, display, filters: {}, richFilters: rich, server: listOf(50, 120) });
+    await act(async () => {
+      seenRef.current?.loadMore("high");
+    });
+    expect(listWorkItemsAction.mock.calls[0]?.[0]).toMatchObject({ rich_filters: rich });
+    expect(rowsOf()).toBe(100);
+    listWorkItemsAction.mockResolvedValueOnce(ok(listOf(100, 119)));
+    await update({ scope: SCOPE, display, filters: {}, richFilters: rich, server: listOf(50, 119) });
+    expect(listWorkItemsAction.mock.calls[1]?.[0]).toMatchObject({ rich_filters: rich, group_limits: { high: 100 } });
+    // Only the rich filter changes: the expanded rows of the old filter go.
+    await update({ scope: SCOPE, display, filters: {}, richFilters: null, server: listOf(50, 300) });
+    expect(rowsOf()).toBe(50);
+    expect(listWorkItemsAction).toHaveBeenCalledTimes(2);
   });
 
   it("drops the answer to a page that was requested before the server result changed", async () => {

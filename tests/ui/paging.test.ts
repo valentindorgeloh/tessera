@@ -9,7 +9,10 @@ import { describe, expect, it } from "vitest";
 import { reduceOptimisticList } from "@/components/work-items/optimistic-list";
 import {
   CALENDAR_CAP,
+  calendarWindow,
+  effectiveRichFilters,
   hasUnloaded,
+  listPaging,
   keepLoaded,
   loadMoreSize,
   loadedIds,
@@ -23,7 +26,7 @@ import {
 } from "@/components/work-items/paging";
 import { groupLimitKey } from "@/lib/tessera/core/group";
 import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
-import type { Display, Group, State, StateGroup, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
+import type { Display, Group, RichFilters, State, StateGroup, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 
 const noStates: ReadonlyMap<StateGroup, State> = new Map();
 const stateGroupOf = () => undefined;
@@ -79,6 +82,38 @@ describe("page sizes", () => {
     expect(loadMoreSize(grouped("list"))).toBe(50);
     expect(loadMoreSize(grouped("board"))).toBe(30);
     expect(loadMoreSize(flat("table"))).toBe(200);
+  });
+});
+
+describe("calendar period and rich filters", () => {
+  const month: Display = { ...DEFAULT_DISPLAY, layout: "calendar" };
+  const week: Display = { ...month, calendar: { layout: "week", show_weekends: true } };
+
+  it("windows the whole weeks of the month around ?cal= (Monday first), default today", () => {
+    // October 2026 starts on a Thursday and ends on a Saturday.
+    expect(calendarWindow(month, "2026-10-14", "2026-01-01")).toEqual({ from: "2026-09-28", to: "2026-11-01" });
+    expect(calendarWindow(month, undefined, "2026-10-10")).toEqual({ from: "2026-09-28", to: "2026-11-01" });
+    expect(calendarWindow(month, "not-a-date", "2026-10-10")).toEqual({ from: "2026-09-28", to: "2026-11-01" });
+  });
+
+  it("windows one week in the week layout and skips weekend columns in the bounds", () => {
+    expect(calendarWindow(week, "2026-10-14", "2026-01-01")).toEqual({ from: "2026-10-12", to: "2026-10-18" });
+    const weekdays: Display = { ...week, calendar: { layout: "week", show_weekends: false } };
+    expect(calendarWindow(weekdays, "2026-10-14", "2026-01-01")).toEqual({ from: "2026-10-12", to: "2026-10-16" });
+  });
+
+  it("sends the window only for the calendar", () => {
+    expect(listPaging(month, "2026-10-14", "2026-10-10")).toEqual({ limit: CALENDAR_CAP, calendar_window: { from: "2026-09-28", to: "2026-11-01" } });
+    expect(listPaging({ ...DEFAULT_DISPLAY, layout: "table", group_by: null }, "2026-10-14", "2026-10-10")).toEqual({ limit: 200 });
+  });
+
+  it("falls back to the URL rich filters unless the screen has its own tree", () => {
+    const tree = { op: "and", conditions: [] } as unknown as RichFilters;
+    const other = { op: "or", conditions: [] } as unknown as RichFilters;
+    expect(effectiveRichFilters(undefined, tree)).toBe(tree);
+    expect(effectiveRichFilters(undefined, undefined)).toBeNull();
+    expect(effectiveRichFilters(null, tree)).toBeNull();
+    expect(effectiveRichFilters(other, tree)).toBe(other);
   });
 });
 

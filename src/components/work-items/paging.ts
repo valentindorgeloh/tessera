@@ -7,7 +7,9 @@
  * (tests/ui/paging.test.ts).
  */
 import { groupLimitKey } from "@/lib/tessera/core/group";
-import type { Display, Group, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
+import { isIsoDate } from "@/lib/tessera/core/time";
+import { WEEK_STARTS_ON, calendarWeeks } from "./calendar-math";
+import type { Display, Group, RichFilters, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 
 /** Rows a first or "Show more" page of an ungrouped list, table or gantt holds (decision 112). */
 export const ROW_PAGE = 200;
@@ -34,6 +36,38 @@ export function pageSizeFor(display: Display): { limit?: number; per_group_limit
   if (pagesByGroup(display)) return { per_group_limit: display.layout === "board" ? BOARD_GROUP_PAGE : LIST_GROUP_PAGE };
   if (display.layout === "calendar") return { limit: CALENDAR_CAP };
   return { limit: ROW_PAGE };
+}
+
+/**
+ * The first and last day the calendar shows around `?cal=` (any day inside the period, default today): the whole
+ * weeks of a month, or the one week. The server loads only the items targeted in this window plus the unscheduled
+ * ones (decision 112); the calendar draws items by target date only.
+ */
+export function calendarWindow(display: Display, cal: string | undefined, today: string): { from: string; to: string } {
+  const anchor = cal !== undefined && isIsoDate(cal) ? cal : today;
+  const weeks = calendarWeeks(anchor, display.calendar.layout, WEEK_STARTS_ON, display.calendar.show_weekends);
+  const first = weeks[0]?.[0] ?? anchor;
+  const lastWeek = weeks[weeks.length - 1];
+  return { from: first, to: lastWeek?.[lastWeek.length - 1] ?? anchor };
+}
+
+/** The paging keys of a loader's first read: `pageSizeFor`, plus the calendar's visible period (decision 112). */
+export function listPaging(
+  display: Display,
+  cal: string | undefined,
+  today: string,
+): { limit?: number; per_group_limit?: number; calendar_window?: { from: string; to: string } } {
+  const size = pageSizeFor(display);
+  return display.layout === "calendar" ? { ...size, calendar_window: calendarWindow(display, cal, today) } : size;
+}
+
+/**
+ * The rich filter tree a paging request and an export send: the screen's explicit tree (a saved view's) when it has
+ * one, else the URL's. A project, cycle, module or workspace list passes none, and its first page already applies
+ * the URL tree, so "Show more" and the group re-request must send the same one.
+ */
+export function effectiveRichFilters(richFilters: RichFilters | null | undefined, urlRichFilters: RichFilters | null | undefined): RichFilters | null {
+  return richFilters === undefined ? (urlRichFilters ?? null) : richFilters;
 }
 
 /** How many more rows a "Show more" click asks for. */

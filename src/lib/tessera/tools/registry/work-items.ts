@@ -77,7 +77,7 @@ export const workItemTools = [
     name: "list_work_items",
     title: "List work items",
     description:
-      "Lists work items for a scope (project, cycle, module, saved view, workspace, profile tab, archived or draft) with Filters combined by AND and Display for ordering and grouping; a view scope merges the caller's filters over the saved ones. Returns items, total, the change cursor and groups when display.group_by is set. With display.group_by, per_group_limit pages every group (counts and has_more stay exact), group_value (and sub_group_value) pages inside one group with limit/offset. Use describe_filters for the vocabulary.",
+      "Lists work items for a scope (project, cycle, module, saved view, workspace, profile tab, archived or draft) with Filters combined by AND and Display for ordering and grouping; a view scope merges the caller's filters over the saved ones. Returns items, total, the change cursor and groups when display.group_by is set. With display.group_by, per_group_limit pages every group (counts and has_more stay exact), group_value (and sub_group_value) pages inside one group with limit/offset. calendar_window keeps the items targeted inside a period plus the unscheduled ones. Use describe_filters for the vocabulary.",
     input: ListWorkItemsInput,
     mutates: false,
     core: true,

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, asc, count, eq, inArray, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray, isNotNull, isNull, lte, or, sql, type SQL } from "drizzle-orm";
 import { getActor } from "../actors";
 import { latestSeq } from "../activity";
 import type { TesseraContext } from "../core/context";
@@ -10,7 +10,7 @@ import { cycle, moduleTable, project, view, work_item, work_item_assignee, work_
 import { buildOrder, buildWhere, groupItems } from "../filters";
 import { getProjectRow, resolveRetiredIdentifier } from "../projects";
 import { buildRichWhere } from "../rich-filters";
-import { DEFAULT_DISPLAY, DisplaySchema, FiltersSchema, IdSchema, RichFiltersSchema } from "../schemas";
+import { DEFAULT_DISPLAY, DisplaySchema, FiltersSchema, IdSchema, IsoDateSchema, RichFiltersSchema } from "../schemas";
 import type { Display, Filters, RichFilters } from "../types";
 import { DisplayPatchSchema, mergeDisplay } from "../view-settings";
 import { ENTITY, type WorkItem, type WorkItemDetail, type WorkItemListResult, getWorkItemRow } from "./model";
@@ -105,6 +105,12 @@ export const ListWorkItemsInput = z
       .refine((limits) => Object.keys(limits).length <= 100, { message: "At most 100 group_limits entries" })
       .optional()
       .describe("Rows to load for named groups instead of per_group_limit, keyed by group id or group_id/sub_group_id, to refetch expanded groups in one call."),
+    calendar_window: z
+      .object({ from: IsoDateSchema, to: IsoDateSchema })
+      .strict()
+      .refine((window) => window.from <= window.to, { message: "calendar_window.from must not be after to" })
+      .optional()
+      .describe("Calendar period YYYY-MM-DD..YYYY-MM-DD (inclusive): keeps items whose target date falls inside it plus the items with no target date (the Unscheduled bucket)."),
   })
   .strict();
 
@@ -166,7 +172,13 @@ function resolveScope(ctx: TesseraContext, data: z.output<typeof ListWorkItemsIn
         .where(and(eq(cycle.id, scope.cycle_id), isNull(cycle.deleted_at)))
         .get();
       if (!row) throw notFound("cycle", scope.cycle_id);
-      return { ...base, where: eq(work_item.cycle_id, scope.cycle_id), project_ids: [row.project_id], project_id: row.project_id };
+      // The project predicate is redundant (a cycle holds its own project's items) but lets SQLite use work_item_project_cycle_idx (decision 126).
+      return {
+        ...base,
+        where: and(eq(work_item.project_id, row.project_id), eq(work_item.cycle_id, scope.cycle_id)),
+        project_ids: [row.project_id],
+        project_id: row.project_id,
+      };
     }
     case "module": {
       const row = ctx.db
@@ -239,7 +251,9 @@ export function listWorkItems(ctx: TesseraContext, input: ListWorkItemsInputType
   if (scope.empty === true) return { items: [], total: 0, cursor: latestSeq(ctx) };
   const filters = effectiveFilters(scope.filters, scope.display);
   const rich = scope.rich_filters === null ? undefined : buildRichWhere(ctx, scope.rich_filters, { today: ctx.today() });
-  const where = and(scope.where, buildWhere(ctx, filters, { project_id: scope.project_id }), rich);
+  const period = data.calendar_window;
+  const windowed = period === undefined ? undefined : or(isNull(work_item.target_date), and(gte(work_item.target_date, period.from), lte(work_item.target_date, period.to)));
+  const where = and(scope.where, buildWhere(ctx, filters, { project_id: scope.project_id }), rich, windowed);
   // Group paging (decisions 112, 113): exact counts over the whole filtered set, a page per group.
   const plan = planGroupPaging(data, scope.display);
   if (plan !== null) return listGroupPage(ctx, { where, display: scope.display, project_ids: scope.project_ids, plan });

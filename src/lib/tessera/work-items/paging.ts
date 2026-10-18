@@ -111,6 +111,9 @@ function rawRows(ctx: TesseraContext, query: BuiltQuery): unknown[][] {
   return ctx.sqlite.prepare(text).raw().all(...params) as unknown[][];
 }
 
+/** Shared by every row without that list: grouping only reads it, and 10k rows would otherwise allocate 30k arrays. */
+const NO_IDS: string[] = Object.freeze([]) as unknown as string[];
+
 function toLists(pairs: unknown[][]): Map<string, string[]> {
   const map = new Map<string, string[]>();
   for (const [k, v] of pairs as [string, string][]) {
@@ -172,9 +175,9 @@ export function groupKeyRows(ctx: TesseraContext, where: SQL | undefined, displa
       start_date: row[6] as string | null,
       target_date: row[7] as string | null,
       created_at: row[8] as string,
-      label_ids: labels?.get(id) ?? [],
-      module_ids: modules?.get(id) ?? [],
-      assignee_ids: assignees?.get(id) ?? [],
+      label_ids: labels?.get(id) ?? NO_IDS,
+      module_ids: modules?.get(id) ?? NO_IDS,
+      assignee_ids: assignees?.get(id) ?? NO_IDS,
       estimate_points: pointValue(row[9] as string | null),
     };
   });

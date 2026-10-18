@@ -19,6 +19,8 @@ import { listStates } from "@/lib/tessera/states";
 import type { Display, StateRow } from "@/lib/tessera/types";
 import { createView } from "@/lib/tessera/views";
 import { archiveWorkItem, createWorkItem, listWorkItems, moveWorkItem, type ListWorkItemsInputType, type WorkItem } from "@/lib/tessera/work-items";
+import { describeFilters } from "@/lib/tessera/tools/describe-filters";
+import { ListWorkItemsInput } from "@/lib/tessera/work-items/read";
 import { pageGroups } from "@/lib/tessera/work-items/paging";
 import { createTestDb } from "./helpers/db";
 
@@ -445,7 +447,44 @@ describe("other scopes and filters page through the same WHERE", () => {
   });
 });
 
-describe("estimate totals over the full group (decisions 106, 113)", () => {
+describe("describe_filters names the paging keys (decision 112)", () => {
+  it("documents every paging key of list_work_items, and only keys the input accepts", () => {
+    const documented = Object.keys(describeFilters().paging).sort();
+    const accepted = Object.keys(ListWorkItemsInput.shape);
+    for (const key of documented) expect(accepted, key).toContain(key);
+    for (const key of ["limit", "offset", "per_group_limit", "group_value", "sub_group_value", "group_limits", "calendar_window"]) expect(documented, key).toContain(key);
+    expect(describeFilters().paging.per_group_limit).toMatch(/1 to 500/);
+  });
+});
+
+describe("calendar_window (decision 112)", () => {
+  it("keeps the items targeted inside the period and the unscheduled ones, under a limit", () => {
+    const f = setup();
+    const make = (name: string, target_date?: string) => createWorkItem(f.ctx, { project_id: f.project.id, name, state_id: f.backlog.id, ...(target_date ? { target_date } : {}) });
+    make("Before", "2026-09-30");
+    make("First day", "2026-10-01");
+    make("Mid", "2026-10-15");
+    make("Last day", "2026-10-31");
+    make("After", "2026-11-01");
+    make("Loose 1");
+    make("Loose 2");
+    const window = { from: "2026-10-01", to: "2026-10-31" };
+    const result = list(f, { calendar_window: window, limit: 1000 });
+    expect(result.items.map((item) => item.name).sort()).toEqual(["First day", "Last day", "Loose 1", "Loose 2", "Mid"]);
+    expect(result.total).toBe(5);
+    expect(result.has_more).toBe(false);
+    // The cap cuts the windowed set, not the whole project.
+    const cut = list(f, { calendar_window: window, limit: 2 });
+    expect(cut.items).toHaveLength(2);
+    expect(cut.total).toBe(5);
+    expect(cut.has_more).toBe(true);
+    // Without the key every item loads.
+    expect(list(f).total).toBe(7);
+    expect(errorCode(() => list(f, { calendar_window: { from: "2026-11-01", to: "2026-10-01" } }))).toBe("VALIDATION");
+  });
+});
+
+describe("estimate totals over the full group (decision 113)", () => {
   it("sums the points of the whole group, not the loaded page", () => {
     const f = setup();
     const audit = { created_at: f.ctx.now(), updated_at: f.ctx.now(), created_by: USER_ACTOR_ID, updated_by: USER_ACTOR_ID };

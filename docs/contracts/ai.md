@@ -76,7 +76,8 @@ Built in P1 (`src/lib/tessera/tools/describe-filters.ts`, tool `describe_filters
              show_empty_groups: boolean[], sub_items: boolean[], calendar: { layout: ("month" | "week")[], show_weekends: boolean[] }, properties: string[] },
   default_display: Display,            // what a list shows when nothing is saved; a DisplayPatch merges over it
   examples: [{ title: "Open high-priority items assigned to me", filters: Filters, display: DisplayPatch },
-             { title: "Overdue work on a board by state", ... }, { title: "Due in the next two weeks, grouped by assignee, top-level items only", ... }]
+             { title: "Overdue work on a board by state", ... }, { title: "Due in the next two weeks, grouped by assignee, top-level items only", ... }],
+  paging: { limit, offset, per_group_limit, group_value, sub_group_value, group_limits, calendar_window }   // one sentence each (P11, decisions 112, 113)
 }
 ```
 
