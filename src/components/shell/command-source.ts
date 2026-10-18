@@ -192,6 +192,7 @@ const PROJECT_SETTINGS_TABS: readonly { tab: string; label: string }[] = [
   { tab: "features", label: "Features" },
   { tab: "states", label: "States" },
   { tab: "labels", label: "Labels" },
+  { tab: "estimates", label: "Estimates" },
   { tab: "agents", label: "Agents" },
 ];
 
@@ -212,6 +213,9 @@ export function buildProjectSettingsCommands(projectId: string | null): CommandS
 
 /** The project command that opens the views list with the "Describe a view" dialog (P5 view from prompt). */
 export const DESCRIBE_VIEW_ID = "ai.describeView";
+
+/** Opens `/drafts?draft=new`. Not a shortcut: the drafts list is `g y`. */
+export const NEW_DRAFT_ID = "create.draft";
 
 /**
  * "Describe a view…" for the project in scope, in the Create section. Left out
@@ -284,6 +288,11 @@ export function buildCommands(context: CommandContextValue | null, features?: Pr
     if (def.id === "item.delete") deleteItem = item;
     else actions.push(item);
   }
+  rest.push({
+    id: NEW_DRAFT_ID,
+    label: "New draft",
+    auxiliaryData: { group: "Create", kind: "command", keywords: ["draft", "new", "save"] },
+  });
   if (context) {
     actions.push({
       id: `${OPEN_ITEM_PREFIX}${context.item.id}`,

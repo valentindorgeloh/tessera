@@ -18,7 +18,7 @@ import { useClipboard } from "@astryxdesign/core/hooks";
 import { PanelBar } from "@/components/shell/PanelHeader";
 import { useProject } from "@/components/work-items/project-provider";
 import type { WorkItem, WorkItemDetail } from "@/lib/tessera/types";
-import { ArchiveIcon, ArrowSquareOutIcon, ArrowsOutIcon, CheckIcon, CopyIcon, HashIcon, LinkIcon, RestoreIcon, SidebarIcon, TrashIcon, XIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { ArchiveIcon, ArrowSquareOutIcon, ArrowsOutIcon, CheckIcon, CopyIcon, HashIcon, LinkIcon, MoveToProjectIcon, RestoreIcon, SidebarIcon, TrashIcon, XIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import type { DetailHost } from "./types";
 
 export type DetailHeaderProps = {
@@ -28,8 +28,10 @@ export type DetailHeaderProps = {
   onClose?: () => void;
   onHostChange?: (host: DetailHost) => void;
   onOpenItem: (id: string) => void;
-  /** Overflow actions: make a copy, archive or restore (P3), delete. */
+  /** Overflow actions: make a copy, copy or move to another project, archive or restore (P3), delete. */
   onCopyItem?: () => void;
+  onCopyToProject?: () => void;
+  onMoveToProject?: () => void;
   onDelete?: () => void;
   /** Archive entry; shown disabled with `archiveBlockedReason` as its description while the item cannot be archived. */
   onArchive?: () => void;
@@ -106,6 +108,8 @@ export function DetailHeader({
   onHostChange,
   onOpenItem,
   onCopyItem,
+  onCopyToProject,
+  onMoveToProject,
   onDelete,
   onArchive,
   onRestore,
@@ -125,6 +129,8 @@ export function DetailHeader({
   // Make a copy, Copy ID, then Restore (archived) or Archive (disabled with the reason while blocked), Delete last.
   const menuItems: DropdownMenuOption[] = [
     ...(onCopyItem ? [{ id: "copy", label: "Make a copy", icon: CopyIcon, onClick: onCopyItem }] : []),
+    ...(onCopyToProject ? [{ id: "copy-project", label: "Copy to project…", icon: CopyIcon, onClick: onCopyToProject }] : []),
+    ...(onMoveToProject ? [{ id: "move-project", label: "Move to project…", icon: MoveToProjectIcon, onClick: onMoveToProject }] : []),
     { id: "copy-id", label: `Copy ID (${item.key})`, icon: HashIcon, onClick: () => void copyId.copy(item.key) },
     ...(onRestore ? [{ id: "restore", label: "Restore", icon: RestoreIcon, onClick: onRestore }] : []),
     ...(onArchive

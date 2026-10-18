@@ -16,6 +16,7 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 import { Avatar } from "@astryxdesign/core/Avatar";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
+import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { useListFocus } from "@astryxdesign/core/hooks";
@@ -23,6 +24,7 @@ import { List, ListItem } from "@astryxdesign/core/List";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
+import { formatEstimateValue } from "@/components/estimates/estimate-format";
 import type { Display, Group, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { isOptimisticId } from "./optimistic";
 import { useProject } from "./project-provider";
@@ -78,9 +80,22 @@ function GroupMarker({ group }: { group: Group }) {
   }
 }
 
-function GroupHeader({ group }: { group: Group }) {
+function GroupHeader({ group, selection, ids }: { group: Group; selection?: LayoutProps["selection"]; ids: readonly string[] }) {
+  const selectedCount = selection ? ids.filter((id) => selection.selected.has(id)).length : 0;
+  const value = !selection || selectedCount === 0 ? false : selectedCount === ids.length ? true : "indeterminate";
   return (
     <HStack gap={2} vAlign="center" className="tessera-wi-group-header">
+      {selection && ids.length > 0 ? (
+        <CheckboxInput
+          className="tessera-wi-select"
+          size="sm"
+          isLabelHidden
+          label={`Select ${group.name}`}
+          value={value}
+          onClick={(event) => event.stopPropagation()}
+          onChange={(checked) => selection.onToggleIds(ids, checked === true || value === "indeterminate")}
+        />
+      ) : null}
       <HStack className="tessera-wi-group-name" vAlign="center">
         <Text type="label" weight="medium">
           <GroupMarker group={group} />
@@ -102,6 +117,7 @@ type RowProps = {
   onOpen: (id: string) => void;
   /** Archived project: every property control is read-only (F3.4). */
   readOnly?: boolean;
+  selection?: LayoutProps["selection"];
 };
 
 function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowProps, "onOpen"> & { readOnly?: boolean }) {
@@ -179,6 +195,10 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowPr
   if (props.links && item.links_count > 0) {
     nodes.push(<Badge key="links" label={`${item.links_count} links`} />);
   }
+  if (props.estimate && item.estimate_point_id && bundle.estimate) {
+    const point = bundle.estimate.points.find((entry) => entry.id === item.estimate_point_id);
+    if (point) nodes.push(<Token key="estimate" label={formatEstimateValue(bundle.estimate.type, point.value)} size="sm" />);
+  }
   if (props.created_at) {
     nodes.push(
       <Text key="created" type="supporting" className="tessera-wi-prop-text" hasTabularNumbers>
@@ -213,7 +233,7 @@ function RowTitle({ name }: { name: string }) {
   );
 }
 
-function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false }: RowProps) {
+function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, selection }: RowProps) {
   // The key button owns the row's action: surface clicks delegate to it and it is the row's only tab stop.
   const openRef = useRef<HTMLButtonElement>(null);
   if (isOptimisticId(item.id)) {
@@ -237,15 +257,27 @@ function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false }: RowP
       className="tessera-wi-row"
       interactiveRef={openRef}
       startContent={
-        <Button
-          ref={openRef}
-          className="tessera-wi-open"
-          variant="ghost"
-          size="sm"
-          label={item.key}
-          tooltip={display.properties.key ? undefined : item.key}
-          onClick={() => onOpen(item.id)}
-        />
+        <HStack gap={1} vAlign="center">
+          {selection ? (
+            <CheckboxInput
+              className="tessera-wi-select"
+              size="sm"
+              isLabelHidden
+              label={`Select ${item.key}`}
+              value={selection.selected.has(item.id)}
+              onChange={(_checked, event) => selection.onToggle(item.id, "shiftKey" in event.nativeEvent && event.nativeEvent.shiftKey === true)}
+            />
+          ) : null}
+          <Button
+            ref={openRef}
+            className="tessera-wi-open"
+            variant="ghost"
+            size="sm"
+            label={item.key}
+            tooltip={display.properties.key ? undefined : item.key}
+            onClick={() => onOpen(item.id)}
+          />
+        </HStack>
       }
       endContent={<RowProperties item={item} display={display} onUpdate={onUpdate} readOnly={readOnly} />}
     />
@@ -267,9 +299,10 @@ type GroupSectionProps = {
   onQuickAdd: LayoutProps["onQuickAdd"];
   canQuickAdd: LayoutProps["canQuickAdd"];
   readOnly: boolean;
+  selection?: LayoutProps["selection"];
 };
 
-function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpen, onQuickAdd, canQuickAdd, readOnly }: GroupSectionProps) {
+function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpen, onQuickAdd, canQuickAdd, readOnly, selection }: GroupSectionProps) {
   const quickAddGroup: QuickAddGroup = group ? { field: group.field, value: group.id === NONE_GROUP_ID ? null : group.id } : { field: null, value: null };
   // No row when the list cannot create items, or when this group pins a state the scope refuses (a closed state in a cycle).
   const showQuickAdd = !readOnly && onQuickAdd !== undefined && canQuickAdd?.(quickAddGroup) !== false;
@@ -278,7 +311,7 @@ function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpe
       {items.length > 0 ? (
         <List density="compact" hasDividers>
           {items.map((item) => (
-            <WorkItemRow key={item.id} item={item} display={display} onUpdate={onUpdate} onOpen={onOpen} readOnly={readOnly} />
+            <WorkItemRow key={item.id} item={item} display={display} onUpdate={onUpdate} onOpen={onOpen} readOnly={readOnly} selection={selection} />
           ))}
         </List>
       ) : null}
@@ -288,7 +321,12 @@ function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpe
   if (!group) return body;
   return (
     <VStack gap={0} className="tessera-wi-group">
-      <Collapsible trigger={<GroupHeader group={group} />} isOpen={isOpen} onOpenChange={onToggle} chevronPosition="start">
+      <Collapsible
+        trigger={<GroupHeader group={group} selection={selection} ids={items.filter((item) => !isOptimisticId(item.id)).map((item) => item.id)} />}
+        isOpen={isOpen}
+        onOpenChange={onToggle}
+        chevronPosition="start"
+      >
         {body}
       </Collapsible>
     </VStack>
@@ -299,7 +337,7 @@ function GroupSection({ group, items, display, isOpen, onToggle, onUpdate, onOpe
 // Layout
 // ---------------------------------------------------------------------------
 
-export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQuickAdd, readOnly = false }: LayoutProps) {
+export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQuickAdd, readOnly = false, selection }: LayoutProps) {
   const itemsById = useMemo(() => new Map(result.items.map((item) => [item.id, item])), [result.items]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const { listRef, handleKeyDown, handleFocus } = useListFocus<HTMLElement>({
@@ -324,7 +362,14 @@ export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQ
   const isEmpty = result.items.length === 0 && (groups === null || groups.length === 0);
 
   return (
-    <VStack ref={listRef} onKeyDown={handleKeyDown} onFocus={handleFocus} gap={groups ? 2 : 0} className="tessera-wi-list" paddingBlock={2}>
+    <VStack
+      ref={listRef}
+      onKeyDown={handleKeyDown}
+      onFocus={handleFocus}
+      gap={groups ? 2 : 0}
+      className={selection && selection.selected.size > 0 ? "tessera-wi-list tessera-wi-list--selecting" : "tessera-wi-list"}
+      paddingBlock={2}
+    >
       {isEmpty ? (
         <EmptyState
           isCompact
@@ -349,6 +394,7 @@ export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQ
             onQuickAdd={onQuickAdd}
             canQuickAdd={canQuickAdd}
             readOnly={readOnly}
+            selection={selection}
           />
         ))
       ) : (
@@ -363,6 +409,7 @@ export function ListLayout({ result, display, onUpdate, onOpen, onQuickAdd, canQ
           onQuickAdd={onQuickAdd}
           canQuickAdd={canQuickAdd}
           readOnly={readOnly}
+          selection={selection}
         />
       )}
     </VStack>

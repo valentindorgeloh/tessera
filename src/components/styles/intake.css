@@ -1,0 +1,21 @@
+/* Intake: the item list beside the open work item. Tokens only. */
+
+.tessera-intake {
+  min-width: 0;
+  min-height: 0;
+}
+
+.tessera-intake-list {
+  min-width: 0;
+  min-height: 0;
+}
+
+.tessera-intake-detail {
+  min-width: 0;
+  min-height: 0;
+}
+
+.tessera-intake-search {
+  flex: 1;
+  min-width: 0;
+}

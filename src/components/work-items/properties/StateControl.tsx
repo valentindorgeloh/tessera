@@ -15,6 +15,8 @@ export type StateControlProps = {
   readOnly?: boolean;
   /** Accessible label; hidden visually. */
   label?: string;
+  /** Disables the control and explains why (a triage item still in Intake). */
+  disabledMessage?: string;
 };
 
 const GROUP_VARIANT: Record<StateGroup, StatusDotProps["variant"]> = {
@@ -59,7 +61,7 @@ export function StateLabel({ state, group, name }: { state?: State; group?: Stat
 }
 
 /** Ghost selector over the project's states; rows show the group's StatusDot. */
-export function StateControl({ value, onChange, compact = false, readOnly = false, label = "State" }: StateControlProps) {
+export function StateControl({ value, onChange, compact = false, readOnly = false, label = "State", disabledMessage }: StateControlProps) {
   const { bundle, statesById } = useProject();
   const options: SelectorOptionData[] = bundle.states
     .filter((state) => state.state_group !== "triage" || state.id === value)
@@ -75,6 +77,8 @@ export function StateControl({ value, onChange, compact = false, readOnly = fals
       value={value}
       onChange={onChange}
       isReadOnly={readOnly}
+      isDisabled={disabledMessage !== undefined}
+      disabledMessage={disabledMessage}
       renderOption={render}
       renderValue={render}
       placeholder="State"

@@ -126,7 +126,7 @@ function cycle(overrides: Partial<Cycle> = {}): Cycle {
   };
 }
 
-const bundle: ProjectBundle = { project, states, labels: [], cycles: [cycle()], modules: [], actors, cursor: 1, today: "2026-10-17" };
+const bundle: ProjectBundle = { project, states, labels: [], cycles: [cycle()], modules: [], actors, cursor: 1, today: "2026-10-17", estimate: null, intake_open: 0, projects: [] };
 
 const link: Link = {
   id: "link-1",

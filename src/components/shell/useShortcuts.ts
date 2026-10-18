@@ -190,6 +190,23 @@ function runShortcut(id: ShortcutId, options: ShortcutDispatchOptions, context: 
     case "nav.inbox":
       options.push("/inbox");
       return;
+    case "nav.drafts":
+      options.push("/drafts");
+      return;
+    case "nav.intake": {
+      const project = currentOrLastProjectId();
+      if (!project) {
+        options.notify("Open a project first");
+        return;
+      }
+      const features = readProjectFeatures(project);
+      if (features && !features.intake) {
+        options.notify("Turn on Intake in Features");
+        return;
+      }
+      options.push(`/projects/${project}/intake`);
+      return;
+    }
     case "nav.projects":
       options.push("/projects");
       return;

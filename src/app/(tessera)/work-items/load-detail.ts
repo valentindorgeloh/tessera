@@ -8,6 +8,8 @@
  */
 import type { ProjectBundle } from "@/components/work-items/types";
 import {
+  countOpenIntake,
+  getActiveEstimate,
   getProject,
   getWorkItem,
   isTrackerError,
@@ -18,6 +20,7 @@ import {
   listCycles,
   listLabels,
   listModules,
+  listProjects,
   listStates,
   USER_ACTOR_ID,
   type TesseraContext,
@@ -27,8 +30,9 @@ import type { WorkItemDetailData } from "@/components/detail";
 
 /** Everything the property controls need for one project (same shape as the project layout). */
 export function loadProjectBundle(ctx: TesseraContext, projectId: string): ProjectBundle {
+  const project = getProject(ctx, projectId);
   return {
-    project: getProject(ctx, projectId),
+    project,
     states: listStates(ctx, projectId),
     labels: listLabels(ctx, projectId),
     cycles: listCycles(ctx, projectId, {}),
@@ -36,6 +40,9 @@ export function loadProjectBundle(ctx: TesseraContext, projectId: string): Proje
     actors: listActors(ctx),
     cursor: latestSeq(ctx),
     today: ctx.today(),
+    estimate: project.estimates_enabled ? getActiveEstimate(ctx, project.id) : null,
+    intake_open: countOpenIntake(ctx, project.id),
+    projects: listProjects(ctx, {}).map((row) => ({ id: row.id, name: row.name, identifier: row.identifier })),
   };
 }
 

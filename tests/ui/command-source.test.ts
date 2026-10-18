@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildAiCommands, DESCRIBE_VIEW_ID, matchesCommand, SECTION_ORDER, sortBySection } from "@/components/shell/command-source";
 import { askItems } from "@/components/ai/ask-items";
 
-const ALL_ON = { cycles: true, modules: true, views: true } as const;
+const ALL_ON = { cycles: true, modules: true, views: true, intake: true } as const;
 
 describe("buildAiCommands (Describe a view…)", () => {
   it("lists one Create command for a project", () => {

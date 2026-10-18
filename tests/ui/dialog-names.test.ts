@@ -94,7 +94,7 @@ const states: State[] = [
 
 const actors: ActorRow[] = [{ id: USER, kind: "user", name: "Valentin", name_key: "valentin", color: "blue", client_name: null, last_seen_at: null, access: "write", ...audit }];
 
-const bundle: ProjectBundle = { project, states, labels: [], cycles: [], modules: [], actors, cursor: 1, today: "2026-10-17" };
+const bundle: ProjectBundle = { project, states, labels: [], cycles: [], modules: [], actors, cursor: 1, today: "2026-10-17", estimate: null, intake_open: 0, projects: [] };
 
 const link: WorkItemLinkRow = { id: "link-1", work_item_id: ITEM, title: "Spec", url: "https://docs.example.com/spec", metadata: null, sort_order: "a0", ...audit };
 

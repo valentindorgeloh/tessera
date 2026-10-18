@@ -10,7 +10,7 @@ import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from "@astryxdes
 import { Text } from "@astryxdesign/core/Text";
 import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provider";
 import type { Project } from "@/lib/tessera/types";
-import { BellIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { BellIcon, DraftIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { projectIdFromPath } from "./recents";
 import { formatKeys, SHORTCUT_BY_ID } from "./shortcuts";
 import { useShell } from "./TesseraShell";
@@ -142,7 +142,7 @@ export function useSidebarResize(): { key: string; resizable: { defaultWidth: nu
  * shell (`mod+b`, the top bar's toggle); the width and the last visited
  * project are remembered in localStorage.
  */
-export function Sidebar({ projects, unreadCount }: { projects: Project[]; unreadCount: number }) {
+export function Sidebar({ projects, unreadCount, draftCount }: { projects: Project[]; unreadCount: number; draftCount: number }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isNavCollapsed, setNavCollapsed, openCreateProject } = useShell();
@@ -201,6 +201,13 @@ export function Sidebar({ projects, unreadCount }: { projects: Project[]; unread
           href="/inbox"
           isSelected={pathname === "/inbox"}
           endContent={unreadCount > 0 ? <Badge label={String(unreadCount)} /> : undefined}
+        />
+        <SideNavItem
+          label="Drafts"
+          icon={DraftIcon}
+          href="/drafts"
+          isSelected={pathname === "/drafts"}
+          endContent={draftCount > 0 ? <Badge label={String(draftCount)} /> : undefined}
         />
         <SideNavItem label="Wiki" icon={PageIcon} href="/wiki" isSelected={pathname === "/wiki" || pathname.startsWith("/pages/")} />
         <SideNavItem label="Projects" icon={FolderIcon} href="/projects" isSelected={isProjectsPage(pathname)} />

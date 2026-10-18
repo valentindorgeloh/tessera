@@ -315,3 +315,6 @@ export type { SearchHit, SearchType } from "./search";
 export type { Change, ChangesResult, ActivityLogEntry } from "./changes";
 export type { ActivityVerb } from "./activity";
 export type { ToolName, ToolInput, ToolOutput } from "./tools/registry";
+export type { IntakeItemView, IntakeCounts, IntakeListResult } from "./intake";
+export type { DraftView } from "./drafts";
+export type { EstimateView } from "./estimates";

@@ -2,9 +2,11 @@ import type { IconType } from "@astryxdesign/core/Icon";
 import {
   ArchiveIcon,
   CycleIcon,
+  DraftIcon,
   FolderIcon,
   GearIcon,
   HouseIcon,
+  IntakeIcon,
   KanbanIcon,
   ListBulletsIcon,
   ModuleIcon,
@@ -32,6 +34,8 @@ export const ROUTE_ICONS: Readonly<Record<RouteIconKey, IconType>> = {
   view: ViewIcon,
   settings: GearIcon,
   archives: ArchiveIcon,
+  intake: IntakeIcon,
+  drafts: DraftIcon,
 };
 
 /** Glyphs for the colour schemes, shared by the account menu and Power K's theme commands. */

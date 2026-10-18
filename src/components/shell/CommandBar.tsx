@@ -65,6 +65,7 @@ import {
   buildProjectSettingsCommands,
   createCommandSource,
   DESCRIBE_VIEW_ID,
+  NEW_DRAFT_ID,
   OPEN_ITEM_PREFIX,
   projectSettingsTab,
   recentToItem,
@@ -306,6 +307,10 @@ export function CommandBar({ ref }: CommandBarProps) {
       }
       if (aux?.kind === "ask") {
         paletteRef.current.handoff(aux.text);
+        return;
+      }
+      if (id === NEW_DRAFT_ID) {
+        router.push("/drafts?draft=new");
         return;
       }
       if (id === DESCRIBE_VIEW_ID) {

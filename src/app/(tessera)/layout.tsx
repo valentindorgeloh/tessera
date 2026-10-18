@@ -7,7 +7,7 @@ import { RecentsTracker } from "@/components/shell/RecentsTracker";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { SidebarSkeleton } from "@/components/shell/SidebarSkeleton";
 import { TesseraShell } from "@/components/shell/TesseraShell";
-import { getUnreadCount, latestSeq, listProjects, readTessera } from "@/lib/tessera/server";
+import { countDrafts, getUnreadCount, latestSeq, listProjects, readTessera } from "@/lib/tessera/server";
 
 /**
  * Tessera frame (docs/contracts/ui.md "Shell"): the client shell renders the
@@ -41,8 +41,8 @@ const loadProjects = cache(() => readTessera((ctx) => listProjects(ctx, {})));
 /** Projects and the caller's unread inbox count for the sidebar. */
 async function SidebarData() {
   await io();
-  const [projects, unreadCount] = await Promise.all([loadProjects(), readTessera((ctx) => getUnreadCount(ctx))]);
-  return <Sidebar projects={projects} unreadCount={unreadCount} />;
+  const [projects, counts] = await Promise.all([loadProjects(), readTessera((ctx) => ({ unread: getUnreadCount(ctx), drafts: countDrafts(ctx) }))]);
+  return <Sidebar projects={projects} unreadCount={counts.unread} draftCount={counts.drafts} />;
 }
 
 /**

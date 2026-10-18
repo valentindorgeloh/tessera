@@ -1,0 +1,24 @@
+/* Bulk selection on the work-item list. Tokens only. */
+
+.tessera-wi-select {
+  opacity: 0;
+}
+
+.tessera-wi-row:hover .tessera-wi-select,
+.tessera-wi-row:focus-within .tessera-wi-select,
+.tessera-wi-list--selecting .tessera-wi-select,
+.tessera-wi-group-header:hover .tessera-wi-select,
+.tessera-wi-group-header:focus-within .tessera-wi-select {
+  opacity: 1;
+}
+
+.tessera-bulk-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  max-width: 100%;
+  background: var(--color-background-surface);
+  padding-block: var(--spacing-2);
+  padding-inline: var(--spacing-4);
+  border-block-start: 1px solid var(--color-border-tertiary);
+}

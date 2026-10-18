@@ -9,7 +9,7 @@ const PROJECT = "11111111-1111-7111-8111-111111111111";
 const OTHER = "22222222-2222-7222-8222-222222222222";
 const CYCLE = "33333333-3333-7333-8333-333333333333";
 
-const ALL = { cycles_enabled: true, modules_enabled: true, views_enabled: true, pages_enabled: true };
+const ALL = { cycles_enabled: true, modules_enabled: true, views_enabled: true, pages_enabled: true, intake_enabled: true };
 
 describe("projectTabs", () => {
   it("lists Work items, Cycles, Modules, Views, Archives and Settings when every feature is on", () => {
@@ -19,6 +19,7 @@ describe("projectTabs", () => {
       { key: "modules", label: "Modules", segment: "modules" },
       { key: "views", label: "Views", segment: "views" },
       { key: "pages", label: "Pages", segment: "pages" },
+      { key: "intake", label: "Intake", segment: "intake" },
       { key: "archives", label: "Archives", segment: "archives" },
       { key: "settings", label: "Settings", segment: "settings" },
     ]);
@@ -26,11 +27,12 @@ describe("projectTabs", () => {
 
   it("leaves out a feature that is turned off and always keeps Archives and Settings", () => {
     const keys = (toggles: Parameters<typeof projectTabs>[0]) => projectTabs(toggles).map((tab) => tab.key);
-    expect(keys({ ...ALL, cycles_enabled: false })).toEqual(["work-items", "modules", "views", "pages", "archives", "settings"]);
-    expect(keys({ ...ALL, modules_enabled: false })).toEqual(["work-items", "cycles", "views", "pages", "archives", "settings"]);
-    expect(keys({ ...ALL, views_enabled: false })).toEqual(["work-items", "cycles", "modules", "pages", "archives", "settings"]);
-    expect(keys({ ...ALL, pages_enabled: false })).toEqual(["work-items", "cycles", "modules", "views", "archives", "settings"]);
-    expect(keys({ cycles_enabled: false, modules_enabled: false, views_enabled: false, pages_enabled: false })).toEqual(["work-items", "archives", "settings"]);
+    expect(keys({ ...ALL, cycles_enabled: false })).toEqual(["work-items", "modules", "views", "pages", "intake", "archives", "settings"]);
+    expect(keys({ ...ALL, modules_enabled: false })).toEqual(["work-items", "cycles", "views", "pages", "intake", "archives", "settings"]);
+    expect(keys({ ...ALL, views_enabled: false })).toEqual(["work-items", "cycles", "modules", "pages", "intake", "archives", "settings"]);
+    expect(keys({ ...ALL, pages_enabled: false })).toEqual(["work-items", "cycles", "modules", "views", "intake", "archives", "settings"]);
+    expect(keys({ ...ALL, intake_enabled: false })).toEqual(["work-items", "cycles", "modules", "views", "pages", "archives", "settings"]);
+    expect(keys({ cycles_enabled: false, modules_enabled: false, views_enabled: false, pages_enabled: false, intake_enabled: false })).toEqual(["work-items", "archives", "settings"]);
   });
 });
 
@@ -64,7 +66,9 @@ describe("activeProjectTab", () => {
     expect(activeProjectTab(`/projects/${PROJECT}/cycles`, PROJECT, noCycles)).toBeNull();
     expect(activeProjectTab(`/projects/${PROJECT}/cycles/${CYCLE}`, PROJECT, noCycles)).toBeNull();
     expect(activeProjectTab(`/projects/${PROJECT}/views`, PROJECT, projectTabs({ ...ALL, views_enabled: false }))).toBeNull();
-    expect(activeProjectTab(`/projects/${PROJECT}/intake`, PROJECT, tabs)).toBeNull();
+    expect(activeProjectTab(`/projects/${PROJECT}/intake`, PROJECT, tabs)?.key).toBe("intake");
+    expect(activeProjectTab(`/projects/${PROJECT}/intake`, PROJECT, projectTabs({ ...ALL, intake_enabled: false }))).toBeNull();
+    expect(activeProjectTab(`/projects/${PROJECT}/billing`, PROJECT, tabs)).toBeNull();
     expect(activeProjectTab(`/projects/${OTHER}/work-items`, PROJECT, tabs)).toBeNull();
     expect(activeProjectTab(`/projects/${PROJECT}x/work-items`, PROJECT, tabs)).toBeNull();
     expect(activeProjectTab("/projects/archives", PROJECT, tabs)).toBeNull();

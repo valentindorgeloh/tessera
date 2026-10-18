@@ -1,0 +1,10 @@
+/* Estimate settings: the value rows inside the dialog. Tokens only. */
+
+.tessera-estimate-row {
+  min-width: 0;
+}
+
+.tessera-estimate-value {
+  flex: 1;
+  min-width: 0;
+}

@@ -23,10 +23,9 @@ import { DateInput } from "@astryxdesign/core/DateInput";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Icon } from "@astryxdesign/core/Icon";
 import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";
-import { Selector } from "@astryxdesign/core/Selector";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { useProject } from "@/components/work-items/project-provider";
-import { AssigneeControl, CycleControl, LabelControl, ModuleControl, PriorityControl, StateControl } from "@/components/work-items/properties";
+import { AssigneeControl, CycleControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, StateControl } from "@/components/work-items/properties";
 import type { WorkItem, WorkItemDetail } from "@/lib/tessera/types";
 import {
   BellIcon,
@@ -115,10 +114,11 @@ function labelIcon(icon: typeof StateIcon) {
 
 /** The rail drawn from a shared `useDetailActions` result (WorkItemDetail passes the one its title and shortcuts use). */
 export function PropertyRailFields({ actions, compact = false, parent = null, subItems = [] }: PropertyRailFieldsProps) {
-  const { bundle } = useProject();
+  const { bundle, statesById } = useProject();
   const item = actions.view;
   // Core change (P4 F3.4): the rail is read-only in an archived project too; this is where the rail decides it.
   const readOnly = item.archived_at !== null || bundle.project.archived_at !== null;
+  const triageMessage = statesById.get(item.state_id)?.state_group === "triage" ? "Accept it in Intake to choose a state" : undefined;
   const label = { position: "start" as const, width: compact ? 104 : 120 };
 
   const groups: { id: string; items: ReactNode }[] = [
@@ -128,7 +128,7 @@ export function PropertyRailFields({ actions, compact = false, parent = null, su
         <>
           <MetadataListItem label="State" icon={labelIcon(StateIcon)}>
             <Property name="state">
-              <StateControl readOnly={readOnly} value={item.state_id} onChange={(state_id) => actions.update({ state_id })} />
+              <StateControl readOnly={readOnly} disabledMessage={triageMessage} value={item.state_id} onChange={(state_id) => actions.update({ state_id })} />
             </Property>
           </MetadataListItem>
           <MetadataListItem label="Priority" icon={labelIcon(PriorityMediumIcon)}>
@@ -200,11 +200,13 @@ export function PropertyRailFields({ actions, compact = false, parent = null, su
               />
             </Property>
           </MetadataListItem>
-          <MetadataListItem label="Estimate" icon={labelIcon(EstimateIcon)}>
-            <Property name="estimate">
-              <Selector label="Estimate" isLabelHidden variant="ghost" size="md" options={[]} value={undefined} placeholder="No estimate" isDisabled disabledMessage="Arrives in P8" />
-            </Property>
-          </MetadataListItem>
+          {bundle.project.estimates_enabled && bundle.estimate ? (
+            <MetadataListItem label="Estimate" icon={labelIcon(EstimateIcon)}>
+              <Property name="estimate">
+                <EstimateControl readOnly={readOnly} value={item.estimate_point_id} onChange={(estimate_point_id) => actions.update({ estimate_point_id })} />
+              </Property>
+            </MetadataListItem>
+          ) : null}
         </>
       ),
     },

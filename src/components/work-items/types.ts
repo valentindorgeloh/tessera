@@ -11,6 +11,7 @@ import type {
   Label,
   Module,
   Priority,
+  EstimateView,
   Project,
   State,
   UpdateWorkItemInputType,
@@ -31,6 +32,12 @@ export type ProjectBundle = {
   cursor: number;
   /** Server local date at load (decision 6); `formatShortDate` reads it. */
   today: string;
+  /** The active estimate system, or null while Estimates are off or none exists. */
+  estimate: EstimateView | null;
+  /** Open intake items, for the project tab badge. Zero while Intake is off. */
+  intake_open: number;
+  /** Live projects, for copy and move. */
+  projects: readonly { id: string; name: string; identifier: string }[];
 };
 
 /** Input of a drag or keyboard move; mirrors MoveWorkItemInput minus the id. */
@@ -75,6 +82,12 @@ export type LayoutProps = {
   canQuickAdd?: (group: QuickAddGroup) => boolean;
   /** Archived project: no create, no drag, read-only controls; default false. */
   readOnly?: boolean;
+  /** Row checkboxes. Absent on the board and on a read-only or locked list. */
+  selection?: {
+    selected: ReadonlySet<string>;
+    onToggle: (id: string, shift: boolean) => void;
+    onToggleIds: (ids: readonly string[], on: boolean) => void;
+  };
 };
 
 /** URL state carried in the `q` search param (base64url JSON). */

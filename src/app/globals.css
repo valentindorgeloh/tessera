@@ -16,6 +16,10 @@
 @import "../components/styles/collaboration.css";
 @import "../components/styles/inbox.css";
 @import "../components/styles/pages.css";
+@import "../components/styles/intake.css";
+@import "../components/styles/drafts.css";
+@import "../components/styles/estimates.css";
+@import "../components/styles/bulk.css";
 
 html,
 body {

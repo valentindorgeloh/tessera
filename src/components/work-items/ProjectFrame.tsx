@@ -14,6 +14,7 @@
  */
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { Badge } from "@astryxdesign/core/Badge";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { VStack } from "@astryxdesign/core/Stack";
@@ -23,7 +24,7 @@ import { Token } from "@astryxdesign/core/Token";
 import { ProjectArchivedBanner, ProjectMenu } from "@/components/planning/ProjectArchive";
 import { PanelBar, PanelHeader, PanelTitle } from "@/components/shell/PanelHeader";
 import type { Project } from "@/lib/tessera/types";
-import { ArchiveIcon, CycleIcon, GearIcon, KanbanIcon, ModuleIcon, PageIcon, ViewIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { ArchiveIcon, CycleIcon, GearIcon, IntakeIcon, KanbanIcon, ModuleIcon, PageIcon, ViewIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { activeProjectTab, projectTabs, type ProjectTabKey } from "./project-tabs";
 import { useProject } from "./project-provider";
 
@@ -33,6 +34,7 @@ const TAB_ICONS: Record<ProjectTabKey, ReactNode> = {
   modules: <ModuleIcon />,
   views: <ViewIcon />,
   pages: <PageIcon />,
+  intake: <IntakeIcon />,
   archives: <ArchiveIcon />,
   settings: <GearIcon />,
 };
@@ -65,7 +67,14 @@ export function ProjectFrame({ children }: { children: ReactNode }) {
                   <Divider orientation="vertical" className="tessera-panel-bar-divider" />
                   <TabList value={active?.key ?? ""} onChange={() => {}} size="sm" layout="hug" aria-label={`${project.name} pages`} className="tessera-project-tabs">
                     {tabs.map((tab) => (
-                      <Tab key={tab.key} value={tab.key} label={tab.label} icon={TAB_ICONS[tab.key]} href={`/projects/${project.id}/${tab.segment}`} />
+                      <Tab
+                        key={tab.key}
+                        value={tab.key}
+                        label={tab.label}
+                        icon={TAB_ICONS[tab.key]}
+                        href={`/projects/${project.id}/${tab.segment}`}
+                        endContent={tab.key === "intake" && bundle.intake_open > 0 ? <Badge label={String(bundle.intake_open)} /> : undefined}
+                      />
                     ))}
                   </TabList>
                 </>

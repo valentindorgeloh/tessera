@@ -30,7 +30,9 @@ export type RouteIconKey =
   | "views"
   | "view"
   | "settings"
-  | "archives";
+  | "archives"
+  | "intake"
+  | "drafts";
 
 export type RouteInfo = { label: string; icon: RouteIconKey };
 
@@ -136,6 +138,7 @@ export function resolveRoute(pathname: string, lookup: RouteLookup): RouteInfo {
   if (root === undefined || root === "home") return { label: "Home", icon: "home" };
   // ASSUMPTION: RouteIconKey has no inbox glyph, and InboxIcon is not exported, so the recent uses the page icon.
   if (root === "inbox") return { label: "Inbox", icon: "page" };
+  if (root === "drafts") return { label: "Drafts", icon: "drafts" };
 
   // Global detail routes: the second segment is the work item id or key, not a project.
   if (root === "work-items" && projectId !== undefined) {
@@ -175,6 +178,7 @@ export function resolveRoute(pathname: string, lookup: RouteLookup): RouteInfo {
       // `/settings/<tab>` names its tab; any other path under `/settings` reads as "Settings".
       return { label: entityId === undefined ? `${name} · Settings` : `${name} · Settings · ${titleCase(entityId)}`, icon: "settings" };
     }
+    if (section === "intake") return { label: `${name} · Intake`, icon: "intake" };
     if (section === "archives") {
       // One label per archives tab, so the three tabs never read as one repeated recent.
       const tab = entityId === undefined ? undefined : ARCHIVE_TAB_LABELS.get(entityId);

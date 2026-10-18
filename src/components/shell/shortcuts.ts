@@ -103,7 +103,7 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { id: "item.assign", label: "Assign…", keys: "a", group: "Work item", needsItem: true },
   { id: "item.assignMe", label: "Assign to me", keys: "i", group: "Work item", needsItem: true },
   { id: "item.labels", label: "Labels…", keys: "l", group: "Work item", needsItem: true },
-  { id: "item.estimate", label: "Estimate…", keys: "shift+e", group: "Work item", needsItem: true, arrives: "P8" },
+  { id: "item.estimate", label: "Estimate…", keys: "shift+e", group: "Work item", needsItem: true },
   { id: "item.cycle", label: "Cycle…", keys: "shift+c", group: "Work item", needsItem: true },
   { id: "item.modules", label: "Modules…", keys: "shift+m", group: "Work item", needsItem: true },
   { id: "item.subscribe", label: "Subscribe or unsubscribe", keys: "shift+s", group: "Work item", needsItem: true, note: "Notifications arrive in P7" },
@@ -131,8 +131,8 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { id: "nav.yourWork", label: "Your work", keys: "g j", group: "Navigate", arrives: "P9" },
   { id: "nav.analytics", label: "Analytics", keys: "g a", group: "Navigate", arrives: "P9" },
   { id: "nav.projects", label: "Projects", keys: "g p", group: "Navigate" },
-  { id: "nav.intake", label: "Intake", keys: "g x", group: "Navigate", arrives: "P8" },
-  { id: "nav.drafts", label: "Drafts", keys: "g y", group: "Navigate", arrives: "P9" },
+  { id: "nav.intake", label: "Intake", keys: "g x", group: "Navigate" },
+  { id: "nav.drafts", label: "Drafts", keys: "g y", group: "Navigate" },
 ];
 
 export const SHORTCUT_BY_ID: ReadonlyMap<ShortcutId, ShortcutDef> = new Map(SHORTCUTS.map((def) => [def.id, def]));

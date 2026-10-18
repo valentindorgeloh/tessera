@@ -101,7 +101,9 @@ describe("resolveRoute", () => {
   });
 
   it("gives later project sections a readable label without code changes", () => {
-    expect(resolveRoute(`/projects/${PROJECT}/intake`, lookup)).toEqual({ label: "Website · Intake", icon: "page" });
+    expect(resolveRoute(`/projects/${PROJECT}/intake`, lookup)).toEqual({ label: "Website · Intake", icon: "intake" });
+    expect(resolveRoute("/drafts", lookup)).toEqual({ label: "Drafts", icon: "drafts" });
+    expect(resolveRoute(`/projects/${PROJECT}/billing`, lookup)).toEqual({ label: "Website · Billing", icon: "page" });
     expect(resolveRoute(`/projects/${PROJECT}/work-items/`, lookup).icon).toBe("work-items");
   });
 

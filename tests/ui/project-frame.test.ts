@@ -79,7 +79,7 @@ const states: State[] = [
 const actors: ActorRow[] = [{ id: USER, kind: "user", name: "Valentin", name_key: "valentin", color: "blue", client_name: null, last_seen_at: null, access: "write", ...audit }];
 
 function frame(overrides: Partial<Project> = {}) {
-  const bundle: ProjectBundle = { project: { ...project, ...overrides }, states, labels: [], cycles: [], modules: [], actors, cursor: 1, today: "2026-10-17" };
+  const bundle: ProjectBundle = { project: { ...project, ...overrides }, states, labels: [], cycles: [], modules: [], actors, cursor: 1, today: "2026-10-17", estimate: null, intake_open: 0, projects: [] };
   // createElement's typing wants `children` in the props object, the lint rule wants it as an argument; the cast satisfies both.
   const providerProps = { bundle } as ComponentProps<typeof ProjectProvider>;
   const frameProps = {} as ComponentProps<typeof ProjectFrame>;

@@ -18,11 +18,11 @@ import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
 import { useToast } from "@astryxdesign/core/Toast";
 import { updateProjectAction } from "@/app/actions/projects";
-import { updateProjectFeaturesAction } from "@/app/actions/settings";
+import { updateActorAction, updateProjectFeaturesAction } from "@/app/actions/settings";
 import { failureText } from "@/components/planning/archive-rules";
 import { RelativeTime } from "@/components/detail/RelativeTime";
 import { useOptionalProject } from "@/components/work-items/project-provider";
-import type { ActorRow } from "@/lib/tessera/types";
+import type { ActorAccess, ActorRow } from "@/lib/tessera/types";
 import { PencilIcon } from "@/themes/catppuccin/icons";
 import { ActorDialog } from "./ActorDialog";
 
@@ -47,10 +47,10 @@ export function AgentsSettings() {
       <DefaultAssignee projectId={project.id} value={project.default_assignee_id} actors={actors} isArchived={isArchived} />
       <VStack gap={3}>
         <Heading level={5}>Actors</Heading>
-        <ActorList actors={actors} isArchived={isArchived} />
         <Text type="supporting" color="secondary">
-          Per-agent write permissions arrive in P8.
+          Read-only agents can still read and manage their own inbox.
         </Text>
+        <ActorList actors={actors} isArchived={isArchived} />
       </VStack>
     </>
   );
@@ -78,7 +78,7 @@ function IntakePolicy({ projectId, isOn, isIntakeEnabled, isArchived }: { projec
             value={isOn}
             changeAction={change}
             isDisabled={isArchived || !isIntakeEnabled}
-            disabledMessage={isArchived ? "Restore the project to change it" : "Turn on Intake first (arrives in P8)"}
+            disabledMessage={isArchived ? "Restore the project to change it" : "Turn on Intake first"}
             ref={rowRef}
           />
         }
@@ -131,6 +131,7 @@ function ActorList({ actors, isArchived }: { actors: ActorRow[]; isArchived: boo
             endContent={
               <HStack gap={2} vAlign="center">
                 <Token label={KIND_LABELS[actor.kind] ?? "Agent"} size="sm" />
+                {actor.kind === "agent" ? <AccessSelect actor={actor} isArchived={isArchived} /> : null}
                 {actor.kind === "agent" ? (
                   <MoreMenu
                     label={`Actions for ${actor.name}`}
@@ -148,6 +149,29 @@ function ActorList({ actors, isArchived }: { actors: ActorRow[]; isArchived: boo
       {editing ? <ActorDialog isOpen onOpenChange={(open) => !open && setEditing(null)} actor={editing} /> : null}
     </>
   );
+}
+
+const ACCESS_OPTIONS: { value: ActorAccess; label: string }[] = [
+  { value: "write", label: "Can write" },
+  { value: "intake", label: "Intake only" },
+  { value: "read", label: "Read only" },
+];
+
+function AccessSelect({ actor, isArchived }: { actor: ActorRow; isArchived: boolean }) {
+  const toast = useToast();
+  const [value, setValue] = useState<ActorAccess>(actor.access);
+  const change = (next: string) => {
+    const access = next as ActorAccess;
+    const previous = value;
+    setValue(access);
+    void updateActorAction({ actor_id: actor.id, access }).then((result) => {
+      if (!result.ok) {
+        setValue(previous);
+        toast({ type: "error", body: failureText("Could not change access", result.message) });
+      }
+    });
+  };
+  return <Selector label="Access" isLabelHidden size="sm" options={ACCESS_OPTIONS} value={value} onChange={change} isDisabled={isArchived} />;
 }
 
 const KIND_LABELS: Record<string, string> = { user: "You", assistant: "Assistant", agent: "Agent" };

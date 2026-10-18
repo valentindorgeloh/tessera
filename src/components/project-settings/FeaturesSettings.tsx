@@ -4,9 +4,8 @@
  * Features tab of the project settings (docs/drafts/p4-ui.md "Features"): one
  * row per feature with a Switch. Cycles, Modules and Views toggle through
  * `updateProjectFeaturesAction`; turning one off hides its tab, Power K items
- * and options at once but keeps the data (decision 31). Pages, Intake and
- * Estimates arrive later: their Switch shows the stored value and stays
- * disabled with the reason.
+ * and options at once but keeps the data (decision 31). Intake and Estimates
+ * toggle the same way.
  */
 import { useRef } from "react";
 import { notFound } from "next/navigation";
@@ -27,8 +26,6 @@ type FeatureRow = {
   label: string;
   description: string;
   icon: typeof CycleIcon;
-  /** Set for a feature that cannot be changed yet: why, and when it arrives. */
-  unavailable?: string;
 };
 
 const FEATURES: readonly FeatureRow[] = [
@@ -36,14 +33,8 @@ const FEATURES: readonly FeatureRow[] = [
   { key: "modules_enabled", label: "Modules", icon: ModuleIcon, description: "Group work items into larger pieces of work." },
   { key: "views_enabled", label: "Views", icon: ViewIcon, description: "Saved filters and display options." },
   { key: "pages_enabled", label: "Pages", icon: PageIcon, description: "Documents for the project." },
-  {
-    key: "intake_enabled",
-    label: "Intake",
-    icon: IntakeIcon,
-    description: "Review work items from agents before they enter the project.",
-    unavailable: "Intake arrives in P8",
-  },
-  { key: "estimates_enabled", label: "Estimates", icon: SlidersIcon, description: "Points or sizes on work items.", unavailable: "Estimates arrive in P8" },
+  { key: "intake_enabled", label: "Intake", icon: IntakeIcon, description: "Review work items from agents before they enter the project." },
+  { key: "estimates_enabled", label: "Estimates", icon: SlidersIcon, description: "Points or sizes on work items." },
 ];
 
 export function FeaturesSettings() {
@@ -82,8 +73,8 @@ function FeatureListItem({ feature, project }: { feature: FeatureRow; project: P
           size="sm"
           value={project[feature.key]}
           changeAction={change}
-          isDisabled={feature.unavailable !== undefined || isArchived}
-          disabledMessage={feature.unavailable ?? "Restore the project to change it"}
+          isDisabled={isArchived}
+          disabledMessage="Restore the project to change it"
           ref={rowRef}
         />
       }

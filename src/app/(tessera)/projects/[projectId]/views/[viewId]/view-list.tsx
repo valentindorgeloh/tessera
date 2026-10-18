@@ -64,6 +64,7 @@ export async function ViewWorkItems({ projectId, view, query }: ViewWorkItemsPro
         title={view.name}
         createOnOpen={query.create === "1"}
         titleAdornment={view.is_locked ? <ViewLockIndicator /> : undefined}
+        allowSelection={!view.is_locked}
         subheaderEnd={<ViewMenu projectId={projectId} view={view} placement="header" />}
         filtersEnd={<ViewBar projectId={projectId} view={view} isModified={isViewModified(saved, effective)} effective={effective} />}
       />

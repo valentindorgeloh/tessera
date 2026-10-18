@@ -123,7 +123,7 @@ const labels: Label[] = [{ id: LABEL, project_id: PROJECT, parent_id: null, name
 
 const actors: ActorRow[] = [{ id: USER, kind: "user", name: "Valentin", name_key: "valentin", color: "blue", client_name: null, last_seen_at: null, access: "write", ...audit }];
 
-const bundle: ProjectBundle = { project, states, labels, cycles: [], modules: [], actors, cursor: 42, today: "2026-10-17" };
+const bundle: ProjectBundle = { project, states, labels, cycles: [], modules: [], actors, cursor: 42, today: "2026-10-17", estimate: null, intake_open: 0, projects: [] };
 
 function workItem(overrides: Partial<WorkItem> & Pick<WorkItem, "id" | "key" | "name" | "sequence_id">): WorkItem {
   return {
@@ -290,7 +290,7 @@ describe("WorkItemDetail", () => {
     expect(text).toContain("changed the state from Backlog to In progress");
     expect(text).toContain("created this work item");
     expect(text).toContain("Unsubscribe");
-    for (const name of ["state", "priority", "assignees", "labels", "cycle", "modules", "parent", "estimate"]) {
+    for (const name of ["state", "priority", "assignees", "labels", "cycle", "modules", "parent"]) {
       expect(el.querySelector(`[data-property="${name}"]`), name).not.toBeNull();
     }
     expect(el.querySelector('[data-property="state"] button')).not.toBeNull();
@@ -386,8 +386,8 @@ describe("WorkItemDetail", () => {
   it("lists the More menu as copy, copy ID, archive (disabled with the reason on an open item) and delete", async () => {
     const el = await render(tree("page"));
     const rows = await moreMenuRows(el);
-    expect(rows.map(rowLabel)).toEqual(["Make a copy", "Copy ID (WEB-1)", "Archive", "Delete…"]);
-    const archive = rows[2];
+    expect(rows.map(rowLabel)).toEqual(["Make a copy", "Copy to project…", "Move to project…", "Copy ID (WEB-1)", "Archive", "Delete…"]);
+    const archive = rows[4];
     expect(archive?.getAttribute("aria-disabled")).toBe("true");
     expect(archive?.textContent).toContain(ARCHIVE_OPEN_ITEM_REASON);
     expect(el.textContent).not.toContain("This work item is archived");

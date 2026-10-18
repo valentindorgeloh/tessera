@@ -119,7 +119,12 @@ import {
   Robot,
   Stack,
   ToggleRight,
-  Tray,
+  TrayArrowDown,
+  // P8 intake, drafts, estimates, bulk.
+  ArrowBendDownRight,
+  CheckSquare,
+  CopySimple,
+  NotePencil,
   // P5 assistant: panel, proposals, stop, retry and the view-from-prompt action.
   ArrowClockwise,
   ChatCircleDots,
@@ -280,7 +285,13 @@ export const UnlockIcon = duotoneIcon(LockSimpleOpen);
 export const SaveIcon = duotoneIcon(FloppyDisk);
 export const ResetIcon = duotoneIcon(ArrowUUpLeft);
 export const FeaturesIcon = duotoneIcon(ToggleRight);
-export const IntakeIcon = duotoneIcon(Tray);
+export const IntakeIcon = duotoneIcon(TrayArrowDown);
+export const DraftIcon = duotoneIcon(NotePencil);
+export const AcceptIcon = duotoneIcon(CheckCircle);
+export const DeclineIcon = duotoneIcon(XCircle);
+export const DuplicateIcon = duotoneIcon(CopySimple);
+export const SelectIcon = duotoneIcon(CheckSquare);
+export const MoveToProjectIcon = duotoneIcon(ArrowBendDownRight);
 export const AgentIcon = duotoneIcon(Robot);
 export const MoveUpIcon = duotoneIcon(ArrowUp);
 export const MoveDownIcon = duotoneIcon(ArrowDown);

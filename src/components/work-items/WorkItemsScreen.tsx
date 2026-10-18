@@ -19,7 +19,7 @@
  * way to create an item. The sub-header's title and count are props too
  * (default "Work items" and the list's total).
  */
-import { startTransition, useEffect, useOptimistic, useState, type ReactNode } from "react";
+import { startTransition, useEffect, useMemo, useOptimistic, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
@@ -38,6 +38,7 @@ import { isMultiValuedGroup } from "@/lib/tessera/core/group";
 import type { CreateWorkItemInputType, Display, Filters, GroupBy, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 import { PlusIcon } from "@/themes/catppuccin/icons";
 import { BoardLayout } from "./BoardLayout";
+import { BulkBar } from "./BulkBar";
 import { CreateWorkItemDialog } from "./CreateWorkItemDialog";
 import { DisplayMenu, LayoutSwitch } from "./DisplayMenu";
 import { FilterBar } from "./FilterBar";
@@ -46,6 +47,7 @@ import { toEngineMove } from "./moves";
 import { isOptimisticId, optimisticId } from "./optimistic";
 import { realNeighbour, reduceOptimisticList, type OptimisticAction, type StateGroupOf } from "./optimistic-list";
 import { useProject } from "./project-provider";
+import { useSelection } from "./use-selection";
 import { createDefaultsFromScope, openMemberships, quickAddAllowed, quickAddInput, withScopeDefaults, type QuickAddContext } from "./quick-add";
 import { TableLayout } from "./TableLayout";
 import type { LayoutProps, MoveInput, QuickAddGroup, ScopeDefaults, SettingsScope, UpdateWorkItemPatch } from "./types";
@@ -93,6 +95,8 @@ export type WorkItemsScreenProps = {
   filtersEnd?: ReactNode;
   /** Show "Save view" in the filters row's end while filters or display are set in the URL (the project list). */
   saveView?: boolean;
+  /** Row selection and the bulk bar. Off for a locked view. Default true on the list. */
+  allowSelection?: boolean;
 };
 
 const DEFAULT_TITLE = "Work items";
@@ -115,6 +119,7 @@ export function WorkItemsScreen({
   subheaderEnd,
   filtersEnd,
   saveView = false,
+  allowSelection = true,
 }: WorkItemsScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -261,6 +266,12 @@ export function WorkItemsScreen({
     router.push(href, { scroll: false });
   };
 
+  const orderedIds = useMemo(() => {
+    const ids = display.group_by && optimistic.groups ? optimistic.groups.flatMap((group) => group.item_ids) : optimistic.items.map((item) => item.id);
+    return ids.filter((id) => !isOptimisticId(id));
+  }, [display.group_by, optimistic]);
+  const selectionOn = allowSelection && !readOnly && display.layout === "list";
+  const selection = useSelection(orderedIds, selectionOn);
   const layoutProps: LayoutProps = {
     result: optimistic,
     display,
@@ -271,6 +282,7 @@ export function WorkItemsScreen({
     onQuickAdd: canCreateItems ? onQuickAdd : undefined,
     canQuickAdd: (group) => quickAddAllowed(group, quickAddContext),
     readOnly,
+    selection: selectionOn ? { selected: selection.selected, onToggle: selection.toggleId, onToggleIds: selection.toggleIds } : undefined,
   };
   // The dialog starts in the scope: `{ ...scopeDefaults, ...createDefaults }` with module ids united.
   const dialogDefaults = scopeDefaults ? withScopeDefaults(createDefaults ?? {}, scopeDefaults) : createDefaults;
@@ -325,6 +337,7 @@ export function WorkItemsScreen({
             ) : (
               <EmptyState title={display.layout === "calendar" ? "Calendar arrives in P10" : "Gantt arrives in P10"} description="Switch back to list, board or table with the layout switch." />
             )}
+            {selectionOn && selection.selected.size > 0 ? <BulkBar items={optimistic.items} selected={selection.selected} onClear={selection.clear} /> : null}
           </LayoutContent>
         }
       />

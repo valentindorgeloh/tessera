@@ -26,6 +26,7 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
+import { ProjectTransferDialog } from "@/components/detail/ProjectTransferDialog";
 import { copyWorkItemAction } from "@/app/actions/detail";
 import { archiveWorkItemAction, deleteWorkItemAction, unarchiveWorkItemAction } from "@/app/actions/work-items";
 import { ARCHIVE_OPEN_ITEM_REASON, canArchiveWorkItem } from "@/components/planning/archive-rules";
@@ -135,6 +136,7 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
   const clipboard = useClipboard({ announce: "Copied" });
   const rootRef = useRef<HTMLDivElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [transfer, setTransfer] = useState<"copy" | "move" | null>(null);
   const { statesById, bundle } = useProject();
   const mentionActors = bundle.actors.filter((actor) => actor.deleted_at === null).map((actor) => ({ id: actor.id, name: actor.name }));
   // An archived project makes its items read-only as an archived item does (F3.4); the item's own Banner and Restore stay for archived items only.
@@ -209,7 +211,13 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
         "item.labels": open("labels"),
         "item.cycle": open("cycle", "Cycles are turned off for this project"),
         "item.modules": open("modules", "Modules are turned off for this project"),
-        "item.estimate": () => void toast({ type: "info", body: "Arrives in P8" }),
+        "item.estimate": () => {
+          if (!bundle.project.estimates_enabled || bundle.estimate === null) {
+            toast({ type: "info", body: "Turn on estimates in project settings" });
+            return;
+          }
+          if (!openProperty(root, "estimate")) toast({ type: "info", body: "Turn on estimates in project settings" });
+        },
         // shift+s: the subscription works now; the notifications it leads to arrive in P7.
         "item.subscribe": () => {
           const subscribed = toggleSubscribe();
@@ -222,7 +230,7 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
       },
       labels: { "item.subscribe": isSubscribed ? "Unsubscribe" : "Subscribe" },
     });
-  }, [assignMe, copy, isSubscribed, itemId, itemKey, itemName, label, projectId, toast, toggleSubscribe]);
+  }, [assignMe, bundle.estimate, bundle.project.estimates_enabled, copy, isSubscribed, itemId, itemKey, itemName, label, projectId, toast, toggleSubscribe]);
 
   return (
     <VStack gap={0} className={`tessera-detail tessera-detail--${host}`} ref={rootRef}>
@@ -234,6 +242,8 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
         onHostChange={onHostChange}
         onOpenItem={onOpenItem}
         onCopyItem={readOnly ? undefined : copyItem}
+        onCopyToProject={!readOnly && item.intake?.status !== "pending" ? () => setTransfer("copy") : undefined}
+        onMoveToProject={!readOnly && item.intake?.status !== "pending" ? () => setTransfer("move") : undefined}
         onDelete={() => setConfirmDelete(true)}
         onArchive={readOnly ? undefined : archiveItem}
         archiveBlockedReason={readOnly || canArchive ? undefined : ARCHIVE_OPEN_ITEM_REASON}
@@ -274,6 +284,16 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
           />
         </VStack>
       </VStack>
+      {transfer ? (
+        <ProjectTransferDialog
+          isOpen
+          onOpenChange={(open) => !open && setTransfer(null)}
+          mode={transfer}
+          workItemId={item.id}
+          projectId={item.project_id}
+          projects={bundle.projects}
+        />
+      ) : null}
       <AlertDialog
         isOpen={confirmDelete}
         onOpenChange={setConfirmDelete}
