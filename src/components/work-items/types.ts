@@ -63,7 +63,10 @@ export type QuickAddGroup = { field: GroupBy | null; value: string | null };
  * uses `{ "project", projectId }`, a cycle `{ "cycle", cycleId }`, a module
  * `{ "module", moduleId }`. Re-exported by the scoped list (scoped-list.tsx).
  */
-export type SettingsScope = { scope_type: "project" | "cycle" | "module"; scope_id: string };
+export type SettingsScope = {
+  scope_type: "project" | "cycle" | "module" | "workspace" | "profile";
+  scope_id: string;
+};
 
 /** Memberships new items of a scoped list join: the cycle, the module(s). */
 export type ScopeDefaults = { cycle_id?: string; module_ids?: string[]; state_id?: string; priority?: Priority; label_ids?: string[]; assignee_ids?: string[] };
@@ -82,6 +85,8 @@ export type LayoutProps = {
   canQuickAdd?: (group: QuickAddGroup) => boolean;
   /** Archived project: no create, no drag, read-only controls; default false. */
   readOnly?: boolean;
+  /** Workspace lists add a Project column. Ignored by the list and the board. */
+  showProject?: boolean;
   /** Row checkboxes. Absent on the board and on a read-only or locked list. */
   selection?: {
     selected: ReadonlySet<string>;

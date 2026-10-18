@@ -46,7 +46,8 @@ import { ListLayout } from "./ListLayout";
 import { toEngineMove } from "./moves";
 import { isOptimisticId, optimisticId } from "./optimistic";
 import { realNeighbour, reduceOptimisticList, type OptimisticAction, type StateGroupOf } from "./optimistic-list";
-import { useProject } from "./project-provider";
+import { firstStateByGroupOf, useProject } from "./project-provider";
+import { useBundles } from "./row-project";
 import { useSelection } from "./use-selection";
 import { createDefaultsFromScope, openMemberships, quickAddAllowed, quickAddInput, withScopeDefaults, type QuickAddContext } from "./quick-add";
 import { TableLayout } from "./TableLayout";
@@ -97,6 +98,14 @@ export type WorkItemsScreenProps = {
   saveView?: boolean;
   /** Row selection and the bulk bar. Off for a locked view. Default true on the list. */
   allowSelection?: boolean;
+  /** Items come from more than one project: group by project, filter by project, and edit each row with that project's states. */
+  crossProject?: boolean;
+  /** Workspace views are table-only, so the layout switch stays off. */
+  showLayoutSwitch?: boolean;
+  /** Add the Project column. Workspace views pass this; profile lists group by project instead. */
+  showProjectColumn?: boolean;
+  /** `page` opens `/work-items/<id>`. A cross-project route has no peek host. */
+  openMode?: "peek" | "page";
 };
 
 const DEFAULT_TITLE = "Work items";
@@ -120,12 +129,17 @@ export function WorkItemsScreen({
   filtersEnd,
   saveView = false,
   allowSelection = true,
+  crossProject = false,
+  showLayoutSwitch = true,
+  showProjectColumn = false,
+  openMode = "peek",
 }: WorkItemsScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const toast = useToast();
   const { bundle, statesById, firstStateByGroup } = useProject();
+  const bundles = useBundles();
   const urlState = decodeUrlState(searchParams.get("q"));
   const settingsScope: SettingsScope | null = settingsScopeProp === undefined ? { scope_type: "project", scope_id: projectId } : settingsScopeProp;
   // An archived project is read-only: no create, no drag, no inline edit (P3 leftover).
@@ -186,7 +200,9 @@ export function WorkItemsScreen({
   const onMove = (input: MoveInput) => {
     if (readOnly || isOptimisticId(input.id)) return;
     const move: MoveInput = { ...input, before_id: realNeighbour(input.before_id), after_id: realNeighbour(input.after_id) };
-    const engineMove = toEngineMove(move, firstStateByGroup);
+    const source = optimistic.items.find((item) => item.id === move.id);
+    const rowStates = source ? bundles?.[source.project_id]?.states : undefined;
+    const engineMove = toEngineMove(move, rowStates ? firstStateByGroupOf(rowStates) : firstStateByGroup);
     if (!engineMove) return;
     startTransition(async () => {
       applyOptimistic({ type: "move", input: move });
@@ -259,6 +275,10 @@ export function WorkItemsScreen({
 
   const onOpen = (id: string) => {
     if (isOptimisticId(id)) return;
+    if (openMode === "page") {
+      router.push(`/work-items/${id}`);
+      return;
+    }
     // The peek: `?peek=<id>` next to the list, keeping `q` (docs/contracts/ui.md "Routes and modes"). The push is
     // noted so closing the panel can go Back to this entry instead of stacking a copy of the list URL.
     const href = peekHref(pathname, searchParams, id);
@@ -282,6 +302,7 @@ export function WorkItemsScreen({
     onQuickAdd: canCreateItems ? onQuickAdd : undefined,
     canQuickAdd: (group) => quickAddAllowed(group, quickAddContext),
     readOnly,
+    showProject: showProjectColumn,
     selection: selectionOn ? { selected: selection.selected, onToggle: selection.toggleId, onToggleIds: selection.toggleIds } : undefined,
   };
   // The dialog starts in the scope: `{ ...scopeDefaults, ...createDefaults }` with module ids united.
@@ -310,8 +331,8 @@ export function WorkItemsScreen({
               }
               end={
                 <>
-                  <LayoutSwitch display={display} urlState={urlState} settingsScope={settingsScope} />
-                  <DisplayMenu display={display} urlState={urlState} settingsScope={settingsScope} hiddenGroupFields={hiddenGroupFields} />
+                  {showLayoutSwitch ? <LayoutSwitch display={display} urlState={urlState} settingsScope={settingsScope} /> : null}
+                  <DisplayMenu display={display} urlState={urlState} settingsScope={settingsScope} hiddenGroupFields={hiddenGroupFields} includeProject={crossProject} />
                   {canCreateItems ? <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" /> : null}
                   {subheaderEnd}
                 </>
@@ -321,7 +342,7 @@ export function WorkItemsScreen({
               size="filters"
               canWrap
               hasDivider
-              start={<FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} />}
+              start={<FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} showProject={crossProject} />}
               end={filtersEnd ?? (showSaveView ? <SaveViewButton projectId={projectId} filters={filters} display={display} /> : undefined)}
             />
           </PanelHeader>

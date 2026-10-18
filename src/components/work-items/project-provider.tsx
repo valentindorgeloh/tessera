@@ -34,11 +34,16 @@ function byId<T extends { id: string }>(rows: T[]): ReadonlyMap<string, T> {
   return new Map(rows.map((row) => [row.id, row]));
 }
 
-export function buildProjectContext(bundle: ProjectBundle): ProjectContextValue {
-  const firstStateByGroup = new Map<StateGroup, State>();
-  for (const state of bundle.states) {
-    if (!firstStateByGroup.has(state.state_group)) firstStateByGroup.set(state.state_group, state);
+/** First state of each group, in the order the states are listed. */
+export function firstStateByGroupOf(states: readonly State[]): ReadonlyMap<StateGroup, State> {
+  const first = new Map<StateGroup, State>();
+  for (const state of states) {
+    if (!first.has(state.state_group)) first.set(state.state_group, state);
   }
+  return first;
+}
+
+export function buildProjectContext(bundle: ProjectBundle): ProjectContextValue {
   return {
     bundle,
     statesById: byId(bundle.states),
@@ -46,13 +51,17 @@ export function buildProjectContext(bundle: ProjectBundle): ProjectContextValue 
     actorsById: byId(bundle.actors),
     cyclesById: byId(bundle.cycles),
     modulesById: byId(bundle.modules),
-    firstStateByGroup,
+    firstStateByGroup: firstStateByGroupOf(bundle.states),
   };
 }
 
-export function ProjectProvider({ bundle, children }: { bundle: ProjectBundle; children: ReactNode }) {
+/** Project context without remembering the project. A cross-project row uses this so the host list does not overwrite the last-opened project. */
+export function ProjectScope({ bundle, children }: { bundle: ProjectBundle; children: ReactNode }) {
   const value = useMemo(() => buildProjectContext(bundle), [bundle]);
+  return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
+}
 
+export function ProjectProvider({ bundle, children }: { bundle: ProjectBundle; children: ReactNode }) {
   useEffect(() => {
     try {
       window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, bundle.project.id);
@@ -61,7 +70,7 @@ export function ProjectProvider({ bundle, children }: { bundle: ProjectBundle; c
     }
   }, [bundle.project.id]);
 
-  return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
+  return <ProjectScope bundle={bundle}>{children}</ProjectScope>;
 }
 
 /** The current project's context, or null outside a project route (the project not-found boundary renders bare for an unknown project). */

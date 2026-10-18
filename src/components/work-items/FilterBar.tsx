@@ -36,6 +36,8 @@ export type FilterBarProps = {
   /** Decoded `q` param; the bar rewrites its `filters` half. */
   urlState: UrlState;
   resultCount?: number;
+  /** Workspace and profile lists can filter by project. Names of per-project fields gain the project identifier. */
+  showProject?: boolean;
 };
 
 const RELATIVE_WINDOWS = ["today", "1w", "2w", "1m"] as const;
@@ -211,26 +213,35 @@ function dateField(key: DateField, label: string): PowerSearchField {
   };
 }
 
-export function FilterBar({ filters, urlState, resultCount }: FilterBarProps) {
+export function FilterBar({ filters, urlState, resultCount, showProject = false }: FilterBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { bundle } = useProject();
 
   const config = useMemo<PowerSearchConfig>(() => {
+    const identifier = new Map(bundle.projects.map((project) => [project.id, project.identifier]));
+    const named = (name: string, projectId: string) => {
+      if (!showProject) return name;
+      const code = identifier.get(projectId);
+      return code ? `${name} · ${code}` : name;
+    };
     const fields: PowerSearchField[] = [
       { key: "search", label: "Search", operators: [{ key: "contains", label: "contains", value: { type: "string" } }], defaultOperator: "contains" },
-      listField("state", "State", bundle.states.map((state) => ({ value: state.id, label: state.name }))),
+    ];
+    if (showProject) fields.push(listField("project", "Project", bundle.projects.map((project) => ({ value: project.id, label: project.name, description: project.identifier }))));
+    fields.push(
+      listField("state", "State", bundle.states.map((state) => ({ value: state.id, label: named(state.name, state.project_id) }))),
       listField("state_group", "State group", STATE_GROUPS.map((group) => ({ value: group, label: stateGroupLabel(group) }))),
       listField("priority", "Priority", PRIORITY_OPTIONS.map((option) => ({ value: option.value, label: option.label }))),
-      listField("labels", "Labels", bundle.labels.map((label) => ({ value: label.id, label: label.name }))),
+      listField("labels", "Labels", bundle.labels.map((label) => ({ value: label.id, label: named(label.name, label.project_id) }))),
       listField("assignees", "Assignees", bundle.actors.filter((actor) => !actor.deleted_at).map((actor) => ({ value: actor.id, label: actor.name }))),
-    ];
-    if (bundle.project.cycles_enabled) fields.push(listField("cycle", "Cycle", bundle.cycles.map((cycle) => ({ value: cycle.id, label: cycle.name }))));
-    if (bundle.project.modules_enabled) fields.push(listField("module", "Module", bundle.modules.map((module) => ({ value: module.id, label: module.name }))));
+    );
+    if (bundle.project.cycles_enabled) fields.push(listField("cycle", "Cycle", bundle.cycles.map((cycle) => ({ value: cycle.id, label: named(cycle.name, cycle.project_id) }))));
+    if (bundle.project.modules_enabled) fields.push(listField("module", "Module", bundle.modules.map((module) => ({ value: module.id, label: named(module.name, module.project_id) }))));
     fields.push(dateField("target_date", "Target date"), dateField("start_date", "Start date"));
     return { name: "work-items", fields, contentSearchFieldKey: "search" };
-  }, [bundle]);
+  }, [bundle, showProject]);
 
   const tokens = useMemo(() => toTokens(filters), [filters]);
 

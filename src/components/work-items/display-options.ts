@@ -56,14 +56,19 @@ export function orderBySelectValue(orderBy: OrderBy): OrderBy {
   return orderBy === "-sort_order" ? "sort_order" : orderBy;
 }
 
-/** None first, then the groupable fields except Project, the hidden fields (a cycle list cannot group by cycle) and the features turned off. */
+/**
+ * None first, then the groupable fields except Project (a project list is already
+ * one project; a cross-project list passes `includeProject`), the hidden fields
+ * and the features turned off.
+ */
 export function groupByChoices(
   project: Pick<Project, "cycles_enabled" | "modules_enabled">,
   hidden: readonly GroupBy[],
+  includeProject = false,
 ): { value: GroupBy | null; label: string }[] {
   const fields = GROUPABLE_FIELDS.filter(
     (field) =>
-      field !== "project" &&
+      (includeProject || field !== "project") &&
       !hidden.includes(field) &&
       (field !== "cycle" || project.cycles_enabled) &&
       (field !== "module" || project.modules_enabled),

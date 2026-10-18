@@ -148,7 +148,7 @@ export function resolveRoute(pathname: string, lookup: RouteLookup): RouteInfo {
   if (root === "your-work") return { label: projectId === undefined ? "Your work" : `Your work · ${titleCase(projectId)}`, icon: "your-work" };
   if (root === "agents") {
     if (projectId === undefined) return { label: "Agents", icon: "agents" };
-    const actor = lookup.actorLabel?.(projectId) ?? "Agent";
+    const actor = lookup.actorLabel?.(projectId) ?? lookup.entityLabel?.(projectId) ?? "Agent";
     return { label: section === undefined ? actor : `${actor} · ${titleCase(section)}`, icon: "agents" };
   }
   if (root === "workspace-views") {

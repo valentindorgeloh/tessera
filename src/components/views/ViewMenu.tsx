@@ -16,13 +16,14 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { deleteViewAction, duplicateViewAction, lockViewAction, reorderViewAction, unlockViewAction } from "@/app/actions/views";
 import { AlertDialog } from "@/components/shell/dialogs";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
-import { useProject } from "@/components/work-items/project-provider";
+import { useOptionalProject } from "@/components/work-items/project-provider";
 import type { View } from "@/lib/tessera/types";
 import { CopyIcon, LockIcon, MoveDownIcon, MoveUpIcon, PencilIcon, TrashIcon, UnlockIcon } from "@/themes/catppuccin/icons";
 import { ViewDialog } from "./ViewDialog";
 
 export type ViewMenuProps = {
-  projectId: string;
+  /** Null for a workspace view. The menu then stays on `/workspace-views`. */
+  projectId: string | null;
   view: View;
   placement: "row" | "header";
   /** The neighbouring rows' ids in the shown order (row placement). */
@@ -35,7 +36,9 @@ export type ViewMenuProps = {
 export function ViewMenu({ projectId, view, placement, previousId, nextId, canReorder = false }: ViewMenuProps) {
   const router = useRouter();
   const toast = useToast();
-  const { bundle } = useProject();
+  const project = useOptionalProject();
+  const isArchived = project !== null && project.bundle.project.archived_at !== null;
+  const listHref = projectId === null ? "/workspace-views" : `/projects/${projectId}/views`;
   const [isEditOpen, setEditOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, startDelete] = useTransition();
@@ -51,7 +54,7 @@ export function ViewMenu({ projectId, view, placement, previousId, nextId, canRe
         return;
       }
       toast({ type: "info", body: `Duplicated as ${result.data.name}` });
-      router.push(`/projects/${projectId}/views/${result.data.id}`);
+      router.push(`${listHref}/${result.data.id}`);
     });
 
   const setLocked = (isLocked: boolean) =>
@@ -75,8 +78,8 @@ export function ViewMenu({ projectId, view, placement, previousId, nextId, canRe
       }
       setDeleteOpen(false);
       toast({ type: "info", body: `Deleted ${view.name}` });
-      forgetRecentsUnder(`/projects/${projectId}/views/${view.id}`);
-      if (placement === "header") router.push(`/projects/${projectId}/views`);
+      forgetRecentsUnder(`${listHref}/${view.id}`);
+      if (placement === "header") router.push(listHref);
     });
 
   const items: DropdownMenuOption[] = [
@@ -107,7 +110,7 @@ export function ViewMenu({ projectId, view, placement, previousId, nextId, canRe
 
   return (
     <>
-      <MoreMenu label="View actions" size="sm" items={items} placement="below" alignment="end" isDisabled={bundle.project.archived_at !== null} />
+      <MoreMenu label="View actions" size="sm" items={items} placement="below" alignment="end" isDisabled={isArchived} />
       <ViewDialog isOpen={isEditOpen} onOpenChange={setEditOpen} projectId={projectId} mode="edit" title={`Edit ${view.name}`} view={view} />
       <AlertDialog
         isOpen={isDeleteOpen}

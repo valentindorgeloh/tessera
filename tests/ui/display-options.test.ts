@@ -46,6 +46,11 @@ describe("groupByChoices", () => {
     expect(values()).toContain("state");
   });
 
+  it("offers Project on a cross-project list", () => {
+    expect(groupByChoices(BOTH, [], true).map((choice) => choice.value)).toContain("project");
+    expect(groupByChoices(BOTH, ["project"], true).map((choice) => choice.value)).not.toContain("project");
+  });
+
   it("drops hidden fields and the cycle and module groups of turned-off features", () => {
     expect(values(BOTH, ["cycle"])).not.toContain("cycle");
     expect(values({ cycles_enabled: false, modules_enabled: true })).not.toContain("cycle");

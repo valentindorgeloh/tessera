@@ -53,6 +53,8 @@ export type LayoutSwitchProps = {
 export type DisplayMenuProps = LayoutSwitchProps & {
   /** Fields left out of the group and sub-group options (a cycle list cannot group by cycle). */
   hiddenGroupFields?: readonly GroupBy[];
+  /** A workspace or profile list can group by project. A project list cannot. */
+  includeProject?: boolean;
 };
 
 const NO_HIDDEN_FIELDS: readonly GroupBy[] = [];
@@ -150,13 +152,13 @@ export function LayoutSwitch({ display, urlState, settingsScope }: LayoutSwitchP
   );
 }
 
-export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupFields = NO_HIDDEN_FIELDS }: DisplayMenuProps) {
+export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupFields = NO_HIDDEN_FIELDS, includeProject = false }: DisplayMenuProps) {
   const { bundle } = useProject();
   const [isOpen, setOpen] = useState(false);
   const { apply, reset } = useDisplayWriter(settingsScope, urlState);
 
   const toOption = (choice: { value: string | null; label: string }): SelectorOptionData => ({ value: choice.value ?? NONE, label: choice.label });
-  const groupOptions = groupByChoices(bundle.project, hiddenGroupFields).map(toOption);
+  const groupOptions = groupByChoices(bundle.project, hiddenGroupFields, includeProject).map(toOption);
   const subGroupOptions = subGroupChoices(display, bundle.project, hiddenGroupFields).map(toOption);
   const orderOptions: SelectorOptionData[] = orderByChoices().filter((choice) => bundle.project.estimates_enabled || !choice.value.endsWith("estimate"));
 

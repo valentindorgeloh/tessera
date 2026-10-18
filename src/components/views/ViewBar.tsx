@@ -27,7 +27,8 @@ import { ViewDialog } from "./ViewDialog";
 import { normalizeFilters, type ViewState } from "./view-state";
 
 export type ViewBarProps = {
-  projectId: string;
+  /** Null saves a new workspace view. */
+  projectId: string | null;
   view: View;
   /** Whether the effective state differs from the saved one (computed on the server). */
   isModified: boolean;

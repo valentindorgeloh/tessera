@@ -28,6 +28,21 @@ import {
 } from "@/lib/tessera/server";
 import type { WorkItemDetailData } from "@/components/detail";
 
+/** One bundle per project id. A missing project is skipped; other failures propagate. */
+export function loadProjectBundles(ctx: TesseraContext, projectIds: readonly string[]): Record<string, ProjectBundle> {
+  const bundles: Record<string, ProjectBundle> = {};
+  for (const projectId of projectIds) {
+    if (bundles[projectId]) continue;
+    try {
+      bundles[projectId] = loadProjectBundle(ctx, projectId);
+    } catch (err) {
+      if (isTrackerError(err) && err.code === "NOT_FOUND") continue;
+      throw err;
+    }
+  }
+  return bundles;
+}
+
 /** Everything the property controls need for one project (same shape as the project layout). */
 export function loadProjectBundle(ctx: TesseraContext, projectId: string): ProjectBundle {
   const project = getProject(ctx, projectId);

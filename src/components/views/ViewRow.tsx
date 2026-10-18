@@ -11,15 +11,19 @@ import { ListItem } from "@astryxdesign/core/List";
 import { HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
+import { FavoriteButton } from "@/components/shell/FavoriteButton";
 import type { View } from "@/lib/tessera/types";
 import { LockIcon, ViewIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { ViewMenu } from "./ViewMenu";
 import { viewSummary } from "./view-state";
 
 export type ViewRowProps = {
-  projectId: string;
+  /** Null links to `/workspace-views/<id>`. */
+  projectId: string | null;
   view: View;
   count: number;
+  /** When set, the row shows the favourite star. Project lists omit it. */
+  isFavorite?: boolean;
   /** The neighbouring rows' ids in the shown order. */
   previousId?: string;
   nextId?: string;
@@ -42,15 +46,16 @@ function rowDescription(view: View): string {
   return firstLine !== "" ? firstLine : viewSummary(view);
 }
 
-export function ViewRow({ projectId, view, count, previousId, nextId, canReorder }: ViewRowProps) {
+export function ViewRow({ projectId, view, count, isFavorite, previousId, nextId, canReorder }: ViewRowProps) {
   return (
     <ListItem
-      href={`/projects/${projectId}/views/${view.id}`}
+      href={projectId === null ? `/workspace-views/${view.id}` : `/projects/${projectId}/views/${view.id}`}
       startContent={<Icon icon={view.logo ? resolveLogoIcon(view.logo.icon) : ViewIcon} color={view.logo?.color ?? "secondary"} size="sm" />}
       label={view.name}
       description={rowDescription(view)}
       endContent={
         <HStack gap={2} vAlign="center">
+          {isFavorite === undefined ? null : <FavoriteButton entityType="view" entityId={view.id} isFavorite={isFavorite} />}
           {view.is_locked ? <ViewLockIndicator /> : null}
           <Text type="supporting" color="secondary" hasTabularNumbers>
             {count === 1 ? "1 work item" : `${count} work items`}

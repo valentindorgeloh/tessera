@@ -28,6 +28,7 @@ import { formatEstimateValue } from "@/components/estimates/estimate-format";
 import type { Display, Group, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { isOptimisticId } from "./optimistic";
 import { useProject } from "./project-provider";
+import { RowProject } from "./row-project";
 import { ActorLabel, CycleControl, DateControl, PriorityControl, PriorityLabel, StateControl, StateLabel, paletteTokenColor } from "./properties";
 import { QuickAdd } from "./QuickAdd";
 import type { LayoutProps, QuickAddGroup, UpdateWorkItemPatch } from "./types";
@@ -247,7 +248,11 @@ function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, select
             Saving…
           </Text>
         }
-        endContent={<RowProperties item={item} display={display} onUpdate={onUpdate} readOnly />}
+        endContent={
+          <RowProject projectId={item.project_id}>
+            <RowProperties item={item} display={display} onUpdate={onUpdate} readOnly />
+          </RowProject>
+        }
       />
     );
   }
@@ -279,7 +284,11 @@ function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, select
           />
         </HStack>
       }
-      endContent={<RowProperties item={item} display={display} onUpdate={onUpdate} readOnly={readOnly} />}
+      endContent={
+        <RowProject projectId={item.project_id}>
+          <RowProperties item={item} display={display} onUpdate={onUpdate} readOnly={readOnly} />
+        </RowProject>
+      }
     />
   );
 }

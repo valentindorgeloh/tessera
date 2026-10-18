@@ -27,7 +27,8 @@ import { normalizeFilters, type ViewState } from "./view-state";
 export type ViewDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  projectId: string;
+  /** Null creates a workspace view and opens it under `/workspace-views`. */
+  projectId: string | null;
   mode: "create" | "edit";
   /** "New view" (list), "Save view" (SaveViewButton), "Save as new view" (ViewBar), `Edit ${view.name}` (ViewMenu). */
   title: string;
@@ -90,7 +91,7 @@ function ViewForm({ projectId, onOpenChange, mode, title, view, initial }: Omit<
       });
       if (!result.ok) return fail(result.code, result.message);
       onOpenChange(false);
-      router.push(`/projects/${projectId}/views/${result.data.id}`);
+      router.push(projectId === null ? `/workspace-views/${result.data.id}` : `/projects/${projectId}/views/${result.data.id}`);
     });
   };
 

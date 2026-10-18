@@ -10,7 +10,7 @@
 import type { Filters } from "@/lib/tessera/types";
 
 /** List-valued keys the bar shows as "is any of" tokens. */
-export const LIST_FIELDS = ["state", "state_group", "priority", "labels", "assignees", "cycle", "module"] as const;
+export const LIST_FIELDS = ["state", "state_group", "priority", "labels", "assignees", "cycle", "module", "project"] as const;
 export type ListField = (typeof LIST_FIELDS)[number];
 
 /** Date keys the bar shows as relative-window or absolute tokens. */

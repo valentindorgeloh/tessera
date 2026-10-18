@@ -21,6 +21,8 @@
 @import "../components/styles/estimates.css";
 @import "../components/styles/bulk.css";
 @import "../components/styles/analytics.css";
+@import "../components/styles/profile.css";
+@import "../components/styles/workspace-views.css";
 
 html,
 body {

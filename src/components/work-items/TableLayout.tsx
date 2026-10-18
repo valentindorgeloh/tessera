@@ -40,6 +40,7 @@ import { Token } from "@astryxdesign/core/Token";
 import { PRIORITY_RANK } from "@/lib/tessera/core/group";
 import type { DisplayProperties, Group, GroupBy, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { isOptimisticId } from "./optimistic";
+import { RowProject } from "./row-project";
 import { ActorLabel, AssigneeControl, CycleControl, DateControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, PriorityLabel, StateControl, StateLabel, isPriority, paletteTokenColor } from "./properties";
 import type { LayoutProps, ProjectBundle, UpdateWorkItemPatch } from "./types";
 
@@ -55,7 +56,7 @@ function isDataRow(row: TableRow): boolean {
   return typeof row.item === "object" && row.item !== null;
 }
 
-type ColumnKey = "key" | "name" | "state" | "priority" | "assignees" | "labels" | "cycle" | "modules" | "estimate" | "start_date" | "target_date" | "created_at" | "updated_at";
+type ColumnKey = "key" | "name" | "project" | "state" | "priority" | "assignees" | "labels" | "cycle" | "modules" | "estimate" | "start_date" | "target_date" | "created_at" | "updated_at";
 
 /** Columns whose cells hold a control; clicks inside them do not open the row. */
 const EDITABLE: ReadonlySet<string> = new Set<ColumnKey>(["state", "priority", "assignees", "labels", "cycle", "modules", "estimate", "start_date", "target_date"]);
@@ -77,6 +78,7 @@ function compareNullableText(a: string | null, b: string | null): number {
 function buildColumns(
   properties: DisplayProperties,
   bundle: ProjectBundle,
+  showProject: boolean,
   onUpdate: (id: string, patch: UpdateWorkItemPatch) => void,
   onOpen: (id: string) => void,
   readOnly: boolean,
@@ -121,13 +123,29 @@ function buildColumns(
       </Text>
     ),
   });
+  if (showProject) {
+    const projectName = new Map(bundle.projects.map((project) => [project.id, project.name]));
+    columns.push({
+      key: "project",
+      header: "Project",
+      width: pixel(160),
+      sortable: true,
+      renderCell: (row) => (
+        <Text maxLines={1}>{projectName.get(row.item.project_id) ?? ""}</Text>
+      ),
+    });
+  }
   if (properties.state) {
     columns.push({
       key: "state",
       header: "State",
       width: pixel(176),
       sortable: true,
-      renderCell: (row) => <StateControl compact readOnly={locked(row)} value={row.item.state_id} onChange={(stateId) => onUpdate(row.item.id, { state_id: stateId })} />,
+      renderCell: (row) => (
+        <RowProject projectId={row.item.project_id}>
+          <StateControl compact readOnly={locked(row)} value={row.item.state_id} onChange={(stateId) => onUpdate(row.item.id, { state_id: stateId })} />
+        </RowProject>
+      ),
     });
   }
   if (properties.priority) {
@@ -152,7 +170,11 @@ function buildColumns(
       key: "labels",
       header: "Labels",
       width: pixel(200),
-      renderCell: (row) => <LabelControl compact readOnly value={row.item.label_ids} onChange={() => undefined} />,
+      renderCell: (row) => (
+        <RowProject projectId={row.item.project_id}>
+          <LabelControl compact readOnly value={row.item.label_ids} onChange={() => undefined} />
+        </RowProject>
+      ),
     });
   }
   if (properties.cycle) {
@@ -160,7 +182,11 @@ function buildColumns(
       key: "cycle",
       header: "Cycle",
       width: pixel(168),
-      renderCell: (row) => <CycleControl compact readOnly={locked(row)} value={row.item.cycle_id} onChange={(cycleId) => onUpdate(row.item.id, { cycle_id: cycleId })} />,
+      renderCell: (row) => (
+        <RowProject projectId={row.item.project_id}>
+          <CycleControl compact readOnly={locked(row)} value={row.item.cycle_id} onChange={(cycleId) => onUpdate(row.item.id, { cycle_id: cycleId })} />
+        </RowProject>
+      ),
     });
   }
   if (properties.modules) {
@@ -168,7 +194,11 @@ function buildColumns(
       key: "modules",
       header: "Modules",
       width: pixel(184),
-      renderCell: (row) => <ModuleControl compact readOnly value={row.item.module_ids} onChange={() => undefined} />,
+      renderCell: (row) => (
+        <RowProject projectId={row.item.project_id}>
+          <ModuleControl compact readOnly value={row.item.module_ids} onChange={() => undefined} />
+        </RowProject>
+      ),
     });
   }
   if (properties.start_date) {
@@ -273,7 +303,7 @@ function GroupHeading({ group, field, bundle }: { group: Group | undefined; fiel
   return <Text weight="semibold">{group.name}</Text>;
 }
 
-export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, selection }: LayoutProps) {
+export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection }: LayoutProps) {
   const groups = useMemo(() => result.groups ?? [], [result.groups]);
   const grouped = display.group_by !== null && groups.length > 0;
 
@@ -293,13 +323,14 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
 
   const stateRank = useMemo(() => new Map(bundle.states.map((state, index) => [state.id, index])), [bundle.states]);
 
-  const columns = useMemo(() => buildColumns(display.properties, bundle, onUpdate, onOpen, readOnly), [bundle, display.properties, onOpen, onUpdate, readOnly]);
+  const columns = useMemo(() => buildColumns(display.properties, bundle, showProject, onUpdate, onOpen, readOnly), [bundle, display.properties, onOpen, onUpdate, readOnly, showProject]);
 
   const { sortedData, sortConfig } = useTableSortableState<TableRow>({
     data: rows,
     comparators: {
       key: (a, b) => a.item.sequence_id - b.item.sequence_id,
       name: (a, b) => collator.compare(a.item.name, b.item.name),
+      project: (a, b) => collator.compare(bundle.projects.find((project) => project.id === a.item.project_id)?.name ?? "", bundle.projects.find((project) => project.id === b.item.project_id)?.name ?? ""),
       state: (a, b) => (stateRank.get(a.item.state_id) ?? Number.MAX_SAFE_INTEGER) - (stateRank.get(b.item.state_id) ?? Number.MAX_SAFE_INTEGER),
       priority: (a, b) => PRIORITY_RANK[a.item.priority] - PRIORITY_RANK[b.item.priority],
       estimate: (a, b) => estimateRank(bundle, a.item.estimate_point_id) - estimateRank(bundle, b.item.estimate_point_id),

@@ -1,0 +1,8 @@
+/*
+ * Your work and agent profiles (docs/drafts/p9-plan.md U3). Tokens only.
+ */
+
+.tessera-profile-bars {
+  inline-size: 100%;
+  max-inline-size: calc(var(--spacing-12) * 8);
+}
