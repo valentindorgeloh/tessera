@@ -13,7 +13,7 @@ export function SidebarSkeleton() {
   const { isNavCollapsed } = useShell();
   const resize = useSidebarResize();
   return (
-    <SideNav key={resize.key} aria-label="Work" collapsible={{ isCollapsed: isNavCollapsed, hasButton: false }} resizable={resize.resizable} header={<SideNavHeading heading="Work" headingHref="/home" />}>
+    <SideNav key={resize.key} aria-label="Work" collapsible={{ isCollapsed: isNavCollapsed, hasButton: false }} resizable={resize.resizable} header={<SideNavHeading heading="Work" headingHref="/" />}>
       <VStack gap={2} padding={2} aria-busy="true" aria-label="Loading navigation">
         {ROWS.map((row) => (
           <Skeleton key={row} index={row} height="var(--size-element-sm)" width={row % 3 === 0 ? "70%" : "90%"} />

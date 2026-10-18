@@ -166,7 +166,7 @@ export function Sidebar({ projects, unreadCount }: { projects: Project[]; unread
       aria-label="Work"
       collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed, hasButton: false }}
       resizable={resize.resizable}
-      header={<SideNavHeading heading="Work" headingHref="/home" />}
+      header={<SideNavHeading heading="Work" headingHref="/" />}
       topContent={
         isNavCollapsed ? (
           <IconButton
@@ -194,7 +194,7 @@ export function Sidebar({ projects, unreadCount }: { projects: Project[]; unread
       }
     >
       <SideNavSection title="Workspace" isHeaderHidden>
-        <SideNavItem label="Home" icon={HouseIcon} href="/home" isSelected={pathname === "/home"} />
+        <SideNavItem label="Home" icon={HouseIcon} href="/" isSelected={pathname === "/"} />
         {/* ASSUMPTION: getUnreadCount is not exported, and the layout does not pass a count, so the badge stays off until it does. InboxIcon is not in the icon module, so this uses BellIcon. */}
         <SideNavItem
           label="Inbox"

@@ -46,7 +46,6 @@ The models are pinned per role in each workflow script through `agent(..., { mod
 - Source files under `src/` and `scripts/` have a budget of 600 lines.
 - Files already over it are listed with their current length in `scripts/file-budget.json`. They may shrink but not grow; the convention gate enforces this ratchet. A new file over 600 lines fails the gate.
 - Any agent that meets a bloated file flags it in its report. The phase planner then schedules a split task (a worker) before lanes add to that file. The split commits on its own.
-- The handbook files `src/app/page-body.tsx` and `src/app/document-table.tsx` are exempt until P6 removes them.
 
 ## Core changes (no calcification)
 

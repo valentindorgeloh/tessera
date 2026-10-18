@@ -13,6 +13,9 @@ if (napi < 10) {
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  async redirects() {
+    return [{ source: "/home", destination: "/", permanent: true }];
+  },
   devIndicators: {
     position: "bottom-right",
   },

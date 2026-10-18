@@ -76,26 +76,6 @@ const eslintConfig = defineConfig([
       "import/no-anonymous-default-export": "off",
     },
   },
-  {
-    // Legacy handbook files: kept to their old lint rules until they are removed in P6 (see docs/PLAN.md).
-    files: [
-      "src/app/page-body.tsx",
-      "src/app/document-editor.tsx",
-      "src/app/document-table.tsx",
-      "src/app/page-tabs.tsx",
-      "src/app/workspace-shell.tsx",
-      "src/app/workspace-screen.tsx",
-      "src/app/workspace-frame.tsx",
-      "src/app/item-screen.tsx",
-      "src/app/search-dialog.tsx",
-      "src/app/page-column.tsx",
-      "src/app/page-outline.tsx",
-    ],
-    rules: {
-      "react-hooks/refs": "warn",
-      "react-hooks/exhaustive-deps": "warn",
-    },
-  },
   globalIgnores([
     ".next/**",
     "out/**",

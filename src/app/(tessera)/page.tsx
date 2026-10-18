@@ -12,11 +12,11 @@ import { listProjects, readTessera } from "@/lib/tessera/server";
 import type { Project } from "@/lib/tessera/types";
 
 /**
- * Tessera Home at `/home` (moves to `/` in P6): the recently visited pages,
- * the "Since you were last here" widget (filled by P5 and P9) and the
- * projects as rows, in a reading column under the panel header. The shell is
- * static; the project rows stream in under Suspense after `io()` and the
- * recents load from localStorage after mount.
+ * Tessera Home at `/`: the recently visited pages, the "Since you were last
+ * here" widget (filled by P5 and P9) and the projects as rows, in a reading
+ * column under the panel header. The shell is static; the project rows stream
+ * in under Suspense after `io()` and the recents load from localStorage after
+ * mount.
  */
 export default function HomePage() {
   return (

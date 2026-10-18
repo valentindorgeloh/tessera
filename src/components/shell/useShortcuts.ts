@@ -185,7 +185,7 @@ function runShortcut(id: ShortcutId, options: ShortcutDispatchOptions, context: 
       options.openCreateProject();
       return;
     case "nav.home":
-      options.push("/home");
+      options.push("/");
       return;
     case "nav.inbox":
       options.push("/inbox");

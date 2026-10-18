@@ -23,9 +23,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Root layout: fonts and providers only. The app frames live in the route
- * groups: `(handbook)` keeps the legacy WorkspaceFrame until P6 and
- * `(tessera)` renders the Tessera shell.
+ * Root layout: fonts and providers only. `(tessera)` renders the Tessera shell.
  */
 export default function RootLayout({children}: LayoutProps<"/">) {
   return (

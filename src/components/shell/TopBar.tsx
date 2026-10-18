@@ -123,7 +123,7 @@ export function TopBar() {
       heading={
         <HStack gap={1} vAlign="center">
           {isMobile ? null : <SideNavCollapseButton size="sm" collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed }} />}
-          <TopNavHeading heading="Tessera" headingHref="/home" logo={<NavIcon icon={<Icon icon={SquaresFourIcon} size="sm" />} />} />
+          <TopNavHeading heading="Tessera" headingHref="/" logo={<NavIcon icon={<Icon icon={SquaresFourIcon} size="sm" />} />} />
         </HStack>
       }
       centerContent={<SearchTrigger onOpen={openCommandBar} />}

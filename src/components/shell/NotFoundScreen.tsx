@@ -23,7 +23,7 @@ export function NotFoundScreen() {
         icon={<Icon icon={CompassIcon} size="lg" color="secondary" />}
         title="Page not found"
         description="Nothing lives at this address. It may have been moved or deleted."
-        actions={<Button label="Go home" variant="primary" href="/home" />}
+        actions={<Button label="Go home" variant="primary" href="/" />}
       />
     </VStack>
   );

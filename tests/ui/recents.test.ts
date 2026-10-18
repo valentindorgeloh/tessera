@@ -71,6 +71,7 @@ describe("projectIdFromPath", () => {
 
 describe("resolveRoute", () => {
   it("resolves the workspace routes", () => {
+    expect(resolveRoute("/", lookup)).toEqual({ label: "Home", icon: "home" });
     expect(resolveRoute("/home", lookup)).toEqual({ label: "Home", icon: "home" });
     expect(resolveRoute("/projects", lookup)).toEqual({ label: "Projects", icon: "projects" });
   });

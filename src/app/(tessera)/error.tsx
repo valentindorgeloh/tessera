@@ -23,7 +23,7 @@ export default function TesseraError({
         actions={
           <HStack gap={2}>
             <Button label="Try again" variant="primary" onClick={() => retry()} />
-            <Button label="Go home" variant="secondary" href="/home" />
+            <Button label="Go home" variant="secondary" href="/" />
           </HStack>
         }
       />

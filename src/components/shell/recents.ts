@@ -111,7 +111,8 @@ function decodeSegment(segment: string): string {
 }
 
 /**
- * Label and icon for a route. Known routes: `/home`, `/projects`,
+ * Label and icon for a route. Known routes: `/` (Home; `/home` still
+ * resolves to Home), `/projects`,
  * `/projects/archives` ("Archived projects"), `/projects/[id]`,
  * `/projects/[id]/work-items`, `/projects/[id]/work-items/[workItemId]`,
  * `/projects/[id]/cycles(/[cycleId])` and `/projects/[id]/modules(/[moduleId])`

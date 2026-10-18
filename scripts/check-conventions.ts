@@ -2,11 +2,6 @@
  * Convention gate (plan §10). Fails the merge when Tessera code breaks a rule
  * that neither tsc nor eslint can see. Scope: src/, scripts/, tests/.
  *
- * Legacy handbook files (deleted in P6) are exempt from the Tessera-only rules
- * so the old routes keep working until then. The exception is hex-colour: the
- * legacy files share the app theme, so only src/app/page.module.css (dead CSS)
- * keeps its hex literals.
- *
  * Rules
  *  client-boundary      'use client' files import only @/lib/tessera/{types,schemas,core/keys,core/time,core/group}
  *                       and never better-sqlite3, drizzle-orm or server-only
@@ -36,38 +31,6 @@ const EXTENSIONS = new Set([".ts", ".tsx", ".css", ".js", ".mjs"]);
 /** The gate scripts mention the rule text they enforce; exempt them from the text-based rules. */
 const GATE_SCRIPTS = new Set(["scripts/check-conventions.ts", "scripts/check-licenses.ts"]);
 
-/** Files of the handbook app that existed before Tessera (baseline commit). Removed in P6. */
-const LEGACY_HANDBOOK_FILES = new Set([
-  "src/app/actions.ts",
-  "src/app/api/mcp/route.ts",
-  "src/app/document-editor.tsx",
-  "src/app/document-table.tsx",
-  "src/app/globals.css",
-  "src/app/item-screen.tsx",
-  "src/app/(handbook)/items/[id]/page.tsx",
-  "src/app/(handbook)/layout.tsx",
-  "src/app/(handbook)/page.tsx",
-  "src/app/layout.tsx",
-  "src/app/page-body.tsx",
-  "src/app/page-column.tsx",
-  "src/app/page-outline.tsx",
-  "src/app/page-tabs.tsx",
-  "src/app/page.module.css",
-  "src/app/providers.tsx",
-  "src/app/search-dialog.tsx",
-  "src/app/workspace-frame.tsx",
-  "src/app/workspace-screen.tsx",
-  "src/app/workspace-shell.tsx",
-  "src/lib/workspace-model.ts",
-  "src/lib/workspace.ts",
-]);
-
-/**
- * Legacy files that may keep hex colours. The others share the Tessera theme
- * (globals.css, providers.tsx, layout.tsx), so the hex rule covers them too.
- */
-const HEX_EXEMPT_LEGACY = new Set(["src/app/page.module.css"]);
-
 const CLIENT_ALLOWED_TESSERA_IMPORTS = new Set([
   "@/lib/tessera/types",
   "@/lib/tessera/schemas",
@@ -76,8 +39,6 @@ const CLIENT_ALLOWED_TESSERA_IMPORTS = new Set([
   "@/lib/tessera/core/group",
 ]);
 
-/** Exempt from the file budget until their P6 rewrite; the script lists them. */
-const BUDGET_EXEMPT = new Set(["src/app/page-body.tsx", "src/app/document-table.tsx"]);
 const BUDGET_FILE = "scripts/file-budget.json";
 const DECISION_SCAN_DIRS = ["src/", "scripts/"];
 
@@ -135,7 +96,6 @@ const budgetCounts: Record<string, number> = {};
 for (const dir of SCAN_DIRS) {
   for (const abs of walk(path.join(ROOT, dir))) {
     const rel = path.relative(ROOT, abs).split(path.sep).join("/");
-    const isLegacy = LEGACY_HANDBOOK_FILES.has(rel) || rel.startsWith("src/app/items/");
     const isGenerated = rel.endsWith(".generated.ts") || rel.endsWith(".d.ts");
     const inEngine = rel.startsWith("src/lib/tessera/");
     const inComponents = rel.startsWith("src/components/");
@@ -172,7 +132,7 @@ for (const dir of SCAN_DIRS) {
         if (inEngine && spec === "server-only" && rel !== "src/lib/tessera/server.ts") {
           report(rel, n, "server-only", "only src/lib/tessera/server.ts may import server-only (Vitest and tsx load the rest)");
         }
-        if (!isLegacy && FORBIDDEN_PACKAGES.some((p) => spec === p || spec.startsWith(p))) {
+        if (FORBIDDEN_PACKAGES.some((p) => spec === p || spec.startsWith(p))) {
           report(rel, n, "forbidden-package", `import of ${spec} is not allowed in Tessera code`);
         }
         if (
@@ -191,17 +151,17 @@ for (const dir of SCAN_DIRS) {
         }
       }
 
-      if ((!isLegacy || !HEX_EXEMPT_LEGACY.has(rel)) && !isGenerated && !inThemes && !line.includes("hex-ok") && !line.startsWith("#!") && HEX_RE.test(line)) {
+      if (!isGenerated && !inThemes && !line.includes("hex-ok") && !line.startsWith("#!") && HEX_RE.test(line)) {
         report(rel, n, "hex-colour", "hex colour literal; use var(--color-*) tokens or a palette key (append `hex-ok` if this is not a colour)");
       }
 
-      if (!isLegacy && !GATE_SCRIPTS.has(rel)) {
+      if (!GATE_SCRIPTS.has(rel)) {
         for (const marker of PLANE_MARKERS) {
           if (line.includes(marker)) report(rel, n, "plane-marker", `contains "${marker}"; Tessera must not carry Plane identifiers or strings`);
         }
       }
 
-      if (!isLegacy && !GATE_SCRIPTS.has(rel) && /\brouter\.refresh\s*\(/.test(line)) {
+      if (!GATE_SCRIPTS.has(rel) && /\brouter\.refresh\s*\(/.test(line)) {
         report(rel, n, "no-router-refresh", "use a Server Action that calls refresh() instead of router.refresh()");
       }
 
@@ -213,7 +173,7 @@ for (const dir of SCAN_DIRS) {
 }
 
 const budget: Record<string, number> = JSON.parse(fs.readFileSync(path.join(ROOT, BUDGET_FILE), "utf8"));
-const budgetResult = evaluateFileBudget(budgetCounts, budget, BUDGET_EXEMPT);
+const budgetResult = evaluateFileBudget(budgetCounts, budget, new Set());
 for (const f of budgetResult.failures) report(f.file, 1, "file-budget", f.message);
 
 if (findings.length > 0) {
@@ -223,5 +183,5 @@ if (findings.length > 0) {
   process.exit(1);
 }
 for (const note of budgetResult.notes) console.log(`note: ${note}`);
-if (budgetResult.exempt.length > 0) console.log(`File budget: exempt until P6: ${budgetResult.exempt.join(", ")}`);
+if (budgetResult.exempt.length > 0) console.log(`File budget: over the limit and exempt: ${budgetResult.exempt.join(", ")}`);
 console.log("Convention gate passed.");
