@@ -15,7 +15,7 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-/** At most this many archived items are listed (the project list's limit); filters and paging arrive with views in P4. */
+/** At most this many archived items are listed. Filters come from the `q` param. */
 const LIMIT = 2000;
 
 /**
