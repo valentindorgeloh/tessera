@@ -38,6 +38,8 @@ export type ToolDef<Name extends string = string, Input extends ToolInputSchema 
   core?: boolean;
   /** When the tool ships; tools of later phases may already be implemented. */
   phase: ToolPhase;
+  /** A mutating tool an agent may call at every access level, because it only touches that agent's own rows. */
+  selfScoped?: boolean;
   // Declared as a method (not a property) so heterogeneous tools fit one Map<string, ToolDef>.
   run(ctx: TesseraContext, input: z.output<Input>): Output | Promise<Output>;
 };

@@ -60,12 +60,11 @@ export {
   UpdateWorkItemInput,
   type UpdateWorkItemInputType,
   updateWorkItem,
-  BulkUpdateWorkItemsInput,
-  bulkUpdateWorkItems,
   UpdateWorkItemDescriptionInput,
   type UpdateWorkItemDescriptionInputType,
   updateWorkItemDescription,
 } from "./update";
+export { BulkUpdateWorkItemsInput, type BulkUpdateWorkItemsInputType, bulkUpdateWorkItems, bulkArchiveWorkItems, bulkUnarchiveWorkItems, bulkDeleteWorkItems } from "./bulk";
 export { MoveWorkItemInput, type MoveWorkItemInputType, moveWorkItem } from "./move";
 export {
   CopyWorkItemInput,

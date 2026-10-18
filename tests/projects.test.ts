@@ -509,13 +509,15 @@ describe("updateProjectFeatures", () => {
     const ctx = setup();
     const p = createProject(ctx, { name: "Web", identifier: "WEB" });
     const seqBefore = latestSeq(ctx);
-    const updated = updateProjectFeatures(ctx, p.id, { cycles_enabled: false, estimates_enabled: true, agent_intake_required: true, pages_enabled: true });
+    const updated = updateProjectFeatures(ctx, p.id, { cycles_enabled: false, estimates_enabled: true, pages_enabled: true });
     expect(updated.cycles_enabled).toBe(false);
     expect(updated.estimates_enabled).toBe(true);
-    expect(updated.agent_intake_required).toBe(true);
+    expect(updated.agent_intake_required).toBe(false);
+    expect(errorCode(() => updateProjectFeatures(ctx, p.id, { agent_intake_required: true }))).toBe("RULE");
+    expect(getProject(ctx, p.id).agent_intake_required).toBe(false);
     expect(listStates(ctx, p.id).some((s) => s.state_group === "triage")).toBe(false);
     const rows = activityRows(ctx, p.id).filter((r) => r.seq > seqBefore);
-    expect(rows.map((r) => r.field)).toEqual(["cycles_enabled", "estimates_enabled", "agent_intake_required"]);
+    expect(rows.map((r) => r.field)).toEqual(["cycles_enabled", "estimates_enabled"]);
     expect(rows[0].old_value).toBe("true");
     expect(rows[0].new_value).toBe("false");
     const seqAfter = latestSeq(ctx);

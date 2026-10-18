@@ -277,7 +277,7 @@ export function getModule(ctx: TesseraContext, id: string): ModuleDetail {
  */
 export function getModuleProgress(ctx: TesseraContext, id: string): ModuleProgress {
   const row = getModuleRow(ctx, id);
-  const estimateId = activeEstimateId(loadProject(ctx, row.project_id));
+  const estimateId = activeEstimateId(ctx, loadProject(ctx, row.project_id));
   const rows = ctx.db
     .select({
       id: work_item.id,

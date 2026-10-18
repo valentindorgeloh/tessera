@@ -31,7 +31,7 @@ import { registry } from "@/lib/tessera/tools/registry";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SERVER_SCRIPT = "scripts/mcp-stdio.ts";
 const CLIENT_NAME = "p3-acceptance";
-const USAGE = "Usage: npx tsx scripts/mcp-call.ts <tool> ['<json arguments>']";
+const USAGE = "Usage: npx tsx scripts/mcp-call.ts [--client <name>] <tool> ['<json arguments>']";
 /** tsx compiles the engine on every start; generous so a cold machine connects. */
 const CONNECT_TIMEOUT_MS = 120_000;
 const CALL_TIMEOUT_MS = 120_000;
@@ -39,7 +39,7 @@ const CALL_TIMEOUT_MS = 120_000;
 const EXIT_TOOL_ERROR = 1;
 const EXIT_CONNECTION = 2;
 
-type Invocation = { tool: string; args: Record<string, unknown> };
+type Invocation = { tool: string; args: Record<string, unknown>; client: string };
 
 function log(message: string): void {
   process.stderr.write(message.endsWith("\n") ? message : `${message}\n`);
@@ -51,7 +51,18 @@ function messageOf(err: unknown): string {
 
 /** The tool name and its JSON object of arguments; null (after a message on stderr) when unusable. */
 function parseInvocation(argv: string[]): Invocation | null {
-  const [tool, rawArgs, ...extra] = argv;
+  const rest = [...argv];
+  let client = CLIENT_NAME;
+  if (rest[0] === "--client") {
+    const name = rest[1];
+    if (name === undefined || name === "") {
+      log(USAGE);
+      return null;
+    }
+    client = name;
+    rest.splice(0, 2);
+  }
+  const [tool, rawArgs, ...extra] = rest;
   if (tool === undefined || tool === "" || extra.length > 0) {
     log(USAGE);
     return null;
@@ -60,7 +71,7 @@ function parseInvocation(argv: string[]): Invocation | null {
     log(`Unknown tool "${tool}"; pass a registry name such as list_projects or get_cycle.\n${USAGE}`);
     return null;
   }
-  if (rawArgs === undefined) return { tool, args: {} };
+  if (rawArgs === undefined) return { tool, args: {}, client };
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawArgs);
@@ -72,7 +83,7 @@ function parseInvocation(argv: string[]): Invocation | null {
     log(`The arguments must be one JSON object, e.g. '{"project_id":"…"}'.\n${USAGE}`);
     return null;
   }
-  return { tool, args: parsed as Record<string, unknown> };
+  return { tool, args: parsed as Record<string, unknown>, client };
 }
 
 /**
@@ -117,7 +128,7 @@ async function main(): Promise<number> {
     stderr: "pipe",
   });
   transport.stderr?.on("data", (chunk: Buffer | string) => process.stderr.write(chunk));
-  const client = new Client({ name: CLIENT_NAME, version: "1.0.0" });
+  const client = new Client({ name: invocation.client, version: "1.0.0" });
 
   try {
     await client.connect(transport, { timeout: CONNECT_TIMEOUT_MS });

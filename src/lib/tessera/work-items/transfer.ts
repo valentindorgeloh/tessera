@@ -26,7 +26,8 @@ import {
 } from "./model";
 import { loadWorkItem } from "./hydrate";
 import { currentLabelIds } from "./membership";
-import { allocateSequence, insertWorkItem, intakeRequired, nextSortOrder, recordIntakeItem } from "./create";
+import { intakeRequired, intakeSourceFor, recordIntakeItem } from "../intake-policy";
+import { allocateSequence, insertWorkItem, nextSortOrder } from "./create";
 
 // ---------------------------------------------------------------------------
 // Copy and move between projects
@@ -119,7 +120,7 @@ export function copyWorkItem(ctx: TesseraContext, id: string, input: CopyWorkIte
       old_identifier: itemKey(sourceProject, source),
       new_identifier: itemKey(targetProject, row),
     });
-    if (viaIntake) recordIntakeItem(ctx, targetProject, row, "mcp");
+    if (viaIntake) recordIntakeItem(ctx, targetProject, row, intakeSourceFor(ctx));
     return loadWorkItem(ctx, row.id);
   });
 }
@@ -236,7 +237,7 @@ export function moveWorkItemToProject(ctx: TesseraContext, id: string, input: Mo
       old_identifier: oldKey,
       new_identifier: itemKey(targetProject, after),
     });
-    if (viaIntake) recordIntakeItem(ctx, targetProject, after, "mcp");
+    if (viaIntake) recordIntakeItem(ctx, targetProject, after, intakeSourceFor(ctx));
     return loadWorkItem(ctx, id);
   });
 }

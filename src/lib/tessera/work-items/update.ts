@@ -6,13 +6,12 @@ import { conflict, rule, validateInput } from "../core/errors";
 import { assertInTransaction, withTx } from "../core/tx";
 import { upsertWorkItemFts } from "../db/fts";
 import { work_item } from "../db/schema";
-import { IdListSchema, IdSchema, IsoDateSchema, PrioritySchema } from "../schemas";
+import { IdSchema, IsoDateSchema, PrioritySchema } from "../schemas";
 import type { WorkItemRow } from "../types";
 import {
   DESCRIPTION,
   ENTITY,
   type LoadedWorkItem,
-  MAX_IDS,
   WORK_ITEM_NAME,
   type WorkItem,
   assertCycleAllowed,
@@ -140,23 +139,6 @@ export function updateWorkItem(ctx: TesseraContext, id: string, patch: UpdateWor
     const loaded = loadWritableWorkItem(ctx, id);
     applyPatch(ctx, loaded, data);
     return loadWorkItem(ctx, id);
-  });
-}
-
-export const BulkUpdateWorkItemsInput = z
-  .object({
-    ids: IdListSchema.min(1).max(MAX_IDS).describe("Work items to change."),
-    patch: UpdateWorkItemInput.describe("Fields applied to every item."),
-  })
-  .strict();
-
-/** Applies the same patch to every item in one transaction: one failure rolls back all of them. */
-export function bulkUpdateWorkItems(ctx: TesseraContext, ids: string[], patch: UpdateWorkItemInputType): WorkItem[] {
-  const data = validateInput(BulkUpdateWorkItemsInput, { ids, patch });
-  return withTx(ctx, () => {
-    const unique = [...new Set(data.ids)];
-    for (const id of unique) applyPatch(ctx, loadWritableWorkItem(ctx, id), data.patch);
-    return unique.map((id) => loadWorkItem(ctx, id));
   });
 }
 

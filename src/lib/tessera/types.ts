@@ -5,6 +5,7 @@
  */
 import type { z } from "zod";
 import type {
+  ActorAccessSchema,
   ActorKindSchema,
   AiEffortSchema,
   AiStatusSchema,
@@ -29,6 +30,7 @@ import type {
   HomeWidgetsSchema,
   IntakeSourceSchema,
   IntakeStatusSchema,
+  IntakeTabSchema,
   LayoutSchema,
   LinkMetadataSchema,
   LogoSchema,
@@ -59,6 +61,8 @@ import type {
 import type * as tables from "./db/schema";
 
 export type ActorKind = z.infer<typeof ActorKindSchema>;
+export type ActorAccess = z.infer<typeof ActorAccessSchema>;
+export type IntakeTab = z.infer<typeof IntakeTabSchema>;
 export type StateGroup = z.infer<typeof StateGroupSchema>;
 export type Priority = z.infer<typeof PrioritySchema>;
 export type ModuleStatus = z.infer<typeof ModuleStatusSchema>;

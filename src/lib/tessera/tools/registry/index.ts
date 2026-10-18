@@ -14,6 +14,7 @@ import { latestSeq } from "../../activity";
 import type { TesseraContext } from "../../core/context";
 import { notFound, validateInput } from "../../core/errors";
 import { TOOL_PHASES, type ToolDef, type ToolPhase, type Toolset } from "../define";
+import { assertToolAllowed } from "./access";
 import { projectTools } from "./projects";
 import { stateTools } from "./states";
 import { labelTools } from "./labels";
@@ -27,6 +28,9 @@ import { pageTools } from "./pages";
 import { relationTools } from "./relations";
 import { commentTools } from "./comments";
 import { notificationTools } from "./notifications";
+import { intakeTools } from "./intake";
+import { draftTools } from "./drafts";
+import { estimateTools } from "./estimates";
 import { metaTools } from "./meta";
 export type { DeleteResult, RemoveResult } from "./shared";
 
@@ -34,7 +38,7 @@ export type { DeleteResult, RemoveResult } from "./shared";
 // Registry
 // ---------------------------------------------------------------------------
 
-const TOOLS = [...projectTools, ...stateTools, ...labelTools, ...actorTools, ...workItemTools, ...linkTools, ...cycleTools, ...moduleTools, ...viewTools, ...pageTools, ...relationTools, ...commentTools, ...notificationTools, ...metaTools];
+const TOOLS = [...projectTools, ...stateTools, ...labelTools, ...actorTools, ...workItemTools, ...linkTools, ...cycleTools, ...moduleTools, ...viewTools, ...pageTools, ...relationTools, ...commentTools, ...notificationTools, ...intakeTools, ...draftTools, ...estimateTools, ...metaTools];
 
 export type Tool = (typeof TOOLS)[number];
 export type ToolName = Tool["name"];
@@ -81,6 +85,7 @@ export function runToolWithContext<N extends ToolName>(ctx: TesseraContext, name
 export function runToolWithContext(ctx: TesseraContext, name: string, input: unknown): Promise<ToolResult>;
 export async function runToolWithContext(ctx: TesseraContext, name: string, input: unknown): Promise<ToolResult> {
   const def = getTool(name);
+  assertToolAllowed(ctx, def);
   const data = validateInput(def.input, input);
   const result = await def.run(ctx, data);
   return { data: result, cursor: latestSeq(ctx) };

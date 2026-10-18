@@ -40,6 +40,7 @@ export const notificationTools = [
     input: ListInput,
     mutates: false,
     phase: "P7",
+    selfScoped: true,
     run: (ctx, input) => toListResult(ctx, listNotifications(ctx, input)),
   }),
   defineTool({
@@ -49,6 +50,7 @@ export const notificationTools = [
     input: IdsInput,
     mutates: true,
     phase: "P7",
+    selfScoped: true,
     run: (ctx, input) => markNotificationsRead(ctx, input),
   }),
   defineTool({
@@ -58,6 +60,7 @@ export const notificationTools = [
     input: IdsInput,
     mutates: true,
     phase: "P7",
+    selfScoped: true,
     run: (ctx, input) => markNotificationsUnread(ctx, input),
   }),
   defineTool({
@@ -67,6 +70,7 @@ export const notificationTools = [
     input: IdsInput,
     mutates: true,
     phase: "P7",
+    selfScoped: true,
     run: (ctx, input) => archiveNotifications(ctx, input),
   }),
   defineTool({
@@ -76,6 +80,7 @@ export const notificationTools = [
     input: IdsInput,
     mutates: true,
     phase: "P7",
+    selfScoped: true,
     run: (ctx, input) => unarchiveNotifications(ctx, input),
   }),
   defineTool({
@@ -85,6 +90,7 @@ export const notificationTools = [
     input: SnoozeInput,
     mutates: true,
     phase: "P7",
+    selfScoped: true,
     run: (ctx, input) => snoozeNotifications(ctx, input),
   }),
   defineTool({
@@ -94,6 +100,7 @@ export const notificationTools = [
     input: IdsInput,
     mutates: true,
     phase: "P7",
+    selfScoped: true,
     run: (ctx, input) => unsnoozeNotifications(ctx, input),
   }),
 ];

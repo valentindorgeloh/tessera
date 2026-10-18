@@ -59,13 +59,15 @@ function insertEstimatePoints(ctx: TesseraContext, projectId: string, values: st
     .values({ id: newId(), project_id: projectId, name: "Points", ...audit(ctx) })
     .returning()
     .get();
-  return values.map((value, position) =>
+  const points = values.map((value, position) =>
     ctx.db
       .insert(estimate_point)
       .values({ id: newId(), estimate_id: est.id, position, value, ...audit(ctx) })
       .returning()
       .get(),
   );
+  ctx.db.update(project).set({ estimate_id: est.id }).where(eq(project.id, projectId)).run();
+  return points;
 }
 
 /** Ids matching `filters` in project creation then sequence order, through the same join listWorkItems uses. */

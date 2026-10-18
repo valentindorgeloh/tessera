@@ -1,6 +1,7 @@
-import { index, integer, sqliteTable, text, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+import { index, integer, sqliteTable, text, uniqueIndex, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import type { EstimateType, IntakeSource, IntakeStatus, Priority } from "../../types";
-import { auditColumns } from "./columns";
+import { DELETED_AT_IS_NULL, auditColumns } from "./columns";
 import { actor, project, state, work_item, cycle } from "./core";
 
 // ===========================================================================
@@ -26,7 +27,7 @@ export const draft_work_item = sqliteTable(
     target_date: text("target_date"),
     ...auditColumns(),
   },
-  (t) => [index("draft_work_item_project_idx").on(t.project_id)],
+  (t) => [index("draft_work_item_project_idx").on(t.project_id), index("draft_work_item_updated_idx").on(t.updated_at)],
 );
 
 export const intake = sqliteTable(
@@ -62,7 +63,11 @@ export const intake_item = sqliteTable(
       .references(() => actor.id, { onDelete: "restrict" }),
     ...auditColumns(),
   },
-  (t) => [index("intake_item_intake_status_idx").on(t.intake_id, t.status), index("intake_item_work_item_idx").on(t.work_item_id)],
+  (t) => [
+    index("intake_item_intake_status_idx").on(t.intake_id, t.status),
+    uniqueIndex("intake_item_work_item_uq").on(t.work_item_id).where(DELETED_AT_IS_NULL),
+    index("intake_item_status_snooze_idx").on(t.intake_id, t.status, t.snoozed_till),
+  ],
 );
 
 export const estimate = sqliteTable(
@@ -78,7 +83,10 @@ export const estimate = sqliteTable(
     archived_at: text("archived_at"),
     ...auditColumns(),
   },
-  (t) => [index("estimate_project_idx").on(t.project_id)],
+  (t) => [
+    index("estimate_project_idx").on(t.project_id),
+    uniqueIndex("estimate_active_uq").on(t.project_id).where(sql`archived_at IS NULL AND deleted_at IS NULL`),
+  ],
 );
 
 export const estimate_point = sqliteTable(

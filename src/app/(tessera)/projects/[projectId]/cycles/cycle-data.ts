@@ -10,9 +10,9 @@ import type { Project } from "@/lib/tessera/types";
 /** Candidates for "Add existing work items": at most 500, most recently updated first. */
 const CANDIDATE_LIMIT = 500;
 
-/** Cycle points follow the project's active estimate (estimates on and an estimate chosen). */
-export function hasActiveEstimate(project: Pick<Project, "estimates_enabled" | "estimate_id">): boolean {
-  return project.estimates_enabled && project.estimate_id !== null;
+/** Cycle points follow an active system of type points. Categories and time stay off the chart. */
+export function hasActiveEstimate(project: Pick<Project, "estimate_type">): boolean {
+  return project.estimate_type === "points";
 }
 
 /**

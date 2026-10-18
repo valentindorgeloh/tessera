@@ -9,6 +9,12 @@ import { GROUPABLE_FIELDS, ORDER_BY_VALUES } from "./core/group";
 
 export const ActorKindSchema = z.enum(["user", "assistant", "agent", "system"]);
 
+/** Workspace-wide write permission for agents. Other actor kinds are always `write`. */
+export const ActorAccessSchema = z.enum(["write", "intake", "read"]);
+
+/** Intake screen tabs. Open includes pending items and snoozed items whose time has passed. */
+export const IntakeTabSchema = z.enum(["open", "snoozed", "closed"]);
+
 /** Plane-compatible state groups; `triage` is hidden and exists only when Intake is enabled. */
 export const StateGroupSchema = z.enum(["backlog", "unstarted", "started", "completed", "cancelled", "triage"]);
 
@@ -429,3 +435,19 @@ export const AssistantEventSchema = z.discriminatedUnion("type", [
 ]);
 
 export type AssistantEvent = z.infer<typeof AssistantEventSchema>;
+
+export const ESTIMATE_POINTS_MIN = 2;
+export const ESTIMATE_POINTS_MAX = 6;
+
+export const EstimateTemplateKeySchema = z.enum(["fibonacci", "linear", "squares", "tshirt", "effort", "time", "custom"]);
+
+/** Starting points for an estimate system. Custom is two blank rows the person fills in. */
+export const ESTIMATE_TEMPLATES: readonly { key: z.infer<typeof EstimateTemplateKeySchema>; type: z.infer<typeof EstimateTypeSchema>; label: string; values: string[] }[] = [
+  { key: "fibonacci", type: "points", label: "Fibonacci", values: ["1", "2", "3", "5", "8", "13"] },
+  { key: "linear", type: "points", label: "Linear", values: ["1", "2", "3", "4", "5", "6"] },
+  { key: "squares", type: "points", label: "Squares", values: ["1", "4", "9", "16", "25", "36"] },
+  { key: "tshirt", type: "categories", label: "T-shirt", values: ["XS", "S", "M", "L", "XL", "XXL"] },
+  { key: "effort", type: "categories", label: "Easy to hard", values: ["Easy", "Medium", "Hard", "Very hard"] },
+  { key: "time", type: "time", label: "Time", values: ["30", "60", "120", "240", "480", "960"] },
+  { key: "custom", type: "points", label: "Custom", values: ["", ""] },
+];

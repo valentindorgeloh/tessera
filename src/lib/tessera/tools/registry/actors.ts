@@ -30,7 +30,7 @@ export const actorTools = [
   defineTool({
     name: "update_actor",
     title: "Update actor",
-    description: "Renames or recolours an actor (display name and palette colour); the kind never changes.",
+    description: "Renames or recolours an actor, or sets an agent's access to write, intake or read. Only the user can change access, and only on an agent. The kind never changes.",
     input: UpdateActorInput.strict().extend({ actor_id: ActorId }),
     mutates: true,
     phase: "P1",

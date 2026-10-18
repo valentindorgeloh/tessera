@@ -183,13 +183,22 @@ export function assertCycleOpen(ctx: TesseraContext, cycleRow: CycleRow): void {
 
 export function resolveEstimatePoint(ctx: TesseraContext, projectId: string, pointId: string): string {
   const row = ctx.db
-    .select({ value: estimate_point.value, project_id: estimate.project_id })
+    .select({
+      value: estimate_point.value,
+      project_id: estimate.project_id,
+      estimate_id: estimate.id,
+      archived_at: estimate.archived_at,
+    })
     .from(estimate_point)
     .innerJoin(estimate, eq(estimate_point.estimate_id, estimate.id))
     .where(and(eq(estimate_point.id, pointId), isNull(estimate_point.deleted_at), isNull(estimate.deleted_at)))
     .get();
   if (!row) throw notFound("estimate_point", pointId);
   if (row.project_id !== projectId) throw rule("estimate_point_project", "The estimate point belongs to another project");
+  const active = ctx.db.select({ estimate_id: project.estimate_id }).from(project).where(eq(project.id, projectId)).get();
+  if (row.archived_at !== null || active?.estimate_id !== row.estimate_id) {
+    throw rule("estimate_point_inactive", "The estimate point is not part of the project's active estimate system");
+  }
   return row.value;
 }
 

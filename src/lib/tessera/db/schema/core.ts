@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
-import type { ActorKind, CycleProgress, Display, Filters, LinkMetadata, Logo, ModuleStatus, PaletteColor, Priority, RichFilters, StateGroup, ViewSettingsScope } from "../../types";
+import type { ActorAccess, ActorKind, CycleProgress, Display, Filters, LinkMetadata, Logo, ModuleStatus, PaletteColor, Priority, RichFilters, StateGroup, ViewSettingsScope } from "../../types";
 import { DELETED_AT_IS_NULL, auditColumns } from "./columns";
 import { estimate, estimate_point } from "./planning";
 
@@ -17,6 +17,8 @@ export const actor = sqliteTable(
     name_key: text("name_key").notNull(),
     color: text("color").$type<PaletteColor>().notNull().default("gray"),
     client_name: text("client_name"),
+    /** `write` (default), `intake` or `read`. Meaningful for agents; other kinds stay `write`. */
+    access: text("access").$type<ActorAccess>().notNull().default("write"),
     last_seen_at: text("last_seen_at"),
     ...auditColumns(),
   },

@@ -1,8 +1,13 @@
 import { z } from "zod";
+import { IdListSchema } from "../../schemas";
+import { MAX_IDS } from "../../work-items/model";
 import { setAssignees, SetAssigneesInput, subscribe, SubscribeInput, unsubscribe } from "../../assignees";
 import { listActivity, ListActivityInput } from "../../changes";
 import {
   archiveWorkItem,
+  bulkArchiveWorkItems,
+  bulkDeleteWorkItems,
+  bulkUnarchiveWorkItems,
   bulkUpdateWorkItems,
   BulkUpdateWorkItemsInput,
   copyWorkItem,
@@ -147,12 +152,12 @@ export const workItemTools = [
     name: "bulk_update_work_items",
     title: "Bulk update work items",
     description:
-      "Applies the same update_work_item patch to up to 500 items in one transaction; the same rules apply to each item and one failure rolls back all of them. Destructive because it rewrites many items at once.",
+      "Applies the same update_work_item patch to up to 500 items in one transaction, and can add or remove labels, assignees and modules without replacing the rest. An id in both add and remove is VALIDATION. One failure rolls back all of them. Destructive because it rewrites many items at once.",
     input: BulkUpdateWorkItemsInput,
     mutates: true,
     destructive: true,
     phase: "P1",
-    run: (ctx, { ids, patch }) => bulkUpdateWorkItems(ctx, ids, patch),
+    run: (ctx, input) => bulkUpdateWorkItems(ctx, input),
   }),
   defineTool({
     name: "copy_work_item",
@@ -281,5 +286,34 @@ export const workItemTools = [
     core: true,
     phase: "P1",
     run: (ctx, input) => toListResult(ctx, listActivity(ctx, input)),
+  }),
+  defineTool({
+    name: "bulk_archive_work_items",
+    title: "Bulk archive work items",
+    description: "Archives up to 500 work items in one transaction, and only when every item is completed or cancelled. Otherwise RULE archive_open_item names the open keys and nothing is archived. Destructive.",
+    input: z.object({ ids: IdListSchema.min(1).max(MAX_IDS).describe("Work items to archive, at most 500.") }).strict(),
+    mutates: true,
+    destructive: true,
+    phase: "P8",
+    run: (ctx, { ids }) => bulkArchiveWorkItems(ctx, ids),
+  }),
+  defineTool({
+    name: "bulk_unarchive_work_items",
+    title: "Bulk unarchive work items",
+    description: "Restores up to 500 archived work items in one transaction. An item that is not archived fails the whole call and nothing is restored.",
+    input: z.object({ ids: IdListSchema.min(1).max(MAX_IDS).describe("Archived work items to restore, at most 500.") }).strict(),
+    mutates: true,
+    phase: "P8",
+    run: (ctx, { ids }) => bulkUnarchiveWorkItems(ctx, ids),
+  }),
+  defineTool({
+    name: "bulk_delete_work_items",
+    title: "Bulk delete work items",
+    description: "Soft-deletes up to 500 work items and their sub-item trees in one transaction. A missing id rolls back the whole call. Works on archived items. Destructive.",
+    input: z.object({ ids: IdListSchema.min(1).max(MAX_IDS).describe("Work items to delete, at most 500.") }).strict(),
+    mutates: true,
+    destructive: true,
+    phase: "P8",
+    run: (ctx, { ids }) => bulkDeleteWorkItems(ctx, ids),
   }),
 ];

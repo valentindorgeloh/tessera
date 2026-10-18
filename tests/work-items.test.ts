@@ -128,11 +128,13 @@ function insertEstimatePoint(ctx: TesseraContext, projectId: string, value = "3"
     .values({ id: newId(), project_id: projectId, name: "Points", ...audit(ctx) })
     .returning()
     .get();
-  return ctx.db
+  const point = ctx.db
     .insert(estimate_point)
     .values({ id: newId(), estimate_id: est.id, position: 0, value, ...audit(ctx) })
     .returning()
     .get();
+  ctx.db.update(project).set({ estimate_id: est.id }).where(eq(project.id, projectId)).run();
+  return point;
 }
 
 function insertLink(ctx: TesseraContext, workItemId: string, url: string) {
@@ -405,7 +407,7 @@ describe("intake policy", () => {
     expect(visible()).toBe(0);
     expect(ruleName(() => updateWorkItem(actx, item.id, { state_id: states.Todo.id }))).toBe("intake_pending");
     expect(ruleName(() => updateWorkItem(ctx, item.id, { state_id: states.Todo.id }))).toBe("intake_pending");
-    expect(ruleName(() => bulkUpdateWorkItems(actx, [item.id], { state_id: states.Done.id }))).toBe("intake_pending");
+    expect(ruleName(() => bulkUpdateWorkItems(actx, { ids: [item.id], patch: { state_id: states.Done.id } }))).toBe("intake_pending");
     expect(ruleName(() => moveWorkItem(actx, item.id, { group_by: "state", value: states.Todo.id }))).toBe("intake_pending");
     expect(getWorkItem(ctx, item.id)).toMatchObject({ state_id: triageId, intake: { status: "pending" } });
     expect(visible()).toBe(0);
@@ -571,7 +573,7 @@ describe("updateWorkItem", () => {
     expect(errorCode(() => setLabels(ctx, item.id, []))).toBe("ARCHIVED");
     expect(errorCode(() => setModules(ctx, item.id, []))).toBe("ARCHIVED");
     expect(errorCode(() => setAssignees(ctx, item.id, []))).toBe("ARCHIVED");
-    expect(errorCode(() => bulkUpdateWorkItems(ctx, [item.id], { priority: "low" }))).toBe("ARCHIVED");
+    expect(errorCode(() => bulkUpdateWorkItems(ctx, { ids: [item.id], patch: { priority: "low" } }))).toBe("ARCHIVED");
     expect(errorCode(() => moveWorkItemToProject(ctx, item.id, { project_id: createProject(ctx, { name: "O", identifier: "OTH" }).id }))).toBe("ARCHIVED");
     expect(errorCode(() => subscribe(ctx, item.id))).toBe("ARCHIVED");
     expect(errorCode(() => unsubscribe(ctx, item.id))).toBe("ARCHIVED");
@@ -588,7 +590,7 @@ describe("updateWorkItem", () => {
     const item = createWorkItem(ctx, { project_id: p.id, name: "A", state_id: states.Todo.id });
     expect(errorCode(() => updateWorkItem(ctx, item.id, { cycle_id: ended.id }))).toBe("LOCKED");
     expect(errorCode(() => updateWorkItem(ctx, item.id, { cycle_id: gone.id }))).toBe("ARCHIVED");
-    expect(errorCode(() => bulkUpdateWorkItems(ctx, [item.id], { cycle_id: ended.id }))).toBe("LOCKED");
+    expect(errorCode(() => bulkUpdateWorkItems(ctx, { ids: [item.id], patch: { cycle_id: ended.id } }))).toBe("LOCKED");
     expect(errorCode(() => moveWorkItem(ctx, item.id, { group_by: "cycle", value: ended.id }))).toBe("LOCKED");
     expect(errorCode(() => moveWorkItem(ctx, item.id, { group_by: "cycle", value: gone.id }))).toBe("ARCHIVED");
     expect(getWorkItem(ctx, item.id).cycle_id).toBeNull();
@@ -860,15 +862,15 @@ describe("bulkUpdateWorkItems", () => {
     const { ctx, project: p, states } = setup();
     const a = createWorkItem(ctx, { project_id: p.id, name: "A" });
     const b = createWorkItem(ctx, { project_id: p.id, name: "B" });
-    const done = bulkUpdateWorkItems(ctx, [a.id, b.id, a.id], { state_id: states.Done.id, priority: "low" });
+    const done = bulkUpdateWorkItems(ctx, { ids: [a.id, b.id, a.id], patch: { state_id: states.Done.id, priority: "low" } });
     expect(done.map((i) => i.id)).toEqual([a.id, b.id]);
     expect(done.every((i) => i.completed_at !== null && i.priority === "low")).toBe(true);
     archiveWorkItem(ctx, b.id);
     const seqBefore = latestSeq(ctx);
-    expect(errorCode(() => bulkUpdateWorkItems(ctx, [a.id, b.id], { priority: "urgent" }))).toBe("ARCHIVED");
+    expect(errorCode(() => bulkUpdateWorkItems(ctx, { ids: [a.id, b.id], patch: { priority: "urgent" } }))).toBe("ARCHIVED");
     expect(getWorkItem(ctx, a.id).priority).toBe("low");
     expect(latestSeq(ctx)).toBe(seqBefore);
-    expect(errorCode(() => bulkUpdateWorkItems(ctx, [], { priority: "urgent" }))).toBe("VALIDATION");
+    expect(errorCode(() => bulkUpdateWorkItems(ctx, { ids: [], patch: { priority: "urgent" } }))).toBe("VALIDATION");
   });
 });
 

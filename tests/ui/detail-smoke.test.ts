@@ -103,6 +103,7 @@ const project: Project = {
   estimates_enabled: false,
   agent_intake_required: false,
   estimate_id: null,
+  estimate_type: null,
   default_assignee_id: null,
   archive_in_months: null,
   close_in_months: null,
@@ -120,7 +121,7 @@ const states: State[] = [
 
 const labels: Label[] = [{ id: LABEL, project_id: PROJECT, parent_id: null, name: "Bug", name_key: "bug", color: "red", sort_order: "a0", ...audit }];
 
-const actors: ActorRow[] = [{ id: USER, kind: "user", name: "Valentin", name_key: "valentin", color: "blue", client_name: null, last_seen_at: null, ...audit }];
+const actors: ActorRow[] = [{ id: USER, kind: "user", name: "Valentin", name_key: "valentin", color: "blue", client_name: null, last_seen_at: null, access: "write", ...audit }];
 
 const bundle: ProjectBundle = { project, states, labels, cycles: [], modules: [], actors, cursor: 42, today: "2026-10-17" };
 

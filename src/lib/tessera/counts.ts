@@ -16,7 +16,7 @@ import { getActor } from "./actors";
 import type { TesseraContext } from "./core/context";
 import { notFound, validateInput } from "./core/errors";
 import { addDays } from "./core/time";
-import { cycle, estimate_point, moduleTable, project, state, view, work_item, work_item_assignee, work_item_label, work_item_module } from "./db/schema";
+import { cycle, estimate, estimate_point, moduleTable, project, state, view, work_item, work_item_assignee, work_item_label, work_item_module } from "./db/schema";
 import { buildWhere } from "./filters";
 import { getProjectRow } from "./projects";
 import { DisplaySchema, FiltersSchema, IdSchema, PrioritySchema, StateGroupSchema } from "./schemas";
@@ -243,7 +243,8 @@ function pointsEnabled(ctx: TesseraContext, projectIds: string[]): boolean {
   const row = ctx.db
     .select({ n: count() })
     .from(project)
-    .where(and(inArray(project.id, projectIds), eq(project.estimates_enabled, true), sql`${project.estimate_id} IS NOT NULL`))
+    .innerJoin(estimate, and(eq(estimate.id, project.estimate_id), eq(estimate.type, "points"), isNull(estimate.deleted_at), isNull(estimate.archived_at)))
+    .where(and(inArray(project.id, projectIds), eq(project.estimates_enabled, true)))
     .get();
   return (row?.n ?? 0) > 0;
 }
@@ -265,9 +266,10 @@ function sumPoints(ctx: TesseraContext, where: SQL): { total_points: number; com
     .from(work_item)
     .innerJoin(state, eq(work_item.state_id, state.id))
     .innerJoin(project, eq(work_item.project_id, project.id))
+    .innerJoin(estimate, and(eq(estimate.id, project.estimate_id), eq(estimate.type, "points"), isNull(estimate.deleted_at), isNull(estimate.archived_at)))
     .innerJoin(
       estimate_point,
-      and(eq(work_item.estimate_point_id, estimate_point.id), eq(estimate_point.estimate_id, project.estimate_id), isNull(estimate_point.deleted_at)),
+      and(eq(work_item.estimate_point_id, estimate_point.id), eq(estimate_point.estimate_id, estimate.id), isNull(estimate_point.deleted_at)),
     )
     .where(and(where, eq(project.estimates_enabled, true)))
     .groupBy(state.state_group, estimate_point.value)

@@ -20,6 +20,9 @@ import { assertInTransaction, withTx } from "./core/tx";
 import {
   activity,
   cycle,
+  draft_work_item,
+  estimate,
+  estimate_point,
   intake,
   intake_item,
   label,
@@ -35,7 +38,7 @@ import {
 } from "./db/schema";
 import { IdSchema, LogoSchema, ProjectIdentifierSchema, StateGroupSchema } from "./schemas";
 import { ensureTriageState, seedProjectStates } from "./states";
-import type { ProjectRow, StateGroup } from "./types";
+import type { EstimateType, ProjectRow, StateGroup } from "./types";
 
 export type ProjectCounts = {
   /** Non-deleted, non-archived work items of the project outside the hidden triage state: the population getCounts and listWorkItems show. */
@@ -44,7 +47,7 @@ export type ProjectCounts = {
   by_state_group: Record<StateGroup, number>;
 };
 
-export type Project = ProjectRow & { counts: ProjectCounts };
+export type Project = ProjectRow & { counts: ProjectCounts; estimate_type: EstimateType | null };
 
 export const DEFAULT_INTAKE_NAME = "Intake";
 
@@ -203,7 +206,23 @@ function toProjects(ctx: TesseraContext, rows: ProjectRow[]): Project[] {
     ctx,
     rows.map((row) => row.id),
   );
-  return rows.map((row) => ({ ...row, counts: counts.get(row.id) ?? emptyCounts() }));
+  const types = estimateTypes(ctx, rows);
+  return rows.map((row) => ({
+    ...row,
+    counts: counts.get(row.id) ?? emptyCounts(),
+    estimate_type: row.estimates_enabled && row.estimate_id !== null ? (types.get(row.estimate_id) ?? null) : null,
+  }));
+}
+
+function estimateTypes(ctx: TesseraContext, rows: ProjectRow[]): Map<string, EstimateType> {
+  const ids = rows.map((row) => row.estimate_id).filter((id): id is string => id !== null);
+  if (ids.length === 0) return new Map();
+  const found = ctx.db
+    .select({ id: estimate.id, type: estimate.type })
+    .from(estimate)
+    .where(and(inArray(estimate.id, ids), isNull(estimate.deleted_at), isNull(estimate.archived_at)))
+    .all();
+  return new Map(found.map((row) => [row.id, row.type]));
 }
 
 function toProject(ctx: TesseraContext, row: ProjectRow): Project {
@@ -460,9 +479,14 @@ export function updateProjectFeatures(ctx: TesseraContext, id: string, patch: Pr
       const value = data[field];
       if (value !== undefined && value !== before[field]) changes[field] = value;
     }
+    const intakeOn = (changes.intake_enabled ?? before.intake_enabled) === true;
+    if (changes.agent_intake_required === true && !intakeOn) {
+      throw rule("intake_disabled", "Turn Intake on before requiring it for agents");
+    }
     if (changes.intake_enabled === false) {
       const open = countOpenIntakeItems(ctx, id);
       if (open > 0) throw rule("intake_pending", `Intake cannot be disabled while ${open} intake item(s) are pending`);
+      if (before.agent_intake_required) changes.agent_intake_required = false;
     }
     let after = before;
     if (Object.keys(changes).length > 0) {
@@ -542,6 +566,25 @@ export function deleteProject(ctx: TesseraContext, id: string): void {
       .where(and(eq(intake.project_id, id), isNull(intake.deleted_at)));
     ctx.db.update(intake_item).set(stamp).where(and(inArray(intake_item.intake_id, liveIntakes), isNull(intake_item.deleted_at))).run();
     ctx.db.update(intake).set(stamp).where(and(eq(intake.project_id, id), isNull(intake.deleted_at))).run();
+    ctx.db
+      .update(draft_work_item)
+      .set({
+        project_id: null,
+        state_id: null,
+        parent_id: null,
+        cycle_id: null,
+        label_ids: [],
+        module_ids: [],
+        assignee_ids: [],
+        estimate_point_id: null,
+        updated_at: now,
+        updated_by: ctx.actor.id,
+      })
+      .where(and(eq(draft_work_item.project_id, id), isNull(draft_work_item.deleted_at)))
+      .run();
+    const liveEstimates = ctx.db.select({ id: estimate.id }).from(estimate).where(and(eq(estimate.project_id, id), isNull(estimate.deleted_at)));
+    ctx.db.update(estimate_point).set(stamp).where(and(inArray(estimate_point.estimate_id, liveEstimates), isNull(estimate_point.deleted_at))).run();
+    ctx.db.update(estimate).set(stamp).where(and(eq(estimate.project_id, id), isNull(estimate.deleted_at))).run();
     ctx.db.update(work_item).set(stamp).where(and(eq(work_item.project_id, id), isNull(work_item.deleted_at))).run();
     ctx.db.update(state).set(stamp).where(and(eq(state.project_id, id), isNull(state.deleted_at))).run();
     ctx.db.update(label).set(stamp).where(and(eq(label.project_id, id), isNull(label.deleted_at))).run();

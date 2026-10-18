@@ -19,6 +19,8 @@ import type { ActorKind } from "./types";
 
 const SNIPPET_LIMIT = 280;
 const LIST_LIMIT = 200;
+/** Built-in user actor. Duplicated here so this module does not import actors.ts (that module imports activity, which imports this file). */
+const USER_ACTOR_ID = "00000000-0000-7000-8000-000000000001";
 
 export type NotificationView = {
   uid: string;
@@ -81,6 +83,27 @@ export function notifyFromActivity(ctx: TesseraContext, entry: ActivityEntry): v
     entity_id: entry.entity_id,
     work_item_id: item.id,
     project_id: item.project_id,
+  });
+}
+
+/**
+ * Tells the user that someone other than them submitted a work item to Intake.
+ * The assistant never announces its own creates. Call inside the create transaction.
+ */
+export function notifyIntakeReceived(
+  ctx: TesseraContext,
+  input: { intake_item_id: string; work_item_id: string; project_id: string; title: string; key: string },
+): void {
+  assertInTransaction(ctx, "notifyIntakeReceived");
+  if (ctx.actor.kind === "user" || ctx.actor.kind === "assistant") return;
+  writeRows(ctx, [USER_ACTOR_ID], {
+    kind: "intake_received",
+    title: input.title,
+    snippet: `${ctx.actor.name} submitted ${input.key} to Intake`,
+    entity_type: "intake_item",
+    entity_id: input.intake_item_id,
+    work_item_id: input.work_item_id,
+    project_id: input.project_id,
   });
 }
 

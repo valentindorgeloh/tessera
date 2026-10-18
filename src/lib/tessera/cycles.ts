@@ -28,6 +28,7 @@ import { lastSortOrder, sortOrderAfter, sortOrderForMove } from "./core/order";
 import { addDays, isIsoDate, localDateOf } from "./core/time";
 import { withTx } from "./core/tx";
 import { assertNoOverlap, checkDates, dateIssue } from "./cycle-dates";
+import { activeEstimateId, parsePointValue } from "./estimate-points";
 import { cycle, estimate_point, project, state, work_item, work_item_assignee, work_item_label } from "./db/schema";
 import { assertFeatureEnabled } from "./projects";
 import { stripIdsFromSavedFilters } from "./saved-filters";
@@ -144,19 +145,7 @@ type ProgressItem = {
   points: number | null;
 };
 
-/** The project's active estimate (`estimates_enabled` with an `estimate_id`), or null; points are counted only against it. */
-export function activeEstimateId(projectRow: Pick<ProjectRow, "estimates_enabled" | "estimate_id">): string | null {
-  return projectRow.estimates_enabled ? projectRow.estimate_id : null;
-}
-
-/** `estimate_point.value` as a number when it is numeric and >= 0 (fractions allowed); null otherwise (category names, blanks, negatives). */
-export function parsePointValue(value: string | null): number | null {
-  if (value === null) return null;
-  const trimmed = value.trim();
-  if (trimmed === "") return null;
-  const n = Number(trimmed);
-  return Number.isFinite(n) && n >= 0 ? n : null;
-}
+export { activeEstimateId, parsePointValue };
 
 /**
  * Every non-deleted item of the cycle outside triage, archived ones included
@@ -298,7 +287,7 @@ function buildCompletionChart(items: ProgressItem[], range: DateRange, today: st
  * counts. forMode turns it into a returned progress.
  */
 function computeProgress(ctx: TesseraContext, row: CycleRow, today: string): CycleProgress {
-  const estimateId = activeEstimateId(loadProject(ctx, row.project_id));
+  const estimateId = activeEstimateId(ctx, loadProject(ctx, row.project_id));
   const items = loadProgressItems(ctx, row.id, estimateId);
   const counts = emptyCounts();
   const points: PointsCounts = emptyCounts();

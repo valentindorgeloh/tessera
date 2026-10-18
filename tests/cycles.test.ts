@@ -146,12 +146,12 @@ function estimateIdOf(ctx: TesseraContext, pointId: string): string {
  * active estimate unless `activate` is false (cycle points follow the active
  * estimate) and returns the point ids in order.
  */
-function insertEstimatePoints(ctx: TesseraContext, projectId: string, values: string[], { activate = true }: { activate?: boolean } = {}): string[] {
+function insertEstimatePoints(ctx: TesseraContext, projectId: string, values: string[], { activate = true, archived = false }: { activate?: boolean; archived?: boolean } = {}): string[] {
   const now = ctx.now();
   const audit = { created_at: now, updated_at: now, created_by: ctx.actor.id, updated_by: ctx.actor.id };
   const est = ctx.db
     .insert(estimate)
-    .values({ id: newId(), project_id: projectId, name: "Points", type: "points", ...audit })
+    .values({ id: newId(), project_id: projectId, name: "Points", type: "points", archived_at: archived ? now : null, ...audit })
     .returning()
     .get();
   if (activate) activateEstimate(ctx, projectId, est.id);
@@ -843,7 +843,7 @@ describe("getCycleProgress", () => {
     const { ctx, projectId, states } = setup();
     const c = createCycle(ctx, { project_id: projectId, name: "A", ...CURRENT });
     const [half, oneAndHalf, negative, gone] = insertEstimatePoints(ctx, projectId, ["0.5", "1.5", "-2", "4"], { activate: false });
-    const [foreignPoint] = insertEstimatePoints(ctx, projectId, ["7"], { activate: false });
+    const [foreignPoint] = insertEstimatePoints(ctx, projectId, ["7"], { activate: false, archived: true });
     ctx.db.update(estimate_point).set({ deleted_at: ctx.now() }).where(eq(estimate_point.id, gone)).run();
     const todo = byName(states, "Todo").id;
     insertWorkItem(ctx, projectId, todo, "half", { cycle_id: c.id, estimate_point_id: half });

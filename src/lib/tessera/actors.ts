@@ -11,14 +11,14 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { logActivity } from "./activity";
 import type { TesseraContext } from "./core/context";
-import { notFound, validateInput } from "./core/errors";
+import { notFound, rule, validateInput } from "./core/errors";
 import { newId } from "./core/ids";
 import { nameKey } from "./core/keys";
 import { nowIso } from "./core/time";
 import { withTx } from "./core/tx";
 import type { TesseraDb } from "./db/client";
 import { actor } from "./db/schema";
-import { PaletteColorSchema } from "./schemas";
+import { ActorAccessSchema, PaletteColorSchema } from "./schemas";
 import type { ActorRow } from "./types";
 
 export const USER_ACTOR_ID = "00000000-0000-7000-8000-000000000001";
@@ -144,6 +144,7 @@ export const UpdateActorInput = z
   .object({
     name: z.string().trim().min(1).max(120).describe("New display name."),
     color: PaletteColorSchema.describe("New palette colour."),
+    access: ActorAccessSchema.describe("write, intake or read. Only the user can change an agent's access."),
   })
   .partial();
 
@@ -153,6 +154,10 @@ export function updateActor(ctx: TesseraContext, id: string, patch: UpdateActorI
   const data = validateInput(UpdateActorInput, patch);
   return withTx(ctx, () => {
     const before = getActor(ctx, id);
+    if (data.access !== undefined) {
+      if (before.kind !== "agent") throw rule("builtin_actor", "Only agents have an access level");
+      if (ctx.actor.id !== USER_ACTOR_ID) throw rule("actor_access_forbidden", "Only the user can change an agent's access");
+    }
     const now = ctx.now();
     const after = ctx.db
       .update(actor)
@@ -160,13 +165,14 @@ export function updateActor(ctx: TesseraContext, id: string, patch: UpdateActorI
         name: data.name ?? before.name,
         name_key: data.name ? nameKey(data.name) : before.name_key,
         color: data.color ?? before.color,
+        access: data.access ?? before.access,
         updated_at: now,
         updated_by: ctx.actor.id,
       })
       .where(eq(actor.id, id))
       .returning()
       .get();
-    for (const field of ["name", "color"] as const) {
+    for (const field of ["name", "color", "access"] as const) {
       if (before[field] === after[field]) continue;
       logActivity(ctx, {
         entity_type: "actor",

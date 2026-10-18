@@ -43,6 +43,9 @@ import { describeFilters, type DescribeFiltersPayload } from "@/lib/tessera/tool
 import { getTool, listTools, registry, runToolWithContext, type ToolInput, type ToolName, type ToolOutput } from "@/lib/tessera/tools/registry";
 import * as viewSettings from "@/lib/tessera/view-settings";
 import * as views from "@/lib/tessera/views";
+import * as drafts from "@/lib/tessera/drafts";
+import * as estimates from "@/lib/tessera/estimates";
+import * as intake from "@/lib/tessera/intake";
 import * as workItems from "@/lib/tessera/work-items";
 import { createTestContext, createTestDb } from "./helpers/db";
 
@@ -63,7 +66,7 @@ async function errorCode(fn: () => unknown): Promise<string> {
 // ---------------------------------------------------------------------------
 
 const MUTATION_PREFIX =
-  /^(create|update|delete|archive|unarchive|move|set|add|remove|transfer|restore|accept|decline|snooze|mark|lock|unlock|duplicate|reorder|subscribe|unsubscribe|run|bulk|register|touch|save|reset|seed)/;
+  /^(create|update|delete|archive|unarchive|move|set|add|remove|transfer|restore|accept|decline|snooze|unsnooze|mark|lock|unlock|duplicate|reorder|subscribe|unsubscribe|run|bulk|register|touch|save|reset|seed)/;
 
 /** Exported functions that match the prefix but are not operations; each needs a reason. */
 const INTERNAL_HELPERS: Record<string, string> = {
@@ -93,6 +96,9 @@ const DOMAIN_MODULES = {
   relations,
   comments,
   reactions,
+  intake,
+  drafts,
+  estimates,
   "work-items": workItems,
 };
 
@@ -263,6 +269,11 @@ const CONTRACT_DESTRUCTIVE = new Set([
   "restore_page_version",
   "accept_intake_item",
   "decline_intake_item",
+  "mark_intake_duplicate",
+  "create_estimate",
+  "update_estimate",
+  "bulk_archive_work_items",
+  "bulk_delete_work_items",
 ]);
 
 /** The ★ tools of the P1 to P4 and P7 rows of the contract table. */
@@ -375,6 +386,29 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   unarchive_notifications: "P7",
   snooze_notifications: "P7",
   unsnooze_notifications: "P7",
+  list_intake_items: "P8",
+  get_intake_item: "P8",
+  create_intake_item: "P8",
+  accept_intake_item: "P8",
+  decline_intake_item: "P8",
+  snooze_intake_item: "P8",
+  unsnooze_intake_item: "P8",
+  mark_intake_duplicate: "P8",
+  delete_intake_item: "P8",
+  list_drafts: "P8",
+  get_draft: "P8",
+  create_draft: "P8",
+  update_draft: "P8",
+  delete_draft: "P8",
+  move_draft_to_project: "P8",
+  list_estimates: "P8",
+  get_estimate: "P8",
+  create_estimate: "P8",
+  update_estimate: "P8",
+  delete_estimate: "P8",
+  bulk_archive_work_items: "P8",
+  bulk_unarchive_work_items: "P8",
+  bulk_delete_work_items: "P8",
 };
 
 describe("tool flags", () => {
@@ -495,7 +529,10 @@ describe("listTools", () => {
     expect(p3).toContain("list_cycles");
     expect(p3).toContain("create_project");
     expect(p3).not.toContain("list_views");
-    expect(listTools({ phase: "P7" }).length).toBe(TOOLS.length);
+    const p7 = listTools({ phase: "P7" });
+    expect(p7.length).toBeLessThan(TOOLS.length);
+    expect(p7.every((def) => def.phase !== "P8")).toBe(true);
+    expect(listTools({ phase: "P8" }).length).toBe(TOOLS.length);
   });
 
   it("combines toolset and phase", () => {
