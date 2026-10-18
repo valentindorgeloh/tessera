@@ -64,6 +64,18 @@ describe("planRotation", () => {
 });
 
 describe("backup rotation", () => {
+  it("backs up a database whose folder name holds a quote, spaces and non-ASCII", async () => {
+    await withTempFileDb(async (filePath) => {
+      const dir = path.join(path.dirname(filePath), "it's a dir ü");
+      fs.mkdirSync(dir);
+      const odd = path.join(dir, "tessera.db");
+      fs.copyFileSync(filePath, odd);
+      const copy = backupDatabase(odd, "manual", new Date("2026-01-04T00:00:00.000Z"));
+      expect(copy.check).toBe("ok");
+      expect(path.dirname(copy.path)).toBe(backupDir(odd));
+    });
+  });
+
   it("writes a kinded VACUUM INTO copy and rotates on a temp database", async () => {
     await withTempFileDb(async (filePath) => {
       const userDb = path.join(REPO_ROOT, "data", "tessera.db");

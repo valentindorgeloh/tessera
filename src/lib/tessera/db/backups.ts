@@ -170,7 +170,8 @@ export function backupDatabase(
   const target = path.join(dir, `tessera-${kind}-${backupStamp(now)}.db`);
   const sqlite = new Database(filePath);
   try {
-    sqlite.exec(`VACUUM INTO '${target.replace(/'/g, "''")}'`);
+    // Bound parameter, not string interpolation: the path may hold quotes, spaces or non-ASCII.
+    sqlite.prepare("VACUUM INTO ?").run(target);
   } finally {
     sqlite.close();
   }

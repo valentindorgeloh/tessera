@@ -16,7 +16,7 @@
 
 .tessera-cal-day {
   min-width: 0;
-  min-height: calc(var(--spacing-16) * 2);
+  min-height: calc(var(--spacing-8) * 4);
   padding: var(--spacing-1);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-element);
@@ -73,6 +73,6 @@
 }
 
 .tessera-cal-more {
-  max-height: calc(var(--spacing-16) * 6);
+  max-height: calc(var(--spacing-8) * 12);
   overflow: auto;
 }
