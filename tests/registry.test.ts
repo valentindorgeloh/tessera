@@ -451,6 +451,14 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   list_exports: "P10",
   get_export: "P10",
   delete_export: "P10",
+  list_webhooks: "P10",
+  create_webhook: "P10",
+  update_webhook: "P10",
+  delete_webhook: "P10",
+  rotate_webhook_secret: "P10",
+  test_webhook: "P10",
+  list_webhook_deliveries: "P10",
+  redeliver_webhook_delivery: "P10",
 };
 
 describe("tool flags", () => {

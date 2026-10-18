@@ -7,12 +7,16 @@ import { ENTITY_LINK_SCHEMES, entityHref, entityRoute, isAllowedEditorUri, parse
 
 const CYCLE_ID = "019505a0-7c5e-7000-8000-000000000001";
 
+const USER_ACTOR_ID = "00000000-0000-7000-8000-000000000001";
+const AGENT_ID = "019505a0-7c5e-7000-8000-0000000000aa";
+
 describe("parseEntityHref", () => {
   it("parses every entity scheme", () => {
     expect(parseEntityHref("work:WEB-12")).toEqual({ scheme: "work", ref: "WEB-12" });
     expect(parseEntityHref("page:spec-1")).toEqual({ scheme: "page", ref: "spec-1" });
     expect(parseEntityHref(`cycle:${CYCLE_ID}`)).toEqual({ scheme: "cycle", ref: CYCLE_ID });
     expect(parseEntityHref(`module:${CYCLE_ID}`)).toEqual({ scheme: "module", ref: CYCLE_ID });
+    expect(parseEntityHref(`actor:${USER_ACTOR_ID}`)).toEqual({ scheme: "actor", ref: USER_ACTOR_ID });
   });
 
   it("lower-cases the scheme and trims the href", () => {
@@ -70,13 +74,16 @@ describe("isAllowedEditorUri", () => {
 });
 
 describe("entityRoute", () => {
-  it("routes work items through /browse, cycles and modules through their alias routes, pages not yet", () => {
+  it("routes work items through /browse, cycles and modules through their alias routes, actors to profiles, pages not yet", () => {
     expect(entityRoute({ scheme: "work", ref: "WEB-12" })).toBe("/browse/WEB-12");
     expect(entityRoute({ scheme: "work", ref: "a b" })).toBe("/browse/a%20b");
     expect(entityRoute({ scheme: "page", ref: "spec-1" })).toBeNull();
     expect(entityRoute({ scheme: "cycle", ref: CYCLE_ID })).toBe(`/cycles/${CYCLE_ID}`);
     expect(entityRoute({ scheme: "module", ref: CYCLE_ID })).toBe(`/modules/${CYCLE_ID}`);
+    expect(entityRoute({ scheme: "actor", ref: USER_ACTOR_ID })).toBe("/your-work/summary");
+    expect(entityRoute({ scheme: "actor", ref: AGENT_ID })).toBe(`/agents/${AGENT_ID}/summary`);
     // The ref is encoded like a work item key, so an odd ref cannot change the path.
     expect(entityRoute({ scheme: "cycle", ref: "a/b" })).toBe("/cycles/a%2Fb");
+    expect(entityRoute({ scheme: "actor", ref: "a/b" })).toBe("/agents/a%2Fb/summary");
   });
 });

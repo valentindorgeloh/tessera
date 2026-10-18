@@ -283,7 +283,8 @@
 .tessera-editor-content a[href^="work:"],
 .tessera-editor-content a[href^="page:"],
 .tessera-editor-content a[href^="cycle:"],
-.tessera-editor-content a[href^="module:"] {
+.tessera-editor-content a[href^="module:"],
+.tessera-editor-content a[href^="actor:"] {
   display: inline-block;
   padding-inline: var(--spacing-1);
   border-radius: var(--radius-inner);
@@ -299,7 +300,8 @@
 .tessera-editor-content a[href^="work:"]:hover,
 .tessera-editor-content a[href^="page:"]:hover,
 .tessera-editor-content a[href^="cycle:"]:hover,
-.tessera-editor-content a[href^="module:"]:hover {
+.tessera-editor-content a[href^="module:"]:hover,
+.tessera-editor-content a[href^="actor:"]:hover {
   background: var(--color-overlay-hover);
 }
 

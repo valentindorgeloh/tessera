@@ -237,6 +237,18 @@ function insertWorkItemLink(editor: Editor, range: Range, row: SuggestionRow): v
     .run();
 }
 
+/** An `@` pick inserts `[@Name](actor:<id>)` the same way `#` inserts a work link. */
+function insertActorLink(editor: Editor, range: Range, row: SuggestionRow): void {
+  editor
+    .chain()
+    .focus()
+    .insertContentAt(range, [
+      { type: "text", text: `@${row.label}`, marks: [{ type: "link", attrs: { href: entityHref({ scheme: "actor", ref: row.id }) } }] },
+      { type: "text", text: " " },
+    ])
+    .run();
+}
+
 const BLOCKS: readonly SuggestionRow[] = [
   { id: "heading-1", label: "Heading 1", run: (editor) => editor.chain().focus().toggleHeading({ level: 1 }).run() },
   { id: "heading-2", label: "Heading 2", run: (editor) => editor.chain().focus().toggleHeading({ level: 2 }).run() },
@@ -270,11 +282,13 @@ const identity = (row: SuggestionRow): SuggestionRow => row;
  * suggestion context, which the host keeps current with `setSuggestionContext`.
  */
 export function buildEditorSuggestions(): EditorSuggestions {
-  const at: MentionTrigger = {
+  const at: SuggestionTrigger = {
     char: "@",
     pluginKey: ACTOR_SUGGEST_KEY,
+    allow: outsideCode,
     items: ({ query, editor }) => actorRows(readSuggestionContext(editor).actors, query),
-    render: createRenderer("No one matches", "People", ACTOR_SUGGEST_KEY, toMention),
+    command: ({ editor, range, props }) => insertActorLink(editor, range, props),
+    render: createRenderer("No one matches", "People", ACTOR_SUGGEST_KEY, identity),
   };
   const page: MentionTrigger = {
     char: "[[",

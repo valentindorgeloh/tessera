@@ -74,7 +74,8 @@ export function DescriptionEditor({ workItemId, text, version, readOnly = false,
     }
     const route = entityRoute(link);
     if (route !== null) router.push(route);
-    else toast({ type: "info", body: "Arrives in P6" });
+    else if (link.scheme === "page") router.push(`/pages/${encodeURIComponent(link.ref)}`);
+    else toast({ type: "info", body: "This link has no route yet" });
   };
 
   let banner = null;

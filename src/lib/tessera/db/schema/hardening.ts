@@ -47,10 +47,12 @@ export const export_job = sqliteTable(
 
 export const webhook = sqliteTable("webhook", {
   id: text("id").primaryKey(),
+  name: text("name").notNull().default(""),
   url: text("url").notNull(),
   events: text("events", { mode: "json" }).$type<WebhookEvents>().notNull().default([]),
   secret: text("secret").notNull().default(""),
   is_active: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  last_seq: integer("last_seq").notNull().default(0),
   ...auditColumns(),
 });
 
@@ -61,16 +63,20 @@ export const webhook_delivery = sqliteTable(
     webhook_id: text("webhook_id")
       .notNull()
       .references(() => webhook.id, { onDelete: "cascade" }),
-    activity_seq: integer("activity_seq")
-      .notNull()
-      .references(() => activity.seq, { onDelete: "cascade" }),
+    activity_seq: integer("activity_seq").references(() => activity.seq, { onDelete: "cascade" }),
+    event: text("event").notNull().default(""),
     status: text("status").notNull().default("pending"),
     attempts: integer("attempts").notNull().default(0),
     last_error: text("last_error"),
+    response_status: integer("response_status"),
+    next_attempt_at: text("next_attempt_at"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull(),
   },
-  (t) => [index("webhook_delivery_webhook_status_idx").on(t.webhook_id, t.status)],
+  (t) => [
+    index("webhook_delivery_webhook_status_idx").on(t.webhook_id, t.status),
+    index("webhook_delivery_due_idx").on(t.status, t.next_attempt_at),
+  ],
 );
 
 /** Singleton row with id "automation": the hourly run guard across processes. The webhook dispatcher uses id "webhooks". */

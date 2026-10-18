@@ -62,14 +62,14 @@ declare module "@tiptap/core" {
   }
 }
 
-/** Trigger config for the plain `Suggestion` plugins (`#`, `/`). */
+/** Trigger config for the plain `Suggestion` plugins (`@`, `#`, `/`). */
 export type SuggestionTrigger = Omit<SuggestionOptions<SuggestionRow, SuggestionRow>, "editor">;
-/** Trigger config handed to the Mention extension (`@`, `[[`); a pick inserts a mention node. */
+/** Trigger config handed to the Mention extension (`[[`); a pick inserts a mention node. */
 export type MentionTrigger = Omit<SuggestionOptions<SuggestionRow, MentionNodeAttrs>, "editor">;
 
 /** The four triggers, built by `mentions.tsx` (React) and consumed here. */
 export type EditorSuggestions = {
-  at: MentionTrigger;
+  at: SuggestionTrigger;
   page: MentionTrigger;
   workItem: SuggestionTrigger;
   slash: SuggestionTrigger;
@@ -229,7 +229,7 @@ const EditorImage = Node.create({
   },
 });
 
-/** Actor mentions serialise as plain `@Name` (lossless as text; P7 may upgrade to `[@Name](actor:<id>)`). */
+/** Reserved `[[` page trigger still uses a mention node; `@` inserts an `actor:` link instead. */
 const ActorMention = Mention.extend({
   renderMarkdown: (node) => `@${attrString(node.attrs, "label") || attrString(node.attrs, "id")}`,
 });
@@ -308,16 +308,20 @@ export function editorExtensions(options: EditorExtensionOptions): Extensions {
           "data-type": "mention",
           "data-id": node.attrs.id,
           "data-label": node.attrs.label,
-          "data-mention-suggestion-char": "@",
+          "data-mention-suggestion-char": "[[",
           class: "tessera-editor-mention",
         },
         `@${mentionLabel(node.attrs)}`,
       ],
-      suggestions: mentions ? [mentions.at, mentions.page] : [],
+      suggestions: mentions ? [mentions.page] : [],
     }),
   ];
   if (mentions) {
-    list.push(suggestionExtension("work-item-suggest", mentions.workItem), suggestionExtension("block-suggest", mentions.slash));
+    list.push(
+      suggestionExtension("actor-suggest", mentions.at),
+      suggestionExtension("work-item-suggest", mentions.workItem),
+      suggestionExtension("block-suggest", mentions.slash),
+    );
   }
   return list;
 }

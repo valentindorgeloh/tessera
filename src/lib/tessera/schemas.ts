@@ -361,8 +361,19 @@ export const ExportScopeSchema = z.object({
 export const ExportFormatSchema = z.enum(["csv", "json"]);
 export const ExportStatusSchema = z.enum(["pending", "running", "done", "failed"]);
 
-/** Activity verbs a webhook subscribes to, e.g. work_item.created. */
+/** One webhook event pattern: `*`, `entity.*`, `entity.verb`, or `ping`. */
+export const WebhookEventSchema = z
+  .string()
+  .regex(/^(\*|[a-z_]+\.(\*|[a-z_]+)|ping)$/, "Use *, <entity>.*, <entity>.<verb>, or ping")
+  .describe("Event pattern: *, work_item.updated, comment.*, or ping.");
+
+/** Activity verbs a webhook subscribes to. Column rows may still hold `[]`; tool inputs use the strict array. */
 export const WebhookEventsSchema = z.array(z.string().min(1));
+
+/** Strict event list for create/update webhook tools. */
+export const WebhookEventsInputSchema = z.array(WebhookEventSchema).min(1).max(30);
+
+export const WebhookDeliveryStatusSchema = z.enum(["pending", "delivered", "failed"]);
 
 // ---------------------------------------------------------------------------
 // AI (P5, docs/drafts/p5-plan.md §3–§5). Client-safe wire shapes shared by the

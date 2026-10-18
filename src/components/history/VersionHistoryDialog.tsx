@@ -9,7 +9,7 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Timestamp } from "@astryxdesign/core/Timestamp";
-import { restoreWorkItemVersionAction } from "@/app/actions/history";
+import { restorePageVersionAction, restoreWorkItemVersionAction } from "@/app/actions/history";
 import { AlertDialog, Dialog, DialogHeader } from "@/components/shell/dialogs";
 import type { HistoryResponse, VersionInfo } from "@/lib/tessera/types";
 import { diffLines } from "./diff-lines";
@@ -58,18 +58,27 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
   }, [isOpen, entity.id, entity.type]);
 
   const selected = history?.versions.find((row) => row.id === selectedId) ?? null;
-  const before = selected && history ? (mode === "current" ? entity.currentText : mode === "full" ? "" : previousText(history.versions, selected)) : "";
+  const currentText = history?.description_md ?? entity.currentText;
+  const descriptionVersion = history?.description_version ?? entity.descriptionVersion;
+  const before = selected && history ? (mode === "current" ? currentText : mode === "full" ? "" : previousText(history.versions, selected)) : "";
   const after = mode === "full" ? (selected?.description_md ?? "") : (selected?.description_md ?? "");
   const lines = selected ? (mode === "full" ? [{ kind: "same" as const, text: after }] : diffLines(before, after)) : [];
 
   const restore = () => {
-    if (!selected || entity.type !== "work_item") return;
+    if (!selected) return;
     startTransition(async () => {
-      const result = await restoreWorkItemVersionAction({
-        work_item_id: entity.id,
-        version_id: selected.id,
-        expected_description_version: entity.descriptionVersion,
-      });
+      const result =
+        entity.type === "page"
+          ? await restorePageVersionAction({
+              page_id: entity.id,
+              version_id: selected.id,
+              expected_description_version: descriptionVersion,
+            })
+          : await restoreWorkItemVersionAction({
+              work_item_id: entity.id,
+              version_id: selected.id,
+              expected_description_version: descriptionVersion,
+            });
       setConfirm(false);
       if (!result.ok) {
         if (result.code === "CONFLICT") setConflict(true);
@@ -87,7 +96,13 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
         content={
           <LayoutContent>
             {error ? <Banner status="warning" title="Could not load history" description={error} /> : null}
-            {conflict ? <Banner status="warning" title="This text changed since you opened the history" description="Reload the work item and open history again." /> : null}
+            {conflict ? (
+              <Banner
+                status="warning"
+                title="This text changed since you opened the history"
+                description={entity.type === "page" ? "Reload the page and open history again." : "Reload the work item and open history again."}
+              />
+            ) : null}
             {history === null && error === null ? <Spinner label="Loading versions" /> : null}
             {history && history.versions.length === 0 ? <Text>No versions yet. They are kept when the description changes.</Text> : null}
             {history && selected ? (
@@ -117,7 +132,7 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
                       </Text>
                     ))}
                   </VStack>
-                  {entity.readOnly || entity.type !== "work_item" ? null : (
+                  {entity.readOnly ? null : (
                     <Button variant="primary" size="sm" label="Restore this version" onClick={() => setConfirm(true)} isLoading={isPending} />
                   )}
                 </VStack>
@@ -127,7 +142,7 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
               isOpen={confirm}
               onOpenChange={setConfirm}
               title="Restore this version?"
-              description="The description is replaced. The name stays as it is."
+              description={entity.type === "page" ? "The name and body are replaced." : "The description is replaced. The name stays as it is."}
               actionLabel="Restore"
               onAction={restore}
             />

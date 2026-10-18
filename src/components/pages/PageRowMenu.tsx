@@ -23,11 +23,13 @@ import {
 } from "@/app/actions/pages";
 import { useFavoriteToggle } from "@/components/shell/FavoriteButton";
 import type { PageSummary } from "@/lib/tessera/types";
+import { VersionHistoryDialog } from "@/components/history/VersionHistoryDialog";
 import {
   ArchiveIcon,
   CopyIcon,
   EyeSlashIcon,
   GlobeIcon,
+  HistoryIcon,
   LinkIcon,
   LockIcon,
   MoveDownIcon,
@@ -70,6 +72,7 @@ const ICONS: Record<PageMenuAction, typeof PageIcon> = {
   "make-private": EyeSlashIcon,
   "make-public": GlobeIcon,
   "copy-link": LinkIcon,
+  history: HistoryIcon,
   archive: ArchiveIcon,
   restore: RestoreIcon,
   delete: TrashIcon,
@@ -85,8 +88,10 @@ export function PageRowMenu({ page, spaces, spaceName, includeOpen = true, previ
   const clipboard = useClipboard({ announce: "Copied" });
   const [isMoveOpen, setMoveOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
+  const [isHistoryOpen, setHistoryOpen] = useState(false);
   const [, startTransition] = useTransition();
   const favorite = useFavoriteToggle("page", page.id);
+  const detail = "description_version" in page ? (page as PageSummary & { description_md: string; description_version: number }) : null;
 
   const fail = (verb: string, message: string) => toast({ type: "error", body: failure(verb, page.name, message) });
 
@@ -155,6 +160,7 @@ export function PageRowMenu({ page, spaces, spaceName, includeOpen = true, previ
         if (!result.ok) fail("make public", result.message);
       }),
     "copy-link": copyLink,
+    history: () => setHistoryOpen(true),
     archive: () =>
       startTransition(async () => {
         const result = await archivePageAction({ page_id: page.id });
@@ -199,6 +205,18 @@ export function PageRowMenu({ page, spaces, spaceName, includeOpen = true, previ
       <MoreMenu label="Page actions" size="sm" variant="ghost" items={items} placement="below" alignment="end" isDisabled={isDisabled} />
       <MovePageDialog page={page} spaces={spaces} spaceName={spaceName} isOpen={isMoveOpen} onOpenChange={setMoveOpen} />
       <DeletePageDialog page={page} isOpen={isDeleteOpen} onOpenChange={setDeleteOpen} />
+      <VersionHistoryDialog
+        isOpen={isHistoryOpen}
+        onOpenChange={setHistoryOpen}
+        entity={{
+          type: "page",
+          id: page.id,
+          title: page.name,
+          descriptionVersion: detail?.description_version ?? 0,
+          currentText: detail?.description_md ?? "",
+          readOnly: page.is_locked || page.archived_at !== null || isDisabled,
+        }}
+      />
     </>
   );
 }

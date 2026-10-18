@@ -596,11 +596,27 @@ describe("migrateIfNeeded", () => {
       const probe = new Database(filePath);
       // The migrator's `id SERIAL` column is NULL in SQLite, so the newest row is found by created_at.
       probe.prepare(`DELETE FROM "${MIGRATIONS_TABLE}" WHERE created_at = (SELECT max(created_at) FROM "${MIGRATIONS_TABLE}")`).run();
-      // 0006 adds the export columns and version index, so a re-apply needs them gone first.
-      probe.exec(`DROP INDEX IF EXISTS export_job_created_idx;`);
-      probe.exec(`DROP INDEX IF EXISTS work_item_version_item_created_idx;`);
-      probe.exec(`ALTER TABLE export_job DROP COLUMN row_count;`);
-      probe.exec(`ALTER TABLE export_job DROP COLUMN name;`);
+      // 0007 adds webhook columns and rebuilds webhook_delivery, so a re-apply needs them gone first.
+      probe.exec(`DROP INDEX IF EXISTS webhook_delivery_due_idx;`);
+      probe.exec(`DROP INDEX IF EXISTS webhook_delivery_webhook_status_idx;`);
+      probe.exec(`CREATE TABLE __old_webhook_delivery (
+        id text PRIMARY KEY NOT NULL,
+        webhook_id text NOT NULL,
+        activity_seq integer NOT NULL,
+        status text DEFAULT 'pending' NOT NULL,
+        attempts integer DEFAULT 0 NOT NULL,
+        last_error text,
+        created_at text NOT NULL,
+        updated_at text NOT NULL,
+        FOREIGN KEY (webhook_id) REFERENCES webhook(id) ON DELETE cascade,
+        FOREIGN KEY (activity_seq) REFERENCES activity(seq) ON DELETE cascade
+      );`);
+      probe.exec(`INSERT INTO __old_webhook_delivery SELECT id, webhook_id, activity_seq, status, attempts, last_error, created_at, updated_at FROM webhook_delivery WHERE activity_seq IS NOT NULL;`);
+      probe.exec(`DROP TABLE webhook_delivery;`);
+      probe.exec(`ALTER TABLE __old_webhook_delivery RENAME TO webhook_delivery;`);
+      probe.exec(`CREATE INDEX webhook_delivery_webhook_status_idx ON webhook_delivery (webhook_id, status);`);
+      probe.exec(`ALTER TABLE webhook DROP COLUMN name;`);
+      probe.exec(`ALTER TABLE webhook DROP COLUMN last_seq;`);
       expect(pendingMigrations(probe)).toBe(1);
       probe.close();
 

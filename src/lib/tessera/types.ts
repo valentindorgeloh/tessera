@@ -64,6 +64,8 @@ import type {
   StaticViewKeySchema,
   SubGroupBySchema,
   ViewSettingsScopeSchema,
+  WebhookDeliveryStatusSchema,
+  WebhookEventSchema,
   WebhookEventsSchema,
   WorkItemTypeFilterSchema,
   WorkspaceAiSettingsSchema,
@@ -129,6 +131,10 @@ export type HistoryActivity = {
 export type HistoryResponse = {
   versions: VersionInfo[];
   activity?: HistoryActivity[];
+  /** Current body version for compare-and-set restore. */
+  description_version: number;
+  /** Current body text for "Compare with current". */
+  description_md: string;
 };
 export type ViewSettingsScope = z.infer<typeof ViewSettingsScopeSchema>;
 export type FavoriteEntityType = z.infer<typeof FavoriteEntityTypeSchema>;
@@ -378,6 +384,8 @@ export type ExportJobView = {
   created_by: string;
 };
 export type WebhookEvents = z.infer<typeof WebhookEventsSchema>;
+export type WebhookEvent = z.infer<typeof WebhookEventSchema>;
+export type WebhookDeliveryStatus = z.infer<typeof WebhookDeliveryStatusSchema>;
 
 // ---------------------------------------------------------------------------
 // AI (P5): client-safe wire shapes. The zod schemas live in schemas.ts.
@@ -558,3 +566,4 @@ export type { ToolName, ToolInput, ToolOutput } from "./tools/registry";
 export type { IntakeItemView, IntakeCounts, IntakeListResult } from "./intake";
 export type { DraftView } from "./drafts";
 export type { EstimateView } from "./estimates";
+export type { WebhookView, WebhookDeliveryView, WebhookPayload } from "./webhooks";

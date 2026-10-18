@@ -2,11 +2,18 @@
  * Entity links inside descriptions (docs/contracts/editor.md, "links.ts").
  * A work item, page, cycle or module is referenced as an ordinary Markdown
  * link whose href carries one of the entity schemes (`work:WEB-12`,
- * `page:<id>`, `cycle:<uuid>`, `module:<uuid>`); the editor draws such links
- * as chips and the host navigates when one is clicked. Pure helpers, no DOM.
+ * `page:<id>`, `cycle:<uuid>`, `module:<uuid>`, `actor:<id>`); the editor draws
+ * such links as chips and the host navigates when one is clicked. Pure helpers,
+ * no DOM.
  */
 
-export const ENTITY_LINK_SCHEMES = ["work", "page", "cycle", "module"] as const;
+export const ENTITY_LINK_SCHEMES = ["work", "page", "cycle", "module", "actor"] as const;
+
+/**
+ * The built-in user. Same id as `USER_ACTOR_ID` in the engine; this file is
+ * imported by client components, which cannot import the actors module.
+ */
+const USER_ACTOR_ID = "00000000-0000-7000-8000-000000000001";
 
 export type EntityLinkScheme = (typeof ENTITY_LINK_SCHEMES)[number];
 
@@ -59,9 +66,11 @@ export function isAllowedEditorUri(url: string, schemes: readonly (string | { sc
 }
 
 /**
- * Route for an entity link: work items resolve through `/browse/[key]`, cycles
- * and modules through the alias routes `/cycles/[id]` and `/modules/[id]`
- * (which redirect into their project); pages have no route until P6.
+ * Route for an entity link. Work items resolve through `/browse/[key]`. Cycles
+ * and modules use the alias routes, which redirect into their project. An actor
+ * opens that actor's profile: the user at `/your-work/summary`, every other
+ * actor at `/agents/<id>/summary`. Pages stay unresolved here; the page editor
+ * routes `page:` itself.
  */
 export function entityRoute(link: EntityLink): string | null {
   switch (link.scheme) {
@@ -71,6 +80,9 @@ export function entityRoute(link: EntityLink): string | null {
       return `/cycles/${encodeURIComponent(link.ref)}`;
     case "module":
       return `/modules/${encodeURIComponent(link.ref)}`;
+    case "actor":
+      if (link.ref === USER_ACTOR_ID) return "/your-work/summary";
+      return `/agents/${encodeURIComponent(link.ref)}/summary`;
     default:
       return null;
   }

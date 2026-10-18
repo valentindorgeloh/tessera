@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { TesseraContext } from "./core/context";
 import { validateInput } from "./core/errors";
 import { activity, work_item_version } from "./db/schema";
-import { listPageVersions } from "./pages";
+import { getPage, listPageVersions } from "./pages";
 import { IdSchema } from "./schemas";
 import type { HistoryResponse } from "./types";
 import { getWorkItem } from "./work-items";
@@ -23,7 +23,7 @@ const HistoryInput = z
 export function getHistory(ctx: TesseraContext, input: z.input<typeof HistoryInput>): HistoryResponse {
   const data = validateInput(HistoryInput, input);
   if (data.entity_type === "work_item") {
-    getWorkItem(ctx, data.entity_id);
+    const item = getWorkItem(ctx, data.entity_id);
     const rows = ctx.db
       .select()
       .from(work_item_version)
@@ -41,8 +41,11 @@ export function getHistory(ctx: TesseraContext, input: z.input<typeof HistoryInp
         length: row.description_md.length,
         description_md: row.description_md,
       })),
+      description_version: item.description_version,
+      description_md: item.description_md,
     };
   }
+  const page = getPage(ctx, data.entity_id);
   const versions = listPageVersions(ctx, { page_id: data.entity_id, limit: 100, include_body: true });
   const activityRows = ctx.db
     .select({
@@ -58,5 +61,10 @@ export function getHistory(ctx: TesseraContext, input: z.input<typeof HistoryInp
     .orderBy(desc(activity.seq))
     .limit(50)
     .all();
-  return { versions, activity: activityRows };
+  return {
+    versions,
+    activity: activityRows,
+    description_version: page.description_version,
+    description_md: page.description_md,
+  };
 }

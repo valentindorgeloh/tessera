@@ -23,6 +23,7 @@ export type PageMenuAction =
   | "make-private"
   | "make-public"
   | "copy-link"
+  | "history"
   | "archive"
   | "restore"
   | "delete";
@@ -94,6 +95,7 @@ export function pageMenuEntries(input: PageMenuInput): PageMenuEntry[] {
     page.is_locked ? entry("unlock", "Unlock", page) : entry("lock", "Lock", page),
     page.access === "public" ? entry("make-private", "Make private", page) : entry("make-public", "Make public", page),
     entry("copy-link", "Copy link", page),
+    entry("history", "Version history", page),
   );
   if (archived) {
     rows.push(entry("restore", "Restore", page, { dividerBefore: true }), entry("delete", "Delete…", page, { variant: "destructive" }));
