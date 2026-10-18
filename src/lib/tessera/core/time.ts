@@ -64,6 +64,15 @@ export function addDays(date: string, n: number): string {
   return formatUtcDate(new Date(Date.UTC(year, month - 1, day + n)));
 }
 
+/** Adds `n` calendar months (negative to subtract). The day clamps to the target month (31 Jan + 1 month is 28 or 29 Feb). */
+export function addMonthsIso(date: string, n: number): string {
+  const { year, month, day } = parseIsoDate(date);
+  const target = new Date(Date.UTC(year, month - 1 + n, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(day, lastDay));
+  return formatUtcDate(target);
+}
+
 /** -1, 0 or 1; `YYYY-MM-DD` strings compare correctly as text. */
 export function compareDates(a: string, b: string): -1 | 0 | 1 {
   if (a === b) return 0;

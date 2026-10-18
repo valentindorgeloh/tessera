@@ -23,7 +23,6 @@ import { startTransition, useEffect, useMemo, useOptimistic, useState, type Reac
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
-import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { useHotkeys } from "@astryxdesign/core/hooks";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { Text } from "@astryxdesign/core/Text";
@@ -38,10 +37,12 @@ import { isMultiValuedGroup } from "@/lib/tessera/core/group";
 import type { CreateWorkItemInputType, Display, Filters, GroupBy, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 import { PlusIcon } from "@/themes/catppuccin/icons";
 import { BoardLayout } from "./BoardLayout";
+import { CalendarLayout } from "./CalendarLayout";
 import { BulkBar } from "./BulkBar";
 import { CreateWorkItemDialog } from "./CreateWorkItemDialog";
 import { DisplayMenu, LayoutSwitch } from "./DisplayMenu";
 import { FilterBar } from "./FilterBar";
+import { GanttLayout } from "./GanttLayout";
 import { ListLayout } from "./ListLayout";
 import { toEngineMove } from "./moves";
 import { isOptimisticId, optimisticId } from "./optimistic";
@@ -355,8 +356,10 @@ export function WorkItemsScreen({
               <BoardLayout {...layoutProps} />
             ) : display.layout === "table" ? (
               <TableLayout {...layoutProps} />
+            ) : display.layout === "calendar" ? (
+              <CalendarLayout {...layoutProps} />
             ) : (
-              <EmptyState title={display.layout === "calendar" ? "Calendar arrives in P10" : "Gantt arrives in P10"} description="Switch back to list, board or table with the layout switch." />
+              <GanttLayout {...layoutProps} />
             )}
             {selectionOn && selection.selected.size > 0 ? <BulkBar items={optimistic.items} selected={selection.selected} onClear={selection.clear} /> : null}
           </LayoutContent>

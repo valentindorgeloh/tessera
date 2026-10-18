@@ -46,6 +46,7 @@ import * as views from "@/lib/tessera/views";
 import * as drafts from "@/lib/tessera/drafts";
 import * as estimates from "@/lib/tessera/estimates";
 import * as intake from "@/lib/tessera/intake";
+import * as automations from "@/lib/tessera/automations";
 import * as workItems from "@/lib/tessera/work-items";
 import { createTestContext, createTestDb } from "./helpers/db";
 
@@ -99,6 +100,7 @@ const DOMAIN_MODULES = {
   intake,
   drafts,
   estimates,
+  automations,
   "work-items": workItems,
 };
 
@@ -438,6 +440,8 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   get_workspace_settings: "P9",
   update_workspace_settings: "P9",
   reorder_project: "P9",
+  run_automations: "P10",
+  get_automation_status: "P10",
 };
 
 describe("tool flags", () => {
@@ -564,7 +568,10 @@ describe("listTools", () => {
     const p8 = listTools({ phase: "P8" });
     expect(p8.every((def) => def.phase !== "P9")).toBe(true);
     expect(p8.length).toBeLessThan(TOOLS.length);
-    expect(listTools({ phase: "P9" }).length).toBe(TOOLS.length);
+    const p9 = listTools({ phase: "P9" });
+    expect(p9.length).toBeLessThan(TOOLS.length);
+    expect(p9.every((def) => def.phase !== "P10")).toBe(true);
+    expect(listTools({ phase: "P10" }).length).toBe(TOOLS.length);
   });
 
   it("combines toolset and phase", () => {

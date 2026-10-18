@@ -174,6 +174,7 @@ export const SquaresFourIcon = duotoneIcon(SquaresFour);
 export const CompassIcon = duotoneIcon(Compass);
 export const WarningIcon = duotoneIcon(Warning);
 export const XIcon = duotoneIcon(X);
+export const CaretLeftIcon = duotoneIcon(CaretLeft);
 export const CaretRightIcon = duotoneIcon(CaretRight);
 export const CaretDownIcon = duotoneIcon(CaretDown);
 export const DotsThreeIcon = duotoneIcon(DotsThree);

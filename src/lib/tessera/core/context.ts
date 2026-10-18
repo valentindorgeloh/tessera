@@ -20,6 +20,11 @@ export type TesseraContext = {
   now(): string;
   /** Server local date, `YYYY-MM-DD`. */
   today(): string;
+  /**
+   * Copied into `activity.comment` when the entry has none (decision 28).
+   * Automations set it so a close or archive explains itself.
+   */
+  activityNote?: string;
 };
 
 export type CreateContextOptions = {
@@ -49,5 +54,7 @@ export function createContext(options: CreateContextOptions): TesseraContext {
 
 /** Same database, different actor; used by adapters that act on behalf of an agent. */
 export function withActor(ctx: TesseraContext, actorId: string): TesseraContext {
-  return createContext({ db: ctx.db, sqlite: ctx.sqlite, actorId, now: ctx.now, today: ctx.today });
+  const next = createContext({ db: ctx.db, sqlite: ctx.sqlite, actorId, now: ctx.now, today: ctx.today });
+  if (ctx.activityNote !== undefined) next.activityNote = ctx.activityNote;
+  return next;
 }

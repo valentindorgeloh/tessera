@@ -12,6 +12,8 @@ import type {
   AssistantScopeSchema,
   AssistMessageSchema,
   AssistRequestSchema,
+  AutomationStatusSchema,
+  AutomationSummarySchema,
   CalendarDisplaySchema,
   CycleProgressSchema,
   CycleStatusSchema,
@@ -372,6 +374,8 @@ export type DigestKind = z.infer<typeof DigestKindSchema>;
 export type DigestView = z.infer<typeof DigestViewSchema>;
 /** `GET /api/ai/status`; every AI entry point stays hidden unless `available` is true. */
 export type AiStatus = z.infer<typeof AiStatusSchema>;
+export type AutomationSummary = z.infer<typeof AutomationSummarySchema>;
+export type AutomationStatus = z.infer<typeof AutomationStatusSchema>;
 
 // ---------------------------------------------------------------------------
 // Row types (Drizzle select and insert models), one pair per table

@@ -596,8 +596,9 @@ describe("migrateIfNeeded", () => {
       const probe = new Database(filePath);
       // The migrator's `id SERIAL` column is NULL in SQLite, so the newest row is found by created_at.
       probe.prepare(`DELETE FROM "${MIGRATIONS_TABLE}" WHERE created_at = (SELECT max(created_at) FROM "${MIGRATIONS_TABLE}")`).run();
-      // 0004 adds last_seen_seq, so a re-apply needs that column gone first.
-      probe.exec(`ALTER TABLE workspace_settings DROP COLUMN last_seen_seq;`);
+      // 0005 adds the automation lease columns, so a re-apply needs them gone first.
+      probe.exec(`ALTER TABLE automation_lease DROP COLUMN last_summary;`);
+      probe.exec(`ALTER TABLE automation_lease DROP COLUMN last_run_at;`);
       expect(pendingMigrations(probe)).toBe(1);
       probe.close();
 

@@ -23,6 +23,8 @@
 @import "../components/styles/analytics.css";
 @import "../components/styles/profile.css";
 @import "../components/styles/workspace-views.css";
+@import "../components/styles/calendar.css";
+@import "../components/styles/gantt.css";
 
 html,
 body {

@@ -1,0 +1,160 @@
+/*
+ * Gantt layout (src/components/work-items/GanttLayout.tsx).
+ * One day is `--tessera-gantt-day`. Bars place themselves with
+ * `--tessera-gantt-offset` and `--tessera-gantt-span`. The weekend band is a
+ * repeating gradient aligned by `--tessera-gantt-weekend-shift`.
+ */
+
+.tessera-gantt {
+  --tessera-gantt-day: var(--spacing-8);
+  --tessera-gantt-label: calc(var(--spacing-16) * 4);
+  min-width: max-content;
+  padding-block-end: var(--spacing-4);
+}
+
+.tessera-gantt-body {
+  position: relative;
+}
+
+.tessera-gantt-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--color-background-surface);
+  border-block-end: var(--border-width) solid var(--color-border);
+}
+
+.tessera-gantt-label {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 2;
+  flex: 0 0 var(--tessera-gantt-label);
+  width: var(--tessera-gantt-label);
+  min-width: 0;
+  background: var(--color-background-surface);
+  border-inline-end: var(--border-width) solid var(--color-border);
+}
+
+.tessera-gantt-head .tessera-gantt-label {
+  z-index: 4;
+}
+
+.tessera-gantt-scale,
+.tessera-gantt-track {
+  flex: none;
+  width: calc(var(--tessera-gantt-days) * var(--tessera-gantt-day));
+}
+
+.tessera-gantt-month {
+  flex: none;
+  overflow: hidden;
+  padding-inline: var(--spacing-1);
+}
+
+.tessera-gantt-head-day {
+  flex: 0 0 var(--tessera-gantt-day);
+  width: var(--tessera-gantt-day);
+  text-align: center;
+}
+
+.tessera-gantt-head-day[data-weekend] {
+  background: var(--color-background-muted);
+}
+
+.tessera-gantt-head-day[data-today] {
+  color: var(--color-accent);
+}
+
+.tessera-gantt-row {
+  min-height: var(--size-element-md);
+  border-block-end: var(--border-width) solid var(--color-border);
+}
+
+.tessera-gantt-open {
+  min-width: 0;
+  flex: 1;
+  cursor: pointer;
+}
+
+.tessera-gantt-name {
+  min-width: 0;
+  flex: 1;
+}
+
+.tessera-gantt-track {
+  position: relative;
+  min-height: var(--size-element-md);
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--color-background-muted) 0,
+    var(--color-background-muted) calc(var(--tessera-gantt-day) * 2),
+    transparent calc(var(--tessera-gantt-day) * 2),
+    transparent calc(var(--tessera-gantt-day) * 7)
+  );
+  background-size: calc(var(--tessera-gantt-day) * 7) 100%;
+  background-position-x: calc(var(--tessera-gantt-weekend-shift) * var(--tessera-gantt-day));
+  background-repeat: repeat-x;
+}
+
+.tessera-gantt-bar {
+  position: absolute;
+  z-index: 1;
+  top: var(--spacing-1);
+  height: calc(100% - var(--spacing-2));
+  left: calc(var(--tessera-gantt-offset) * var(--tessera-gantt-day) + var(--spacing-1));
+  width: calc(var(--tessera-gantt-span) * var(--tessera-gantt-day) - var(--spacing-2));
+  border: var(--border-width) solid var(--color-border-emphasized);
+  border-radius: var(--radius-inner);
+  background: var(--color-accent-muted);
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+
+.tessera-gantt-bar[data-open-start] {
+  border-inline-start-style: dashed;
+}
+
+.tessera-gantt-bar[data-open-end] {
+  border-inline-end-style: dashed;
+}
+
+.tessera-gantt-bar[data-readonly] {
+  cursor: default;
+}
+
+.tessera-gantt-bar:focus-visible {
+  outline: var(--border-width) solid var(--color-accent);
+}
+
+.tessera-gantt-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--spacing-2);
+  touch-action: none;
+  cursor: ew-resize;
+}
+
+.tessera-gantt-handle[data-edge="start"] {
+  inset-inline-start: 0;
+}
+
+.tessera-gantt-handle[data-edge="end"] {
+  inset-inline-end: 0;
+}
+
+.tessera-gantt-today {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--tessera-gantt-label) + var(--tessera-gantt-today) * var(--tessera-gantt-day) + var(--tessera-gantt-day) / 2);
+  width: var(--border-width);
+  background: var(--color-accent);
+  pointer-events: none;
+}
+
+.tessera-gantt-dates {
+  min-width: calc(var(--spacing-16) * 4);
+}

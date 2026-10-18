@@ -1,5 +1,5 @@
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import type { ExportFormat, ExportScope, ExportStatus, WebhookEvents } from "../../types";
+import type { AutomationSummary, ExportFormat, ExportScope, ExportStatus, WebhookEvents } from "../../types";
 import { auditColumns, createdColumns } from "./columns";
 import { actor, work_item, activity } from "./core";
 
@@ -64,9 +64,11 @@ export const webhook_delivery = sqliteTable(
   (t) => [index("webhook_delivery_webhook_status_idx").on(t.webhook_id, t.status)],
 );
 
-/** Singleton row with id "automation": the hourly run guard across processes. */
+/** Singleton row with id "automation": the hourly run guard across processes. The webhook dispatcher uses id "webhooks". */
 export const automation_lease = sqliteTable("automation_lease", {
   id: text("id").primaryKey().default("automation"),
   holder: text("holder").notNull(),
   expires_at: text("expires_at").notNull(),
+  last_run_at: text("last_run_at"),
+  last_summary: text("last_summary", { mode: "json" }).$type<AutomationSummary>(),
 });

@@ -12,7 +12,7 @@ import { notFound, validateInput, validation } from "./core/errors";
 import { newId } from "./core/ids";
 import { formatKey } from "./core/keys";
 import { assertInTransaction, withTx } from "./core/tx";
-import { actor, mention, notification, project, work_item, work_item_subscriber } from "./db/schema";
+import { actor, mention, notification, project, work_item, work_item_assignee, work_item_subscriber } from "./db/schema";
 import { IdSchema } from "./schemas";
 import type { ActivityEntry } from "./activity";
 import type { ActorKind } from "./types";
@@ -69,8 +69,10 @@ type Ids = z.infer<typeof IdsInput>;
 /** Writes subscriber notifications for this activity row. No-op for verbs the inbox does not surface. */
 export function notifyFromActivity(ctx: TesseraContext, entry: ActivityEntry): void {
   assertInTransaction(ctx, "notifyFromActivity");
-  const kind = kindFor(entry);
   const workItemId = entry.work_item_id ?? null;
+  let kind = kindFor(entry);
+  // An automation's own note replaces the ordinary state or archive kind (decision 28).
+  if (ctx.activityNote && workItemId !== null && (entry.field === "state_id" || entry.verb === "archived")) kind = "automation";
   if (kind === null || workItemId === null) return;
   const item = loadItem(ctx, workItemId);
   if (!item) return;
@@ -231,6 +233,11 @@ function recipientsFor(ctx: TesseraContext, kind: string, workItemId: string, en
     const id = entry.new_value;
     return typeof id === "string" && id !== ctx.actor.id ? [id] : [];
   }
+  if (kind === "automation") {
+    const ids = new Set([...subscriberIds(ctx, workItemId), ...assigneeIds(ctx, workItemId)]);
+    ids.delete(ctx.actor.id);
+    return [...ids];
+  }
   const mentioned = mentionedActors(ctx, entry);
   return subscriberIds(ctx, workItemId).filter((id) => id !== ctx.actor.id && !mentioned.has(id));
 }
@@ -243,6 +250,15 @@ function mentionedActors(ctx: TesseraContext, entry: ActivityEntry): Set<string>
     .where(and(eq(mention.entity_type, "comment"), eq(mention.entity_id, entry.entity_id)))
     .all();
   return new Set(rows.map((row) => row.actor_id));
+}
+
+function assigneeIds(ctx: TesseraContext, workItemId: string): string[] {
+  return ctx.db
+    .select({ actor_id: work_item_assignee.actor_id })
+    .from(work_item_assignee)
+    .where(eq(work_item_assignee.work_item_id, workItemId))
+    .all()
+    .map((row) => row.actor_id);
 }
 
 function subscriberIds(ctx: TesseraContext, workItemId: string): string[] {

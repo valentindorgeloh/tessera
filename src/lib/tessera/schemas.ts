@@ -498,3 +498,46 @@ export const ESTIMATE_TEMPLATES: readonly { key: z.infer<typeof EstimateTemplate
   { key: "time", type: "time", label: "Time", values: ["30", "60", "120", "240", "480", "960"] },
   { key: "custom", type: "points", label: "Custom", values: ["", ""] },
 ];
+
+/** One project's result from an automation run. `error` is set when the project stopped early. */
+export const AutomationProjectSummarySchema = z
+  .object({
+    project_id: IdSchema,
+    closed: z.number().int().nonnegative(),
+    archived: z.number().int().nonnegative(),
+    skipped: z.number().int().nonnegative(),
+    error: z.string().nullable(),
+  })
+  .strict();
+
+/** What `run_automations` returns. `lease_held` means another runner owns the lease and this call wrote nothing. */
+export const AutomationSummarySchema = z
+  .object({
+    ran_at: z.string(),
+    dry_run: z.boolean(),
+    lease_held: z.boolean(),
+    projects: z.array(AutomationProjectSummarySchema),
+  })
+  .strict();
+
+/** One active project's automation settings and how many items are due at the clock used to read it. */
+export const AutomationProjectStatusSchema = z
+  .object({
+    project_id: IdSchema,
+    archive_in_months: z.number().int().nullable(),
+    close_in_months: z.number().int().nullable(),
+    close_state_id: IdSchema.nullable(),
+    due_close: z.number().int().nonnegative(),
+    due_archive: z.number().int().nonnegative(),
+  })
+  .strict();
+
+/** Last recorded run plus a per-project due count. `next_run_at` is an hour after `last_run_at`, or the lease expiry while a run holds it. */
+export const AutomationStatusSchema = z
+  .object({
+    last_run_at: z.string().nullable(),
+    last_summary: AutomationSummarySchema.nullable(),
+    next_run_at: z.string().nullable(),
+    projects: z.array(AutomationProjectStatusSchema),
+  })
+  .strict();

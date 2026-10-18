@@ -1,0 +1,78 @@
+/*
+ * Calendar layout (src/components/work-items/CalendarLayout.tsx).
+ * Tokens only. The day grid is an Astryx Grid; these classes mark today,
+ * days outside the month, a drop target and the hover-only add button.
+ */
+
+.tessera-cal {
+  min-width: 0;
+  padding: var(--spacing-3);
+  gap: var(--spacing-2);
+}
+
+.tessera-cal-head {
+  text-align: center;
+}
+
+.tessera-cal-day {
+  min-width: 0;
+  min-height: calc(var(--spacing-16) * 2);
+  padding: var(--spacing-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-element);
+  background: var(--color-background-surface);
+}
+
+.tessera-cal-day[data-outside] {
+  background: var(--color-background-muted);
+}
+
+.tessera-cal-day[data-today] {
+  outline: var(--border-width) solid var(--color-accent);
+  outline-offset: calc(-1 * var(--border-width));
+}
+
+.tessera-cal-day[data-drop] {
+  background: var(--color-accent-muted);
+}
+
+.tessera-cal-add,
+.tessera-cal-move {
+  opacity: 0;
+}
+
+.tessera-cal-day:hover .tessera-cal-add,
+.tessera-cal-day:focus-within .tessera-cal-add,
+.tessera-cal-item:hover .tessera-cal-move,
+.tessera-cal-item:focus-within .tessera-cal-move {
+  opacity: 1;
+}
+
+.tessera-cal-item,
+.tessera-cal-open {
+  min-width: 0;
+}
+
+.tessera-cal-open {
+  flex: 1;
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  padding-inline: var(--spacing-1);
+  min-height: var(--size-element-md);
+  touch-action: none;
+  cursor: grab;
+}
+
+.tessera-cal-open:focus-visible {
+  outline: var(--border-width) solid var(--color-accent);
+}
+
+.tessera-cal-name {
+  min-width: 0;
+  flex: 1;
+}
+
+.tessera-cal-more {
+  max-height: calc(var(--spacing-16) * 6);
+  overflow: auto;
+}

@@ -34,13 +34,14 @@ import { estimateTools } from "./estimates";
 import { metaTools } from "./meta";
 import { workspaceTools } from "./workspace";
 import { analyticsTools } from "./analytics";
+import { automationTools } from "./automations";
 export type { DeleteResult, RemoveResult } from "./shared";
 
 // ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
 
-const TOOLS = [...projectTools, ...stateTools, ...labelTools, ...actorTools, ...workItemTools, ...linkTools, ...cycleTools, ...moduleTools, ...viewTools, ...pageTools, ...relationTools, ...commentTools, ...notificationTools, ...intakeTools, ...draftTools, ...estimateTools, ...workspaceTools, ...analyticsTools, ...metaTools];
+const TOOLS = [...projectTools, ...stateTools, ...labelTools, ...actorTools, ...workItemTools, ...linkTools, ...cycleTools, ...moduleTools, ...viewTools, ...pageTools, ...relationTools, ...commentTools, ...notificationTools, ...intakeTools, ...draftTools, ...estimateTools, ...workspaceTools, ...analyticsTools, ...automationTools, ...metaTools];
 
 export type Tool = (typeof TOOLS)[number];
 export type ToolName = Tool["name"];

@@ -71,6 +71,7 @@ export function serializeActivityValue(value: unknown): string | null {
 export function logActivity(ctx: TesseraContext, entry: ActivityEntry): ActivityRow {
   assertInTransaction(ctx, "logActivity");
   const input = validateInput(ActivityEntrySchema, entry);
+  const comment = input.comment ?? ctx.activityNote ?? null;
   const row = ctx.db
     .insert(activity)
     .values({
@@ -85,13 +86,13 @@ export function logActivity(ctx: TesseraContext, entry: ActivityEntry): Activity
       new_value: input.new_value ?? null,
       old_identifier: input.old_identifier ?? null,
       new_identifier: input.new_identifier ?? null,
-      comment: input.comment ?? null,
+      comment,
       actor_id: ctx.actor.id,
       created_at: ctx.now(),
     })
     .returning()
     .get();
-  notifyFromActivity(ctx, input);
+  notifyFromActivity(ctx, { ...input, comment });
   return row;
 }
 

@@ -28,9 +28,9 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { resetViewSettingsAction, saveViewSettingsAction } from "@/app/actions/views";
 import { withSearchParam } from "@/components/detail/peek-url";
 import { GROUPABLE_FIELDS, ORDER_BY_VALUES } from "@/lib/tessera/core/group";
-import { LayoutSchema, SubGroupBySchema } from "@/lib/tessera/schemas";
+import { CalendarLayoutSchema, LayoutSchema, SubGroupBySchema } from "@/lib/tessera/schemas";
 import type { Display, DisplayProperties, GroupBy, Layout, OrderBy, SubGroupBy } from "@/lib/tessera/types";
-import { KanbanIcon, RowsIcon, SlidersIcon, TableIcon } from "@/themes/catppuccin/icons";
+import { CalendarIcon, GanttIcon, KanbanIcon, RowsIcon, SlidersIcon, TableIcon } from "@/themes/catppuccin/icons";
 import { groupByChoices, groupByPatch, orderByChoices, orderBySelectValue, subGroupChoices } from "./display-options";
 import { useProject } from "./project-provider";
 import type { SettingsScope, UrlState } from "./types";
@@ -95,6 +95,9 @@ function isOrderBy(value: string): value is OrderBy {
 function isLayout(value: string): value is Layout {
   return (LayoutSchema.options as readonly string[]).includes(value);
 }
+function isCalendarView(value: string): value is "month" | "week" {
+  return (CalendarLayoutSchema.options as readonly string[]).includes(value);
+}
 
 /**
  * Writes a display patch to the URL and the saved view settings of
@@ -138,8 +141,9 @@ function useDisplayWriter(settingsScope: SettingsScope | null, urlState: UrlStat
 }
 
 /**
- * The layout switch of the work items sub-header: list, board and table as
- * icon segments. Calendar and Gantt join it in P10.
+ * The layout switch of the work items sub-header: list, board, table,
+ * calendar and gantt as icon segments. Workspace views do not mount it
+ * (decision 18: those views stay table-only).
  */
 export function LayoutSwitch({ display, urlState, settingsScope }: LayoutSwitchProps) {
   const { apply } = useDisplayWriter(settingsScope, urlState);
@@ -148,6 +152,8 @@ export function LayoutSwitch({ display, urlState, settingsScope }: LayoutSwitchP
       <SegmentedControlItem value="list" label="List" isLabelHidden icon={<RowsIcon />} />
       <SegmentedControlItem value="board" label="Board" isLabelHidden icon={<KanbanIcon />} />
       <SegmentedControlItem value="table" label="Table" isLabelHidden icon={<TableIcon />} />
+      <SegmentedControlItem value="calendar" label="Calendar" isLabelHidden icon={<CalendarIcon />} />
+      <SegmentedControlItem value="gantt" label="Gantt" isLabelHidden icon={<GanttIcon />} />
     </SegmentedControl>
   );
 }
@@ -175,9 +181,24 @@ export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupField
     apply(sub_group_by === undefined ? { group_by } : { group_by, sub_group_by });
   };
 
+  const hidesGrouping = display.layout === "calendar" || display.layout === "gantt";
   const content = (
     <VStack gap={4} padding={4} className="tessera-wi-display">
-      <Selector label="Group by" size="sm" options={groupOptions} value={display.group_by ?? NONE} onChange={changeGroup} />
+      {display.layout === "calendar" ? (
+        <>
+          <SegmentedControl
+            label="Calendar view"
+            size="sm"
+            value={display.calendar.layout}
+            onChange={(value) => isCalendarView(value) && apply({ calendar: { ...display.calendar, layout: value } })}
+          >
+            <SegmentedControlItem value="month" label="Month" />
+            <SegmentedControlItem value="week" label="Week" />
+          </SegmentedControl>
+          <Switch label="Show weekends" size="sm" value={display.calendar.show_weekends} onChange={(checked) => apply({ calendar: { ...display.calendar, show_weekends: checked } })} />
+        </>
+      ) : null}
+      {hidesGrouping ? null : <Selector label="Group by" size="sm" options={groupOptions} value={display.group_by ?? NONE} onChange={changeGroup} />}
       {display.layout === "board" ? (
         <Selector
           label="Sub-group by"
@@ -194,7 +215,7 @@ export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupField
         value={orderBySelectValue(display.order_by)}
         onChange={(value) => isOrderBy(value) && apply({ order_by: value })}
       />
-      <Switch label="Show empty groups" size="sm" value={display.show_empty_groups} onChange={(checked) => apply({ show_empty_groups: checked })} />
+      {hidesGrouping ? null : <Switch label="Show empty groups" size="sm" value={display.show_empty_groups} onChange={(checked) => apply({ show_empty_groups: checked })} />}
       <Switch label="Show sub-items" size="sm" value={display.sub_items} onChange={(checked) => apply({ sub_items: checked })} />
       <CheckboxList
         label="Properties"

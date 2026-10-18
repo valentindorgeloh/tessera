@@ -12,7 +12,7 @@ import { and, asc, eq, exists, gt, gte, inArray, isNotNull, isNull, lt, lte, or,
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import type { TesseraContext } from "./core/context";
 import { PRIORITY_RANK, parseOrderBy, type GroupBy, type OrderableField } from "./core/group";
-import { addDays, localDateOf, localDayStart } from "./core/time";
+import { addDays, addMonthsIso, localDateOf, localDayStart } from "./core/time";
 import { searchWorkItemIds } from "./db/fts";
 import {
   actor,
@@ -42,15 +42,6 @@ const SEARCH_LIMIT = 100_000;
 /** What a `DateFilter` means once relative tokens are resolved against today. `before` and `after` are strict; `between` is inclusive. */
 export type ResolvedDateFilter = { op: "before"; date: string } | { op: "after"; date: string } | { op: "between"; from: string; to: string };
 
-/** Last day of the month that is `months` after `date`'s month, clamped (Jan 31 + 1 month = Feb 28/29). */
-function addMonths(date: string, months: number): string {
-  const [year, month, day] = date.split("-").map(Number);
-  const target = new Date(Date.UTC(year, month - 1 + months, 1));
-  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
-  target.setUTCDate(Math.min(day, lastDay));
-  return target.toISOString().slice(0, 10);
-}
-
 /** The day a relative token points at: today, one or two weeks ahead, or one month ahead. */
 export function relativeDate(relative: NonNullable<DateFilter["relative"]>, today: string): string {
   switch (relative) {
@@ -61,7 +52,7 @@ export function relativeDate(relative: NonNullable<DateFilter["relative"]>, toda
     case "2w":
       return addDays(today, 14);
     case "1m":
-      return addMonths(today, 1);
+      return addMonthsIso(today, 1);
   }
 }
 

@@ -164,11 +164,14 @@ function assertNameFree(ctx: TesseraContext, name: string, exceptId: string | nu
 
 function assertStateInProject(ctx: TesseraContext, projectId: string, stateId: string): string {
   const row = ctx.db
-    .select({ name: state.name })
+    .select({ name: state.name, state_group: state.state_group })
     .from(state)
     .where(and(eq(state.id, stateId), eq(state.project_id, projectId), isNull(state.deleted_at)))
     .get();
   if (!row) throw notFound("state", stateId);
+  if (row.state_group !== "completed" && row.state_group !== "cancelled") {
+    throw rule("close_state_group", `Close state "${row.name}" is ${row.state_group}; pick a completed or cancelled state`);
+  }
   return row.name;
 }
 
