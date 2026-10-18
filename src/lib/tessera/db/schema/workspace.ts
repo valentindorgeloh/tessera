@@ -64,6 +64,8 @@ export const workspace_settings = sqliteTable("workspace_settings", {
   last_seen_at: text("last_seen_at"),
   /** When on, the maintenance job writes a daily `auto` backup (decision 120). */
   auto_backup: integer("auto_backup", { mode: "boolean" }).notNull().default(true),
+  /** Week start day: 0 = Sunday, 1 = Monday (default). Follows JavaScript Date.getDay() convention. */
+  week_start: integer("week_start", { mode: "number" }).notNull().default(1),
   created_at: text("created_at").notNull(),
   updated_at: text("updated_at").notNull(),
 });

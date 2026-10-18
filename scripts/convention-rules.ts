@@ -130,3 +130,85 @@ export function evaluateFileBudget(
 
   return { failures, notes, exempt: exemptOver };
 }
+
+/**
+ * Token families that Astryx defines (read from the installed astryx.css) plus the ones the gate
+ * also guards although Astryx has none today (--z-, --line-height-): a var() of any of them must resolve.
+ */
+export const ASTRYX_TOKEN_FAMILIES = [
+  "--spacing-",
+  "--color-",
+  "--radius-",
+  "--font-",
+  "--size-",
+  "--shadow-",
+  "--duration-",
+  "--ease-",
+  "--z-",
+  "--border-",
+  "--line-height-",
+  "--text-",
+];
+
+/** Names that are legitimately not in any CSS file: next/font sets them from layout.tsx. */
+export const TOKEN_EXCEPTIONS: ReadonlySet<string> = new Set(["--font-body", "--font-code"]);
+
+/** Our own custom properties; they only need a definition somewhere in src. */
+export const TESSERA_TOKEN_PREFIX = "--tessera-";
+
+/** Replaces comments with blanks, keeping every newline so line numbers stay true. `//` only counts after whitespace (URLs stay). */
+export function stripComments(text: string, lang: "css" | "ts"): string {
+  const blank = (s: string) => s.replace(/[^\n]/g, " ");
+  let out = text.replace(/\/\*[\s\S]*?\*\//g, blank);
+  if (lang === "ts") out = out.replace(/(^|\s)\/\/[^\n]*/g, (m, lead: string) => lead + blank(m.slice(lead.length)));
+  return out;
+}
+
+/** Custom properties a file defines: `--x:` in CSS, a quoted key such as `"--x":` in an inline style object, or `el.style.setProperty("--x", ...)`. */
+export function definedTokens(text: string, lang: "css" | "ts"): Set<string> {
+  const names = new Set<string>();
+  const re = /(--[A-Za-z0-9_-]+)["']?\s*:/g;
+  let m: RegExpExecArray | null;
+  const src = stripComments(text, lang);
+  while ((m = re.exec(src)) !== null) names.add(m[1]);
+  const setter = /setProperty\(\s*["'`](--[A-Za-z0-9_-]+)["'`]/g;
+  while ((m = setter.exec(src)) !== null) names.add(m[1]);
+  return names;
+}
+
+/** The var(--x) uses of a file with their line. Names built by a template (`var(--spacing-${n})`) are skipped. */
+export function tokenUses(text: string, lang: "css" | "ts"): { line: number; name: string }[] {
+  const out: { line: number; name: string }[] = [];
+  stripComments(text, lang)
+    .split("\n")
+    .forEach((line, i) => {
+      const re = /var\(\s*(--[A-Za-z0-9_-]+)(?![A-Za-z0-9_${-])/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(line)) !== null) out.push({ line: i + 1, name: m[1] });
+    });
+  return out;
+}
+
+/**
+ * Uses that resolve nowhere. `astryx` is every name in the installed Astryx CSS, `ours` every name defined in src
+ * (CSS, theme, inline style keys). Astryx-family names may come from either; --tessera-* names only from `ours`.
+ */
+export function undefinedTokenUses(
+  uses: { line: number; name: string }[],
+  astryx: ReadonlySet<string>,
+  ours: ReadonlySet<string>,
+  exceptions: ReadonlySet<string> = TOKEN_EXCEPTIONS,
+): { line: number; name: string; message: string }[] {
+  const out: { line: number; name: string; message: string }[] = [];
+  for (const { line, name } of uses) {
+    if (exceptions.has(name)) continue;
+    if (name.startsWith(TESSERA_TOKEN_PREFIX)) {
+      if (!ours.has(name)) out.push({ line, name, message: `var(${name}) is never defined in src (CSS or an inline style key)` });
+    } else if (ASTRYX_TOKEN_FAMILIES.some((f) => name.startsWith(f))) {
+      if (!astryx.has(name) && !ours.has(name)) {
+        out.push({ line, name, message: `var(${name}) is not defined by Astryx or by our CSS/theme; the whole declaration is invalid` });
+      }
+    }
+  }
+  return out;
+}

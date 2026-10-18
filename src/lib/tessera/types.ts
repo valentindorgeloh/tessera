@@ -283,6 +283,8 @@ export type WorkspaceSettingsView = {
   last_seen_at: string | null;
   /** When true, the maintenance job writes a daily auto backup (decision 120). */
   auto_backup: boolean;
+  /** Week start day: 0 = Sunday, 1 = Monday. Follows JavaScript Date.getDay() convention. */
+  week_start: number;
 };
 
 export type AnalyticsScopeInfo = {

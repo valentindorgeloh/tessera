@@ -9,7 +9,7 @@ import { notFound, rule, validation } from "../core/errors";
 import { newId } from "../core/ids";
 import { sortOrderAfter, sortOrderBetween } from "../core/order";
 import { withTx } from "../core/tx";
-import { deletePageFts, upsertPageFts } from "../db/fts";
+import { upsertPageFts } from "../db/fts";
 import { label, page, page_label } from "../db/schema";
 import type { PageDetail } from "../types";
 import { replacePageEmbeds } from "./embeds";

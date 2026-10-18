@@ -16,7 +16,7 @@ import { updateWorkspaceSettingsAction } from "@/app/actions/workspace-settings"
 import { assistantUnavailableCopy, useAiStatus } from "@/components/ai/AiStatusProvider";
 import type { WorkspaceAiSettings } from "@/lib/tessera/types";
 import { WorkspaceSettingsChrome } from "./WorkspaceSettingsChrome";
-import { EFFORT_OPTIONS, EFFORT_UNSET, isAiEffort, workspaceNameError, type WorkspaceSettingsTab, type WorkspaceSettingsView } from "./settings-format";
+import { EFFORT_OPTIONS, EFFORT_UNSET, WEEK_START_OPTIONS, isAiEffort, parseWeekStart, workspaceNameError, type WorkspaceSettingsTab, type WorkspaceSettingsView } from "./settings-format";
 
 export type WorkspaceSettingsScreenProps = {
   tab: WorkspaceSettingsTab;
@@ -29,13 +29,13 @@ export function WorkspaceSettingsScreen({ tab, settings }: WorkspaceSettingsScre
   return (
     <WorkspaceSettingsChrome tab={tab}>
       <VStack gap={6} padding={6}>
-        {tab === "general" ? <GeneralPane name={settings.name} /> : <AiPane ai={settings.ai ?? EMPTY_AI} />}
+        {tab === "general" ? <GeneralPane name={settings.name} weekStart={settings.week_start} /> : <AiPane ai={settings.ai ?? EMPTY_AI} />}
       </VStack>
     </WorkspaceSettingsChrome>
   );
 }
 
-function GeneralPane({ name }: { name: string }) {
+function GeneralPane({ name, weekStart }: { name: string; weekStart: number }) {
   const toast = useToast();
   const [draft, setDraft] = useState(name);
   const [fromServer, setFromServer] = useState(name);
@@ -63,6 +63,20 @@ function GeneralPane({ name }: { name: string }) {
         onBlur={commit}
         onEnter={commit}
         status={error !== null && draft !== name ? { type: "error", message: error } : undefined}
+      />
+      <Selector
+        label="Week starts on"
+        description="Applies to the calendar layout."
+        options={WEEK_START_OPTIONS}
+        value={String(weekStart)}
+        onChange={(value) => {
+          const next = parseWeekStart(value);
+          if (next === null || next === weekStart) return;
+          startSave(async () => {
+            const result = await updateWorkspaceSettingsAction({ week_start: next });
+            if (!result.ok) toast({ type: "error", body: `Could not save the week start. ${result.message}` });
+          });
+        }}
       />
     </FormLayout>
   );

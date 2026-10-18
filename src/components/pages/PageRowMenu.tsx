@@ -22,6 +22,7 @@ import {
   updatePageAction,
 } from "@/app/actions/pages";
 import { useFavoriteToggle } from "@/components/shell/FavoriteButton";
+import { useOptimisticLock } from "@/components/shared/use-optimistic-lock";
 import type { PageSummary } from "@/lib/tessera/types";
 import { VersionHistoryDialog } from "@/components/history/VersionHistoryDialog";
 import {
@@ -92,8 +93,8 @@ export function PageRowMenu({ page, spaces, spaceName, includeOpen = true, previ
   const [, startTransition] = useTransition();
   const favorite = useFavoriteToggle("page", page.id);
   const detail = "description_version" in page ? (page as PageSummary & { description_md: string; description_version: number }) : null;
-
   const fail = (verb: string, message: string) => toast({ type: "error", body: failure(verb, page.name, message) });
+  const [isLocked, setLocked] = useOptimisticLock(page.is_locked, fail);
 
   const copyLink = () => {
     const origin = typeof window === "undefined" ? "" : window.location.origin;
@@ -139,16 +140,8 @@ export function PageRowMenu({ page, spaces, spaceName, includeOpen = true, previ
         if (!result.ok) fail("move", result.message);
       }),
     move: () => setMoveOpen(true),
-    lock: () =>
-      startTransition(async () => {
-        const result = await lockPageAction({ page_id: page.id });
-        if (!result.ok) fail("lock", result.message);
-      }),
-    unlock: () =>
-      startTransition(async () => {
-        const result = await unlockPageAction({ page_id: page.id });
-        if (!result.ok) fail("unlock", result.message);
-      }),
+    lock: () => setLocked(true, () => lockPageAction({ page_id: page.id })),
+    unlock: () => setLocked(false, () => unlockPageAction({ page_id: page.id })),
     "make-private": () =>
       startTransition(async () => {
         const result = await updatePageAction({ page_id: page.id, access: "private" });
@@ -182,10 +175,13 @@ export function PageRowMenu({ page, spaces, spaceName, includeOpen = true, previ
     delete: () => setDeleteOpen(true),
   };
 
+  // The menu rows follow the displayed lock state (server value plus the optimistic flip).
+  const pageWithLock = { ...page, is_locked: isLocked };
+
   const items: DropdownMenuOption[] = [
     { id: "favorite", label: favorite.label, icon: resolveLogoIcon("Star"), onClick: favorite.toggle },
   ];
-  for (const row of pageMenuEntries({ page, includeOpen, canMoveUp: previousId !== undefined, canMoveDown: nextId !== undefined })) {
+  for (const row of pageMenuEntries({ page: pageWithLock, includeOpen, canMoveUp: previousId !== undefined, canMoveDown: nextId !== undefined })) {
     if (row.dividerBefore) items.push({ type: "divider" });
     const Icon = ICONS[row.id];
     items.push({

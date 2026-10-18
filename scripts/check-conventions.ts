@@ -17,13 +17,23 @@
  *  no-cwd-in-engine     src/lib/tessera/** resolves paths from the module location, never process.cwd()
  *  decision-ref         a comment in src/** or scripts/** that cites `decision N` or `decision UN` names a row of the
  *                       "Resolved design decisions" tables in docs/PLAN.md (parsed from the file)
+ *  css-token            every var(--x) in the css, ts and tsx files of src, of an Astryx token family (--spacing-, --color-, ...) resolves in the
+ *                       installed @astryxdesign/core CSS or in our own CSS/theme/style props; --tessera-* only in src
  *  file-budget          .ts/.tsx files under src/ and scripts/ (tests excluded) stay within 600 lines; the ones already
  *                       over are pinned in scripts/file-budget.json and may shrink but not grow
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { countLines, evaluateFileBudget, parseDecisionNumbers, unknownDecisionRefs } from "./convention-rules";
+import {
+  countLines,
+  definedTokens,
+  evaluateFileBudget,
+  parseDecisionNumbers,
+  tokenUses,
+  undefinedTokenUses,
+  unknownDecisionRefs,
+} from "./convention-rules";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCAN_DIRS = ["src", "scripts", "tests"];
@@ -92,6 +102,7 @@ const HEX_RE = /(?<![\w&;%])#[0-9a-fA-F]{3,8}\b/;
 
 const knownDecisions = parseDecisionNumbers(fs.readFileSync(path.join(ROOT, "docs/PLAN.md"), "utf8"));
 const budgetCounts: Record<string, number> = {};
+const tokenFiles: { rel: string; text: string; lang: "css" | "ts" }[] = [];
 
 for (const dir of SCAN_DIRS) {
   for (const abs of walk(path.join(ROOT, dir))) {
@@ -103,6 +114,7 @@ for (const dir of SCAN_DIRS) {
     const text = fs.readFileSync(abs, "utf8");
     const lines = text.split("\n");
     const isClient = hasUseClientDirective(lines);
+    if (rel.startsWith("src/") && EXTENSIONS.has(path.extname(rel))) tokenFiles.push({ rel, text, lang: rel.endsWith(".css") ? "css" : "ts" });
     const isSource = /\.tsx?$/.test(rel) && DECISION_SCAN_DIRS.some((d) => rel.startsWith(d));
 
     if (isSource) {
@@ -170,6 +182,27 @@ for (const dir of SCAN_DIRS) {
       }
     });
   }
+}
+
+/** Every .css under the installed Astryx package (astryx.css, reset.css, ...). */
+function astryxCssFiles(dir: string): string[] {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) return astryxCssFiles(full);
+    return e.name.endsWith(".css") ? [full] : [];
+  });
+}
+
+const astryxTokens = new Set<string>();
+for (const file of astryxCssFiles(path.join(ROOT, "node_modules/@astryxdesign/core/dist"))) {
+  for (const name of definedTokens(fs.readFileSync(file, "utf8"), "css")) astryxTokens.add(name);
+}
+const ourTokens = new Set<string>();
+for (const f of tokenFiles) for (const name of definedTokens(f.text, f.lang)) ourTokens.add(name);
+if (astryxTokens.size === 0) report("node_modules/@astryxdesign/core/dist", 1, "css-token", "found no Astryx tokens; is @astryxdesign/core installed?");
+for (const f of tokenFiles) {
+  for (const hit of undefinedTokenUses(tokenUses(f.text, f.lang), astryxTokens, ourTokens)) report(f.rel, hit.line, "css-token", hit.message);
 }
 
 const budget: Record<string, number> = JSON.parse(fs.readFileSync(path.join(ROOT, BUDGET_FILE), "utf8"));

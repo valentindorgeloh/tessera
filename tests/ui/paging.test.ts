@@ -102,6 +102,15 @@ describe("calendar period and rich filters", () => {
     expect(calendarWindow(weekdays, "2026-10-14", "2026-01-01")).toEqual({ from: "2026-10-12", to: "2026-10-16" });
   });
 
+  it("follows the workspace week start so the window matches the grid", () => {
+    expect(calendarWindow(month, "2026-10-14", "2026-01-01", 0)).toEqual({ from: "2026-09-27", to: "2026-10-31" });
+    expect(calendarWindow(week, "2026-10-14", "2026-01-01", 0)).toEqual({ from: "2026-10-11", to: "2026-10-17" });
+    // January 2026 starts on a Thursday: a Sunday start reaches back to Dec 28 and stops at Sat Jan 31.
+    expect(calendarWindow(week, "2026-01-07", "2026-01-01", 0)).toEqual({ from: "2026-01-04", to: "2026-01-10" });
+    expect(calendarWindow(month, "2026-01-07", "2026-01-01", 0)).toEqual({ from: "2025-12-28", to: "2026-01-31" });
+    expect(listPaging(month, "2026-10-14", "2026-10-10", 0)).toEqual({ limit: CALENDAR_CAP, calendar_window: { from: "2026-09-27", to: "2026-10-31" } });
+  });
+
   it("sends the window only for the calendar", () => {
     expect(listPaging(month, "2026-10-14", "2026-10-10")).toEqual({ limit: CALENDAR_CAP, calendar_window: { from: "2026-09-28", to: "2026-11-01" } });
     expect(listPaging({ ...DEFAULT_DISPLAY, layout: "table", group_by: null }, "2026-10-14", "2026-10-10")).toEqual({ limit: 200 });

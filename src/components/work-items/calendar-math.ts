@@ -1,14 +1,19 @@
 /**
  * Calendar grid (month and week). Week columns follow `weekStartsOn`
- * (0 Sunday, 1 Monday). Dates stay `YYYY-MM-DD`; no clock is read.
+ * (0 Sunday, 1 Monday, ..., 6 Saturday). Dates stay `YYYY-MM-DD`; no clock is read.
  */
 import { addDays } from "@/lib/tessera/core/time";
 
 export type CalendarView = "month" | "week";
-export type WeekStart = 0 | 1;
+export type WeekStart = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-/** Monday until the workspace week-start setting exists. */
+/** The workspace default (`workspace_settings.week_start`): Monday. */
 export const WEEK_STARTS_ON: WeekStart = 1;
+
+/** A stored `week_start` (any integer 0..6) as a WeekStart; anything else falls back to Monday. */
+export function toWeekStart(value: number | undefined): WeekStart {
+  return value !== undefined && Number.isInteger(value) && value >= 0 && value <= 6 ? (value as WeekStart) : WEEK_STARTS_ON;
+}
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 

@@ -29,6 +29,7 @@ import {
 import { createLabel } from "@/lib/tessera/labels";
 import { archiveProject, createProject, updateProject, updateProjectFeatures, type Project } from "@/lib/tessera/projects";
 import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
+import { searchAll } from "@/lib/tessera/search";
 import { createState, listStates } from "@/lib/tessera/states";
 import { createView } from "@/lib/tessera/views";
 import type { Display, Filters, StateRow } from "@/lib/tessera/types";
@@ -969,12 +970,58 @@ describe("moveWorkItemToProject", () => {
     expect(moved.assignee_ids).toEqual([ASSISTANT_ACTOR_ID]);
     expect(moved.state_id).toBe(listStates(ctx, other.id).find((s) => s.name === "Backlog")?.id);
     expect(getWorkItemByKey(ctx, "OTH-2").id).toBe(item.id);
-    expect(errorCode(() => getWorkItemByKey(ctx, "WEB-1"))).toBe("NOT_FOUND");
+    // The old key keeps resolving to the moved item (decision 29, extended to moves).
+    expect(getWorkItemByKey(ctx, "WEB-1").id).toBe(item.id);
+    expect(getWorkItemByKey(ctx, "web-1").key).toBe("OTH-2");
+    expect(errorCode(() => getWorkItemByKey(ctx, "WEB-9"))).toBe("NOT_FOUND");
     expect(createWorkItem(ctx, { project_id: p.id, name: "Next in WEB" }).key).toBe("WEB-2");
     const row = activityRows(ctx, item.id).at(-1);
     expect(row).toMatchObject({ verb: "moved", field: "project_id", old_value: p.id, new_value: other.id, old_identifier: "WEB-1", new_identifier: "OTH-2", project_id: other.id });
     expect(searchWorkItemIds(ctx.sqlite, "mover", { project_id: other.id })).toEqual([item.id]);
     expect(searchWorkItemIds(ctx.sqlite, "mover", { project_id: p.id })).toEqual([]);
+  });
+
+  it("old keys keep resolving after several moves, lose to a live holder and stop once the item is deleted", () => {
+    const { ctx, project: p } = setup();
+    const other = createProject(ctx, { name: "Other", identifier: "OTH" });
+    const third = createProject(ctx, { name: "Third", identifier: "THR" });
+    const item = createWorkItem(ctx, { project_id: p.id, name: "Wanderer" });
+    expect(moveWorkItemToProject(ctx, item.id, { project_id: other.id }).key).toBe("OTH-1");
+    expect(moveWorkItemToProject(ctx, item.id, { project_id: third.id }).key).toBe("THR-1");
+    // Every key the item ever held resolves to it under its current key.
+    expect(getWorkItemByKey(ctx, "WEB-1").key).toBe("THR-1");
+    expect(getWorkItemByKey(ctx, "OTH-1").key).toBe("THR-1");
+    // WEB-1 is never reused, but a live item holding a key still wins over a moved one.
+    const other2 = createWorkItem(ctx, { project_id: other.id, name: "Live holder" });
+    expect(other2.key).toBe("OTH-2");
+    expect(getWorkItemByKey(ctx, "OTH-2").id).toBe(other2.id);
+    // The moved key also works through the item's search hit.
+    expect(searchAll(ctx, "web-1")[0]).toMatchObject({ id: item.id, key: "THR-1", matched_key: "WEB-1" });
+    deleteWorkItem(ctx, item.id);
+    expect(errorCode(() => getWorkItemByKey(ctx, "WEB-1"))).toBe("NOT_FOUND");
+    expect(errorCode(() => getWorkItemByKey(ctx, "OTH-1"))).toBe("NOT_FOUND");
+  });
+
+  it("a moved key loses to another project that holds its identifier now, but not to the project the item left", () => {
+    const { ctx, project: p } = setup();
+    const other = createProject(ctx, { name: "Other", identifier: "OTH" });
+    const item = createWorkItem(ctx, { project_id: p.id, name: "Wanderer" });
+    moveWorkItemToProject(ctx, item.id, { project_id: other.id });
+    // The source project still holds WEB: the old key follows the item.
+    expect(getWorkItemByKey(ctx, "WEB-1").key).toBe("OTH-1");
+    // Renamed away, nobody holds WEB: it still follows the item.
+    updateProject(ctx, p.id, { identifier: "SITE" });
+    expect(getWorkItemByKey(ctx, "WEB-1").key).toBe("OTH-1");
+    expect(searchAll(ctx, "web-1")[0]).toMatchObject({ id: item.id, matched_key: "WEB-1" });
+    // A different project takes WEB: the key is no longer the item's, whether or not that project has a WEB-1.
+    const fresh = createProject(ctx, { name: "Fresh", identifier: "WEB" });
+    expect(errorCode(() => getWorkItemByKey(ctx, "WEB-1"))).toBe("NOT_FOUND");
+    expect(searchAll(ctx, "web-1").find((hit) => hit.id === item.id)?.matched_key).toBeUndefined();
+    const reused = createWorkItem(ctx, { project_id: fresh.id, name: "Reuses the number" });
+    expect(reused.key).toBe("WEB-1");
+    expect(getWorkItemByKey(ctx, "WEB-1").id).toBe(reused.id);
+    deleteWorkItem(ctx, reused.id);
+    expect(errorCode(() => getWorkItemByKey(ctx, "WEB-1"))).toBe("NOT_FOUND");
   });
 
   it("detaches children, refuses the same project and pending intake items", () => {

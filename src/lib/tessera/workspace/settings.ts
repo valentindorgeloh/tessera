@@ -52,6 +52,7 @@ export function ensureWorkspaceSettings(db: TesseraDb): void {
       last_seen_seq: null,
       last_seen_at: null,
       auto_backup: true,
+      week_start: 1, // Default to Monday
       created_at: now,
       updated_at: now,
     })
@@ -74,6 +75,7 @@ function toView(row: typeof workspace_settings.$inferSelect): WorkspaceSettingsV
     last_seen_seq: row.last_seen_seq,
     last_seen_at: row.last_seen_at,
     auto_backup: row.auto_backup !== false,
+    week_start: row.week_start ?? 1, // Default to Monday if not set
   };
 }
 
@@ -86,6 +88,7 @@ export const UpdateWorkspaceSettingsInput = z
     name: z.string().trim().min(1).max(80).optional().describe("Workspace name shown in the top bar."),
     home_widgets: HomeWidgetsSchema.optional().describe("Home widget order and which widgets are shown."),
     auto_backup: z.boolean().optional().describe("When true, the maintenance job writes a daily auto backup."),
+    week_start: z.number().int().min(0).max(6).optional().describe("Week start day: 0 = Sunday, 1 = Monday, ..., 6 = Saturday."),
     ai: z
       .object({
         model: z.string().nullable().optional().describe("Model id override, or null to use the environment default."),
@@ -113,6 +116,7 @@ export function updateWorkspaceSettings(ctx: TesseraContext, input: UpdateWorksp
         name: data.name ?? before.name,
         home_widgets: data.home_widgets === undefined ? normalizeHomeWidgets(before.home_widgets) : normalizeHomeWidgets(data.home_widgets),
         auto_backup: data.auto_backup ?? before.auto_backup,
+        week_start: data.week_start ?? before.week_start,
         ai,
         updated_at: now,
       })

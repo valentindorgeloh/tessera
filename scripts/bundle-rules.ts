@@ -9,32 +9,23 @@ import path from "node:path";
 /** Strings that fail the gate (decision 125): secrets, the SQLite driver, the database path and the engine's server-only marker. */
 export const FORBIDDEN = ["ANTHROPIC", "sk-ant-", "better-sqlite3", "drizzle-orm/better-sqlite3", "TESSERA_DB_PATH", "server-only"] as const;
 
-/**
- * Visible help text that legitimately names the variable (the assistant's
- * "unavailable" notice, src/components/ai/ai-status.ts). Exactly this phrase is
- * blanked before the scan; any other use of `ANTHROPIC` still fails.
- */
-export const ALLOWED_PHRASES = ["set ANTHROPIC_API_KEY in .env.local"] as const;
-
 const BINARY_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".ico", ".woff", ".woff2", ".ttf", ".otf", ".eot", ".mp4", ".webm", ".mp3", ".wasm"]);
 const CONTEXT = 30;
 
 export type BundleFinding = { file: string; needle: string; count: number; context: string };
 
-/** Findings for one file's text; the allowed phrases are removed first. */
+/** Findings for one file's text. No phrase is exempt: client copy must not spell a forbidden string. */
 export function scanText(file: string, text: string): BundleFinding[] {
-  let body = text;
-  for (const phrase of ALLOWED_PHRASES) body = body.split(phrase).join(" ".repeat(phrase.length));
   const findings: BundleFinding[] = [];
   for (const needle of FORBIDDEN) {
     let count = 0;
     let first = -1;
-    for (let at = body.indexOf(needle); at !== -1; at = body.indexOf(needle, at + needle.length)) {
+    for (let at = text.indexOf(needle); at !== -1; at = text.indexOf(needle, at + needle.length)) {
       count += 1;
       if (first === -1) first = at;
     }
     if (count > 0) {
-      const context = body.slice(Math.max(0, first - CONTEXT), first + needle.length + CONTEXT).replace(/\s+/g, " ");
+      const context = text.slice(Math.max(0, first - CONTEXT), first + needle.length + CONTEXT).replace(/\s+/g, " ");
       findings.push({ file, needle, count, context });
     }
   }

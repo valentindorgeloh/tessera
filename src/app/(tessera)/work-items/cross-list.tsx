@@ -7,6 +7,7 @@ import { ViewBar } from "@/components/views/ViewBar";
 import { ViewMenu } from "@/components/views/ViewMenu";
 import { ViewLockIndicator } from "@/components/views/ViewRow";
 import { isViewModified, type ViewState } from "@/components/views/view-state";
+import { toWeekStart } from "@/components/work-items/calendar-math";
 import { listPaging } from "@/components/work-items/paging";
 import { ProjectScope } from "@/components/work-items/project-provider";
 import { BundlesProvider } from "@/components/work-items/row-project";
@@ -29,6 +30,7 @@ import {
   type Project,
   type View,
 } from "@/lib/tessera/server";
+import { getWorkspaceSettings } from "@/lib/tessera/workspace/settings";
 
 /**
  * A work-item list whose rows come from many projects (docs/drafts/p9-plan.md
@@ -218,7 +220,7 @@ function loadList(
       scope,
       filters,
       display,
-      ...listPaging(display, cal, ctx.today()),
+      ...listPaging(display, cal, ctx.today(), toWeekStart(getWorkspaceSettings(ctx).week_start)),
       ...(urlState.rich_filters !== undefined ? { rich_filters: urlState.rich_filters } : {}),
     });
     const projects = listProjects(ctx, {});

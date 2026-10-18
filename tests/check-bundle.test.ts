@@ -3,7 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ALLOWED_PHRASES, FORBIDDEN, scanBundle, scanText } from "../scripts/bundle-rules";
+import { assistantUnavailableCopy } from "../src/components/ai/ai-status";
+import { FORBIDDEN, scanBundle, scanText } from "../scripts/bundle-rules";
 
 let dir: string;
 
@@ -42,11 +43,12 @@ describe("scanBundle", () => {
     expect(scanBundle(dir).findings.map((finding) => finding.needle).sort()).toEqual(["better-sqlite3", "drizzle-orm/better-sqlite3"]);
   });
 
-  it("accepts the assistant help text and nothing else about ANTHROPIC", () => {
-    const help = `Run ant auth login, or ${ALLOWED_PHRASES[0]}.`;
-    write("help.js", `var t="${help}";`);
+  it("accepts the assistant's reworded help text and flags the variable name, however it is quoted", () => {
+    const copy = assistantUnavailableCopy({ available: false, reason: "no_credential" });
+    expect(copy.description).not.toContain("ANTHROPIC");
+    write("help.js", `var t=${JSON.stringify(copy.description)};`);
     expect(scanBundle(dir).findings).toEqual([]);
-    write("env.js", `var key=process.env.ANTHROPIC_API_KEY;var t="${help}";`);
+    write("env.js", `var t="set ANTHROPIC_API_KEY in .env.local";`);
     const { findings } = scanBundle(dir);
     expect(findings).toHaveLength(1);
     expect(findings[0]).toMatchObject({ file: "env.js", needle: "ANTHROPIC", count: 1 });
@@ -65,8 +67,8 @@ describe("scanBundle", () => {
 });
 
 describe("scanText", () => {
-  it("keeps the allowed phrase from hiding a second occurrence on the same line", () => {
-    const text = `${ALLOWED_PHRASES[0]} ANTHROPIC_AUTH_TOKEN`;
-    expect(scanText("x.js", text)).toHaveLength(1);
+  it("has no allowed phrases: the old help text is flagged like any other use", () => {
+    const text = "Run ant auth login, or set ANTHROPIC_API_KEY in .env.local. Also ANTHROPIC_AUTH_TOKEN";
+    expect(scanText("x.js", text)).toEqual([expect.objectContaining({ needle: "ANTHROPIC", count: 2 })]);
   });
 });

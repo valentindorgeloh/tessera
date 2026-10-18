@@ -7,11 +7,13 @@ import { ViewBar } from "@/components/views/ViewBar";
 import { ViewLockIndicator } from "@/components/views/ViewRow";
 import { ViewMenu } from "@/components/views/ViewMenu";
 import { isViewModified, viewScopeDefaults, type ViewState } from "@/components/views/view-state";
+import { toWeekStart } from "@/components/work-items/calendar-math";
 import { listPaging } from "@/components/work-items/paging";
 import { decodeUrlState, mergeDisplay, mergeFilters } from "@/components/work-items/url-state";
 import { WorkItemsScreen } from "@/components/work-items/WorkItemsScreen";
 import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
 import { isTrackerError, listWorkItems, readTessera } from "@/lib/tessera/server";
+import { getWorkspaceSettings } from "@/lib/tessera/workspace/settings";
 import type { View } from "@/lib/tessera/types";
 
 /**
@@ -82,7 +84,7 @@ function loadItems(viewId: string, effective: ViewState, cal: string | undefined
       scope: { type: "view", view_id: viewId },
       filters: effective.filters,
       display: effective.display,
-      ...listPaging(effective.display, cal, ctx.today()),
+      ...listPaging(effective.display, cal, ctx.today(), toWeekStart(getWorkspaceSettings(ctx).week_start)),
       ...(effective.rich_filters !== undefined ? { rich_filters: effective.rich_filters } : {}),
     }),
   );

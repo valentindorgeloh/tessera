@@ -97,7 +97,7 @@ export const workItemTools = [
   defineTool({
     name: "get_work_item_by_key",
     title: "Get work item by key",
-    description: "Returns the full work item by its key such as WEB-12; the only tool that takes a key instead of an id. Ids are accepted as well. A key with a project's former identifier (before a rename) still resolves, unless another project uses that identifier now.",
+    description: "Returns the full work item by its key such as WEB-12; the only tool that takes a key instead of an id. Ids are accepted as well. A key with a project's former identifier (before a rename), or the key the item had before it was moved to another project, still resolves; a former identifier loses to a project that uses it now.",
     input: GetWorkItemByKeyInput,
     mutates: false,
     core: true,

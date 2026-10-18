@@ -5,12 +5,14 @@ import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { loadWorkItemDetail } from "@/app/(tessera)/work-items/load-detail";
 import { PeekHost, type PeekData } from "@/components/detail/PeekHost";
+import { toWeekStart } from "@/components/work-items/calendar-math";
 import { listPaging } from "@/components/work-items/paging";
 import type { ScopeDefaults, SettingsScope, UrlState, WorkItemsScope } from "@/components/work-items/types";
 import { decodeUrlState, mergeDisplay, mergeFilters } from "@/components/work-items/url-state";
 import { WorkItemsScreen, type WorkItemsScreenProps } from "@/components/work-items/WorkItemsScreen";
 import { DEFAULT_DISPLAY, IdSchema } from "@/lib/tessera/schemas";
 import { getViewSettings, isTrackerError, listWorkItems, readTessera } from "@/lib/tessera/server";
+import { getWorkspaceSettings } from "@/lib/tessera/workspace/settings";
 import type { Display, GroupBy } from "@/lib/tessera/types";
 
 export type { WorkItemsScope };
@@ -65,7 +67,7 @@ function loadWorkItems(scope: WorkItemsScope, settingsScope: SettingsScope, urlS
     const settings = getViewSettings(ctx, settingsScope.scope_type, settingsScope.scope_id);
     const display = withoutHiddenGroups(mergeDisplay(DEFAULT_DISPLAY, settings.display, urlState.display), hidden);
     const filters = mergeFilters({}, settings.filters, urlState.filters);
-    const paging = listPaging(display, cal, ctx.today());
+    const paging = listPaging(display, cal, ctx.today(), toWeekStart(getWorkspaceSettings(ctx).week_start));
     const result = listWorkItems(ctx, {
       scope,
       filters,

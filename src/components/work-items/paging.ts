@@ -8,7 +8,7 @@
  */
 import { groupLimitKey } from "@/lib/tessera/core/group";
 import { isIsoDate } from "@/lib/tessera/core/time";
-import { WEEK_STARTS_ON, calendarWeeks } from "./calendar-math";
+import { WEEK_STARTS_ON, calendarWeeks, type WeekStart } from "./calendar-math";
 import type { Display, Group, RichFilters, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 
 /** Rows a first or "Show more" page of an ungrouped list, table or gantt holds (decision 112). */
@@ -41,11 +41,12 @@ export function pageSizeFor(display: Display): { limit?: number; per_group_limit
 /**
  * The first and last day the calendar shows around `?cal=` (any day inside the period, default today): the whole
  * weeks of a month, or the one week. The server loads only the items targeted in this window plus the unscheduled
- * ones (decision 112); the calendar draws items by target date only.
+ * ones (decision 112); the calendar draws items by target date only. `weekStartsOn` is the workspace `week_start`,
+ * so the window matches the grid the client draws.
  */
-export function calendarWindow(display: Display, cal: string | undefined, today: string): { from: string; to: string } {
+export function calendarWindow(display: Display, cal: string | undefined, today: string, weekStartsOn: WeekStart = WEEK_STARTS_ON): { from: string; to: string } {
   const anchor = cal !== undefined && isIsoDate(cal) ? cal : today;
-  const weeks = calendarWeeks(anchor, display.calendar.layout, WEEK_STARTS_ON, display.calendar.show_weekends);
+  const weeks = calendarWeeks(anchor, display.calendar.layout, weekStartsOn, display.calendar.show_weekends);
   const first = weeks[0]?.[0] ?? anchor;
   const lastWeek = weeks[weeks.length - 1];
   return { from: first, to: lastWeek?.[lastWeek.length - 1] ?? anchor };
@@ -56,9 +57,10 @@ export function listPaging(
   display: Display,
   cal: string | undefined,
   today: string,
+  weekStartsOn: WeekStart = WEEK_STARTS_ON,
 ): { limit?: number; per_group_limit?: number; calendar_window?: { from: string; to: string } } {
   const size = pageSizeFor(display);
-  return display.layout === "calendar" ? { ...size, calendar_window: calendarWindow(display, cal, today) } : size;
+  return display.layout === "calendar" ? { ...size, calendar_window: calendarWindow(display, cal, today, weekStartsOn) } : size;
 }
 
 /**

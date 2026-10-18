@@ -15,8 +15,6 @@ import { useEffect, useState, useTransition } from "react";
 import { Banner } from "@astryxdesign/core/Banner";
 import { BreadcrumbItem, Breadcrumbs } from "@astryxdesign/core/Breadcrumbs";
 import { Button } from "@astryxdesign/core/Button";
-import { Icon } from "@astryxdesign/core/Icon";
-import { IconButton } from "@astryxdesign/core/IconButton";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { useClipboard, useHotkeys } from "@astryxdesign/core/hooks";
 import { useToast } from "@astryxdesign/core/Toast";
@@ -25,7 +23,8 @@ import { registerEntityLabel } from "@/components/shell/entity-labels";
 import { FavoriteButton } from "@/components/shell/FavoriteButton";
 import { PanelBar, PanelHeader, PanelPage } from "@/components/shell/PanelHeader";
 import type { ActorRow, Label, PageDetail } from "@/lib/tessera/types";
-import { LockIcon, UnlockIcon } from "@/themes/catppuccin/icons";
+import { LockControl } from "@/components/shared/LockControl";
+import { useOptimisticLock } from "@/components/shared/use-optimistic-lock";
 import { DeletePageDialog } from "./DeletePageDialog";
 import { PageBodyEditor } from "./PageBodyEditor";
 import { PageMeta } from "./PageMeta";
@@ -46,16 +45,18 @@ export function PageScreen({ page, labels, actors, spaces, space }: PageScreenPr
   const clipboard = useClipboard({ announce: "Copied" });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const fail = (verb: string, message: string) => toast({ type: "error", body: `Could not ${verb} ${page.name}. ${message}` });
+  // Displayed lock state: the server value, flipped at once while a lock or unlock runs.
+  const [isLocked, setLocked] = useOptimisticLock(page.is_locked, fail);
   const archived = page.archived_at !== null;
   const projectArchived = space.kind === "project" && space.archived;
-  const contentReadOnly = page.is_locked || archived || projectArchived;
+  const contentReadOnly = isLocked || archived || projectArchived;
   const listHref = space.kind === "wiki" ? "/wiki" : pagesListHref(page.project_id);
 
   useEffect(() => {
     registerEntityLabel(page.id, page.name);
   }, [page.id, page.name]);
 
-  const fail = (verb: string, message: string) => toast({ type: "error", body: `Could not ${verb} ${page.name}. ${message}` });
 
   const copyLink = () => {
     const origin = typeof window === "undefined" ? "" : window.location.origin;
@@ -64,10 +65,8 @@ export function PageScreen({ page, labels, actors, spaces, space }: PageScreenPr
 
   const toggleLock = () => {
     if (archived || projectArchived) return;
-    startTransition(async () => {
-      const result = page.is_locked ? await unlockPageAction({ page_id: page.id }) : await lockPageAction({ page_id: page.id });
-      if (!result.ok) fail(page.is_locked ? "unlock" : "lock", result.message);
-    });
+    if (isLocked) setLocked(false, () => unlockPageAction({ page_id: page.id }));
+    else setLocked(true, () => lockPageAction({ page_id: page.id }));
   };
 
   const toggleAccess = () => {
@@ -140,13 +139,13 @@ export function PageScreen({ page, labels, actors, spaces, space }: PageScreenPr
             end={
               <HStack gap={1} vAlign="center">
                 <FavoriteButton entityType="page" entityId={page.id} />
-                <IconButton
-                  variant="ghost"
+                <LockControl
+                  isLocked={isLocked}
+                  onToggle={toggleLock}
                   size="sm"
-                  label={page.is_locked ? "Unlock page" : "Lock page"}
-                  tooltip={page.is_locked ? "Unlock page" : "Lock page (shift+l)"}
-                  icon={<Icon icon={page.is_locked ? UnlockIcon : LockIcon} />}
-                  onClick={toggleLock}
+                  variant="ghost"
+                  label={isLocked ? "Unlock page" : "Lock page"}
+                  tooltip={isLocked ? "Unlock page" : "Lock page (shift+l)"}
                   isDisabled={archived || projectArchived}
                 />
                 <PageRowMenu key={page.id} page={page} spaces={spaces} spaceName={space.kind === "project" ? space.name : undefined} includeOpen={false} isDisabled={projectArchived} />
@@ -169,7 +168,7 @@ export function PageScreen({ page, labels, actors, spaces, space }: PageScreenPr
             }
           />
         ) : null}
-        {!archived && page.is_locked ? (
+        {!archived && isLocked ? (
           <Banner
             status="info"
             title="This page is locked"

@@ -10,15 +10,15 @@ import { getWorkItemByKey } from "../work-items";
 import { isTrackerError } from "../core/errors";
 import { loadPage } from "./model";
 
-const SCHEMES = ["work", "page", "cycle", "module"] as const;
+type EntityScheme = "work" | "page" | "cycle" | "module";
 
 /** Unique entity refs outside fenced code. `work:KEY` is not resolved here. */
-export function extractEntityRefs(markdown: string): { scheme: (typeof SCHEMES)[number]; ref: string }[] {
+export function extractEntityRefs(markdown: string): { scheme: EntityScheme; ref: string }[] {
   const withoutFences = markdown.replace(/```[\s\S]*?```/g, "");
   const seen = new Set<string>();
-  const out: { scheme: (typeof SCHEMES)[number]; ref: string }[] = [];
+  const out: { scheme: EntityScheme; ref: string }[] = [];
   for (const match of withoutFences.matchAll(/\]\((work|page|cycle|module):([^)\s]+)\)/g)) {
-    const scheme = match[1] as (typeof SCHEMES)[number];
+    const scheme = match[1] as EntityScheme;
     const ref = match[2] ?? "";
     const key = `${scheme}:${ref}`;
     if (seen.has(key)) continue;
@@ -40,7 +40,7 @@ export function replacePageEmbeds(ctx: TesseraContext, pageId: string, markdown:
   }
 }
 
-function resolve(ctx: TesseraContext, pageId: string, scheme: (typeof SCHEMES)[number], ref: string): { entity_type: PageEmbedType; entity_id: string } | null {
+function resolve(ctx: TesseraContext, pageId: string, scheme: EntityScheme, ref: string): { entity_type: PageEmbedType; entity_id: string } | null {
   if (scheme === "work") {
     try {
       return { entity_type: "work_item", entity_id: getWorkItemByKey(ctx, ref).id };

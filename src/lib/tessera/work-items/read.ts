@@ -15,6 +15,7 @@ import type { Display, Filters, RichFilters } from "../types";
 import { DisplayPatchSchema, mergeDisplay } from "../view-settings";
 import { ENTITY, type WorkItem, type WorkItemDetail, type WorkItemListResult, getWorkItemRow } from "./model";
 import { hydrate, itemQuery, listLinks, listSubscriberIds, loadWorkItem } from "./hydrate";
+import { findMovedWorkItemId } from "./moved-keys";
 import { listGroupPage, planGroupPaging } from "./paging";
 
 // ---------------------------------------------------------------------------
@@ -29,7 +30,9 @@ export function getWorkItem(ctx: TesseraContext, id: string): WorkItemDetail {
 /**
  * By key (`WEB-12`, any case) or by id. A key with a project's former
  * identifier still resolves to the item under its current key unless another
- * project uses that identifier now (decision 29).
+ * project uses that identifier now (decision 29). The key an item had before
+ * `moveWorkItemToProject` resolves too, through the `moved` activity row, when
+ * no live item holds it.
  */
 export function getWorkItemByKey(ctx: TesseraContext, keyOrId: string): WorkItemDetail {
   const raw = keyOrId.trim();
@@ -43,14 +46,19 @@ export function getWorkItemByKey(ctx: TesseraContext, keyOrId: string): WorkItem
     .where(and(eq(project.identifier, identifier), isNull(project.deleted_at)))
     .get();
   const projectId = live?.id ?? resolveRetiredIdentifier(ctx, identifier)?.id;
-  if (projectId === undefined) throw notFound(ENTITY, raw);
-  const row = ctx.db
-    .select({ id: work_item.id })
-    .from(work_item)
-    .where(and(eq(work_item.project_id, projectId), eq(work_item.sequence_id, parsed.sequenceId), isNull(work_item.deleted_at)))
-    .get();
-  if (!row) throw notFound(ENTITY, raw);
-  return getWorkItem(ctx, row.id);
+  const row =
+    projectId === undefined
+      ? undefined
+      : ctx.db
+          .select({ id: work_item.id })
+          .from(work_item)
+          .where(and(eq(work_item.project_id, projectId), eq(work_item.sequence_id, parsed.sequenceId), isNull(work_item.deleted_at)))
+          .get();
+  if (row) return getWorkItem(ctx, row.id);
+  const movedId = findMovedWorkItemId(ctx, identifier, parsed.sequenceId);
+  const moved = movedId === undefined ? undefined : ctx.db.select({ id: work_item.id }).from(work_item).where(and(eq(work_item.id, movedId), isNull(work_item.deleted_at))).get();
+  if (!moved) throw notFound(ENTITY, raw);
+  return getWorkItem(ctx, moved.id);
 }
 
 /** Non-deleted children of an item in sort order; NOT_FOUND when the parent does not exist. */

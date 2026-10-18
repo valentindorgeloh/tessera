@@ -33,6 +33,23 @@ export const EFFORT_OPTIONS: { value: string; label: string }[] = [
   })),
 ];
 
+/** Week start values follow Date.getDay(): 0 is Sunday, 1 is Monday ... 6 is Saturday, as the tool accepts. Monday and Sunday lead. */
+export const WEEK_START_OPTIONS: { value: string; label: string }[] = [
+  { value: "1", label: "Monday" },
+  { value: "0", label: "Sunday" },
+  { value: "2", label: "Tuesday" },
+  { value: "3", label: "Wednesday" },
+  { value: "4", label: "Thursday" },
+  { value: "5", label: "Friday" },
+  { value: "6", label: "Saturday" },
+];
+
+export function parseWeekStart(value: string): 0 | 1 | null {
+  if (value === "0") return 0;
+  if (value === "1") return 1;
+  return null;
+}
+
 export function isSettingsTab(value: string): value is SettingsTab {
   return SETTINGS_TABS.some((tab) => tab.key === value);
 }

@@ -25,14 +25,15 @@ import { isIsoDate } from "@/lib/tessera/core/time";
 import type { WorkItem } from "@/lib/tessera/types";
 import { CalendarDotsIcon, CalendarIcon, CaretLeftIcon, CaretRightIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { calendarDropPatch } from "./date-span";
+import { useWorkspaceSettings } from "@/components/workspace-settings/workspace-settings-store";
 import {
   calendarWeeks,
   isOutsideMonth,
   itemsByDay,
   periodLabel,
   shiftPeriod,
+  toWeekStart,
   weekdayLabels,
-  WEEK_STARTS_ON,
 } from "./calendar-math";
 import { isOptimisticId } from "./optimistic";
 import { stateGroupLabel, stateGroupVariant } from "./properties/StateControl";
@@ -62,9 +63,14 @@ export function CalendarLayout({ result, display, onUpdate, onOpen, onQuickAdd, 
   const showWeekends = display.calendar.show_weekends;
   const param = searchParams.get("cal");
   const anchor = param && isIsoDate(param) ? param : bundle.today;
-  const weeks = calendarWeeks(anchor, view, WEEK_STARTS_ON, showWeekends);
+  
+  // Get workspace week_start setting (0 = Sunday, 1 = Monday, etc.)
+  const { week_start } = useWorkspaceSettings();
+  const weekStartsOn = toWeekStart(week_start);
+  
+  const weeks = calendarWeeks(anchor, view, weekStartsOn, showWeekends);
   const columns = weeks[0]?.length ?? (showWeekends ? 7 : 5);
-  const labels = weekdayLabels(WEEK_STARTS_ON, showWeekends);
+  const labels = weekdayLabels(weekStartsOn, showWeekends);
   const { byDay, unscheduled } = itemsByDay(result.items);
   const [adding, setAdding] = useState<string | null>(null);
   const [unscheduledOpen, setUnscheduledOpen] = useState(false);
@@ -110,7 +116,7 @@ export function CalendarLayout({ result, display, onUpdate, onOpen, onQuickAdd, 
             <IconButton label={`Previous ${period}`} size="sm" variant="ghost" icon={<CaretLeftIcon />} onClick={() => go(shiftPeriod(anchor, view, -1))} />
             <IconButton label={`Next ${period}`} size="sm" variant="ghost" icon={<CaretRightIcon />} onClick={() => go(shiftPeriod(anchor, view, 1))} />
             <Button label="Today" size="sm" variant="ghost" icon={<CalendarDotsIcon />} onClick={() => go(bundle.today)} />
-            <Heading level={3}>{periodLabel(anchor, view, WEEK_STARTS_ON)}</Heading>
+            <Heading level={3}>{periodLabel(anchor, view, weekStartsOn)}</Heading>
           </>
         }
         end={

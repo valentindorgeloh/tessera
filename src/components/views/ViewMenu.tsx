@@ -18,6 +18,7 @@ import { AlertDialog } from "@/components/shell/dialogs";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import { useOptionalProject } from "@/components/work-items/project-provider";
 import type { View } from "@/lib/tessera/types";
+import { useOptimisticLock } from "@/components/shared/use-optimistic-lock";
 import { CopyIcon, LockIcon, MoveDownIcon, MoveUpIcon, PencilIcon, TrashIcon, UnlockIcon } from "@/themes/catppuccin/icons";
 import { ViewDialog } from "./ViewDialog";
 
@@ -45,6 +46,8 @@ export function ViewMenu({ projectId, view, placement, previousId, nextId, canRe
   const [, startTransition] = useTransition();
 
   const fail = (verb: string, message: string) => toast({ type: "error", body: `Could not ${verb} ${view.name}: ${message}` });
+  // Displayed lock state: the server value, flipped at once while a lock or unlock runs.
+  const [isLocked, setViewLocked] = useOptimisticLock(view.is_locked, fail);
 
   const duplicate = () =>
     startTransition(async () => {
@@ -57,11 +60,8 @@ export function ViewMenu({ projectId, view, placement, previousId, nextId, canRe
       router.push(`${listHref}/${result.data.id}`);
     });
 
-  const setLocked = (isLocked: boolean) =>
-    startTransition(async () => {
-      const result = isLocked ? await lockViewAction({ view_id: view.id }) : await unlockViewAction({ view_id: view.id });
-      if (!result.ok) fail(isLocked ? "lock" : "unlock", result.message);
-    });
+  const setLocked = (lock: boolean) =>
+    setViewLocked(lock, () => (lock ? lockViewAction({ view_id: view.id }) : unlockViewAction({ view_id: view.id })));
 
   const move = (verb: string, input: { after_id: string } | { before_id: string }) =>
     startTransition(async () => {
@@ -83,9 +83,9 @@ export function ViewMenu({ projectId, view, placement, previousId, nextId, canRe
     });
 
   const items: DropdownMenuOption[] = [
-    { id: "edit", label: "Edit…", icon: <PencilIcon />, isDisabled: view.is_locked, description: view.is_locked ? "Unlock the view to edit it" : undefined, onClick: () => setEditOpen(true) },
+    { id: "edit", label: "Edit…", icon: <PencilIcon />, isDisabled: isLocked, description: isLocked ? "Unlock the view to edit it" : undefined, onClick: () => setEditOpen(true) },
     { id: "duplicate", label: "Duplicate", icon: <CopyIcon />, onClick: duplicate },
-    view.is_locked
+    isLocked
       ? { id: "unlock", label: "Unlock view", icon: <UnlockIcon />, onClick: () => setLocked(false) }
       : { id: "lock", label: "Lock view", icon: <LockIcon />, onClick: () => setLocked(true) },
   ];
@@ -102,8 +102,8 @@ export function ViewMenu({ projectId, view, placement, previousId, nextId, canRe
       label: "Delete…",
       icon: <TrashIcon />,
       variant: "destructive",
-      isDisabled: view.is_locked,
-      description: view.is_locked ? "Unlock the view to delete it" : undefined,
+      isDisabled: isLocked,
+      description: isLocked ? "Unlock the view to delete it" : undefined,
       onClick: () => setDeleteOpen(true),
     },
   );

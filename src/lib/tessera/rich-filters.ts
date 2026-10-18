@@ -80,7 +80,7 @@ export function validateRichFilters(tree: RichFilters): void {
   if (countRichConditions(tree) > RICH_FILTER_LIMITS.conditions) {
     fail(issues, "$", `at most ${RICH_FILTER_LIMITS.conditions} conditions`);
   }
-  if (issues.length > 0) throw validation(issues, "Invalid rich filters");
+  if (issues.length > 0) throw validation(issues, `Invalid rich filters: ${issues.map((issue) => `${issue.path}: ${issue.reason}`).join("; ")}`);
 }
 
 function walk(node: RichFilters, path: string, depth: number, issues: Issue[]): void {

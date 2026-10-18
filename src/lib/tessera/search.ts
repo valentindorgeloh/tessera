@@ -16,6 +16,7 @@ import { formatKey, nameKey, normalizeIdentifier, parseKey } from "./core/keys";
 import { searchPageIds, searchWorkItemIds } from "./db/fts";
 import { cycle, moduleTable, page, project, state, view, work_item } from "./db/schema";
 import { resolveRetiredIdentifier } from "./projects";
+import { findMovedWorkItemId } from "./work-items/moved-keys";
 import { IdSchema } from "./schemas";
 
 export const SEARCH_TYPES = ["work_item", "page", "cycle", "module", "project", "view"] as const;
@@ -176,14 +177,18 @@ function keyHit(ctx: TesseraContext, query: SearchQuery): SearchHit | null {
   // its item, unless a live project holds that identifier now (the resolver
   // then returns undefined).
   const retired = resolveRetiredIdentifier(ctx, identifier);
-  if (!retired) return null;
-  const row = workItemQuery(
-    ctx,
-    query,
-    and(eq(work_item.project_id, retired.id), eq(work_item.sequence_id, parsed.sequenceId)) ?? sql`1 = 1`,
-  ).get();
-  if (!row) return null;
-  const hit = workItemHit(row, KEY_MATCH_SCORE);
+  const row = retired
+    ? workItemQuery(
+        ctx,
+        query,
+        and(eq(work_item.project_id, retired.id), eq(work_item.sequence_id, parsed.sequenceId)) ?? sql`1 = 1`,
+      ).get()
+    : undefined;
+  // A key the item carried before a move to another project (decision 29, extended to moves).
+  const movedId = row ? undefined : findMovedWorkItemId(ctx, identifier, parsed.sequenceId);
+  const found = row ?? (movedId === undefined ? undefined : workItemQuery(ctx, query, eq(work_item.id, movedId)).get());
+  if (!found) return null;
+  const hit = workItemHit(found, KEY_MATCH_SCORE);
   return hit.key === queried ? hit : { ...hit, matched_key: queried };
 }
 

@@ -5,7 +5,7 @@ import { and, asc, eq, isNull, like, sql } from "drizzle-orm";
 import type { TesseraContext } from "../core/context";
 import { page, page_embed, page_version } from "../db/schema";
 import type { PageBacklink, PageDetail, PageSummary, PageVersionInfo } from "../types";
-import { embedsOf, labelIds, loadPage, toSummary, type PageRecord } from "./model";
+import { embedsOf, loadPage, toSummary, type PageRecord } from "./model";
 import type { z } from "zod";
 import { ListPageBacklinksInput, ListPagesInput, ListPageVersionsInput } from "./model";
 

@@ -7,7 +7,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ALLOWED_PHRASES, FORBIDDEN, scanBundle } from "./bundle-rules";
+import { FORBIDDEN, scanBundle } from "./bundle-rules";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_DIR = ".next/static";
@@ -25,7 +25,7 @@ function main(): number {
   }
   console.error(`Bundle check failed: server-only strings in the browser bundle (${path.relative(REPO_ROOT, dir) || dir}):`);
   for (const finding of findings) console.error(`  ${finding.file}: ${finding.needle} x${finding.count}  ...${finding.context}...`);
-  console.error(`Allowed help text: ${ALLOWED_PHRASES.map((phrase) => `"${phrase}"`).join(", ")}.`);
+  console.error("No phrase is exempt: reword client copy so it does not spell a forbidden string (e.g. write \"the Anthropic API key\", not the variable name).");
   return 1;
 }
 

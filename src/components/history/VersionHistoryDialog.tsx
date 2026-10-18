@@ -9,7 +9,7 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Timestamp } from "@astryxdesign/core/Timestamp";
-import { restorePageVersionAction, restoreWorkItemVersionAction } from "@/app/actions/history";
+import { listActorsAction, restorePageVersionAction, restoreWorkItemVersionAction } from "@/app/actions/history";
 import { AlertDialog, Dialog, DialogHeader } from "@/components/shell/dialogs";
 import type { HistoryResponse, VersionInfo } from "@/lib/tessera/types";
 import { diffLines } from "./diff-lines";
@@ -22,6 +22,9 @@ export type VersionHistoryDialogProps = {
 
 type Mode = "changes" | "current" | "full";
 
+/** Shown when an actor id has no row (a removed agent) or the actors list could not load. */
+const UNKNOWN_ACTOR = "Unknown";
+
 function previousText(versions: VersionInfo[], selected: VersionInfo): string {
   const older = versions.filter((row) => row.created_at < selected.created_at || (row.created_at === selected.created_at && row.version < selected.version));
   return older[0]?.description_md ?? "";
@@ -30,6 +33,7 @@ function previousText(versions: VersionInfo[], selected: VersionInfo): string {
 export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHistoryDialogProps) {
   const [history, setHistory] = useState<HistoryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [actorNames, setActorNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("changes");
   const [confirm, setConfirm] = useState(false);
@@ -52,6 +56,11 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Could not load version history");
       });
+    // Actor names are a nicety: a failed list leaves "Unknown" instead of blocking the history.
+    void listActorsAction({}).then((result) => {
+      if (cancelled || !result.ok) return;
+      setActorNames(new Map(result.data.items.map((actor) => [actor.id, actor.name])));
+    });
     return () => {
       cancelled = true;
     };
@@ -109,7 +118,12 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
               <HStack gap={4} vAlign="stretch">
                 <VStack gap={2} className="tessera-history-pane">
                   {history.versions.map((row) => (
-                    <Button key={row.id} variant={row.id === selectedId ? "secondary" : "ghost"} size="sm" label={`Version ${row.version}`} onClick={() => setSelectedId(row.id)} />
+                    <VStack key={row.id} gap={0}>
+                      <Button variant={row.id === selectedId ? "secondary" : "ghost"} size="sm" label={`Version ${row.version}`} onClick={() => setSelectedId(row.id)} />
+                      <Text type="supporting" color="secondary">
+                        {actorNames.size === 0 ? " " : (actorNames.get(row.actor_id) ?? UNKNOWN_ACTOR)}
+                      </Text>
+                    </VStack>
                   ))}
                   {selected ? <Timestamp value={selected.created_at} /> : null}
                 </VStack>

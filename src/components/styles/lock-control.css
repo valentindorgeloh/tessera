@@ -1,0 +1,55 @@
+/*
+ * Lock control motion (src/components/shared/LockControl.tsx). Durations and
+ * easing come from Astryx tokens. Under prefers-reduced-motion the animations
+ * run for one millisecond with no delay, so the "Unlocked" feedback still
+ * ends on its animationend event and the control settles at once.
+ */
+@keyframes tessera-lock-icon-in {
+  0% { transform: rotate(-5deg) scale(1); }
+  25% { transform: rotate(0deg) scale(1.15); }
+  50% { transform: rotate(5deg) scale(1.08); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+@keyframes tessera-unlock-icon-in {
+  0% { transform: rotate(0deg) scale(1); }
+  40% { transform: rotate(-8deg) scale(1.15); }
+  80% { transform: rotate(3deg) scale(1.05); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+@keyframes tessera-lock-text-in {
+  from { opacity: 0; transform: translateX(calc(-1 * var(--spacing-2))); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes tessera-lock-text-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(var(--spacing-2)); }
+}
+
+.tessera-lock-icon-in {
+  animation: tessera-lock-icon-in var(--duration-slow) var(--ease-standard);
+}
+
+.tessera-unlock-icon-in {
+  animation: tessera-unlock-icon-in var(--duration-slow) var(--ease-standard);
+}
+
+.tessera-lock-text-in {
+  animation: tessera-lock-text-in var(--duration-medium) var(--ease-standard) both;
+}
+
+.tessera-lock-text-out {
+  animation: tessera-lock-text-out var(--duration-slow) var(--ease-standard) var(--duration-medium) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tessera-lock-icon-in,
+  .tessera-unlock-icon-in,
+  .tessera-lock-text-in,
+  .tessera-lock-text-out {
+    animation-duration: 1ms;
+    animation-delay: 0s;
+  }
+}

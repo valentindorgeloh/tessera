@@ -64,6 +64,13 @@
       "when": 1792800000000,
       "tag": "0008_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792900000000,
+      "tag": "0009_week_start",
+      "breakpoints": true
     }
   ]
 }

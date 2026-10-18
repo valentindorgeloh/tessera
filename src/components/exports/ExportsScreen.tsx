@@ -3,7 +3,7 @@
 /**
  * Workspace exports list (docs/drafts/p10-plan.md U2): download or delete past jobs.
  */
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
@@ -50,6 +50,8 @@ export function ExportsScreen({ exports: jobs }: ExportsScreenProps) {
   const toast = useToast();
   const [remove, setRemove] = useState<ExportJobView | null>(null);
   const [isDeleting, startDelete] = useTransition();
+  // A second confirm for the same export (double click, or a re-run of the transition) must not delete or toast again.
+  const deletingId = useRef<string | null>(null);
 
   const data: Row[] = jobs.map((job) => ({
     id: job.id,
@@ -62,15 +64,23 @@ export function ExportsScreen({ exports: jobs }: ExportsScreenProps) {
   }));
 
   const confirmDelete = () => {
-    if (remove === null) return;
+    if (remove === null || deletingId.current === remove.id) return;
+    const target = remove;
+    deletingId.current = target.id;
     startDelete(async () => {
-      const result = await deleteExportAction({ export_id: remove.id });
+      let result: Awaited<ReturnType<typeof deleteExportAction>>;
+      try {
+        result = await deleteExportAction({ export_id: target.id });
+      } finally {
+        deletingId.current = null;
+      }
       if (!result.ok) {
-        toast({ type: "error", body: `Could not delete ${remove.name}. ${result.message}` });
+        toast({ type: "error", body: `Could not delete ${target.name}. ${result.message}` });
         return;
       }
       setRemove(null);
-      toast({ type: "info", body: `Deleted ${remove.name}` });
+      // uniqueID makes the toast idempotent if the confirm ever runs twice.
+      toast({ type: "info", body: `Deleted ${target.name}`, uniqueID: `export-deleted-${target.id}` });
     });
   };
 

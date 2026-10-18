@@ -596,17 +596,8 @@ describe("migrateIfNeeded", () => {
       const probe = new Database(filePath);
       // The migrator's `id SERIAL` column is NULL in SQLite, so the newest row is found by created_at.
       probe.prepare(`DELETE FROM "${MIGRATIONS_TABLE}" WHERE created_at = (SELECT max(created_at) FROM "${MIGRATIONS_TABLE}")`).run();
-      // 0008 adds auto_backup and assistant undo columns; drop them so a re-apply can run.
-      probe.exec(`DROP INDEX IF EXISTS ai_proposal_batch_idx;`);
-      probe.exec(`DROP INDEX IF EXISTS ai_proposal_applied_idx;`);
-      probe.exec(`DROP INDEX IF EXISTS notification_archived_idx;`);
-      probe.exec(`DROP INDEX IF EXISTS work_item_project_live_sort_idx;`);
-      probe.exec(`DROP INDEX IF EXISTS activity_workspace_seq_idx;`);
-      probe.exec(`ALTER TABLE workspace_settings DROP COLUMN auto_backup;`);
-      probe.exec(`ALTER TABLE ai_proposal DROP COLUMN apply_batch_id;`);
-      probe.exec(`ALTER TABLE ai_proposal DROP COLUMN undone_at;`);
-      probe.exec(`ALTER TABLE ai_proposal DROP COLUMN undo_seq_from;`);
-      probe.exec(`ALTER TABLE ai_proposal DROP COLUMN undo_seq_to;`);
+      // 0009 adds workspace_settings.week_start; drop it so the newest migration can re-apply.
+      probe.exec(`ALTER TABLE workspace_settings DROP COLUMN week_start;`);
       expect(pendingMigrations(probe)).toBe(1);
       probe.close();
 

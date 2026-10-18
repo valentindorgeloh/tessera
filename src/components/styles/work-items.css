@@ -25,11 +25,12 @@
  * Rows: at least 44px; the key button opens the item; the properties hug the
  * end edge. The insets line the key's text and the last chip up with the
  * panel header's 16px (the key button brings its own 12px).
+ * Use symmetric padding for better visual balance.
  */
 .tessera-wi-row {
   min-width: 0;
   min-height: calc(var(--size-element-md) + var(--spacing-3));
-  padding-inline: var(--spacing-1) var(--spacing-4);
+  padding-inline: var(--spacing-3);
   /* When the title would get less than its minimum, the properties wrap onto a second line under it. */
   flex-wrap: wrap;
   row-gap: var(--spacing-1);
@@ -109,7 +110,8 @@
   top: 0;
   z-index: 1;
   min-height: calc(var(--size-element-md) + var(--spacing-2));
-  padding-inline: var(--spacing-3) var(--spacing-4);
+  /* Use symmetric padding to match row padding */
+  padding-inline: var(--spacing-3);
   background-color: var(--color-background-muted);
 }
 

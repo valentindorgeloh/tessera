@@ -51,6 +51,37 @@ export function busy(message = "The database is busy; try again"): TrackerError 
   return new TrackerError("BUSY", message);
 }
 
+type IssueLine = { path: PropertyKey[]; message: string };
+
+/** How far a union branch got: a longer path means the input matched more of that branch. */
+function branchScore(lines: IssueLine[]): number {
+  return Math.max(0, ...lines.map((line) => line.path.length * 2 + (line.message.includes("received undefined") ? 0 : 1)));
+}
+
+/**
+ * One line per issue with its full path. A union issue (a recursive tree such
+ * as the rich filters) carries no path of its own, so it is replaced by the
+ * lines of the branch that matched deepest, which names the JSON path of the
+ * offending node instead of a bare "Invalid input".
+ */
+function issueLines(issues: readonly z.core.$ZodIssue[], prefix: PropertyKey[] = []): IssueLine[] {
+  return issues.flatMap((issue): IssueLine[] => {
+    const path = [...prefix, ...issue.path];
+    if (issue.code !== "invalid_union" || issue.errors.length === 0) return [{ path, message: issue.message }];
+    let best: IssueLine[] = [];
+    let bestScore = -1;
+    for (const branch of issue.errors) {
+      const lines = issueLines(branch, path);
+      const score = branchScore(lines);
+      if (score > bestScore) {
+        best = lines;
+        bestScore = score;
+      }
+    }
+    return best;
+  });
+}
+
 /**
  * Validates `input` with `schema` and throws VALIDATION with the zod issues
  * before any write happens. Every mutation calls this first.
@@ -59,7 +90,7 @@ export function validateInput<S extends z.ZodType>(schema: S, input: unknown): z
   const result = schema.safeParse(input);
   if (!result.success) {
     const issues = result.error.issues;
-    const summary = issues.map((issue) => `${issue.path.join(".") || "input"}: ${issue.message}`).join("; ");
+    const summary = issueLines(issues).map((line) => `${line.path.join(".") || "input"}: ${line.message}`).join("; ");
     throw validation(issues, `Invalid input: ${summary}`);
   }
   return result.data;

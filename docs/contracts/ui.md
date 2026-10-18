@@ -219,6 +219,8 @@ as the P2a rule above says). Mismatches with docs/PLAN.md are collected at the e
   `core/keys` and `schemas`); then in a `try`: `item = await readTessera((ctx) => getWorkItemByKey(ctx, key))`
   (`src/lib/tessera/work-items/` line 483, accepts key or id, any case), `NOT_FOUND`/`VALIDATION`
   → `notFound()`; after the try: `redirect(`/projects/${item.project_id}/work-items/${item.id}`)`.
+  `getWorkItemByKey` also resolves a key the item held before `move_work_item_to_project`
+  (and a retired project identifier), so `/browse/<OLDKEY>` redirects to the item's current project URL.
   `redirect` throws, so it stays outside `try` (`04-functions/redirect.md` lines 51–53)
   and is allowed in Server Components; it uses `replace` outside Server Actions (line 31).
 - Recents labels: `src/components/shell/entity-labels.ts` (D3) — module store

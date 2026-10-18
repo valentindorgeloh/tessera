@@ -10,8 +10,11 @@ import { Sidebar } from "@/components/shell/Sidebar";
 import { SidebarSkeleton } from "@/components/shell/SidebarSkeleton";
 import { TesseraShell } from "@/components/shell/TesseraShell";
 import { WorkspaceName } from "@/components/shell/TopBar";
+import { WorkspaceSettingsPublisher } from "@/components/workspace-settings/workspace-settings-store";
 import * as engineModule from "@/lib/tessera/server";
 import { countDrafts, getUnreadCount, latestSeq, listProjects, readTessera } from "@/lib/tessera/server";
+import type { WorkspaceSettingsView } from "@/lib/tessera/types";
+import { getWorkspaceSettings } from "@/lib/tessera/workspace/settings";
 import "../../components/styles/favorites.css";
 
 /**
@@ -54,17 +57,19 @@ async function SidebarData() {
     loadProjects(),
     readTessera((ctx) => {
       const engine = engineModule as EngineExtras;
+      const workspaceSettings = engine.getWorkspaceSettings?.(ctx) ?? getWorkspaceSettings(ctx);
       return {
         unread: getUnreadCount(ctx),
         drafts: countDrafts(ctx),
         favorites: engine.listFavorites?.(ctx) ?? EMPTY_FAVORITES,
-        workspaceName: engine.getWorkspaceSettings?.(ctx)?.name || "Tessera",
+        workspaceSettings: workspaceSettings,
       };
     }),
   ]);
   return (
     <>
-      <WorkspaceName name={counts.workspaceName} />
+      <WorkspaceName name={counts.workspaceSettings.name} />
+      <WorkspaceSettingsPublisher settings={{ name: counts.workspaceSettings.name, week_start: counts.workspaceSettings.week_start }} />
       <FavoritesPublisher tree={counts.favorites} />
       <Sidebar projects={projects} unreadCount={counts.unread} draftCount={counts.drafts} favorites={counts.favorites} />
     </>
@@ -73,7 +78,7 @@ async function SidebarData() {
 
 type EngineExtras = {
   listFavorites?: (ctx: Parameters<Parameters<typeof readTessera>[0]>[0]) => FavoritesTree;
-  getWorkspaceSettings?: (ctx: Parameters<Parameters<typeof readTessera>[0]>[0]) => { name?: string };
+  getWorkspaceSettings?: (ctx: Parameters<Parameters<typeof readTessera>[0]>[0]) => WorkspaceSettingsView;
 };
 
 /**

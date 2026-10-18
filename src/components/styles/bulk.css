@@ -20,5 +20,5 @@
   background: var(--color-background-surface);
   padding-block: var(--spacing-2);
   padding-inline: var(--spacing-4);
-  border-block-start: 1px solid var(--color-border-tertiary);
+  border-block-start: var(--border-width) solid var(--color-border);
 }

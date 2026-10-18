@@ -11,7 +11,7 @@ export function assistantUnavailableCopy(status: Extract<AiStatus, { available: 
   if (status.reason === "no_credential") {
     return {
       title: "Assistant unavailable",
-      description: "Run ant auth login, or set ANTHROPIC_API_KEY in .env.local.",
+      description: "Run ant auth login, or set the Anthropic API key in .env.local (see .env.example).",
     };
   }
   if (status.reason === "model_unavailable") {

@@ -78,7 +78,9 @@
 .tessera-detail-heading {
   grid-area: title;
   min-width: 0;
-  padding: var(--spacing-5) var(--spacing-4) 0;
+  /* Symmetric padding: top and bottom, inline */
+  padding-block: var(--spacing-5);
+  padding-inline: var(--spacing-4);
 }
 
 .tessera-detail-rail {
@@ -92,7 +94,9 @@
 .tessera-detail-main {
   grid-area: main;
   min-width: 0;
-  padding: var(--spacing-5) var(--spacing-4) var(--spacing-10);
+  /* Use symmetric padding for better visual balance */
+  padding-block: var(--spacing-5) var(--spacing-10);
+  padding-inline: var(--spacing-4);
 }
 
 @container detail (min-width: 960px) {

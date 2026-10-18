@@ -174,8 +174,9 @@ docs/contracts/tools.md. Service details: docs/drafts/p4-service-api.md.
     sub_value and sub_from_value change a second axis (a board swimlane) in the same
     call; both changes or neither are written."
   - `get_work_item_by_key`: the current text plus " A key with a project's former
-    identifier (before a rename) still resolves, unless another project uses that
-    identifier now."
+    identifier (before a rename), or the key the item had before it was moved to
+    another project, still resolves; a former identifier loses to a project that
+    uses it now."
   - `get_project`: the current text plus " A former identifier resolves the same
     way."
   - `create_cycle`, `create_module`, `create_view`, `duplicate_view`: the current

@@ -11,13 +11,14 @@
  * The first column lines up with the panel header's text (16px in): the
  * header cell pads to it, the key cell less, since its open button brings
  * its own inset. Group header and empty-state cells keep Astryx's padding.
+ * Both use --spacing-3 for consistency and to reduce the gap.
  */
 .tessera-table .astryx-table-header-cell:first-child {
-  padding-inline-start: var(--spacing-4);
+  padding-inline-start: var(--spacing-3);
 }
 
 .tessera-table .astryx-table-cell:first-child {
-  padding-inline-start: var(--spacing-1);
+  padding-inline-start: var(--spacing-3);
 }
 
 /* Rows open the item, so they read as clickable; editable cells keep the default cursor. */

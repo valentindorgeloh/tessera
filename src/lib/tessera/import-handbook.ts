@@ -61,10 +61,6 @@ function isHandbookEntry(value: HandbookEntry | HandbookParseError): value is Ha
   return !("error" in value);
 }
 
-function isFrontmatterError(value: Record<string, string> | HandbookParseError): value is HandbookParseError {
-  return typeof value.error === "string" && Object.keys(value).every((key) => key === "error");
-}
-
 /** Same line grammar as the handbook front-matter parser: `key: value`, JSON when the value is quoted. */
 function parseFrontmatter(file: string, block: string): { fields: Record<string, string> } | HandbookParseError {
   const fields: Record<string, string> = {};

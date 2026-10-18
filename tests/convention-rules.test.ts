@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { countLines, evaluateFileBudget, parseDecisionNumbers, unknownDecisionRefs } from "../scripts/convention-rules";
+import {
+  countLines,
+  definedTokens,
+  evaluateFileBudget,
+  parseDecisionNumbers,
+  stripComments,
+  tokenUses,
+  undefinedTokenUses,
+  unknownDecisionRefs,
+} from "../scripts/convention-rules";
 
 const PLAN = [
   "## Context",
@@ -73,5 +82,71 @@ describe("file budget ratchet", () => {
     expect(countLines("a\nb\n")).toBe(2);
     expect(countLines("a\nb")).toBe(2);
     expect(countLines("")).toBe(0);
+  });
+});
+
+describe("css token safety", () => {
+  const astryx = new Set(["--spacing-4", "--color-border", "--border-width"]);
+  const check = (css: string, ours: string[] = []) => undefinedTokenUses(tokenUses(css, "css"), astryx, new Set(ours)).map((h) => `${h.line}:${h.name}`);
+
+  it("passes tokens Astryx defines", () => {
+    expect(check(".a { padding: var(--spacing-4); border: var(--border-width) solid var(--color-border); }")).toEqual([]);
+  });
+
+  it("fails a spacing step Astryx lacks (the gantt var(--spacing-16) bug) and an unknown colour", () => {
+    expect(check(".a {\n  left: var(--spacing-16);\n  border-color: var(--color-border-tertiary);\n}")).toEqual(["2:--spacing-16", "3:--color-border-tertiary"]);
+  });
+
+  it("fails every guarded family when the name is undefined", () => {
+    const css = [
+      "--radius-huge",
+      "--font-size-huge",
+      "--size-huge",
+      "--shadow-huge",
+      "--duration-huge",
+      "--ease-huge",
+      "--z-modal",
+      "--border-huge",
+      "--line-height-huge",
+      "--text-huge",
+    ]
+      .map((n) => `a { x: var(${n}); }`)
+      .join("\n");
+    expect(check(css)).toHaveLength(10);
+  });
+
+  it("accepts our own definitions in an Astryx family and ignores other families", () => {
+    expect(check(".a { color: var(--color-brand); width: var(--other-thing); }", ["--color-brand"])).toEqual([]);
+  });
+
+  it("requires --tessera-* names to be defined in src, even when the use has a fallback", () => {
+    expect(check(".a { left: var(--tessera-x, 0px); }")).toEqual(["1:--tessera-x"]);
+    expect(check(".a { left: var(--tessera-x); }", ["--tessera-x"])).toEqual([]);
+  });
+
+  it("allows the next/font names and skips template-built names", () => {
+    expect(check("a { font-family: var(--font-body), var(--font-code); b: var(--spacing-${n}); }")).toEqual([]);
+  });
+
+  it("ignores comments and keeps line numbers", () => {
+    const css = "/* var(--spacing-16)\n   var(--spacing-17) */\n.a { x: var(--spacing-18); }";
+    expect(check(css)).toEqual(["3:--spacing-18"]);
+    const ts = "// var(--spacing-16) in a note\nconst s = 'var(--spacing-19)'; // var(--spacing-20)\nconst u = 'https://x.dev/var(--spacing-21)';";
+    expect(tokenUses(ts, "ts").map((u) => u.name)).toEqual(["--spacing-19", "--spacing-21"]);
+    expect(stripComments("a /* b\nc */ d", "css")).toBe("a     \n     d");
+  });
+
+  it("reads definitions from CSS, quoted style keys and setProperty calls", () => {
+    const names = definedTokens(
+      [
+        ":root { --color-x: red; }",
+        'const style = { "--tessera-gantt-offset": 1, \'--tessera-gantt-span\': 2 };',
+        'el.style.setProperty("--tessera-drag-x", "1px");',
+        "// --tessera-in-comment: 1",
+        "const use = `var(--color-y)`;",
+      ].join("\n"),
+      "ts",
+    );
+    expect([...names].sort()).toEqual(["--color-x", "--tessera-drag-x", "--tessera-gantt-offset", "--tessera-gantt-span"]);
   });
 });
