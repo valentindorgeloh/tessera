@@ -5,6 +5,9 @@ import path from "node:path";
  * Chromium smoke suite (decision 123). Not part of `npm run check`.
  * `npm run test:e2e` builds nothing; start against a scratch database via
  * webServer. Never points at data/tessera.db.
+ *
+ * Setup: migrate + seed demo WEB into data/e2e.db, then `next dev` on :3100.
+ * Install browsers once: `npx playwright install chromium`.
  */
 const E2E_DB = path.resolve("data/e2e.db");
 
@@ -22,7 +25,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
   },
   webServer: {
-    command: `npx tsx scripts/migrate.ts && npx next dev -H 127.0.0.1 -p 3100`,
+    command: `npx tsx scripts/migrate.ts && npx tsx scripts/db-seed.ts && npx next dev -H 127.0.0.1 -p 3100`,
     url: "http://127.0.0.1:3100",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

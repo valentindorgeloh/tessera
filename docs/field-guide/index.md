@@ -44,3 +44,4 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 ## Browser checks
 - If in-app browser screenshots or clicks fail because the pane is hidden, use the Chrome DevTools MCP with your own page.
 - Read the console on every screen. Only the Astryx Table warnings above are tolerated.
+- Playwright smoke: `npx playwright install chromium` once, then `npm run test:e2e` (uses `data/e2e.db` on :3100; never `data/tessera.db`).

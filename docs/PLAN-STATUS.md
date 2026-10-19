@@ -26,6 +26,7 @@ Plan: [docs/PLAN.md](PLAN.md). Ownership: [docs/contracts/OWNERS.md](contracts/O
 
 - Closed every P11 exit item. Cache tags intentionally skipped (see table). Paging engine + Show more UI; backups kinds/schedule/settings/restore; retention + maintenance lease; assistant-batch undo; 10k list Vitest + `perf:bench`; Playwright Chromium smoke on `data/e2e.db`; query-plan indexes in `0008_hardening`; `npm run check` (132 files, 2023 tests, 4 pre-existing lint warnings) and `next build` green.
 - P5–P10 rows marked done: product already shipped; leftover checklist walks are backlog after P11, not open phase gates. Zero open P11 todos.
+- Playwright e2e (2026-10-19): runnable Chromium smoke in `tests/e2e/smoke.spec.ts` — Home, Inbox, seeded WEB work-items, Intake (asserts feature-off when intake is disabled on the demo project), Settings › General. `playwright.config.ts` webServer migrates + seeds `data/e2e.db` then `next dev` on `:3100`. Scripts already present: `npm run test:e2e`, `npm run check:e2e`. One-time browsers: `npx playwright install chromium`. **5 passed** on 2026-10-19. Not the full P11 lane-Q suite (assistant, drag, paging, backups, perf); thin smoke only.
 
 ### P0 (lane A, 2026-10-10)
 
