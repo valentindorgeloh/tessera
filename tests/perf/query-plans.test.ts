@@ -4,12 +4,14 @@
  * run on a 2 000-item fixture; every SELECT they issue is replayed under
  * EXPLAIN QUERY PLAN, and the test fails when a plan reads work_item or
  * activity with a full table SCAN (a scan through an index is fine: the
- * workspace-wide counts have to visit every row).
+ * workspace-wide counts have to visit every row). Cycle list, detail and
+ * progress read by cycle_id alone and rely on the partial index of migration 0010.
  */
 import type { Database } from "better-sqlite3";
 import { beforeAll, describe, expect, it, test } from "vitest";
 import { USER_ACTOR_ID } from "@/lib/tessera/actors";
 import { getCounts } from "@/lib/tessera/counts";
+import { getCycle, getCycleProgress, listCycles } from "@/lib/tessera/cycles";
 import { latestSeq } from "@/lib/tessera/activity";
 import { searchAll } from "@/lib/tessera/search";
 import { seedPerf } from "@/lib/tessera/seed-perf";
@@ -106,7 +108,7 @@ describe("query plans (decision 126)", () => {
    * for the page: no index can change that (a partial index on the live rows
    * still scans all of them), so the plan is pinned at two instead of zero.
    * The cycle scope names the cycle's project as well as `cycle_id`, so it uses
-   * the `(project_id, cycle_id)` index and allows no scan.
+   * a cycle index (`(project_id, cycle_id)` or the partial `cycle_id` one) and allows no scan.
    */
   const cases: [string, () => unknown, number][] = [
     ["list page, ungrouped", () => listWorkItems(ctx, { scope: scope(), limit: 200 }), 0],
@@ -120,6 +122,10 @@ describe("query plans (decision 126)", () => {
     ["group projection, labels", () => listWorkItems(ctx, { scope: scope(), display: { group_by: "labels" }, per_group_limit: 50 }), 0],
     ["group projection, assignees", () => listWorkItems(ctx, { scope: scope(), display: { group_by: "assignees" }, per_group_limit: 50 }), 0],
     ["group projection, modules", () => listWorkItems(ctx, { scope: scope(), display: { group_by: "module" }, per_group_limit: 50 }), 0],
+    ["cycle list with live counts", () => listCycles(ctx, projectId), 0],
+    ["cycle detail", () => getCycle(ctx, cycleId), 0],
+    ["cycle progress", () => getCycleProgress(ctx, cycleId), 0],
+    ["counts, cycle scope", () => getCounts(ctx, { type: "cycle", cycle_id: cycleId }), 0],
     ["counts, project", () => getCounts(ctx, scope()), 0],
     ["counts, workspace", () => getCounts(ctx, { type: "workspace" }), 0],
     ["search, free text", () => searchAll(ctx, "checkout"), 0],
@@ -135,14 +141,21 @@ describe("query plans (decision 126)", () => {
     expect(scans.length, plans.find((entry) => bareScans(entry.lines).length > 0)?.sql).toBeLessThanOrEqual(allowedScans);
   });
 
-  it("cycle scope searches work_item through the project and cycle index", () => {
+  it("cycle scope searches work_item through a cycle index", () => {
     const plans = plansOf(sqlite, () => listWorkItems(ctx, { scope: { type: "cycle", cycle_id: cycleId }, limit: 200 }));
     expect(plans.flatMap((entry) => bareScans(entry.lines))).toEqual([]);
-    expect(plans.flatMap((entry) => entry.lines).join("\n")).toMatch(/work_item_project_cycle_idx/);
+    expect(plans.flatMap((entry) => entry.lines).join("\n")).toMatch(/work_item_(project_)?cycle_idx/);
   });
 
-  // Not needed by the list any more. Cycle detail and progress (cycles.ts) still read by cycle_id alone; a migration owner may add:
-  // CREATE INDEX work_item_cycle_idx ON work_item(cycle_id) WHERE cycle_id IS NOT NULL;
+  it("cycle list, detail and progress search work_item through the cycle_id index (migration 0010)", () => {
+    const plans = plansOf(sqlite, () => {
+      listCycles(ctx, projectId);
+      getCycle(ctx, cycleId);
+      getCycleProgress(ctx, cycleId);
+    });
+    expect(plans.flatMap((entry) => bareScans(entry.lines))).toEqual([]);
+    expect(plans.flatMap((entry) => entry.lines).join("\n")).toMatch(/work_item_cycle_idx/);
+  });
 
   it("revision probes use their activity indexes", () => {
     const probes: [string, unknown[], RegExp][] = [

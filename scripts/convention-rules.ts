@@ -190,8 +190,29 @@ export function tokenUses(text: string, lang: "css" | "ts"): { line: number; nam
 }
 
 /**
+ * The names a file may use out of everything our src defines (the strict --tessera-* rule). Astryx-family
+ * names (--color-brand, ...) stay global. A --tessera-* name counts only when the file defines it itself,
+ * or when the other side of the pair does: a CSS file may use one that some ts/tsx file sets through a style
+ * prop or setProperty; a ts/tsx file may use one that some CSS file defines. Two CSS areas, or two components,
+ * can no longer satisfy each other with the same name.
+ */
+export function visibleOurTokens(
+  lang: "css" | "ts",
+  own: ReadonlySet<string>,
+  all: ReadonlySet<string>,
+  fromCss: ReadonlySet<string>,
+  fromTs: ReadonlySet<string>,
+): Set<string> {
+  const out = new Set([...all].filter((name) => !name.startsWith(TESSERA_TOKEN_PREFIX)));
+  for (const name of own) out.add(name);
+  for (const name of lang === "css" ? fromTs : fromCss) out.add(name);
+  return out;
+}
+
+/**
  * Uses that resolve nowhere. `astryx` is every name in the installed Astryx CSS, `ours` every name defined in src
- * (CSS, theme, inline style keys). Astryx-family names may come from either; --tessera-* names only from `ours`.
+ * (CSS, theme, inline style keys). Astryx-family names may come from either; --tessera-* names only from `ours`
+ * (pass the per-file set from visibleOurTokens to apply the same-area rule).
  */
 export function undefinedTokenUses(
   uses: { line: number; name: string }[],

@@ -596,8 +596,8 @@ describe("migrateIfNeeded", () => {
       const probe = new Database(filePath);
       // The migrator's `id SERIAL` column is NULL in SQLite, so the newest row is found by created_at.
       probe.prepare(`DELETE FROM "${MIGRATIONS_TABLE}" WHERE created_at = (SELECT max(created_at) FROM "${MIGRATIONS_TABLE}")`).run();
-      // 0009 adds workspace_settings.week_start; drop it so the newest migration can re-apply.
-      probe.exec(`ALTER TABLE workspace_settings DROP COLUMN week_start;`);
+      // 0010 adds work_item_cycle_idx; drop it so the newest migration can re-apply.
+      probe.exec(`DROP INDEX IF EXISTS work_item_cycle_idx;`);
       expect(pendingMigrations(probe)).toBe(1);
       probe.close();
 

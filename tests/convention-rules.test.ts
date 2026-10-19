@@ -7,6 +7,7 @@ import {
   stripComments,
   tokenUses,
   undefinedTokenUses,
+  visibleOurTokens,
   unknownDecisionRefs,
 } from "../scripts/convention-rules";
 
@@ -122,6 +123,21 @@ describe("css token safety", () => {
   it("requires --tessera-* names to be defined in src, even when the use has a fallback", () => {
     expect(check(".a { left: var(--tessera-x, 0px); }")).toEqual(["1:--tessera-x"]);
     expect(check(".a { left: var(--tessera-x); }", ["--tessera-x"])).toEqual([]);
+  });
+
+  it("scopes --tessera-* names to their own file or the other side of the pair", () => {
+    const set = (...names: string[]) => new Set(names);
+    const all = set("--tessera-a", "--tessera-b", "--color-brand");
+    // a CSS file: its own definition, or a name some ts/tsx file sets via style
+    const css = visibleOurTokens("css", set("--tessera-a"), all, set("--tessera-a", "--tessera-b"), set());
+    expect([...css].sort()).toEqual(["--color-brand", "--tessera-a"]);
+    const cssWithStyle = visibleOurTokens("css", set(), all, set("--tessera-a"), set("--tessera-b"));
+    expect([...cssWithStyle].sort()).toEqual(["--color-brand", "--tessera-b"]);
+    // a ts file: its own definition, or a name some CSS file defines
+    const ts = visibleOurTokens("ts", set(), all, set("--tessera-a"), set("--tessera-b"));
+    expect([...ts].sort()).toEqual(["--color-brand", "--tessera-a"]);
+    const hits = undefinedTokenUses(tokenUses(".a { x: var(--tessera-b); y: var(--color-brand); }", "css"), astryx, css);
+    expect(hits.map((h) => h.name)).toEqual(["--tessera-b"]);
   });
 
   it("allows the next/font names and skips template-built names", () => {

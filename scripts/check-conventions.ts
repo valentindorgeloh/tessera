@@ -18,7 +18,8 @@
  *  decision-ref         a comment in src/** or scripts/** that cites `decision N` or `decision UN` names a row of the
  *                       "Resolved design decisions" tables in docs/PLAN.md (parsed from the file)
  *  css-token            every var(--x) in the css, ts and tsx files of src, of an Astryx token family (--spacing-, --color-, ...) resolves in the
- *                       installed @astryxdesign/core CSS or in our own CSS/theme/style props; --tessera-* only in src
+ *                       installed @astryxdesign/core CSS or in our own CSS/theme/style props; a --tessera-* name must be
+ *                       defined in the same file, or (CSS use) set by a style prop in a ts/tsx file, or (ts use) defined in a CSS file
  *  file-budget          .ts/.tsx files under src/ and scripts/ (tests excluded) stay within 600 lines; the ones already
  *                       over are pinned in scripts/file-budget.json and may shrink but not grow
  */
@@ -33,6 +34,7 @@ import {
   tokenUses,
   undefinedTokenUses,
   unknownDecisionRefs,
+  visibleOurTokens,
 } from "./convention-rules";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -199,10 +201,21 @@ for (const file of astryxCssFiles(path.join(ROOT, "node_modules/@astryxdesign/co
   for (const name of definedTokens(fs.readFileSync(file, "utf8"), "css")) astryxTokens.add(name);
 }
 const ourTokens = new Set<string>();
-for (const f of tokenFiles) for (const name of definedTokens(f.text, f.lang)) ourTokens.add(name);
+const tokensByFile = new Map<string, Set<string>>();
+const cssDefined = new Set<string>();
+const tsDefined = new Set<string>();
+for (const f of tokenFiles) {
+  const names = definedTokens(f.text, f.lang);
+  tokensByFile.set(f.rel, names);
+  for (const name of names) {
+    ourTokens.add(name);
+    (f.lang === "css" ? cssDefined : tsDefined).add(name);
+  }
+}
 if (astryxTokens.size === 0) report("node_modules/@astryxdesign/core/dist", 1, "css-token", "found no Astryx tokens; is @astryxdesign/core installed?");
 for (const f of tokenFiles) {
-  for (const hit of undefinedTokenUses(tokenUses(f.text, f.lang), astryxTokens, ourTokens)) report(f.rel, hit.line, "css-token", hit.message);
+  const visible = visibleOurTokens(f.lang, tokensByFile.get(f.rel) ?? new Set(), ourTokens, cssDefined, tsDefined);
+  for (const hit of undefinedTokenUses(tokenUses(f.text, f.lang), astryxTokens, visible)) report(f.rel, hit.line, "css-token", hit.message);
 }
 
 const budget: Record<string, number> = JSON.parse(fs.readFileSync(path.join(ROOT, BUDGET_FILE), "utf8"));

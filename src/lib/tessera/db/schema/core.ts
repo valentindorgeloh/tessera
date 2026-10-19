@@ -133,6 +133,8 @@ export const work_item = sqliteTable(
     uniqueIndex("work_item_project_sequence_uq").on(t.project_id, t.sequence_id),
     index("work_item_project_state_idx").on(t.project_id, t.state_id),
     index("work_item_project_cycle_idx").on(t.project_id, t.cycle_id),
+    // Cycle detail, list counts and progress read by cycle_id alone (decision 126, migration 0010).
+    index("work_item_cycle_idx").on(t.cycle_id).where(sql`cycle_id IS NOT NULL`),
     index("work_item_parent_idx").on(t.parent_id),
     index("work_item_project_sort_idx").on(t.project_id, t.sort_order),
     // Workspace-scope list/count (decision 126): covers deleted_at / archived_at filters.
