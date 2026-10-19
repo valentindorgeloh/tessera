@@ -17,6 +17,7 @@ import { assistantUnavailableCopy, useAiStatus } from "@/components/ai/AiStatusP
 import type { WorkspaceAiSettings } from "@/lib/tessera/types";
 import { WorkspaceSettingsChrome } from "./WorkspaceSettingsChrome";
 import { EFFORT_OPTIONS, EFFORT_UNSET, WEEK_START_OPTIONS, isAiEffort, parseWeekStart, workspaceNameError, type WorkspaceSettingsTab, type WorkspaceSettingsView } from "./settings-format";
+import { publishWorkspaceSettings } from "./workspace-settings-store";
 
 export type WorkspaceSettingsScreenProps = {
   tab: WorkspaceSettingsTab;
@@ -52,6 +53,7 @@ function GeneralPane({ name, weekStart }: { name: string; weekStart: number }) {
     startSave(async () => {
       const result = await updateWorkspaceSettingsAction({ name: next });
       if (!result.ok) toast({ type: "error", body: `Could not rename the workspace. ${result.message}` });
+      else publishWorkspaceSettings({ name: next });
     });
   };
   return (
@@ -75,6 +77,7 @@ function GeneralPane({ name, weekStart }: { name: string; weekStart: number }) {
           startSave(async () => {
             const result = await updateWorkspaceSettingsAction({ week_start: next });
             if (!result.ok) toast({ type: "error", body: `Could not save the week start. ${result.message}` });
+            else publishWorkspaceSettings({ week_start: next });
           });
         }}
       />

@@ -69,7 +69,6 @@ async function SidebarData() {
   return (
     <>
       <WorkspaceName name={counts.workspaceSettings.name} />
-      <WorkspaceSettingsPublisher settings={{ name: counts.workspaceSettings.name, week_start: counts.workspaceSettings.week_start }} />
       <FavoritesPublisher tree={counts.favorites} />
       <Sidebar projects={projects} unreadCount={counts.unread} draftCount={counts.drafts} favorites={counts.favorites} />
     </>
@@ -82,20 +81,26 @@ type EngineExtras = {
 };
 
 /**
- * The two watchers that render nothing: the recents tracker, which reads the
- * request-bound pathname and gets the project names its labels need, and the
- * changes poller with the cursor it starts from. Archived projects leave the
- * sidebar but their recents still resolve, so their names are read too.
+ * The watchers that render nothing: the recents tracker, which reads the
+ * request-bound pathname and gets the project names its labels need, the
+ * changes poller with the cursor it starts from, and the workspace settings
+ * publisher (week start). Archived projects leave the sidebar but their
+ * recents still resolve, so their names are read too. The publisher lives
+ * here, not in the sidebar, because below the mobile breakpoint React pauses
+ * the sidebar drawer's content, and a paused publisher never emits a changed
+ * week start.
  */
 async function WatchersData() {
   await io();
-  const [projects, archived, cursor] = await Promise.all([
+  const [projects, archived, cursor, workspace] = await Promise.all([
     loadProjects(),
     readTessera((ctx) => listProjects(ctx, { archived: true })),
     readTessera((ctx) => latestSeq(ctx)),
+    readTessera((ctx) => getWorkspaceSettings(ctx)),
   ]);
   return (
     <>
+      <WorkspaceSettingsPublisher settings={{ name: workspace.name, week_start: workspace.week_start }} />
       <RecentsTracker projectNames={projectNameMap([...projects, ...archived])} projectFeatures={projectFeatureMap([...projects, ...archived])} />
       <ChangesPoller initialCursor={cursor} />
     </>

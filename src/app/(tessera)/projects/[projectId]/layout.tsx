@@ -5,7 +5,7 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { ProjectFrame } from "@/components/work-items/ProjectFrame";
 import { ProjectProvider } from "@/components/work-items/project-provider";
 import type { ProjectBundle } from "@/components/work-items/types";
-import { countOpenIntake, getActiveEstimate, getProject, isTrackerError, latestSeq, listActors, listCycles, listLabels, listModules, listProjects, listStates, readTessera } from "@/lib/tessera/server";
+import { countOpenIntake, getActiveEstimate, getProject, getWorkspaceSettings, isTrackerError, latestSeq, listActors, listCycles, listLabels, listModules, listProjects, listStates, readTessera } from "@/lib/tessera/server";
 
 type Props = { children: ReactNode; params: Promise<{ projectId: string }> };
 
@@ -47,6 +47,7 @@ async function ProjectShell({ children, params }: Props) {
         actors: listActors(ctx),
         cursor: latestSeq(ctx),
         today: ctx.today(),
+        week_start: getWorkspaceSettings(ctx).week_start,
         estimate: project.estimates_enabled ? getActiveEstimate(ctx, project.id) : null,
         intake_open: countOpenIntake(ctx, project.id),
         projects: listProjects(ctx, {}).map((row) => ({ id: row.id, name: row.name, identifier: row.identifier })),

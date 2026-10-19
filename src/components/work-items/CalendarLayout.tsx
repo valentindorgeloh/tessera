@@ -25,14 +25,13 @@ import { isIsoDate } from "@/lib/tessera/core/time";
 import type { WorkItem } from "@/lib/tessera/types";
 import { CalendarDotsIcon, CalendarIcon, CaretLeftIcon, CaretRightIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { calendarDropPatch } from "./date-span";
-import { useWorkspaceSettings } from "@/components/workspace-settings/workspace-settings-store";
+import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import {
   calendarWeeks,
   isOutsideMonth,
   itemsByDay,
   periodLabel,
   shiftPeriod,
-  toWeekStart,
   weekdayLabels,
 } from "./calendar-math";
 import { isOptimisticId } from "./optimistic";
@@ -64,10 +63,9 @@ export function CalendarLayout({ result, display, onUpdate, onOpen, onQuickAdd, 
   const param = searchParams.get("cal");
   const anchor = param && isIsoDate(param) ? param : bundle.today;
   
-  // Get workspace week_start setting (0 = Sunday, 1 = Monday, etc.)
-  const { week_start } = useWorkspaceSettings();
-  const weekStartsOn = toWeekStart(week_start);
-  
+  // Server bundle covers HTML and first paint; the settings store wins once published.
+  const weekStartsOn = useWeekStart(bundle.week_start);
+
   const weeks = calendarWeeks(anchor, view, weekStartsOn, showWeekends);
   const columns = weeks[0]?.length ?? (showWeekends ? 7 : 5);
   const labels = weekdayLabels(weekStartsOn, showWeekends);
