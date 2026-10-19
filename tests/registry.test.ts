@@ -419,6 +419,7 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   bulk_archive_work_items: "P8",
   bulk_unarchive_work_items: "P8",
   bulk_delete_work_items: "P8",
+  bulk_transfer_work_items: "P10",
   list_favorites: "P9",
   add_favorite: "P9",
   remove_favorite: "P9",

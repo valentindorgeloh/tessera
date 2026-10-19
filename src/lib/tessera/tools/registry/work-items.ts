@@ -6,6 +6,8 @@ import { listActivity, ListActivityInput } from "../../changes";
 import {
   archiveWorkItem,
   bulkArchiveWorkItems,
+  bulkTransferWorkItems,
+  BulkTransferWorkItemsInput,
   bulkDeleteWorkItems,
   bulkUnarchiveWorkItems,
   bulkUpdateWorkItems,
@@ -286,6 +288,16 @@ export const workItemTools = [
     core: true,
     phase: "P1",
     run: (ctx, input) => toListResult(ctx, listActivity(ctx, input)),
+  }),
+  defineTool({
+    name: "bulk_transfer_work_items",
+    title: "Bulk copy or move work items to a project",
+    description:
+      "Copies or moves up to 100 work items into project_id in one transaction, applying the single-item rules of copy_work_item and move_work_item_to_project to each; one refusal rolls back all of them. Returns { id, key } per resulting item. mode move needs confirm: true because the old keys stop resolving.",
+    input: BulkTransferWorkItemsInput,
+    mutates: true,
+    phase: "P10",
+    run: (ctx, input) => bulkTransferWorkItems(ctx, input),
   }),
   defineTool({
     name: "bulk_archive_work_items",

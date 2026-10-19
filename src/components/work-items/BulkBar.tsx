@@ -3,7 +3,8 @@
 /**
  * Actions for the selected work items. Edits and archive apply at once; a
  * refusal (mixed archive) stays in a toast and the selection stays. Delete
- * asks first.
+ * asks first. "Copy to project…" and "Move to project…" open
+ * BulkTransferDialog (decision 107); the move confirms inside the dialog.
  */
 import { useState, useTransition } from "react";
 import { Button } from "@astryxdesign/core/Button";
@@ -18,11 +19,12 @@ import {
   bulkUpdateWorkItemsAction,
 } from "@/app/actions/work-items";
 import { AlertDialog } from "@/components/shell/dialogs";
+import { BulkTransferDialog } from "@/components/work-items/BulkTransferDialog";
 import { useProject } from "@/components/work-items/project-provider";
 import { hasUnloaded, loadedOfTotal } from "@/components/work-items/paging";
 import { CycleControl, DateControl, EstimateControl, PriorityControl, StateControl } from "@/components/work-items/properties";
 import type { Priority, WorkItem } from "@/lib/tessera/types";
-import { ArchiveIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
+import { ArchiveIcon, CopyIcon, MoveToProjectIcon, RestoreIcon, TrashIcon } from "@/themes/catppuccin/icons";
 
 export type BulkBarProps = {
   items: readonly WorkItem[];
@@ -39,6 +41,7 @@ export function BulkBar({ items, selected, onClear, variant = "active", loaded, 
   const { bundle } = useProject();
   const [isPending, startTransition] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [transfer, setTransfer] = useState<"copy" | "move" | null>(null);
   const chosen = items.filter((item) => selected.has(item.id));
   const ids = chosen.map((item) => item.id);
   const count = ids.length;
@@ -106,6 +109,8 @@ export function BulkBar({ items, selected, onClear, variant = "active", loaded, 
             {bundle.project.modules_enabled ? (
               <MembershipMenu label="Modules" rows={bundle.modules} checked={(id) => everyHas("module_ids", id)} onToggle={(id, on) => membership(id, on, "add_module_ids", "remove_module_ids")} />
             ) : null}
+            <Button variant="secondary" size="sm" label="Copy to project…" icon={<CopyIcon />} onClick={() => setTransfer("copy")} />
+            <Button variant="secondary" size="sm" label="Move to project…" icon={<MoveToProjectIcon />} onClick={() => setTransfer("move")} />
             <Button
               variant="secondary"
               size="sm"
@@ -122,6 +127,17 @@ export function BulkBar({ items, selected, onClear, variant = "active", loaded, 
         )}
         <Button variant="ghost" size="sm" label="Delete" icon={<TrashIcon />} onClick={() => setConfirmDelete(true)} />
       </HStack>
+      {transfer !== null ? (
+        <BulkTransferDialog
+          isOpen
+          onOpenChange={(open) => !open && setTransfer(null)}
+          mode={transfer}
+          ids={ids}
+          projectId={bundle.project.id}
+          projects={bundle.projects}
+          onDone={onClear}
+        />
+      ) : null}
       <AlertDialog
         isOpen={confirmDelete}
         onOpenChange={setConfirmDelete}

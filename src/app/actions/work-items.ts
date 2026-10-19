@@ -17,6 +17,7 @@ export const bulkUpdateWorkItemsAction = toolAction("bulk_update_work_items");
 export const bulkArchiveWorkItemsAction = toolAction("bulk_archive_work_items");
 export const bulkUnarchiveWorkItemsAction = toolAction("bulk_unarchive_work_items");
 export const bulkDeleteWorkItemsAction = toolAction("bulk_delete_work_items");
+export const bulkTransferWorkItemsAction = toolAction("bulk_transfer_work_items");
 export const moveWorkItemToProjectAction = toolAction("move_work_item_to_project");
 export const archiveWorkItemAction = toolAction("archive_work_item");
 export const unarchiveWorkItemAction = toolAction("unarchive_work_item");

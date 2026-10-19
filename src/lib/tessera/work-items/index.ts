@@ -67,6 +67,7 @@ export {
 } from "./update";
 export { ListWorkItemVersionsInput, listWorkItemVersions, getWorkItemVersion, RestoreWorkItemVersionInput, writeWorkItemVersion } from "./versions";
 export { BulkUpdateWorkItemsInput, type BulkUpdateWorkItemsInputType, bulkUpdateWorkItems, bulkArchiveWorkItems, bulkUnarchiveWorkItems, bulkDeleteWorkItems } from "./bulk";
+export { BulkTransferWorkItemsInput, type BulkTransferWorkItemsInputType, bulkTransferWorkItems } from "./bulk-transfer";
 export { MoveWorkItemInput, type MoveWorkItemInputType, moveWorkItem } from "./move";
 export {
   CopyWorkItemInput,
