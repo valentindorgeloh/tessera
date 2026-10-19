@@ -415,7 +415,8 @@ describe("panel headers", () => {
   it("gives the modules list the same sub-header, also when it is empty", async () => {
     const el = await render(inProject(createElement(ModulesScreen, { projectId: PROJECT, modules: [], today: "2026-10-11", createOnOpen: false })));
     const { start, heading } = panelHeader(el, "Modules");
-    expect(start).toBe("Modules0");
+    // Heading, count badge, then the List/Timeline layout switch (decision 108).
+    expect(start?.startsWith("Modules0")).toBe(true);
     expect(heading).toBe("Modules");
     expect(el.textContent).toContain("No modules yet");
     expect(headingsAt(el, 1)).toHaveLength(0);
@@ -423,7 +424,7 @@ describe("panel headers", () => {
 
   it("lists modules under the sub-header with the count", async () => {
     const el = await render(inProject(createElement(ModulesScreen, { projectId: PROJECT, modules: [module()], today: "2026-10-11", createOnOpen: false })));
-    expect(panelHeader(el, "Modules").start).toBe("Modules1");
+    expect(panelHeader(el, "Modules").start?.startsWith("Modules1")).toBe(true);
     expect(el.querySelector('ul[aria-label="Modules"]')).not.toBeNull();
   });
 

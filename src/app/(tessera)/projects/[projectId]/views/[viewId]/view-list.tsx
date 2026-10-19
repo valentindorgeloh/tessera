@@ -8,7 +8,7 @@ import { ViewLockIndicator } from "@/components/views/ViewRow";
 import { ViewMenu } from "@/components/views/ViewMenu";
 import { isViewModified, viewScopeDefaults, type ViewState } from "@/components/views/view-state";
 import { toWeekStart } from "@/components/work-items/calendar-math";
-import { listPaging } from "@/components/work-items/paging";
+import { ganttListExtras, listPaging } from "@/components/work-items/paging";
 import { decodeUrlState, mergeDisplay, mergeFilters } from "@/components/work-items/url-state";
 import { WorkItemsScreen } from "@/components/work-items/WorkItemsScreen";
 import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
@@ -85,6 +85,7 @@ function loadItems(viewId: string, effective: ViewState, cal: string | undefined
       filters: effective.filters,
       display: effective.display,
       ...listPaging(effective.display, cal, ctx.today(), toWeekStart(getWorkspaceSettings(ctx).week_start)),
+      ...ganttListExtras(effective.display),
       ...(effective.rich_filters !== undefined ? { rich_filters: effective.rich_filters } : {}),
     }),
   );

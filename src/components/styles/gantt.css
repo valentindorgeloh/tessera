@@ -8,8 +8,22 @@
 .tessera-gantt {
   --tessera-gantt-day: var(--spacing-8);
   --tessera-gantt-label: calc(var(--spacing-8) * 8);
+  --tessera-gantt-row: var(--size-element-md);
   min-width: max-content;
   padding-block-end: var(--spacing-4);
+}
+
+/* Decision 90: week is a wide day column, month the default, quarter the narrowest. */
+.tessera-gantt[data-zoom="week"] {
+  --tessera-gantt-day: var(--spacing-10);
+}
+
+.tessera-gantt[data-zoom="month"] {
+  --tessera-gantt-day: var(--spacing-8);
+}
+
+.tessera-gantt[data-zoom="quarter"] {
+  --tessera-gantt-day: var(--spacing-4);
 }
 
 .tessera-gantt-body {
@@ -51,6 +65,12 @@
   padding-inline: var(--spacing-1);
 }
 
+.tessera-gantt-days[data-zoom-days="month"],
+.tessera-gantt-days[data-zoom-days="quarter"] {
+  height: 0;
+  overflow: hidden;
+}
+
 .tessera-gantt-head-day {
   flex: 0 0 var(--tessera-gantt-day);
   width: var(--tessera-gantt-day);
@@ -66,8 +86,31 @@
 }
 
 .tessera-gantt-row {
-  min-height: var(--size-element-md);
+  min-height: var(--tessera-gantt-row);
+  height: var(--tessera-gantt-row);
   border-block-end: var(--border-width) solid var(--color-border);
+}
+
+.tessera-gantt-connectors {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  left: var(--tessera-gantt-label);
+  width: calc(var(--tessera-gantt-days) * var(--tessera-gantt-day));
+  pointer-events: none;
+  overflow: visible;
+}
+
+.tessera-gantt-edge {
+  fill: none;
+  stroke: var(--color-border-emphasized);
+  stroke-width: var(--border-width);
+  vector-effect: non-scaling-stroke;
+}
+
+.tessera-gantt-edge[data-conflict] {
+  stroke: var(--color-error);
 }
 
 .tessera-gantt-open {
@@ -121,6 +164,11 @@
 
 .tessera-gantt-bar[data-readonly] {
   cursor: default;
+}
+
+.tessera-gantt-bar[data-conflict] {
+  outline: var(--border-width) solid var(--color-error);
+  outline-offset: calc(var(--border-width) * -1);
 }
 
 .tessera-gantt-bar:focus-visible {

@@ -4,7 +4,8 @@
  * One row per work item. A bar runs from start_date to target_date inclusive.
  * One date is a one-day bar with the missing end drawn dashed. Dragging the
  * bar writes both dates in one update; dragging an edge writes only that end,
- * clamped so the start never passes the target.
+ * clamped so the start never passes the target. Zoom and dependency
+ * connectors follow decisions 90–92.
  */
 import { useCallback, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { Button } from "@astryxdesign/core/Button";
@@ -16,11 +17,13 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
 import { useTimelineDrag } from "@/components/dnd/use-timeline-drag";
+import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import { daysBetween } from "@/lib/tessera/core/time";
 import type { WorkItem } from "@/lib/tessera/types";
 import { CalendarDotsIcon, CalendarIcon } from "@/themes/catppuccin/icons";
-import { isWeekend, monthLabel, weekendShift } from "./calendar-math";
+import { isWeekend, monthLabel, weekBandLabel, weekendShift } from "./calendar-math";
 import { applyDayDelta, barPlacement, barSpan, eachDay, previewEnds, scheduleOnDay, timelineRange, type BarDragMode, type DateEnds } from "./date-span";
+import { conflictItemIds, connectorPaths, ganttEdges, monthSpans, weekSpans } from "./gantt-scale";
 import { GroupFooter } from "./GroupFooter";
 import { isOptimisticId } from "./optimistic";
 import { UNGROUPED_KEY } from "./paging";
@@ -34,22 +37,16 @@ function cssVars(vars: Record<string, string | number>): CSSProperties {
   return vars as CSSProperties;
 }
 
-function monthSpans(days: readonly string[]): { key: string; label: string; span: number }[] {
-  const spans: { key: string; label: string; span: number }[] = [];
-  for (const day of days) {
-    const key = day.slice(0, 7);
-    const last = spans[spans.length - 1];
-    if (last && last.key === key) last.span += 1;
-    else spans.push({ key, label: monthLabel(day), span: 1 });
-  }
-  return spans;
-}
-
 export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = false, onLoadMoreUngrouped, isLoadingMore }: LayoutProps) {
   const { bundle } = useProject();
   const today = bundle.today;
+  const weekStartsOn = useWeekStart(bundle.week_start);
+  const zoom = display.gantt.zoom;
+  const showRelations = display.gantt.show_relations;
   const range = timelineRange(
-    result.items.flatMap((item) => [item.start_date, item.target_date]),
+    result.date_range?.start || result.date_range?.end
+      ? [result.date_range.start, result.date_range.end]
+      : result.items.flatMap((item) => [item.start_date, item.target_date]),
     today,
   );
   const days = eachDay(range.start, range.end);
@@ -81,6 +78,17 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
     onUpdate(item.id, scheduleOnDay(days[offset]));
   };
 
+  const byId = new Map<string, DateEnds>();
+  for (const item of result.items) {
+    const ends: DateEnds = preview?.id === item.id && preview.delta !== 0 ? previewEnds(item, preview.mode, preview.delta) : item;
+    byId.set(item.id, ends);
+  }
+  const rowIndex = new Map(result.items.map((item, index) => [item.id, index]));
+  const edges = showRelations ? ganttEdges(result.relations) : [];
+  const paths = edges.length === 0 ? [] : connectorPaths(edges, rowIndex, byId, range.start, days.length);
+  const conflicts = conflictItemIds(paths);
+  const topSpans = zoom === "month" ? weekSpans(days, weekStartsOn, weekBandLabel) : monthSpans(days, monthLabel);
+
   if (result.items.length === 0) {
     return <EmptyState isCompact title="No work items yet" description="Items with a start or target date show a bar here." />;
   }
@@ -89,6 +97,7 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
     <VStack
       gap={0}
       className="tessera-gantt"
+      data-zoom={zoom}
       style={cssVars({
         "--tessera-gantt-days": days.length,
         "--tessera-gantt-today": todayOffset,
@@ -104,13 +113,13 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
         </HStack>
         <VStack gap={0} className="tessera-gantt-scale">
           <HStack gap={0}>
-            {monthSpans(days).map((span) => (
+            {topSpans.map((span) => (
               <Text key={span.key} type="supporting" maxLines={1} className="tessera-gantt-month" style={cssVars({ width: `calc(${span.span} * var(--tessera-gantt-day))` })}>
                 {span.label}
               </Text>
             ))}
           </HStack>
-          <HStack gap={0}>
+          <HStack gap={0} className="tessera-gantt-days" data-zoom-days={zoom}>
             {days.map((day, index) => (
               <Text
                 key={day}
@@ -124,29 +133,38 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
                 className="tessera-gantt-head-day"
                 data-weekend={isWeekend(day) ? "" : undefined}
                 data-today={day === today ? "" : undefined}
+                aria-hidden={zoom === "week" ? undefined : true}
               >
-                {Number(day.slice(8, 10))}
+                {zoom === "week" ? Number(day.slice(8, 10)) : "\u00a0"}
               </Text>
             ))}
           </HStack>
         </VStack>
       </HStack>
       <VStack gap={0} className="tessera-gantt-body">
-      <VStack className="tessera-gantt-today" aria-hidden />
-      {result.items.map((item) => (
-        <GanttRow
-          key={item.id}
-          item={item}
-          rangeStart={range.start}
-          readOnly={readOnly}
-          preview={preview?.id === item.id ? preview : null}
-          onOpen={onOpen}
-          onUpdate={onUpdate}
-          onSchedule={schedule}
-          onPointerDown={onPointerDown}
-          onClickCapture={onClickCapture}
-        />
-      ))}
+        <VStack className="tessera-gantt-today" aria-hidden />
+        {paths.length > 0 ? (
+          <svg className="tessera-gantt-connectors" viewBox={`0 0 ${days.length} ${result.items.length}`} preserveAspectRatio="none" aria-hidden>
+            {paths.map((path) => (
+              <path key={path.key} d={path.d} className="tessera-gantt-edge" data-conflict={path.conflict ? "" : undefined} />
+            ))}
+          </svg>
+        ) : null}
+        {result.items.map((item) => (
+          <GanttRow
+            key={item.id}
+            item={item}
+            ends={byId.get(item.id) ?? item}
+            rangeStart={range.start}
+            readOnly={readOnly}
+            conflict={conflicts.has(item.id)}
+            onOpen={onOpen}
+            onUpdate={onUpdate}
+            onSchedule={schedule}
+            onPointerDown={onPointerDown}
+            onClickCapture={onClickCapture}
+          />
+        ))}
       </VStack>
       {result.has_more && onLoadMoreUngrouped ? (
         <GroupFooter display={display} loaded={result.items.length} total={result.total} isLoading={isLoadingMore?.(UNGROUPED_KEY)} onLoadMore={onLoadMoreUngrouped} />
@@ -157,9 +175,10 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
 
 function GanttRow({
   item,
+  ends,
   rangeStart,
   readOnly,
-  preview,
+  conflict,
   onOpen,
   onUpdate,
   onSchedule,
@@ -167,9 +186,10 @@ function GanttRow({
   onClickCapture,
 }: {
   item: WorkItem;
+  ends: DateEnds;
   rangeStart: string;
   readOnly: boolean;
-  preview: { mode: BarDragMode; delta: number } | null;
+  conflict: boolean;
   onOpen: LayoutProps["onOpen"];
   onUpdate: LayoutProps["onUpdate"];
   onSchedule: (item: WorkItem, event: ReactMouseEvent<HTMLElement>) => void;
@@ -179,14 +199,13 @@ function GanttRow({
   const bundles = useBundles();
   const { statesById } = useProject();
   const state = bundles?.[item.project_id]?.states.find((entry) => entry.id === item.state_id) ?? statesById.get(item.state_id);
-  const ends: DateEnds = preview && preview.delta !== 0 ? previewEnds(item, preview.mode, preview.delta) : item;
   const placement = barPlacement(ends, rangeStart);
   const canDrag = !readOnly && !isOptimisticId(item.id);
   const open = () => {
     if (!isOptimisticId(item.id)) onOpen(item.id);
   };
   const barLabel = placement
-    ? `${item.key} ${item.name}, ${ends.start_date ?? "open"} to ${ends.target_date ?? "open"}`
+    ? `${item.key} ${item.name}, ${ends.start_date ?? "open"} to ${ends.target_date ?? "open"}${conflict ? ", date conflict" : ""}`
     : `${item.key} ${item.name}, no dates`;
 
   return (
@@ -226,6 +245,7 @@ function GanttRow({
             aria-label={barLabel}
             data-open-start={placement.openStart ? "" : undefined}
             data-open-end={placement.openEnd ? "" : undefined}
+            data-conflict={conflict ? "" : undefined}
             data-readonly={canDrag ? undefined : ""}
             style={cssVars({ "--tessera-gantt-offset": placement.offset, "--tessera-gantt-span": placement.span })}
             onClick={(event) => {

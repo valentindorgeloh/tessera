@@ -42,7 +42,8 @@ async function ModulesData({ params, searchParams }: Props) {
     throw err;
   }
   if (data === null) return <FeatureOffState feature="modules" projectId={projectId} />;
-  return <ModulesScreen projectId={projectId} modules={data.modules} today={data.today} createOnOpen={createOnOpen} />;
+  const layout = query.layout === "timeline" ? "timeline" : "list";
+  return <ModulesScreen projectId={projectId} modules={data.modules} today={data.today} createOnOpen={createOnOpen} layout={layout} />;
 }
 
 /** null when the project has modules turned off; the list is not read then. */

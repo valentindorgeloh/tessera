@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { listWorkItemsAction } from "@/app/actions/work-items";
 import { groupLimitKey } from "@/lib/tessera/core/group";
 import type { Display, Filters, ListScope, RichFilters, WorkItemListResult } from "@/lib/tessera/types";
-import { UNGROUPED_KEY, keepLoaded, loadMoreSize, mergeGroupPage, mergeRowsPage, pageSizeFor, pagesByGroup, refetchPlan } from "./paging";
+import { UNGROUPED_KEY, ganttListExtras, keepLoaded, loadMoreSize, mergeGroupPage, mergeRowsPage, pageSizeFor, pagesByGroup, refetchPlan } from "./paging";
 
 export type UsePagedListArgs = {
   scope: ListScope;
@@ -48,7 +48,13 @@ export function usePagedList({ scope, display, filters, richFilters, server }: U
     setResult(seen.queryKey === queryKey ? keepLoaded(server, result, display) : server);
   }
   const query = useCallback(
-    () => ({ scope, filters, display, ...(richFilters !== undefined ? { rich_filters: richFilters } : {}) }),
+    () => ({
+      scope,
+      filters,
+      display,
+      ...ganttListExtras(display),
+      ...(richFilters !== undefined ? { rich_filters: richFilters } : {}),
+    }),
     // The key stands for the four values; a new object with the same content must not rebuild the callbacks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [queryKey],

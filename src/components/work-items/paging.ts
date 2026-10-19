@@ -64,6 +64,18 @@ export function listPaging(
 }
 
 /**
+ * Gantt extras for `list_work_items` (decisions 90 and 92): the filtered-set
+ * date range always, and relations when Show dependencies is on.
+ */
+export function ganttListExtras(display: Display): { include_relations?: true; include_date_range?: true } {
+  if (display.layout !== "gantt") return {};
+  return {
+    include_date_range: true,
+    ...(display.gantt.show_relations ? { include_relations: true as const } : {}),
+  };
+}
+
+/**
  * The rich filter tree a paging request and an export send: the screen's explicit tree (a saved view's) when it has
  * one, else the URL's. A project, cycle, module or workspace list passes none, and its first page already applies
  * the URL tree, so "Show more" and the group re-request must send the same one.
@@ -153,10 +165,25 @@ export function mergeGroupPage(result: WorkItemListResult, groupId: string, page
   return { ...result, items: mergeItems(result.items, page.items), total: page.total, groups, has_more: groups.some((group) => group.has_more) };
 }
 
+function mergeRelations(current: WorkItemListResult["relations"], page: WorkItemListResult["relations"]): WorkItemListResult["relations"] {
+  if (!current && !page) return undefined;
+  const found = new Map<string, NonNullable<WorkItemListResult["relations"]>[number]>();
+  for (const edge of current ?? []) found.set(`${edge.from_id}:${edge.type}:${edge.to_id}`, edge);
+  for (const edge of page ?? []) found.set(`${edge.from_id}:${edge.type}:${edge.to_id}`, edge);
+  return [...found.values()];
+}
+
 /** Merges the next page of an ungrouped list (rows `offset` to `offset + limit`). */
 export function mergeRowsPage(result: WorkItemListResult, page: WorkItemListResult): WorkItemListResult {
   const items = mergeItems(result.items, page.items);
-  return { ...result, items, total: page.total, has_more: items.length < page.total };
+  return {
+    ...result,
+    items,
+    total: page.total,
+    has_more: items.length < page.total,
+    relations: mergeRelations(result.relations, page.relations),
+    date_range: page.date_range ?? result.date_range,
+  };
 }
 
 /**

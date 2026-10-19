@@ -11,6 +11,7 @@ import {
   CALENDAR_CAP,
   calendarWindow,
   effectiveRichFilters,
+  ganttListExtras,
   hasUnloaded,
   listPaging,
   keepLoaded,
@@ -114,6 +115,13 @@ describe("calendar period and rich filters", () => {
   it("sends the window only for the calendar", () => {
     expect(listPaging(month, "2026-10-14", "2026-10-10")).toEqual({ limit: CALENDAR_CAP, calendar_window: { from: "2026-09-28", to: "2026-11-01" } });
     expect(listPaging({ ...DEFAULT_DISPLAY, layout: "table", group_by: null }, "2026-10-14", "2026-10-10")).toEqual({ limit: 200 });
+  });
+
+  it("asks the gantt for the date range and optional relations", () => {
+    const gantt: Display = { ...DEFAULT_DISPLAY, layout: "gantt", group_by: null };
+    expect(ganttListExtras(gantt)).toEqual({ include_date_range: true, include_relations: true });
+    expect(ganttListExtras({ ...gantt, gantt: { zoom: "week", show_relations: false } })).toEqual({ include_date_range: true });
+    expect(ganttListExtras({ ...DEFAULT_DISPLAY, layout: "list" })).toEqual({});
   });
 
   it("falls back to the URL rich filters unless the screen has its own tree", () => {

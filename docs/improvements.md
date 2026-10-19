@@ -131,7 +131,7 @@ Corrections to Mistral's sections below (the code contradicts them): `LockContro
 
 - Automations project settings tab: Run now, Due now, Last run (`AutomationsSettings`, `/settings/automations`).
 - Bulk Copy/Move to project: `bulk_transfer_work_items` + `BulkTransferDialog` on the BulkBar (decision 107).
-- Rich filter dialog: field/op/value labels (`rich-filter-labels.ts`); over-deep trees and views-list copy still open.
+- Rich filter dialog: field/op/value labels (`rich-filter-labels.ts`); over-deep trees use `describeRichFilters`; views-list `viewSummary` counts rich conditions (verified).
 - `?layout=list|board|table|calendar|gantt` merges into the `q` display blob (`layout-param.ts`).
 - Cycle-scope partial index `work_item_cycle_idx` (`drizzle/0010_cycle_scope_idx.sql`); query-plan tests updated.
 - Scheduler start log: `console.log("[tessera] scheduler started")`.
@@ -141,7 +141,7 @@ Corrections to Mistral's sections below (the code contradicts them): `LockContro
 - Playwright Chromium smoke: runnable and green (see PLAN-STATUS P11 hand-off; no longer "never downloaded").
 
 ## Open, from the P10 browser acceptance (at 08e5118, Sonnet, full report in this session)
-- Plan items not built (p10-plan §9 steps): gantt zoom Week/Month/Quarter and gantt options in Display (5); dependency connectors, conflict state and "Show dependencies" (7); Modules list Timeline (10); page Outline and an Activity tab in page history (15); Analytics "Data table" CSV download (16); drag reorder beyond sidebar, favourites, board and calendar: views list, states, labels, wiki tree, stickies, quick links, Home widgets (20). Closed this round: Automations tab (13), bulk Copy/Move (21), "N pts" (22), scheduler start log (23).
+- Plan items not built (p10-plan §9 steps): page Outline and an Activity tab in page history (15); Analytics "Data table" CSV download (16); drag reorder beyond sidebar, favourites, board and calendar: views list, states, labels, wiki tree, stickies, quick links, Home widgets (20). Closed earlier: Automations tab (13), bulk Copy/Move (21), "N pts" (22), scheduler start log (23). Closed 2026-10-19: gantt zoom + Show dependencies (5, 7), Modules list Timeline (10).
 - **Calendar UI: Date popover uses Sunday-first while main calendar uses Monday-first** (from user report) - the main calendar, its server window and the settings screen follow the workspace `week_start`. Still open: the Astryx DateInput popover calendar ignores the setting (see "DateInput Component Week Start" below).
 - Rich filter dialog: over-deep trees still show raw JSON; views list still says "List · no filters" for rich-only views. Value/op labels shipped 2026-10-19.
 - Accessibility: Set-dates popover calendar has no tab stop when today is before min; date popover calendar is Sunday-first while the app calendar follows `week_start`; Switch inputs lack accessible names (source shows each Switch has a wired label, so this needs a check of the real DOM in a browser); the webhook secret input name was not reproduced (Astryx names it from `label`); Export Delete showing its toast twice has no found root cause (defensive guard added, needs a browser check).

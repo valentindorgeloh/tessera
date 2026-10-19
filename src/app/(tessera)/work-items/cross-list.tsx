@@ -8,7 +8,7 @@ import { ViewMenu } from "@/components/views/ViewMenu";
 import { ViewLockIndicator } from "@/components/views/ViewRow";
 import { isViewModified, type ViewState } from "@/components/views/view-state";
 import { toWeekStart } from "@/components/work-items/calendar-math";
-import { listPaging } from "@/components/work-items/paging";
+import { ganttListExtras, listPaging } from "@/components/work-items/paging";
 import { ProjectScope } from "@/components/work-items/project-provider";
 import { BundlesProvider } from "@/components/work-items/row-project";
 import type { ProjectBundle, SettingsScope } from "@/components/work-items/types";
@@ -221,6 +221,7 @@ function loadList(
       filters,
       display,
       ...listPaging(display, cal, ctx.today(), toWeekStart(getWorkspaceSettings(ctx).week_start)),
+      ...ganttListExtras(display),
       ...(urlState.rich_filters !== undefined ? { rich_filters: urlState.rich_filters } : {}),
     });
     const projects = listProjects(ctx, {});

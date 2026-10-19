@@ -80,6 +80,11 @@ export function monthLabel(date: string): string {
   return formatUtc(date, { month: "short", year: "numeric" });
 }
 
+/** Short label for a gantt week band (the week's first day). */
+export function weekBandLabel(date: string): string {
+  return formatUtc(date, { month: "short", day: "numeric" });
+}
+
 export function weekdayLabels(weekStartsOn: WeekStart, showWeekends: boolean): string[] {
   const labels: string[] = [];
   for (let index = 0; index < 7; index += 1) {

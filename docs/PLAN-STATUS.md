@@ -272,4 +272,12 @@ Goal: look like Plane's current cloud layout, with the calm of the Claude deskto
 - Optional P10 backlog closed. Shipped the missing `scripts/webhook-echo.ts` (127.0.0.1:4010, `--secret` HMAC check, `--status` for 2xx / 500 / 410). No engine bugs found.
 - Live walk on `data/p10-webhook-echo.db` (did not touch `data/tessera.db*`): create active webhook → URL `http://127.0.0.1:4010/` events `work_item.*` → echo with `--secret` → `test_webhook` ping **delivered** (`sig=ok`, HTTP 200) → rename a WEB item → `work_item.updated` **delivered** (`sig=ok`, HTTP 200) → echo `--status 410` → next update **failed** with HTTP 410 and webhook `is_active=false`.
 - Vitest: `tests/webhooks.test.ts` adds a live local `http.Server` case (signed `work_item.*` POSTs, HMAC verified). `npx vitest run tests/webhooks.test.ts` — 11 passed.
-- **Optional product backlog closed 2026-10-19:** Automations settings tab (Run now / status); bulk Copy/Move to project (`bulk_transfer_work_items`); rich-filter dialog labels; `?layout=` URL param; cycle_id partial index (`0010`); scheduler start log; week_start first paint via `useWeekStart(bundle.week_start)`; `docs/as-built/ai.md`; PLAN decision 29/33 honesty. Webhook echo walk closed in `5442c6f`. **Still optional:** gantt zoom/deps; modules timeline; page outline; analytics CSV; drag reorder beyond existing surfaces.
+- **Optional product backlog closed 2026-10-19:** Automations settings tab (Run now / status); bulk Copy/Move to project (`bulk_transfer_work_items`); rich-filter dialog labels; `?layout=` URL param; cycle_id partial index (`0010`); scheduler start log; week_start first paint via `useWeekStart(bundle.week_start)`; `docs/as-built/ai.md`; PLAN decision 29/33 honesty. Webhook echo walk closed in `5442c6f`.
+
+### Gantt zoom, deps, modules timeline (2026-10-19)
+
+- Shipped the three optional leftovers that already had schema/engine hooks (decisions 90–92, 108):
+  - **Gantt zoom:** Display › Zoom Week/Month/Quarter writes `display.gantt.zoom`; day widths and header bands follow (week = day numbers, month = week bands, quarter = month bands).
+  - **Dependency connectors:** Display › Show dependencies; loaders pass `include_relations` / `include_date_range`; SVG edges for `blocked_by` / `start_before` / `finish_before` with conflict stroke on the edge and bar.
+  - **Modules timeline:** Modules header List/Timeline switch (`?layout=timeline`); `ModulesTimeline` reuses gantt bars/drag and writes `update_module` (no connectors).
+- **Still optional / deferred:** page outline; analytics CSV download; drag reorder beyond existing surfaces (views, states, labels, wiki tree, stickies, quick links, Home widgets).

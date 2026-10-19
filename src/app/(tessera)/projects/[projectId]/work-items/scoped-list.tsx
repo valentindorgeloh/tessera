@@ -6,7 +6,7 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { loadWorkItemDetail } from "@/app/(tessera)/work-items/load-detail";
 import { PeekHost, type PeekData } from "@/components/detail/PeekHost";
 import { toWeekStart } from "@/components/work-items/calendar-math";
-import { listPaging } from "@/components/work-items/paging";
+import { ganttListExtras, listPaging } from "@/components/work-items/paging";
 import type { ScopeDefaults, SettingsScope, UrlState, WorkItemsScope } from "@/components/work-items/types";
 import { decodeUrlState, mergeDisplay, mergeFilters } from "@/components/work-items/url-state";
 import { WorkItemsScreen, type WorkItemsScreenProps } from "@/components/work-items/WorkItemsScreen";
@@ -73,6 +73,7 @@ function loadWorkItems(scope: WorkItemsScope, settingsScope: SettingsScope, urlS
       filters,
       display,
       ...paging,
+      ...ganttListExtras(display),
       ...(urlState.rich_filters !== undefined ? { rich_filters: urlState.rich_filters } : {}),
     });
     return { settings, display, filters, result };

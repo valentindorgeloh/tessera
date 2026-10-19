@@ -164,7 +164,7 @@ No test renders `BurndownChart`, `CycleDialog` submit, `TransferDialog` submit o
 File budget (scripts/file-budget.json at HEAD): `src/lib/tessera/cycles.ts` 925, `src/lib/tessera/db/schema.ts` 857, `src/lib/tessera/modules.ts` 735 (actual: 879 and 691 lines for the two engine files). No file in `src/components/planning` is listed or near 600 lines; the largest is `ModuleDialog.tsx` (290). Cycles and modules in the engine may not grow.
 
 Deferred (ui.md P3 "Scope and deferrals" and "As built"):
-- Module gallery and timeline layouts (P9, P10); module burndown (P9); favourites, reorder UI, `/active-cycles` (P9); "Copy link" and module shortcuts `s`, `m` (P9).
+- Module gallery (P9); module burndown (P9); favourites, reorder UI, `/active-cycles` (P9); "Copy link" and module shortcuts `s`, `m` (P9). Module timeline shipped 2026-10-19 (`?layout=timeline`, `ModulesTimeline`).
 - Burnup scope is a flat line (`total - cancelled`); a per-day scope series needs analytics (P9).
 - Search, sort, filter on cycles and modules lists and on Archives > Work items (P4).
 - Feature toggle settings UI (P4); stale `view_settings` and saved filters left when a cycle or module is deleted (P4, ignored by the engine).

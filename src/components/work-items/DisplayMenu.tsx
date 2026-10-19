@@ -28,7 +28,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { resetViewSettingsAction, saveViewSettingsAction } from "@/app/actions/views";
 import { withSearchParam } from "@/components/detail/peek-url";
 import { GROUPABLE_FIELDS, ORDER_BY_VALUES } from "@/lib/tessera/core/group";
-import { CalendarLayoutSchema, LayoutSchema, SubGroupBySchema } from "@/lib/tessera/schemas";
+import { CalendarLayoutSchema, GanttZoomSchema, LayoutSchema, SubGroupBySchema } from "@/lib/tessera/schemas";
 import type { Display, DisplayProperties, GroupBy, Layout, OrderBy, SubGroupBy } from "@/lib/tessera/types";
 import { CalendarIcon, GanttIcon, KanbanIcon, RowsIcon, SlidersIcon, TableIcon } from "@/themes/catppuccin/icons";
 import { groupByChoices, groupByPatch, orderByChoices, orderBySelectValue, subGroupChoices } from "./display-options";
@@ -97,6 +97,9 @@ function isLayout(value: string): value is Layout {
 }
 function isCalendarView(value: string): value is "month" | "week" {
   return (CalendarLayoutSchema.options as readonly string[]).includes(value);
+}
+function isGanttZoom(value: string): value is "week" | "month" | "quarter" {
+  return (GanttZoomSchema.options as readonly string[]).includes(value);
 }
 
 /**
@@ -197,6 +200,26 @@ export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupField
             <SegmentedControlItem value="week" label="Week" />
           </SegmentedControl>
           <Switch label="Show weekends" size="sm" value={display.calendar.show_weekends} onChange={(checked) => apply({ calendar: { ...display.calendar, show_weekends: checked } })} />
+        </>
+      ) : null}
+      {display.layout === "gantt" ? (
+        <>
+          <SegmentedControl
+            label="Zoom"
+            size="sm"
+            value={display.gantt.zoom}
+            onChange={(value) => isGanttZoom(value) && apply({ gantt: { ...display.gantt, zoom: value } })}
+          >
+            <SegmentedControlItem value="week" label="Week" />
+            <SegmentedControlItem value="month" label="Month" />
+            <SegmentedControlItem value="quarter" label="Quarter" />
+          </SegmentedControl>
+          <Switch
+            label="Show dependencies"
+            size="sm"
+            value={display.gantt.show_relations}
+            onChange={(checked) => apply({ gantt: { ...display.gantt, show_relations: checked } })}
+          />
         </>
       ) : null}
       {hidesGrouping ? null : <Selector label="Group by" size="sm" options={groupOptions} value={display.group_by ?? NONE} onChange={changeGroup} />}
