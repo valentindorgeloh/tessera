@@ -9,7 +9,7 @@ const PROJECT = "11111111-1111-7111-8111-111111111111";
 const OTHER = "22222222-2222-7222-8222-222222222222";
 
 describe("SETTINGS_TABS", () => {
-  it("lists General, Features, States, Labels, Estimates and Agents in order", () => {
+  it("lists General, Features, States, Labels, Estimates, Agents and Automations in order", () => {
     expect(SETTINGS_TABS).toEqual([
       { key: "general", label: "General" },
       { key: "features", label: "Features" },
@@ -17,6 +17,7 @@ describe("SETTINGS_TABS", () => {
       { key: "labels", label: "Labels" },
       { key: "estimates", label: "Estimates" },
       { key: "agents", label: "Agents" },
+      { key: "automations", label: "Automations" },
     ]);
   });
 });

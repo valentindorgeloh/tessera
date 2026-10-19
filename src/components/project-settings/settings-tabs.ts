@@ -4,7 +4,7 @@
  * `/projects/<id>/settings/`. Pure and directive-free so the layout, the client
  * tabs and Vitest share it.
  */
-export type SettingsTabKey = "general" | "features" | "states" | "labels" | "estimates" | "agents";
+export type SettingsTabKey = "general" | "features" | "states" | "labels" | "estimates" | "agents" | "automations";
 
 export const SETTINGS_TABS: readonly { key: SettingsTabKey; label: string }[] = [
   { key: "general", label: "General" },
@@ -13,6 +13,7 @@ export const SETTINGS_TABS: readonly { key: SettingsTabKey; label: string }[] = 
   { key: "labels", label: "Labels" },
   { key: "estimates", label: "Estimates" },
   { key: "agents", label: "Agents" },
+  { key: "automations", label: "Automations" },
 ];
 
 /** The tab named by the path segment after `/projects/<projectId>/settings/`; null for any other path or an unknown segment. */

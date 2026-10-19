@@ -22,6 +22,7 @@ export function startScheduler(): void {
   const g = globalThis as MarkedGlobal;
   if (g[MARK]) return;
   g[MARK] = true;
+  console.log("[tessera] scheduler started");
 
   if (process.env.TESSERA_AUTOMATIONS !== "off") {
     const first = setTimeout(() => {
