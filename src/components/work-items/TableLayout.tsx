@@ -3,9 +3,10 @@
 /**
  * Table layout (docs/contracts/ui.md "Work items screen"): an Astryx Table
  * with the key column pinned, one column per property enabled in
- * `display.properties`, client-side sorting by header click (within the
- * loaded result), collapsible group sections when `display.group_by` is
- * set, resizable columns and inline edits through the ghost property
+ * `display.properties`, sorting by header click (sets `display.order_by`, so
+ * the server orders the whole filtered list; state and project have no
+ * engine order and are not sortable), collapsible group sections when
+ * `display.group_by` is set, resizable columns and inline edits through the ghost property
  * controls of ./properties. The key cell is the row's accessible open control
  * (a ghost button, as in the list layout) and is always present; a click on
  * the rest of the row opens the item as a pointer convenience, while clicks
@@ -30,19 +31,19 @@ import {
   useTableGroupedRows,
   useTableSelection,
   useTableSortable,
-  useTableSortableState,
   useTableStickyColumns,
   type TableColumn,
   type TablePlugin,
 } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
-import { PRIORITY_RANK, groupLimitKey } from "@/lib/tessera/core/group";
+import { groupLimitKey } from "@/lib/tessera/core/group";
 import type { DisplayProperties, Group, GroupBy, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { GroupFooter, GroupPoints } from "./GroupFooter";
 import { isOptimisticId } from "./optimistic";
-import { UNGROUPED_KEY } from "./paging";
+import { UNGROUPED_KEY, hasUnloaded, loadedOfTotal } from "./paging";
 import { RowProject } from "./row-project";
+import { TABLE_SORT_FIELDS, orderByFromSort, sortFromOrderBy } from "./table-sort";
 import { ActorLabel, AssigneeControl, CycleControl, DateControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, PriorityLabel, StateControl, StateLabel, isPriority, paletteTokenColor } from "./properties";
 import type { LayoutProps, ProjectBundle, UpdateWorkItemPatch } from "./types";
 
@@ -67,16 +68,6 @@ const STATE_GROUPS: ReadonlySet<string> = new Set<StateGroup>(["backlog", "unsta
 /** Id of the synthetic "no value" group (`NONE_GROUP_ID` in the engine's filters.ts). */
 const NONE_GROUP = "none";
 
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-
-/** Nulls last, otherwise ISO strings compare as text. */
-function compareNullableText(a: string | null, b: string | null): number {
-  if (a === null && b === null) return 0;
-  if (a === null) return 1;
-  if (b === null) return -1;
-  return a < b ? -1 : a > b ? 1 : 0;
-}
-
 function buildColumns(
   properties: DisplayProperties,
   bundle: ProjectBundle,
@@ -94,7 +85,6 @@ function buildColumns(
     key: "key",
     header: "Key",
     width: pixel(104),
-    sortable: true,
     renderCell: (row) =>
       pending(row) ? (
         <Text type="supporting" color="secondary">
@@ -118,7 +108,6 @@ function buildColumns(
     key: "name",
     header: "Name",
     width: proportional(2),
-    sortable: true,
     renderCell: (row) => (
       <Text weight="medium" maxLines={1}>
         {row.item.name}
@@ -131,8 +120,7 @@ function buildColumns(
       key: "project",
       header: "Project",
       width: pixel(160),
-      sortable: true,
-      renderCell: (row) => (
+        renderCell: (row) => (
         <Text maxLines={1}>{projectName.get(row.item.project_id) ?? ""}</Text>
       ),
     });
@@ -142,8 +130,7 @@ function buildColumns(
       key: "state",
       header: "State",
       width: pixel(176),
-      sortable: true,
-      renderCell: (row) => (
+        renderCell: (row) => (
         <RowProject projectId={row.item.project_id}>
           <StateControl compact readOnly={locked(row)} value={row.item.state_id} onChange={(stateId) => onUpdate(row.item.id, { state_id: stateId })} />
         </RowProject>
@@ -155,8 +142,7 @@ function buildColumns(
       key: "priority",
       header: "Priority",
       width: pixel(148),
-      sortable: true,
-      renderCell: (row) => <PriorityControl compact readOnly={locked(row)} value={row.item.priority} onChange={(priority) => onUpdate(row.item.id, { priority })} />,
+        renderCell: (row) => <PriorityControl compact readOnly={locked(row)} value={row.item.priority} onChange={(priority) => onUpdate(row.item.id, { priority })} />,
     });
   }
   if (properties.assignees) {
@@ -208,8 +194,7 @@ function buildColumns(
       key: "start_date",
       header: "Start date",
       width: pixel(156),
-      sortable: true,
-      renderCell: (row) => (
+        renderCell: (row) => (
         <DateControl compact readOnly={locked(row)} label="Start date" value={row.item.start_date} max={row.item.target_date} onChange={(date) => onUpdate(row.item.id, { start_date: date })} />
       ),
     });
@@ -219,8 +204,7 @@ function buildColumns(
       key: "target_date",
       header: "Target date",
       width: pixel(156),
-      sortable: true,
-      renderCell: (row) => (
+        renderCell: (row) => (
         <DateControl compact readOnly={locked(row)} label="Target date" value={row.item.target_date} min={row.item.start_date} onChange={(date) => onUpdate(row.item.id, { target_date: date })} />
       ),
     });
@@ -230,8 +214,7 @@ function buildColumns(
       key: "estimate",
       header: "Estimate",
       width: pixel(140),
-      sortable: true,
-      renderCell: (row) => (
+        renderCell: (row) => (
         <EstimateControl value={row.item.estimate_point_id} readOnly={locked(row)} size="sm" onChange={(estimate_point_id) => onUpdate(row.item.id, { estimate_point_id })} />
       ),
     });
@@ -241,8 +224,7 @@ function buildColumns(
       key: "created_at",
       header: "Created",
       width: pixel(128),
-      sortable: true,
-      renderCell: (row) => (
+        renderCell: (row) => (
         <Text type="supporting" color="secondary" hasTabularNumbers>
           {row.item.created_at.slice(0, 10)}
         </Text>
@@ -254,8 +236,7 @@ function buildColumns(
       key: "updated_at",
       header: "Updated",
       width: pixel(128),
-      sortable: true,
-      renderCell: (row) => (
+        renderCell: (row) => (
         <Text type="supporting" color="secondary" hasTabularNumbers>
           {row.item.updated_at.slice(0, 10)}
         </Text>
@@ -263,13 +244,6 @@ function buildColumns(
     });
   }
   return columns;
-}
-
-/** Point order in the active system; missing points sort last. */
-function estimateRank(bundle: ProjectBundle, pointId: string | null): number {
-  if (pointId === null || bundle.estimate === null) return Number.MAX_SAFE_INTEGER;
-  const index = bundle.estimate.points.findIndex((point) => point.id === pointId);
-  return index === -1 ? Number.MAX_SAFE_INTEGER : index;
 }
 
 /** Work item ids the table can select, once each when a grouped result repeats a row. */
@@ -305,7 +279,7 @@ function GroupHeading({ group, field, bundle }: { group: Group | undefined; fiel
   return <Text weight="semibold">{group.name}</Text>;
 }
 
-export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection, onLoadMore, onLoadMoreUngrouped, isLoadingMore }: LayoutProps) {
+export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection, onLoadMore, onLoadMoreUngrouped, isLoadingMore, onOrderChange }: LayoutProps) {
   const groups = useMemo(() => result.groups ?? [], [result.groups]);
   const grouped = display.group_by !== null && groups.length > 0;
 
@@ -323,26 +297,14 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
   const groupOrder = useMemo(() => groups.map((group) => group.id), [groups]);
   const groupsById = useMemo(() => new Map(groups.map((group) => [group.id, group])), [groups]);
 
-  const stateRank = useMemo(() => new Map(bundle.states.map((state, index) => [state.id, index])), [bundle.states]);
+  const columns = useMemo(() => {
+    const built = buildColumns(display.properties, bundle, showProject, onUpdate, onOpen, readOnly);
+    return onOrderChange ? built.map((column) => (column.key in TABLE_SORT_FIELDS ? { ...column, sortable: true } : column)) : built;
+  }, [bundle, display.properties, onOpen, onOrderChange, onUpdate, readOnly, showProject]);
 
-  const columns = useMemo(() => buildColumns(display.properties, bundle, showProject, onUpdate, onOpen, readOnly), [bundle, display.properties, onOpen, onUpdate, readOnly, showProject]);
-
-  const { sortedData, sortConfig } = useTableSortableState<TableRow>({
-    data: rows,
-    comparators: {
-      key: (a, b) => a.item.sequence_id - b.item.sequence_id,
-      name: (a, b) => collator.compare(a.item.name, b.item.name),
-      project: (a, b) => collator.compare(bundle.projects.find((project) => project.id === a.item.project_id)?.name ?? "", bundle.projects.find((project) => project.id === b.item.project_id)?.name ?? ""),
-      state: (a, b) => (stateRank.get(a.item.state_id) ?? Number.MAX_SAFE_INTEGER) - (stateRank.get(b.item.state_id) ?? Number.MAX_SAFE_INTEGER),
-      priority: (a, b) => PRIORITY_RANK[a.item.priority] - PRIORITY_RANK[b.item.priority],
-      estimate: (a, b) => estimateRank(bundle, a.item.estimate_point_id) - estimateRank(bundle, b.item.estimate_point_id),
-      start_date: (a, b) => compareNullableText(a.item.start_date, b.item.start_date),
-      target_date: (a, b) => compareNullableText(a.item.target_date, b.item.target_date),
-      created_at: (a, b) => compareNullableText(a.item.created_at, b.item.created_at),
-      updated_at: (a, b) => compareNullableText(a.item.updated_at, b.item.updated_at),
-    },
-  });
-  const sortPlugin = useTableSortable<TableRow>(sortConfig);
+  // The order lives in the display: a header click asks the server for it (whole list), the rows arrive already ordered.
+  const sort = useMemo(() => sortFromOrderBy(display.order_by), [display.order_by]);
+  const sortPlugin = useTableSortable<TableRow>({ sort, onSortChange: (next) => onOrderChange?.(orderByFromSort(next)), allowUnsortedState: true });
   const selectable = useMemo(() => selectableIds(rows), [rows]);
   const selectionPlugin = useTableSelection<TableRow>({
     getIsItemSelected: (row) => isDataRow(row) && (selection?.selected.has(row.item.id) ?? false),
@@ -395,7 +357,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
     [bundle, display, groupsById, isLoadingMore, onLoadMore],
   );
   const groupedRows = useTableGroupedRows<TableRow>({
-    data: sortedData,
+    data: rows,
     groupBy: (row) => row.groupKey,
     collapsedGroups: collapsed,
     onToggleGroup,
@@ -456,12 +418,22 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
     ...(grouped ? { grouped: groupedRows.plugin } : {}),
   };
 
+  // Select all reaches the loaded rows only (decision 114): say how many of the whole set that is.
+  const showLoadedNote = selection !== undefined && hasUnloaded(selectable.length, result.total);
+
   return (
     <>
+      {showLoadedNote ? (
+        <HStack paddingInline={4} paddingBlock={2} className="tessera-table-loaded-note">
+          <Text type="supporting" color="secondary" hasTabularNumbers>
+            Select all picks the loaded rows only ({loadedOfTotal(selectable.length, result.total)})
+          </Text>
+        </HStack>
+      ) : null}
       <Table<TableRow>
         className="tessera-table"
         data-list-ready=""
-        data={grouped ? groupedRows.data : sortedData}
+        data={grouped ? groupedRows.data : rows}
         columns={columns}
         idKey={grouped ? groupedRows.idKey : "id"}
         plugins={plugins}

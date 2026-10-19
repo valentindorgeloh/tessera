@@ -18,6 +18,7 @@ import type {
   BackupFileSchema,
   BackupKindSchema,
   CalendarDisplaySchema,
+  GanttDisplaySchema,
   CycleProgressSchema,
   CycleStatusSchema,
   DateFilterSchema,
@@ -169,6 +170,7 @@ export type SubGroupBy = z.infer<typeof SubGroupBySchema>;
 export type OrderBy = z.infer<typeof OrderBySchema>;
 export type DisplayProperties = z.infer<typeof DisplayPropertiesSchema>;
 export type CalendarDisplay = z.infer<typeof CalendarDisplaySchema>;
+export type GanttDisplay = z.infer<typeof GanttDisplaySchema>;
 export type Display = z.infer<typeof DisplaySchema>;
 export type ProgressCounts = z.infer<typeof ProgressCountsSchema>;
 /** ProgressCounts summed in estimate points (fractional values allowed). */

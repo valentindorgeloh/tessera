@@ -105,7 +105,7 @@ function isCalendarView(value: string): value is "month" | "week" {
  * With a null scope only the URL changes. Shared by the layout switch and the
  * display menu.
  */
-function useDisplayWriter(settingsScope: SettingsScope | null, urlState: UrlState) {
+export function useDisplayWriter(settingsScope: SettingsScope | null, urlState: UrlState) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

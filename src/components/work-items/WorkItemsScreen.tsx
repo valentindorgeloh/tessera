@@ -41,9 +41,10 @@ import { BoardLayout } from "./BoardLayout";
 import { CalendarLayout } from "./CalendarLayout";
 import { BulkBar } from "./BulkBar";
 import { CreateWorkItemDialog } from "./CreateWorkItemDialog";
-import { DisplayMenu, LayoutSwitch } from "./DisplayMenu";
+import { DisplayMenu, LayoutSwitch, useDisplayWriter } from "./DisplayMenu";
 import { FilterBar } from "./FilterBar";
 import { GanttLayout } from "./GanttLayout";
+import { hrefWithLayout, layoutFromParam, LAYOUT_PARAM } from "./layout-param";
 import { ListLayout } from "./ListLayout";
 import { toEngineMove } from "./moves";
 import { isOptimisticId, optimisticId } from "./optimistic";
@@ -160,6 +161,15 @@ export function WorkItemsScreen({
   const canCreateItems = canCreate && !readOnly;
   // A closed scope (completed or archived cycle, archived module) or an archived project ignores `?create=1`.
   const createOnOpen = canCreateItems && createRequested;
+  const { apply: applyDisplay } = useDisplayWriter(settingsScope, urlState);
+
+  // A plain `?layout=` param switches the layout: merge it into `q` and drop it (URL only). Workspace views are table-only.
+  const requestedLayout = showLayoutSwitch ? layoutFromParam(searchParams.get(LAYOUT_PARAM)) : null;
+  useEffect(() => {
+    if (requestedLayout === null) return;
+    router.replace(hrefWithLayout(pathname, searchParams.toString(), urlState, requestedLayout), { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the param only; the URL state is read when it appears
+  }, [requestedLayout]);
   // Open modules and cycles: groups of an archived module or a completed or archived cycle get no quick-add row.
   const quickAddContext: QuickAddContext = { projectId, states: bundle.states, ...openMemberships(bundle), scopeDefaults };
   const stateGroupOf: StateGroupOf = (stateId) => statesById.get(stateId)?.state_group;
@@ -324,6 +334,7 @@ export function WorkItemsScreen({
     onLoadMore: paged.loadMore,
     onLoadMoreUngrouped: paged.loadMoreUngrouped,
     isLoadingMore: paged.isLoading,
+    onOrderChange: (orderBy) => applyDisplay({ order_by: orderBy }),
   };
   // The dialog starts in the scope: `{ ...scopeDefaults, ...createDefaults }` with module ids united.
   const dialogDefaults = scopeDefaults ? withScopeDefaults(createDefaults ?? {}, scopeDefaults) : createDefaults;

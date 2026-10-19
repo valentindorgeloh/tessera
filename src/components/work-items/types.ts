@@ -10,6 +10,7 @@ import type {
   GroupBy,
   Label,
   Module,
+  OrderBy,
   Priority,
   RichFilters,
   EstimateView,
@@ -33,6 +34,11 @@ export type ProjectBundle = {
   cursor: number;
   /** Server local date at load (decision 6); `formatShortDate` reads it. */
   today: string;
+  /**
+   * The workspace's first weekday (0 Sunday … 6 Saturday) at load. The calendar and the date
+   * pickers use it for server HTML and the first paint; the settings store takes over once published.
+   */
+  week_start?: number;
   /** The active estimate system, or null while Estimates are off or none exists. */
   estimate: EstimateView | null;
   /** Open intake items, for the project tab badge. Zero while Intake is off. */
@@ -100,6 +106,8 @@ export type LayoutProps = {
   onLoadMoreUngrouped?: () => void;
   /** Which group key (`id` or `id/sub`) is fetching. */
   isLoadingMore?: (key: string) => boolean;
+  /** Table header sort: set `display.order_by` (URL and saved settings); the server re-orders the whole list. */
+  onOrderChange?: (orderBy: OrderBy) => void;
 };
 
 /** URL state carried in the `q` search param (base64url JSON). */

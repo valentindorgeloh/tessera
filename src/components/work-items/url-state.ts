@@ -18,6 +18,7 @@ import {
   DisplayPropertiesSchema,
   DisplaySchema,
   FiltersSchema,
+  GanttZoomSchema,
   GroupBySchema,
   RichFiltersSchema,
   LayoutSchema,
@@ -38,6 +39,11 @@ const CalendarDisplayPatchSchema = z.object({
   show_weekends: z.boolean().optional(),
 });
 
+const GanttDisplayPatchSchema = z.object({
+  zoom: GanttZoomSchema.optional(),
+  show_relations: z.boolean().optional(),
+});
+
 /** Sparse display patch a link may carry; every key optional, no defaults. */
 export const UrlDisplayPatchSchema = z.object({
   layout: LayoutSchema.optional(),
@@ -48,6 +54,7 @@ export const UrlDisplayPatchSchema = z.object({
   show_empty_groups: z.boolean().optional(),
   sub_items: z.boolean().optional(),
   calendar: CalendarDisplayPatchSchema.optional(),
+  gantt: GanttDisplayPatchSchema.optional(),
   properties: DisplayPropertiesPatchSchema.optional(),
 });
 
@@ -133,13 +140,15 @@ export function decodeUrlState(q?: string | null): UrlState {
     if (hasKeys(filters)) out.filters = filters;
   }
   if (parsed.data.display) {
-    const { calendar, properties, ...top } = parsed.data.display;
+    const { calendar, gantt, properties, ...top } = parsed.data.display;
     const display: Partial<Display> = compact(top);
     const calendarPatch = calendar ? compact(calendar) : undefined;
+    const ganttPatch = gantt ? compact(gantt) : undefined;
     const propertiesPatch = properties ? compact(properties) : undefined;
     // The nested patches stay sparse by contract (`Partial<Display>` cannot say so);
     // mergeDisplay merges them one level deep over the saved values.
     if (hasKeys(calendarPatch)) display.calendar = calendarPatch as Display["calendar"];
+    if (hasKeys(ganttPatch)) display.gantt = ganttPatch as Display["gantt"];
     if (hasKeys(propertiesPatch)) display.properties = propertiesPatch as Display["properties"];
     if (hasKeys(display)) out.display = display;
   }
@@ -153,14 +162,15 @@ export function decodeUrlState(q?: string | null): UrlState {
  * rest. The result is a complete, schema-valid Display.
  */
 export function mergeDisplay(defaults: Display, ...patches: (Partial<Display> | undefined)[]): Display {
-  let merged: Display = { ...defaults, calendar: { ...defaults.calendar }, properties: { ...defaults.properties } };
+  let merged: Display = { ...defaults, calendar: { ...defaults.calendar }, gantt: { ...defaults.gantt }, properties: { ...defaults.properties } };
   for (const patch of patches) {
     if (!patch) continue;
-    const { calendar, properties, ...top } = compact(patch);
+    const { calendar, gantt, properties, ...top } = compact(patch);
     merged = {
       ...merged,
       ...top,
       calendar: { ...merged.calendar, ...(calendar ? compact(calendar) : {}) },
+      gantt: { ...merged.gantt, ...(gantt ? compact(gantt) : {}) },
       properties: { ...merged.properties, ...(properties ? compact(properties) : {}) },
     };
   }

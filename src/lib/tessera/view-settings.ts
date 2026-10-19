@@ -22,6 +22,7 @@ import {
   DisplayPropertiesSchema,
   DisplaySchema,
   FiltersSchema,
+  GanttZoomSchema,
   GroupBySchema,
   LayoutSchema,
   OrderBySchema,
@@ -54,7 +55,12 @@ export const CalendarDisplayPatchSchema = z.object({
   show_weekends: z.boolean().optional().describe("Show Saturday and Sunday columns."),
 });
 
-/** Partial Display: only the given keys change; nested calendar and properties merge one level deep. */
+export const GanttDisplayPatchSchema = z.object({
+  zoom: GanttZoomSchema.optional().describe("Day width: week, month or quarter."),
+  show_relations: z.boolean().optional().describe("Draw dependency connectors between bars."),
+});
+
+/** Partial Display: only the given keys change; nested calendar, gantt and properties merge one level deep. */
 export const DisplayPatchSchema = z.object({
   layout: LayoutSchema.optional().describe("list, board, table, calendar or gantt."),
   group_by: GroupBySchema.nullable().optional().describe("Field to group by, or null for a flat list."),
@@ -64,6 +70,7 @@ export const DisplayPatchSchema = z.object({
   show_empty_groups: z.boolean().optional().describe("Keep groups with no items visible."),
   sub_items: z.boolean().optional().describe("Show sub-items in the list."),
   calendar: CalendarDisplayPatchSchema.optional().describe("Calendar layout options."),
+  gantt: GanttDisplayPatchSchema.optional().describe("Gantt layout options."),
   properties: DisplayPropertiesPatchSchema.optional().describe("Which properties each item shows."),
 });
 
@@ -82,16 +89,17 @@ function definedEntries<T extends object>(patch: T): Partial<T> {
 }
 
 /**
- * `patch` over `base`; calendar and properties merge one level deep. The result
+ * `patch` over `base`; calendar, gantt and properties merge one level deep. The result
  * is a complete Display whose `sub_group_by` is null when there is no
  * `group_by` or it equals `group_by` (a swimlane axis needs a different column axis).
  */
 export function mergeDisplay(base: Display, patch: DisplayPatch): Display {
-  const { calendar, properties, ...top } = patch;
+  const { calendar, gantt, properties, ...top } = patch;
   const merged = DisplaySchema.parse({
     ...base,
     ...definedEntries(top),
     calendar: { ...base.calendar, ...definedEntries(calendar ?? {}) },
+    gantt: { ...base.gantt, ...definedEntries(gantt ?? {}) },
     properties: { ...base.properties, ...definedEntries(properties ?? {}) },
   });
   if (merged.sub_group_by !== null && (merged.group_by === null || merged.group_by === merged.sub_group_by)) {

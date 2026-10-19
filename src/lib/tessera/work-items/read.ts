@@ -17,6 +17,7 @@ import { ENTITY, type WorkItem, type WorkItemDetail, type WorkItemListResult, ge
 import { hydrate, itemQuery, listLinks, listSubscriberIds, loadWorkItem } from "./hydrate";
 import { findMovedWorkItemId } from "./moved-keys";
 import { listGroupPage, planGroupPaging } from "./paging";
+import { withTimeline } from "./timeline";
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -119,6 +120,14 @@ export const ListWorkItemsInput = z
       .refine((window) => window.from <= window.to, { message: "calendar_window.from must not be after to" })
       .optional()
       .describe("Calendar period YYYY-MM-DD..YYYY-MM-DD (inclusive): keeps items whose target date falls inside it plus the items with no target date (the Unscheduled bucket)."),
+    include_relations: z
+      .boolean()
+      .optional()
+      .describe("Add relations: { from_id, to_id, type }[] in canonical direction (from_id <type> to_id) with one end among the returned items and the other end inside the filtered set (the gantt connectors)."),
+    include_date_range: z
+      .boolean()
+      .optional()
+      .describe("Add date_range: { start, end } with the earliest and latest start or target date of the whole filtered set (null when no item has a date), whichever page is returned."),
   })
   .strict();
 
@@ -180,10 +189,10 @@ function resolveScope(ctx: TesseraContext, data: z.output<typeof ListWorkItemsIn
         .where(and(eq(cycle.id, scope.cycle_id), isNull(cycle.deleted_at)))
         .get();
       if (!row) throw notFound("cycle", scope.cycle_id);
-      // The project predicate is redundant (a cycle holds its own project's items) but lets SQLite use work_item_project_cycle_idx (decision 126).
+      // Filter by cycle_id alone using migration 0010 index work_item_cycle_idx (decision 126).
       return {
         ...base,
-        where: and(eq(work_item.project_id, row.project_id), eq(work_item.cycle_id, scope.cycle_id)),
+        where: eq(work_item.cycle_id, scope.cycle_id),
         project_ids: [row.project_id],
         project_id: row.project_id,
       };
@@ -264,7 +273,7 @@ export function listWorkItems(ctx: TesseraContext, input: ListWorkItemsInputType
   const where = and(scope.where, buildWhere(ctx, filters, { project_id: scope.project_id }), rich, windowed);
   // Group paging (decisions 112, 113): exact counts over the whole filtered set, a page per group.
   const plan = planGroupPaging(data, scope.display);
-  if (plan !== null) return listGroupPage(ctx, { where, display: scope.display, project_ids: scope.project_ids, plan });
+  if (plan !== null) return withTimeline(ctx, listGroupPage(ctx, { where, display: scope.display, project_ids: scope.project_ids, plan }), where, data);
   const total =
     ctx.db
       .select({ n: count() })
@@ -281,5 +290,5 @@ export function listWorkItems(ctx: TesseraContext, input: ListWorkItemsInputType
   const result: WorkItemListResult = { items, total, cursor: latestSeq(ctx) };
   if (data.limit !== undefined || data.offset !== undefined) result.has_more = (data.offset ?? 0) + items.length < total;
   if (scope.display.group_by !== null) result.groups = groupItems(ctx, items, scope.display, { project_ids: scope.project_ids });
-  return result;
+  return withTimeline(ctx, result, where, data);
 }

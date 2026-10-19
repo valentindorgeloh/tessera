@@ -25,15 +25,7 @@ export const ModuleStatusSchema = z.enum(["backlog", "planned", "in_progress", "
 /** Derived from dates; never stored. */
 export const CycleStatusSchema = z.enum(["current", "upcoming", "completed", "draft"]);
 
-/** Canonical relation types; inverses (blocking, start_after, ...) are computed at read time. */
-export const RelationTypeSchema = z.enum([
-  "blocked_by",
-  "relates_to",
-  "duplicate",
-  "start_before",
-  "finish_before",
-  "implemented_by",
-]);
+export const RelationTypeSchema = z.enum(["blocked_by", "relates_to", "duplicate", "start_before", "finish_before", "implemented_by"]);
 
 export const IntakeStatusSchema = z.enum(["pending", "declined", "snoozed", "accepted", "duplicate"]);
 export const IntakeSourceSchema = z.enum(["in_app", "assistant", "mcp"]);
@@ -77,18 +69,7 @@ export const AnalyticsTabSchema = z.enum(["overview", "work-items", "cycles", "m
 
 export const AnalyticsRangeSchema = z.enum(["7d", "30d", "90d", "365d"]);
 
-export const AnalyticsDimensionSchema = z.enum([
-  "state_group",
-  "state",
-  "priority",
-  "assignee",
-  "label",
-  "cycle",
-  "module",
-  "project",
-  "created_by",
-  "target_week",
-]);
+export const AnalyticsDimensionSchema = z.enum(["state_group", "state", "priority", "assignee", "label", "cycle", "module", "project", "created_by", "target_week"]);
 
 export const AnalyticsMeasureSchema = z.enum(["count", "points"]);
 
@@ -241,6 +222,7 @@ export const GroupBySchema = z.enum(GROUPABLE_FIELDS);
 export const SubGroupBySchema = z.enum(["state", "state_group", "priority", "labels", "cycle", "module", "assignees", "created_by", "created_at", "target_date"]);
 export const OrderBySchema = z.enum(ORDER_BY_VALUES);
 export const CalendarLayoutSchema = z.enum(["month", "week"]);
+export const GanttZoomSchema = z.enum(["week", "month", "quarter"]);
 
 /** Which columns and badges a layout shows. */
 export const DisplayPropertiesSchema = z.object({
@@ -265,6 +247,12 @@ export const CalendarDisplaySchema = z.object({
   show_weekends: z.boolean().default(true).describe("Show Saturday and Sunday columns."),
 });
 
+/** Gantt options (decision 91): the zoom and whether dependency connectors are drawn. */
+export const GanttDisplaySchema = z.object({
+  zoom: GanttZoomSchema.default("month").describe("Day width: week (day headers), month (week headers) or quarter (month headers)."),
+  show_relations: z.boolean().default(true).describe("Draw dependency connectors between bars."),
+});
+
 /** Layout, grouping, ordering and visible properties of a list (saved per view and per scope). */
 export const DisplaySchema = z.object({
   layout: LayoutSchema.default("list").describe("list, board, table, calendar or gantt."),
@@ -275,6 +263,7 @@ export const DisplaySchema = z.object({
   show_empty_groups: z.boolean().default(true).describe("Keep groups with no items visible."),
   sub_items: z.boolean().default(true).describe("Show sub-items in the list."),
   calendar: CalendarDisplaySchema.default({ layout: "month", show_weekends: true }).describe("Calendar layout options."),
+  gantt: GanttDisplaySchema.default({ zoom: "month", show_relations: true }).describe("Gantt layout options."),
   properties: DisplayPropertiesSchema.default(() => DisplayPropertiesSchema.parse({})).describe("Which properties each item shows."),
 });
 

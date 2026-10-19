@@ -6,6 +6,7 @@ import { formatKey } from "../core/keys";
 import { deriveCycleStatus } from "../cycles";
 import { actor, cycle, estimate, estimate_point, label, moduleTable, project, state, work_item } from "../db/schema";
 import { type Group } from "../filters";
+import type { DateRange, ListRelation } from "./timeline";
 import { getProjectRow } from "../projects";
 import type { CycleRow, IntakeStatus, LabelRow, ModuleRow, ProjectRow, StateRow, WorkItemLinkRow, WorkItemRow } from "../types";
 
@@ -48,7 +49,14 @@ export type ListResult<T> = {
  * flag on the result is true when any group (or, with `limit`, the flat list)
  * has more rows than were returned.
  */
-export type WorkItemListResult = ListResult<WorkItem> & { groups?: Group[]; has_more?: boolean };
+export type WorkItemListResult = ListResult<WorkItem> & {
+  groups?: Group[];
+  has_more?: boolean;
+  /** With `include_relations` (the gantt): relations with an end among `items` and the other end in the filtered set. */
+  relations?: ListRelation[];
+  /** With `include_date_range` (the gantt): the dates of the whole filtered set, whatever page `items` holds. */
+  date_range?: DateRange;
+};
 
 export const WORK_ITEM_NAME = z.string().trim().min(1).max(255);
 export const DESCRIPTION = z.string().max(1_000_000);

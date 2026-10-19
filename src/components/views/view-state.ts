@@ -4,6 +4,7 @@
  * imply and the one-line summary of a view row. Directive-free and client-safe
  * (types only from the engine), so Vitest covers it (tests/ui/view-state.test.ts).
  */
+import { countRichConditions } from "@/lib/tessera/schemas";
 import type { Display, Filters, Layout, RichFilters, View } from "@/lib/tessera/types";
 import { GROUP_LABELS } from "@/components/work-items/display-options";
 import type { ScopeDefaults } from "@/components/work-items/types";
@@ -64,11 +65,11 @@ export function viewScopeDefaults(filters: Filters): ScopeDefaults {
   return defaults;
 }
 
-/** "Board · grouped by State · 2 filters" for a row without a description. */
-export function viewSummary(view: Pick<View, "filters" | "display">): string {
+/** "Board · grouped by State · 2 filters" for a row without a description. Each rich filter condition counts as one filter. */
+export function viewSummary(view: Pick<View, "filters" | "display"> & { rich_filters?: RichFilters | null }): string {
   const parts: string[] = [LAYOUT_LABELS[view.display.layout]];
   if (view.display.group_by) parts.push(`grouped by ${GROUP_LABELS[view.display.group_by]}`);
-  const count = Object.keys(normalizeFilters(view.filters)).length;
+  const count = Object.keys(normalizeFilters(view.filters)).length + (view.rich_filters ? countRichConditions(view.rich_filters) : 0);
   parts.push(count === 0 ? "no filters" : count === 1 ? "1 filter" : `${count} filters`);
   return parts.join(" · ");
 }

@@ -75,6 +75,13 @@ describe("viewSummary", () => {
     expect(viewSummary({ filters: { labels: [A] }, display: { ...DEFAULT_DISPLAY, layout: "table", group_by: "labels" } })).toBe("Table · grouped by Labels · 1 filter");
   });
 
+  it("counts rich filter conditions too", () => {
+    const rich = { and: [{ field: "priority" as const, op: "eq" as const, value: "high" }, { not: { field: "state" as const, op: "in" as const, value: [A] } }] };
+    expect(viewSummary({ filters: {}, display: DEFAULT_DISPLAY, rich_filters: rich })).toBe("List · 2 filters");
+    expect(viewSummary({ filters: { labels: [A] }, display: DEFAULT_DISPLAY, rich_filters: { field: "priority", op: "eq", value: "high" } })).toBe("List · 2 filters");
+    expect(viewSummary({ filters: {}, display: DEFAULT_DISPLAY, rich_filters: null })).toBe("List · no filters");
+  });
+
   it("does not count empty filter keys", () => {
     expect(viewSummary({ filters: { labels: [], search: "" }, display: DEFAULT_DISPLAY })).toBe("List · no filters");
   });
