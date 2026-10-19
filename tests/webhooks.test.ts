@@ -3,7 +3,9 @@
  * 410 deactivation, no webhook.* loops, user-only writes, and a delivery
  * failure that does not roll back a work-item change.
  */
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { createServer, type IncomingMessage } from "node:http";
+import type { AddressInfo } from "node:net";
 import { describe, expect, it } from "vitest";
 import { ASSISTANT_ACTOR_ID, registerActor } from "@/lib/tessera/actors";
 import { createContext } from "@/lib/tessera/core/context";
@@ -23,6 +25,15 @@ import {
   testWebhook,
 } from "@/lib/tessera/webhooks";
 import { createTestContext, createTestDb } from "./helpers/db";
+
+function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    req.on("error", reject);
+  });
+}
 
 describe("matchesEvent", () => {
   it("matches *, entity.*, exact verbs and ping", () => {
@@ -205,6 +216,61 @@ describe("webhooks", () => {
     expect(delivery.next_attempt_at).not.toBeNull();
     expect(delivery.next_attempt_at! >= before).toBe(true);
     expect(delivery.next_attempt_at! <= ctx.now()).toBe(true);
+  });
+
+  it("delivers a signed work_item.updated POST to a live local echo", async () => {
+    const received: Array<{ event: string; signature: string; timestamp: string; body: string }> = [];
+    const server = createServer((req, res) => {
+      void (async () => {
+        const body = await readBody(req);
+        received.push({
+          event: String(req.headers["x-tessera-event"] ?? ""),
+          signature: String(req.headers["x-tessera-signature"] ?? ""),
+          timestamp: String(req.headers["x-tessera-timestamp"] ?? ""),
+          body,
+        });
+        res.writeHead(200, { "content-type": "text/plain" });
+        res.end("ok");
+      })();
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const { port } = server.address() as AddressInfo;
+
+    try {
+      const ctx = createTestContext(createTestDb());
+      const project = createProject(ctx, { name: "Web", identifier: "WEB" });
+      const hook = createWebhook(ctx, {
+        name: "Live echo",
+        url: `http://127.0.0.1:${port}/hook`,
+        events: ["work_item.*"],
+      });
+      const item = createWorkItem(ctx, { project_id: project.id, name: "Echo me" });
+      updateWorkItem(ctx, item.id, { name: "Echoed" });
+      // work_item.* matches both created and updated.
+      expect(enqueueDeliveries(ctx, ctx.now())).toBe(2);
+
+      const result = await sendDueDeliveries(ctx, ctx.now(), fetch);
+      expect(result).toEqual({ sent: 2, delivered: 2, failed: 0 });
+      const deliveries = listWebhookDeliveries(ctx, { webhook_id: hook.id });
+      expect(deliveries.every((row) => row.status === "delivered" && row.response_status === 200)).toBe(true);
+
+      expect(received).toHaveLength(2);
+      for (const hit of received) {
+        expect(hit.signature.startsWith("sha256=")).toBe(true);
+        const expected = signPayload(hook.secret!, hit.timestamp, hit.body);
+        const left = Buffer.from(hit.signature);
+        const right = Buffer.from(expected);
+        expect(left.length).toBe(right.length);
+        expect(timingSafeEqual(left, right)).toBe(true);
+      }
+      const updated = received.find((hit) => hit.event === "work_item.updated");
+      expect(updated).toBeDefined();
+      const payload = JSON.parse(updated!.body) as { event: string; new_value: string | null };
+      expect(payload.event).toBe("work_item.updated");
+      expect(payload.new_value).toBe("Echoed");
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+    }
   });
 
   it("refuses create_webhook for a non-user actor and hides the secret from agents", async () => {
