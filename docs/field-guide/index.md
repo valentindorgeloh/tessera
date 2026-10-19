@@ -27,6 +27,7 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 - File budget: 600 lines. Do not grow files listed in scripts/file-budget.json (cycles.ts, db/schema.ts, modules.ts after the P4 split; registry and work-items are folders). The convention gate fails on growth or on a new file over 600 lines. Lower the json when you shrink one.
 
 ## Astryx and theme
+- Convention `css-token`: `var(--…)` names must exist in Astryx or somewhere under `src` (a def anywhere silences every file); `--font-body` and `--font-code` are exempt. See `scripts/convention-rules.ts`.
 - No raw <div>/<span>, hex or xstyle. Layout uses className + tokens in src/components/styles/<area>.css. Icons come only from src/themes/catppuccin/icons.tsx.
 - No Astryx Toolbar in panel headers: its roving tabindex steals arrow keys. Use PanelHeader/PanelBar (src/components/shell/PanelHeader.tsx).
 - Panel rows use a 16px inline inset (paddingInline={4}). Header controls are size sm. A screen inside the project frame adds no second title row.

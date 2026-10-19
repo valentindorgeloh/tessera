@@ -3,7 +3,7 @@
 Backlog collected on 2026-10-18 after P11 landed (HEAD 408a624): a production smoke test, the P10 browser acceptance, a Sonnet review of paging and perf, and Mistral's audit. "Open" items were seen at the commit named in their section; re-check each one before working on it. A Sonnet audit across all areas was planned but not run (budget).
 
 **Last analyzed**: 2026-10-18 by Mistral Vibe - Added UI/UX findings from user report.
-**Last updated**: 2026-10-18 by Mistral Vibe - Applied fixes from Plane.so comparison analysis.
+**Last updated**: 2026-10-19 — closed a batch of optional P10/P11 leftovers (automations tab, bulk transfer, rich-filter labels, layout param, cycle index, week_start first paint, docs honesty); see "Closed 2026-10-19" below.
 
 ## Fixed in the second round on 2026-10-18 (uncommitted until the root planner commits)
 
@@ -127,37 +127,45 @@ Corrections to Mistral's sections below (the code contradicts them): `LockContro
 - P10 engine proofs: gantt drag writes both dates in one update; CSV/JSON export is spreadsheet-ready (BOM, CRLF, RFC 4180, formula guard); webhooks sign with HMAC-SHA256, retry on 500 and deactivate on 410; agents cannot manage webhooks.
 - All five AI routes use the loopback guard; AI tests use a fake client.
 
+## Closed 2026-10-19 (optional leftovers + dirty WIP)
+
+- Automations project settings tab: Run now, Due now, Last run (`AutomationsSettings`, `/settings/automations`).
+- Bulk Copy/Move to project: `bulk_transfer_work_items` + `BulkTransferDialog` on the BulkBar (decision 107).
+- Rich filter dialog: field/op/value labels (`rich-filter-labels.ts`); over-deep trees and views-list copy still open.
+- `?layout=list|board|table|calendar|gantt` merges into the `q` display blob (`layout-param.ts`).
+- Cycle-scope partial index `work_item_cycle_idx` (`drizzle/0010_cycle_scope_idx.sql`); query-plan tests updated.
+- Scheduler start log: `console.log("[tessera] scheduler started")`.
+- Week-start first paint: publisher moved out of the paused mobile sidebar; `useWeekStart(bundle.week_start)` on the calendar.
+- Docs: PLAN decision 29 (moved keys) + escaped pipes on 33; `docs/as-built/ai.md`; field guide `css-token` note; PLAN-STATUS leftover row.
+- Group headers "N pts": already wired via `GroupPoints` on list/board/table (stale open note).
+- Playwright Chromium smoke: runnable and green (see PLAN-STATUS P11 hand-off; no longer "never downloaded").
+
 ## Open, from the P10 browser acceptance (at 08e5118, Sonnet, full report in this session)
-- Plan items not built (p10-plan §9 steps): gantt zoom Week/Month/Quarter and gantt options in Display (5); dependency connectors, conflict state and "Show dependencies" (7); Modules list Timeline (10); project Settings "Automations" tab with Run now / Due now / Last run (13); bulk Copy/Move to project (21); group headers "N pts" (22; the engine now returns Group.estimate_points on paged lists, the UI does not show it); page Outline and an Activity tab in page history (15); Analytics "Data table" CSV download (16); drag reorder beyond sidebar, favourites, board and calendar: views list, states, labels, wiki tree, stickies, quick links, Home widgets (20); a scheduler start log line (23).
-- **Calendar UI: Date popover uses Sunday-first while main calendar uses Monday-first** (from user report) - the main calendar, its server window and the settings screen follow the workspace `week_start` (see "Fixed in the second round"). Still open: the Astryx DateInput popover calendar ignores the setting (see "DateInput Component Week Start" below).
-- Rich filter dialog: the value input is a raw text box needing ids and raw operator names; over-deep trees show raw JSON; views list says "List · no filters" for rich-only views. (The MCP error now names the JSON path, see "Fixed in the second round".)
+- Plan items not built (p10-plan §9 steps): gantt zoom Week/Month/Quarter and gantt options in Display (5); dependency connectors, conflict state and "Show dependencies" (7); Modules list Timeline (10); page Outline and an Activity tab in page history (15); Analytics "Data table" CSV download (16); drag reorder beyond sidebar, favourites, board and calendar: views list, states, labels, wiki tree, stickies, quick links, Home widgets (20). Closed this round: Automations tab (13), bulk Copy/Move (21), "N pts" (22), scheduler start log (23).
+- **Calendar UI: Date popover uses Sunday-first while main calendar uses Monday-first** (from user report) - the main calendar, its server window and the settings screen follow the workspace `week_start`. Still open: the Astryx DateInput popover calendar ignores the setting (see "DateInput Component Week Start" below).
+- Rich filter dialog: over-deep trees still show raw JSON; views list still says "List · no filters" for rich-only views. Value/op labels shipped 2026-10-19.
 - Accessibility: Set-dates popover calendar has no tab stop when today is before min; date popover calendar is Sunday-first while the app calendar follows `week_start`; Switch inputs lack accessible names (source shows each Switch has a wired label, so this needs a check of the real DOM in a browser); the webhook secret input name was not reproduced (Astryx names it from `label`); Export Delete showing its toast twice has no found root cause (defensive guard added, needs a browser check).
 - 375 px: project tab strip truncates ("Work it…"), the Today label truncates, calendar chips wrap.
-- The automation lease (two concurrent runs) was not exercised.
+- The automation lease (two concurrent runs) was not exercised. Webhook echo walk closed in `5442c6f`.
 
 ## Open, from the paging/perf review (Sonnet, confirmed by a refuter)
-- Cycle-scope list and counts filter `work_item.cycle_id = ?` without a matching index; the list now uses work_item_project_cycle_idx, but cycle progress/counts may not. The workspace list scope keeps 2 bare `SCAN work_item` pinned in tests/perf/query-plans.test.ts; decision 126 says that should fail. Either add indexes or record the exception in decision 126.
+- Cycle-scope `work_item.cycle_id` partial index landed (`0010`); re-check cycle progress/counts plans if they still SCAN. The workspace list scope keeps 2 bare `SCAN work_item` pinned in tests/perf/query-plans.test.ts; decision 126 says that should fail. Either add indexes or record the exception in decision 126.
 - Labels group projection is close to budget because every group's first page is hydrated (about 40 label groups × 50 rows); a smaller first page for multi-valued groupings or a SQL GROUP BY path is the fallback in the plan's risk table.
 - The table's select-all checkbox has no "N loaded of M" text; it is only in the BulkBar note (decision 114).
-- Gantt timeline range is computed from loaded items only, so loading more rows can shift bars; table header sort is client-side over loaded rows only.
+- Gantt timeline range is computed from loaded items only, so loading more rows can shift bars; table header sort is still client-side over loaded rows (sort helper extracted; server order_by unchanged).
 - Cache lane (decisions 109–111, `src/app/_cache/`, revision-keyed `'use cache'`) was skipped on purpose; decide whether to drop the decisions or schedule it.
-- Playwright suite: config, specs and `@playwright/test` 1.63.0 are in, but Chromium was never downloaded (needs the user's approval, about 150 MB), so the suite has never run and is not part of `npm run check`.
 
 ## Open, left by the second round (2026-10-18)
 - Failed lock shows "Unlocked": when `lock_page` fails, the optimistic `true` is dropped, `isLocked` goes true to false and `nextLockFeedback` returns "unlocked" next to the error toast (`src/components/shared/LockControl.tsx`). Whether the optimistic value holds until the refreshed tree arrives (no flicker) needs a browser run.
 - Lock animation timing and the `animationend` reset were never seen on screen (no browser this round).
-- First calendar paint for a Sunday-first workspace: the settings store defaults to Monday on the server snapshot and is published from the streamed sidebar, so the grid may paint Monday-first once before it re-renders (`workspace-settings-store.tsx`). Passing `week_start` from the loader to `CalendarLayout` would remove it.
-- `css-token` rule is lenient: a token defined anywhere in `src` silences the rule for every file, and `--font-body` and `--font-code` are exempt. It is not yet described in docs/process or the field guide.
-- `docs/PLAN.md` decision 29 row could mention moved keys; row 33 has 4 unescaped pipes and breaks its table.
+- `css-token` rule is lenient: a token defined anywhere in `src` silences the rule for every file, and `--font-body` and `--font-code` are exempt (now noted in the field guide).
 
 ## Open, from earlier checks
-- docs/PLAN-STATUS.md: re-check every phase row against reality (P5's row said "not started" although the assistant is built; check what Cursor wrote at 4ead15f).
 - P5 live acceptance with the real model never ran (needs the user's approval: about $1–3 of API usage per run). TESSERA_AI_FAKE / recorded turns (decision 124) may allow a no-cost browser pass.
-- docs/as-built/ describes P1–P3 plus the rework (HEAD 257798c); P4–P11 are not mapped.
+- docs/as-built/: P5 assistant map added (`ai.md`); P4 and P6–P11 still not mapped.
 - A stale git worktree sits at .claude/worktrees/app-visual-rework-250c6c (branch claude/app-visual-rework-250c6c, ad30062, already merged); it once made `npm run lint` red.
 - `npm run perf:bench` prints "500+ in PERF" because it caps its id sample; cosmetic.
 - Rework issues from 2026-10-16, never re-checked: two h1 elements on the work item detail page; at 375 px the tab strip has no scroll cue; a board column is 25 px too wide at 375; the drawer search placeholder is cut off; the burnup "Scope" label overlaps its line; an unknown cycle id is recorded in recents; the archived project list is not read-only.
-- `?layout=gantt` in a project work-items URL does not switch the layout (the display lives in the `q` blob); check whether a plain layout param is meant to work.
 
 ## Browser Testing Required
 
