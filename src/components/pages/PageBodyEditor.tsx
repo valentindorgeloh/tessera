@@ -17,7 +17,7 @@
  * `/pages/<id>` (a project page redirects from that route). A `work:` link
  * opens `/browse/<key>` because a page screen does not mount a peek host.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
@@ -38,6 +38,8 @@ export type PageBodyEditorProps = {
   /** Scope of the `#` work-item search. Null on a wiki page. */
   projectId?: string | null;
   mentionActors?: readonly { id: string; name: string }[];
+  /** DOM root for the page Outline (headings live under the editor). */
+  bodyRef?: RefObject<HTMLDivElement | null>;
 };
 
 type SaveStatus = "clean" | "dirty" | "saving" | "conflict" | "error";
@@ -80,7 +82,7 @@ function conflictVersion(details: unknown): number | null {
   return typeof current === "number" ? current : null;
 }
 
-export function PageBodyEditor({ pageId, text, version, readOnly = false, projectId = null, mentionActors = [] }: PageBodyEditorProps) {
+export function PageBodyEditor({ pageId, text, version, readOnly = false, projectId = null, mentionActors = [], bodyRef }: PageBodyEditorProps) {
   const toast = useToast();
   const router = useRouter();
   const editor = useRef<MarkdownEditorHandle | null>(null);
@@ -359,7 +361,7 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
   }
 
   return (
-    <VStack gap={2} className="tessera-page-body">
+    <VStack ref={bodyRef} gap={2} className="tessera-page-body">
       {banner}
       <MarkdownEditor
         key={pageId}

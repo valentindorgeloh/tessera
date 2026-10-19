@@ -274,7 +274,8 @@ function CalendarItem({
   onUpdate: LayoutProps["onUpdate"];
 }) {
   const bundles = useBundles();
-  const { statesById } = useProject();
+  const { bundle, statesById } = useProject();
+  const weekStartsOn = useWeekStart(bundle.week_start);
   const state = bundles?.[item.project_id]?.states.find((entry) => entry.id === item.state_id) ?? statesById.get(item.state_id);
   const [moveOpen, setMoveOpen] = useState(false);
   const open = () => {
@@ -322,6 +323,8 @@ function CalendarItem({
                 format="date"
                 hasClear
                 value={asIsoDate(item.target_date)}
+                weekStartsOn={weekStartsOn}
+                presentation="popover"
                 onChange={(next) => {
                   setMoveOpen(false);
                   if (!next) {

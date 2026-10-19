@@ -5,6 +5,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { DateInput } from "@astryxdesign/core/DateInput";
 import { Popover } from "@astryxdesign/core/Popover";
 import { VStack } from "@astryxdesign/core/Stack";
+import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import { CalendarIcon } from "@/themes/catppuccin/icons";
 import { useProject } from "../project-provider";
 import { formatShortDate } from "./date-format";
@@ -41,6 +42,7 @@ function asIsoDate(value: string | null | undefined): IsoDate {
 export function DateControl({ value, onChange, compact = false, readOnly = false, label = "Date", min, max }: DateControlProps) {
   const [isOpen, setOpen] = useState(false);
   const { bundle } = useProject();
+  const weekStartsOn = useWeekStart(bundle.week_start);
   const picker = (
     <DateInput
       label={label}
@@ -57,6 +59,8 @@ export function DateControl({ value, onChange, compact = false, readOnly = false
       placeholder={label}
       min={asIsoDate(min)}
       max={asIsoDate(max)}
+      weekStartsOn={weekStartsOn}
+      presentation="popover"
     />
   );
   if (!compact) return picker;

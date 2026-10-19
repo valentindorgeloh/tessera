@@ -13,7 +13,9 @@ import { LayoutPanel } from "@astryxdesign/core/Layout";
 import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";
 import { VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
+import { useProject } from "@/components/work-items/project-provider";
 import { AssigneeControl } from "@/components/work-items/properties/AssigneeControl";
+import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import type { ModuleDetail } from "@/lib/tessera/types";
 import { CalendarIcon, TargetIcon, UserIcon, UsersIcon } from "@/themes/catppuccin/icons";
 import { LeadControl } from "./LeadControl";
@@ -41,6 +43,8 @@ function asIsoDate(value: string | null): IsoDate {
 export function ModuleSidePanel({ module, writer, readOnly: projectReadOnly = false }: ModuleSidePanelProps) {
   const readOnly = projectReadOnly || module.archived_at !== null;
   const { progress } = module;
+  const { bundle } = useProject();
+  const weekStartsOn = useWeekStart(bundle.week_start);
   return (
     <LayoutPanel width={360} hasDivider padding={4} isScrollable label="Module details" role="complementary" className="tessera-planning-side-panel">
       <VStack gap={6}>
@@ -69,6 +73,8 @@ export function ModuleSidePanel({ module, writer, readOnly: projectReadOnly = fa
               hasClear
               format="date"
               placeholder="No start date"
+              weekStartsOn={weekStartsOn}
+              presentation="popover"
             />
           </MetadataListItem>
           <MetadataListItem label="Target date" icon={<TargetIcon />}>
@@ -84,6 +90,8 @@ export function ModuleSidePanel({ module, writer, readOnly: projectReadOnly = fa
               hasClear
               format="date"
               placeholder="No target date"
+              weekStartsOn={weekStartsOn}
+              presentation="popover"
             />
           </MetadataListItem>
         </MetadataList>

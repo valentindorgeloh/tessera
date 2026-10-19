@@ -32,6 +32,7 @@ import {
   Kanban,
   List,
   ListBullets,
+  ListDashes,
   MagnifyingGlass,
   Microphone,
   Plus,
@@ -174,6 +175,7 @@ export const SearchIcon = duotoneIcon(MagnifyingGlass);
 export const HouseIcon = duotoneIcon(House);
 export const KanbanIcon = duotoneIcon(Kanban);
 export const ListBulletsIcon = duotoneIcon(ListBullets);
+export const OutlineIcon = duotoneIcon(ListDashes);
 export const SquaresFourIcon = duotoneIcon(SquaresFour);
 export const CompassIcon = duotoneIcon(Compass);
 export const WarningIcon = duotoneIcon(Warning);

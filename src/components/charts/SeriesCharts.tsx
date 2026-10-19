@@ -11,7 +11,7 @@ import { Table } from "@astryxdesign/core/Table";
 import type { AnalyticsBucket, AnalyticsMeasure, AnalyticsSegmentKey, TrendPoint } from "@/components/analytics/types";
 import { formatShortDate } from "@/components/work-items/properties/date-format";
 import { formatCount } from "./analytics-format";
-import { ChartFrame, ChartLegend, type LegendEntry } from "./ChartFrame";
+import { ChartFrame, ChartLegend, type ChartCsv, type LegendEntry } from "./ChartFrame";
 import { CATEGORICAL_TOKENS, CHART_CHROME, TREND_COMPLETED_DASH, TREND_COMPLETED_TOKEN, TREND_CREATED_TOKEN, categoricalToken, useTokenColor } from "./chart-colors";
 import { paletteToken } from "./palette-colors";
 
@@ -97,6 +97,18 @@ export function BarSeriesChart({ title, summary, buckets, segments, layout = "ho
     for (const segment of segments) row[segment.key] = formatCount(bucket.segments[segment.key] ?? 0);
     return row;
   });
+  const csv: ChartCsv = {
+    fileStem: `analytics-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "chart"}`,
+    header: columns.map((column) => column.header),
+    rows: shown.map((bucket) => {
+      const cells: (string | number | null)[] = [bucket.label];
+      if (segmented) {
+        for (const segment of segments) cells.push(bucket.segments[segment.key] ?? 0);
+      }
+      cells.push(bucket.total);
+      return cells;
+    }),
+  };
 
   const chart = (
     <BarChart data={data} layout={layout} responsive style={{ width: "100%", height }} accessibilityLayer={false} margin={MARGIN}>
@@ -138,6 +150,7 @@ export function BarSeriesChart({ title, summary, buckets, segments, layout = "ho
       chart={chart}
       legend={<ChartLegend entries={legend} />}
       table={<Table<TableRow> density="compact" idKey="key" data={rows} columns={columns} />}
+      csv={csv}
     />
   );
 }
@@ -184,6 +197,11 @@ export function TrendChart({ title = "Created vs completed", summary, points, to
       />
     </AreaChart>
   );
+  const csv: ChartCsv = {
+    fileStem: "analytics-created-vs-completed",
+    header: ["Date", "Created", "Completed"],
+    rows: points.map((point) => [point.date, point.created, point.completed]),
+  };
   return (
     <ChartFrame
       title={title}
@@ -210,6 +228,7 @@ export function TrendChart({ title = "Created vs completed", summary, points, to
           ]}
         />
       }
+      csv={csv}
     />
   );
 }

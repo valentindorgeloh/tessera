@@ -35,6 +35,10 @@
   min-width: 0;
 }
 
+.tessera-page-outline {
+  min-width: 0;
+}
+
 /* Title: a heading with an edit button until either is clicked, then a large input. */
 .tessera-page-title-row {
   min-width: 0;

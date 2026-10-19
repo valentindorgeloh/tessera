@@ -28,7 +28,9 @@ import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
 import { createModuleAction, setModuleMembersAction, updateModuleAction } from "@/app/actions/modules";
+import { useProject } from "@/components/work-items/project-provider";
 import { AssigneeControl } from "@/components/work-items/properties/AssigneeControl";
+import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import type { Module, ModuleStatus } from "@/lib/tessera/types";
 import { LeadControl } from "./LeadControl";
 import {
@@ -133,6 +135,8 @@ function initialValues(module: EditableModule | undefined): ModuleFormValues {
 function ModuleForm({ projectId, onOpenChange, module }: Omit<ModuleDialogProps, "isOpen">) {
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
+  const { bundle } = useProject();
+  const weekStartsOn = useWeekStart(bundle.week_start);
   // The values this session opened with: a save sends only what the person changed against them, so a
   // change made elsewhere while the dialog is open (another tab, an agent) survives untouched fields.
   const [baseline] = useState(() => ({ values: initialValues(module), members: module?.member_ids ?? [] }));
@@ -256,6 +260,8 @@ function ModuleForm({ projectId, onOpenChange, module }: Omit<ModuleDialogProps,
                   hasClear
                   format="date"
                   placeholder="No start date"
+                  weekStartsOn={weekStartsOn}
+                  presentation="popover"
                 />
               </MetadataListItem>
               <MetadataListItem label="Target date">
@@ -270,6 +276,8 @@ function ModuleForm({ projectId, onOpenChange, module }: Omit<ModuleDialogProps,
                   hasClear
                   format="date"
                   placeholder="No target date"
+                  weekStartsOn={weekStartsOn}
+                  presentation="popover"
                   status={error?.field === "target_date" ? { type: "error", message: error.message } : undefined}
                 />
               </MetadataListItem>

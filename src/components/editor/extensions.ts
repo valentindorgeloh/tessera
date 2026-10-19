@@ -31,6 +31,7 @@ import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import { common, createLowlight } from "lowlight";
 import { Mention, type MentionNodeAttrs } from "@tiptap/extension-mention";
 import { Suggestion, type SuggestionOptions } from "@tiptap/suggestion";
+import { HeadingIds } from "./heading-ids";
 import { ENTITY_LINK_SCHEMES, isAllowedEditorUri } from "./links";
 
 /** One row of a suggestion popover (`#` work items, `@` actors, `/` blocks). */
@@ -279,6 +280,7 @@ export function editorExtensions(options: EditorExtensionOptions): Extensions {
   const { mentions } = options;
   const list: Extensions = [
     StarterKit.configure({ link: false, codeBlock: false }),
+    HeadingIds,
     TesseraMarkdown,
     Link.configure({
       openOnClick: false,

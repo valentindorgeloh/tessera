@@ -5,9 +5,10 @@
  * burndown chart: the theme and `responsive` resolve on the client, so a
  * Skeleton holds the height until then. The chart is an image named by its
  * summary; the summary is also text, and a "Data table" collapsible lists
- * the rows. No animation.
+ * the rows with an optional CSV download (decision 100).
  */
 import type { ReactNode } from "react";
+import { Button } from "@astryxdesign/core/Button";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -15,6 +16,15 @@ import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useHydrated } from "@/components/detail/RelativeTime";
+import { toCsv } from "@/lib/tessera/core/csv";
+import { DownloadIcon } from "@/themes/catppuccin/icons";
+
+export type ChartCsv = {
+  /** File name without extension, e.g. "analytics-priority". */
+  fileStem: string;
+  header: string[];
+  rows: (string | number | null)[][];
+};
 
 export type ChartFrameProps = {
   title: string;
@@ -25,9 +35,21 @@ export type ChartFrameProps = {
   chart: ReactNode;
   legend?: ReactNode;
   table?: ReactNode;
+  /** When set, the data table offers Download CSV (decision 100). */
+  csv?: ChartCsv;
 };
 
-export function ChartFrame({ title, summary, height = 240, empty = false, chart, legend, table }: ChartFrameProps) {
+function downloadCsv(csv: ChartCsv) {
+  const blob = new Blob([toCsv(csv.header, csv.rows)], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${csv.fileStem}.csv`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+export function ChartFrame({ title, summary, height = 240, empty = false, chart, legend, table, csv }: ChartFrameProps) {
   const hydrated = useHydrated();
   return (
     <VStack gap={2} className="tessera-analytics-chart">
@@ -43,7 +65,14 @@ export function ChartFrame({ title, summary, height = 240, empty = false, chart,
       <Text type="supporting">{summary}</Text>
       {!empty && table ? (
         <Collapsible trigger="Data table" defaultIsOpen={false} className="tessera-analytics-data-table">
-          {table}
+          <VStack gap={2}>
+            {csv ? (
+              <HStack hAlign="end">
+                <Button variant="ghost" size="sm" label="Download CSV" icon={<DownloadIcon />} onClick={() => downloadCsv(csv)} />
+              </HStack>
+            ) : null}
+            {table}
+          </VStack>
         </Collapsible>
       ) : null}
     </VStack>

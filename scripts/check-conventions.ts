@@ -3,7 +3,7 @@
  * that neither tsc nor eslint can see. Scope: src/, scripts/, tests/.
  *
  * Rules
- *  client-boundary      'use client' files import only @/lib/tessera/{types,schemas,core/keys,core/time,core/group}
+ *  client-boundary      'use client' files import only @/lib/tessera/{types,schemas,core/keys,core/time,core/group,core/csv}
  *                       and never better-sqlite3, drizzle-orm or server-only
  *  component-boundary   src/components/** never imports @/lib/tessera/server, @/lib/tessera/db, better-sqlite3, drizzle-orm
  *  server-only          within src/lib/tessera/** only server.ts may import "server-only"
@@ -49,6 +49,7 @@ const CLIENT_ALLOWED_TESSERA_IMPORTS = new Set([
   "@/lib/tessera/core/keys",
   "@/lib/tessera/core/time",
   "@/lib/tessera/core/group",
+  "@/lib/tessera/core/csv",
 ]);
 
 const BUDGET_FILE = "scripts/file-budget.json";

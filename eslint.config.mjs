@@ -5,7 +5,7 @@ import nextTs from "eslint-config-next/typescript";
 // Import boundary for the engine (docs/contracts/ui.md, "Import boundary").
 // Server Components, Server Actions and route handlers read through
 // `@/lib/tessera/server`; client code imports only `@/lib/tessera/types`,
-// `@/lib/tessera/schemas` and `@/lib/tessera/core/{keys,time,group}`.
+// `@/lib/tessera/schemas` and `@/lib/tessera/core/{keys,time,group,csv}`.
 // Whether a file is a "use client" file is checked by
 // scripts/check-conventions.ts; `server-only` guards the server entry at
 // bundle time. The patterns below are regexes (gitignore-style groups cannot
@@ -39,9 +39,9 @@ const dialogImports = [
 const componentPatterns = [
   ...databaseImports,
   {
-    regex: "^@/lib/tessera(?!/(types|schemas|core/(keys|time|group))$)",
+    regex: "^@/lib/tessera(?!/(types|schemas|core/(keys|time|group|csv))$)",
     message:
-      "Components may import only '@/lib/tessera/types', '@/lib/tessera/schemas' and '@/lib/tessera/core/{keys,time,group}'. Read through a Server Component and write through a Server Action.",
+      "Components may import only '@/lib/tessera/types', '@/lib/tessera/schemas' and '@/lib/tessera/core/{keys,time,group,csv}'. Read through a Server Component and write through a Server Action.",
   },
 ];
 

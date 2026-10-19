@@ -21,7 +21,7 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 - No Date.now(), Math.random() or argless new Date() in render (prerender errors). Use src/lib/tessera/core/time helpers.
 
 ## Code rules that bite
-- "use client" files may import engine code only from @/lib/tessera/{types,schemas,core/keys,core/time,core/group}.
+- "use client" files may import engine code only from @/lib/tessera/{types,schemas,core/keys,core/time,core/group,core/csv}.
 - zod 4: `.partial()` still applies `.default()` values, so `DisplaySchema.partial()` fills defaults. Use DisplayPatchSchema for patches.
 - Cite numbered decisions in code as `decision N` (docs/PLAN.md). The convention gate fails on a cited number missing from the PLAN tables (docs/process/swarm.md).
 - File budget: 600 lines. Do not grow files listed in scripts/file-budget.json (cycles.ts, db/schema.ts, modules.ts after the P4 split; registry and work-items are folders). The convention gate fails on growth or on a new file over 600 lines. Lower the json when you shrink one.

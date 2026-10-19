@@ -24,6 +24,7 @@ import { Divider } from "@astryxdesign/core/Divider";
 import { Icon } from "@astryxdesign/core/Icon";
 import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import { useProject } from "@/components/work-items/project-provider";
 import { AssigneeControl, CycleControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, StateControl } from "@/components/work-items/properties";
 import type { WorkItem, WorkItemDetail } from "@/lib/tessera/types";
@@ -85,6 +86,8 @@ type DatePropertyProps = {
 
 /** Start or target date: DateInput with its own label hidden (the rail labels it), cleared to null. */
 function DateProperty({ label, placeholder, value, min, max, readOnly, onChange }: DatePropertyProps) {
+  const { bundle } = useProject();
+  const weekStartsOn = useWeekStart(bundle.week_start);
   // storedIsoDate checks the YYYY-MM-DD shape, which is DateInput's ISODateString template.
   const asInput = (date: string | null | undefined) => storedIsoDate(date) as IsoDate;
   return (
@@ -101,6 +104,8 @@ function DateProperty({ label, placeholder, value, min, max, readOnly, onChange 
       hasClear
       format="date"
       placeholder={placeholder}
+      weekStartsOn={weekStartsOn}
+      presentation="popover"
     />
   );
 }
