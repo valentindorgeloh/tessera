@@ -14,6 +14,7 @@ import {
   DEFAULT_DISPLAY,
   DisplaySchema,
   FiltersSchema,
+  GanttZoomSchema,
   GroupBySchema,
   IntakeStatusSchema,
   LayoutSchema,
@@ -26,7 +27,7 @@ import {
   SubGroupBySchema,
   WorkItemTypeFilterSchema,
 } from "../schemas";
-import type { CalendarDisplay, Display, Filters, GroupBy, Layout, OrderBy, SubGroupBy, WorkItemTypeFilter } from "../types";
+import type { CalendarDisplay, Display, GanttDisplay, Filters, GroupBy, Layout, OrderBy, SubGroupBy, WorkItemTypeFilter } from "../types";
 import { DISPLAY_PROPERTY_KEYS, DisplayPatchSchema, type DisplayPatchInput, type DisplayPropertyKey } from "../view-settings";
 
 export type FilterFieldType = "ids" | "enum" | "date" | "text" | "boolean";
@@ -60,6 +61,7 @@ export type DescribeDisplay = {
   show_empty_groups: boolean[];
   sub_items: boolean[];
   calendar: { layout: CalendarDisplay["layout"][]; show_weekends: boolean[] };
+  gantt: { zoom: GanttDisplay["zoom"][]; show_relations: boolean[] };
   properties: DisplayPropertyKey[];
 };
 
@@ -165,6 +167,7 @@ function describeDisplay(): DescribeDisplay {
     show_empty_groups: [true, false],
     sub_items: [true, false],
     calendar: { layout: [...CalendarLayoutSchema.options], show_weekends: [true, false] },
+    gantt: { zoom: [...GanttZoomSchema.options], show_relations: [true, false] },
     properties: [...DISPLAY_PROPERTY_KEYS],
   };
   return display;
