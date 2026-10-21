@@ -17,3 +17,73 @@
 .tessera-home-groups {
   min-width: 0;
 }
+
+/*
+ * Drag reorder (decision 105): mouse and pen drag a chip from anywhere but its
+ * menu. A finger keeps scrolling the page over the chips (touch-action stays
+ * auto), so touch reorders through the chip menu's Move left / Move right
+ * (decision 14).
+ */
+.tessera-quick-link {
+  cursor: grab;
+  user-select: none;
+}
+
+@media (pointer: fine) {
+  .tessera-quick-link {
+    touch-action: none;
+  }
+}
+
+.tessera-quick-link a {
+  -webkit-user-drag: none;
+}
+
+/* The dragged chip leaves the wrap while its clone follows the pointer. */
+.tessera-quick-link--dragging {
+  display: none;
+}
+
+/*
+ * Manage widgets: mouse and pen drag from anywhere on a row; the grip is the
+ * touch handle (touch-action: none on it only, so a finger on the rest of a row
+ * still scrolls the dialog). The grabbed row dims and the row that would follow
+ * it shows an insertion line.
+ */
+.tessera-widget-row {
+  cursor: grab;
+  user-select: none;
+}
+
+.tessera-widget-grip {
+  flex: none;
+  touch-action: none;
+}
+
+/*
+ * A finger needs a row tall enough for the grip and the controls beside it, and
+ * a 44px grip: the 16px icon sits centred in a square target that is the only
+ * touch-action: none area (decision 14).
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-widget-row {
+    min-height: var(--spacing-11);
+  }
+
+  .tessera-widget-grip {
+    min-width: var(--spacing-11);
+    min-height: var(--spacing-11);
+  }
+}
+
+.tessera-widget-row--dragging {
+  opacity: 0.5;
+}
+
+.tessera-widget-row--before {
+  box-shadow: inset 0 calc(var(--border-width) * 2) 0 var(--color-border-emphasized);
+}
+
+.tessera-widget-row--after {
+  box-shadow: inset 0 calc(var(--border-width) * -2) 0 var(--color-border-emphasized);
+}

@@ -8,7 +8,6 @@
  * the rows with an optional CSV download (decision 100).
  */
 import type { ReactNode } from "react";
-import { Button } from "@astryxdesign/core/Button";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -16,15 +15,9 @@ import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useHydrated } from "@/components/detail/RelativeTime";
-import { toCsv } from "@/lib/tessera/core/csv";
-import { DownloadIcon } from "@/themes/catppuccin/icons";
+import { DownloadCsvButton, type CsvTable } from "./csv-download";
 
-export type ChartCsv = {
-  /** File name without extension, e.g. "analytics-priority". */
-  fileStem: string;
-  header: string[];
-  rows: (string | number | null)[][];
-};
+export type ChartCsv = CsvTable;
 
 export type ChartFrameProps = {
   title: string;
@@ -38,16 +31,6 @@ export type ChartFrameProps = {
   /** When set, the data table offers Download CSV (decision 100). */
   csv?: ChartCsv;
 };
-
-function downloadCsv(csv: ChartCsv) {
-  const blob = new Blob([toCsv(csv.header, csv.rows)], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `${csv.fileStem}.csv`;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
 
 export function ChartFrame({ title, summary, height = 240, empty = false, chart, legend, table, csv }: ChartFrameProps) {
   const hydrated = useHydrated();
@@ -68,7 +51,7 @@ export function ChartFrame({ title, summary, height = 240, empty = false, chart,
           <VStack gap={2}>
             {csv ? (
               <HStack hAlign="end">
-                <Button variant="ghost" size="sm" label="Download CSV" icon={<DownloadIcon />} onClick={() => downloadCsv(csv)} />
+                <DownloadCsvButton table={csv} title={title} />
               </HStack>
             ) : null}
             {table}

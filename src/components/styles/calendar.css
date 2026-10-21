@@ -5,6 +5,7 @@
  */
 
 .tessera-cal {
+  container: tessera-cal / inline-size;
   min-width: 0;
   padding: var(--spacing-3);
   gap: var(--spacing-2);
@@ -36,16 +37,47 @@
   background: var(--color-accent-muted);
 }
 
-.tessera-cal-add,
-.tessera-cal-move {
+.tessera-cal-add {
   opacity: 0;
 }
 
+/*
+ * The move button sits over the chip's end instead of beside it, so it takes
+ * no width from the title. It is invisible until the item is hovered or holds
+ * focus. With a mouse it stays clickable while invisible (a click always hovers
+ * first, and Playwright's hit test needs the button to be the target). Where
+ * there is no hover (touch) it is inert until focus, so a touch on the chip's
+ * end opens the item rather than hitting an invisible button; the item's own
+ * panel is the touch path to set the date.
+ */
+.tessera-cal-item {
+  position: relative;
+}
+
+.tessera-cal-move {
+  position: absolute;
+  inset-inline-end: var(--spacing-0-5);
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  opacity: 0;
+  background: var(--color-background-surface);
+}
+
+@media (hover: none) {
+  .tessera-cal-move {
+    pointer-events: none;
+  }
+}
+
 .tessera-cal-day:hover .tessera-cal-add,
-.tessera-cal-day:focus-within .tessera-cal-add,
+.tessera-cal-day:focus-within .tessera-cal-add {
+  opacity: 1;
+}
+
 .tessera-cal-item:hover .tessera-cal-move,
 .tessera-cal-item:focus-within .tessera-cal-move {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .tessera-cal-item,
@@ -53,18 +85,99 @@
   min-width: 0;
 }
 
+/*
+ * A chip is the muted fill on the cell's surface. In a day outside the month
+ * the cell itself is muted, so the chip takes the surface fill and a hairline
+ * edge instead (the `:where` keeps that override below the hover rule). The edge
+ * is an outline, so it never changes the chip's size. Hover and pressed paint an
+ * overlay over the fill; hover also darkens the edge.
+ */
 .tessera-cal-open {
+  --tessera-cal-chip: var(--color-background-muted);
+  --tessera-cal-edge: transparent;
   flex: 1;
+  overflow: hidden;
   border-radius: var(--radius-inner);
-  background: var(--color-background-muted);
+  background-color: var(--tessera-cal-chip);
+  outline: var(--border-width) solid var(--tessera-cal-edge);
+  outline-offset: calc(-1 * var(--border-width));
   padding-inline: var(--spacing-1);
   min-height: var(--size-element-md);
   touch-action: none;
   cursor: grab;
 }
 
+:where(.tessera-cal-day[data-outside]) .tessera-cal-open {
+  --tessera-cal-chip: var(--color-background-surface);
+  --tessera-cal-edge: var(--color-border);
+}
+
+@media (hover: hover) {
+  .tessera-cal-open:hover {
+    --tessera-cal-edge: var(--color-border-emphasized);
+    background-image: linear-gradient(var(--color-overlay-hover), var(--color-overlay-hover));
+  }
+}
+
+.tessera-cal-open:active {
+  --tessera-cal-edge: var(--color-border-emphasized);
+  background-image: linear-gradient(var(--color-overlay-pressed), var(--color-overlay-pressed));
+  cursor: grabbing;
+}
+
 .tessera-cal-open:focus-visible {
   outline: var(--border-width) solid var(--color-accent);
+  outline-offset: 0;
+}
+
+/* A touch screen gets 44px chips. */
+@media (pointer: coarse) {
+  .tessera-cal-open {
+    min-height: calc(var(--spacing-10) + var(--spacing-1));
+  }
+}
+
+/* The key never breaks across lines or shrinks: the title truncates instead. */
+.tessera-cal-key {
+  flex: none;
+  white-space: nowrap;
+}
+
+/*
+ * A narrow calendar (a phone, or a side peek beside it) leaves columns of about
+ * 46px. The key (WEB-35 is 38px) only fits when the cell and chip padding
+ * shrink and the state dot and the title step aside (the chip's aria-label
+ * still carries the title); wider, the key stays whole and the title truncates
+ * after it. The phone's outer gutters shrink with the viewport, since a
+ * container cannot style itself.
+ */
+@container tessera-cal (max-width: 33rem) {
+  /* Only the chips in a cell: the "+N more" popover list has room for the whole title. */
+  .tessera-cal-day {
+    padding: var(--spacing-0-5);
+  }
+
+  /*
+   * Seven columns at 375px leave a content box of about 44px minus the cell's
+   * hairline edge. The chip keeps a 44px floor (a touch target) and may
+   * overflow the cell by a fraction of a pixel instead of shrinking below it.
+   */
+  .tessera-cal-day > .tessera-cal-item .tessera-cal-open {
+    padding-inline: var(--spacing-0);
+    justify-content: center;
+    min-width: calc(var(--spacing-10) + var(--spacing-1));
+  }
+
+  .tessera-cal-day > .tessera-cal-item .tessera-cal-dot,
+  .tessera-cal-day > .tessera-cal-item .tessera-cal-name {
+    display: none;
+  }
+}
+
+@media (max-width: 479px) {
+  .tessera-cal {
+    padding-inline: var(--spacing-1);
+  }
 }
 
 .tessera-cal-name {

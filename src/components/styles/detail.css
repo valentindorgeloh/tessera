@@ -78,8 +78,8 @@
 .tessera-detail-heading {
   grid-area: title;
   min-width: 0;
-  /* Symmetric padding: top and bottom, inline */
-  padding-block: var(--spacing-5);
+  /* 20px above the title and none below: the main column's own 20px top padding is the only gap under it (ui.md "WorkItemDetail"). */
+  padding-block: var(--spacing-5) 0;
   padding-inline: var(--spacing-4);
 }
 
@@ -94,7 +94,7 @@
 .tessera-detail-main {
   grid-area: main;
   min-width: 0;
-  /* Use symmetric padding for better visual balance */
+  /* 20px above the first section and 40px below the last one, so the page ends clear of the scroller's edge. */
   padding-block: var(--spacing-5) var(--spacing-10);
   padding-inline: var(--spacing-4);
 }

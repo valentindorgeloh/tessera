@@ -3,31 +3,45 @@
 /**
  * One sticky (docs/drafts/p9-plan.md U1). The body saves 800 ms after the
  * last edit and on blur. A later save wins. Delete asks first; moving
- * earlier or later does not.
+ * earlier or later does not. The grip starts a pointer drag (the screen owns
+ * the order, decision 105); the grip's arrow keys and the menu's Move earlier /
+ * Move later are the keyboard path (decision 14).
  */
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Card } from "@astryxdesign/core/Card";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { Icon } from "@astryxdesign/core/Icon";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
-import { deleteStickyAction, moveStickyAction, updateStickyAction } from "@/app/actions/stickies";
+import { deleteStickyAction, updateStickyAction } from "@/app/actions/stickies";
+import type { ItemDragHandlers } from "@/components/dnd/use-pointer-drag";
 import { MarkdownEditor } from "@/components/editor";
 import { PaletteColorSelector } from "@/components/project-settings/PaletteColorSelector";
 import { AlertDialog } from "@/components/shell/dialogs";
 import "@/components/styles/stickies.css";
+import { DragHandleIcon } from "@/themes/catppuccin/icons";
 import type { PaletteColor } from "@/lib/tessera/types";
 import { stickyColorClass, stickyTitle, type StickyView } from "@/components/home/home-format";
 
 export type StickyCardProps = {
   sticky: StickyView;
-  beforeId: string | null;
-  afterId: string | null;
+  /** Ref callback that registers the card with the screen's drag hook. */
+  registerItem: (element: HTMLElement | null) => void;
+  /** Pointer handlers of the grip. */
+  handlers: ItemDragHandlers;
+  /** Hidden in place while its clone follows the pointer. */
+  isDragged: boolean;
+  canMoveEarlier: boolean;
+  canMoveLater: boolean;
+  /** One place earlier (-1) or later (1); the screen applies it optimistically. */
+  onStep: (direction: -1 | 1) => void;
 };
 
 const SAVE_DELAY_MS = 800;
 
-export function StickyCard({ sticky, beforeId, afterId }: StickyCardProps) {
+export function StickyCard({ sticky, registerItem, handlers, isDragged, canMoveEarlier, canMoveLater, onStep }: StickyCardProps) {
   const toast = useToast();
   const [name, setName] = useState(sticky.name);
   const [nameFrom, setNameFrom] = useState(sticky.name);
@@ -35,7 +49,6 @@ export function StickyCard({ sticky, beforeId, afterId }: StickyCardProps) {
   const [colorFrom, setColorFrom] = useState(sticky.color);
   const [isDeleting, startDelete] = useTransition();
   const [isDeleteOpen, setDeleteOpen] = useState(false);
-  const [, startMove] = useTransition();
   const bodyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bodyRef = useRef(sticky.description_md);
   const lastSent = useRef(sticky.description_md);
@@ -105,13 +118,6 @@ export function StickyCard({ sticky, beforeId, afterId }: StickyCardProps) {
     save({ name: next });
   };
 
-  const move = (placement: { before_id: string } | { after_id: string }) => {
-    startMove(async () => {
-      const result = await moveStickyAction({ sticky_id: sticky.id, ...placement });
-      if (!result.ok) fail("move", result.message);
-    });
-  };
-
   const confirmDelete = () => {
     startDelete(async () => {
       const result = await deleteStickyAction({ sticky_id: sticky.id });
@@ -125,9 +131,24 @@ export function StickyCard({ sticky, beforeId, afterId }: StickyCardProps) {
 
   const title = stickyTitle(sticky.name);
   return (
-    <Card id={sticky.id} padding={3} className={stickyColorClass(sticky.color)}>
+    <Card ref={registerItem} id={sticky.id} padding={3} className={`${stickyColorClass(sticky.color)}${isDragged ? " tessera-sticky--dragging" : ""}`}>
       <VStack gap={3}>
         <HStack gap={2} vAlign="center" hAlign="between">
+          <IconButton
+            label={`Reorder ${title}`}
+            tooltip="Drag to reorder, or use the arrow keys"
+            variant="ghost"
+            size="sm"
+            icon={<Icon icon={DragHandleIcon} />}
+            className="tessera-sticky-grip"
+            {...handlers}
+            onKeyDown={(event) => {
+              const direction = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : null;
+              if (direction === null || (direction < 0 ? !canMoveEarlier : !canMoveLater)) return;
+              event.preventDefault();
+              onStep(direction);
+            }}
+          />
           <TextInput
             label={`Name of ${title}`}
             isLabelHidden
@@ -142,8 +163,8 @@ export function StickyCard({ sticky, beforeId, afterId }: StickyCardProps) {
             label={`Actions for ${title}`}
             size="sm"
             items={[
-              { id: "earlier", label: "Move earlier", isDisabled: beforeId === null, onClick: () => beforeId !== null && move({ before_id: beforeId }) },
-              { id: "later", label: "Move later", isDisabled: afterId === null, onClick: () => afterId !== null && move({ after_id: afterId }) },
+              { id: "earlier", label: "Move earlier", isDisabled: !canMoveEarlier, onClick: () => onStep(-1) },
+              { id: "later", label: "Move later", isDisabled: !canMoveLater, onClick: () => onStep(1) },
               { id: "delete", label: "Delete", variant: "destructive", onClick: () => setDeleteOpen(true) },
             ]}
           />

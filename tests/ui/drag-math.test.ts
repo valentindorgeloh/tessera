@@ -10,6 +10,7 @@ import {
   autoScrollVelocity,
   containerAt,
   dropIndexFor,
+  dropIndexForGrid,
   exceedsThreshold,
   isNoopDrop,
   neighboursAt,
@@ -188,5 +189,64 @@ describe("autoScroll", () => {
   it("ignores degenerate regions", () => {
     expect(autoScrollVelocity(5, 10, 10, options)).toBe(0);
     expect(autoScrollVelocity(5, 0, 10, { edge: 0, maxSpeed: 20 })).toBe(0);
+  });
+});
+
+describe("dropIndexForGrid", () => {
+  /** A 3-column wrapping grid of 100x50 cells with a 10px gap, `count` cells in reading order. */
+  function grid(count: number, columns = 3): Rect[] {
+    return Array.from({ length: count }, (_, i) => box((i % columns) * 110, Math.floor(i / columns) * 60, 100, 50));
+  }
+
+  it("is 0 for an empty grid", () => {
+    expect(dropIndexForGrid({ x: 10, y: 10 }, [])).toBe(0);
+  });
+
+  it("picks the slot by x inside the row under the pointer", () => {
+    const rects = grid(6);
+    // Row 1: cells at x 0-100, 110-210, 220-320; midpoints 50, 160, 270.
+    expect(dropIndexForGrid({ x: 10, y: 20 }, rects)).toBe(0);
+    expect(dropIndexForGrid({ x: 60, y: 20 }, rects)).toBe(1);
+    expect(dropIndexForGrid({ x: 200, y: 20 }, rects)).toBe(2);
+    // Row 2 starts at index 3.
+    expect(dropIndexForGrid({ x: 10, y: 80 }, rects)).toBe(3);
+    expect(dropIndexForGrid({ x: 150, y: 80 }, rects)).toBe(4);
+  });
+
+  it("puts a pointer right of a row's last item after that item, not on the next row", () => {
+    const rects = grid(6);
+    expect(dropIndexForGrid({ x: 330, y: 20 }, rects)).toBe(3);
+    expect(dropIndexForGrid({ x: 330, y: 80 }, rects)).toBe(6);
+  });
+
+  it("clamps a pointer above the first row and below the last", () => {
+    const rects = grid(6);
+    expect(dropIndexForGrid({ x: 10, y: -40 }, rects)).toBe(0);
+    expect(dropIndexForGrid({ x: 10, y: 400 }, rects)).toBe(3);
+    expect(dropIndexForGrid({ x: 999, y: 400 }, rects)).toBe(6);
+  });
+
+  it("takes the nearer row for a pointer in the gap between rows, the earlier one on a tie", () => {
+    const rects = grid(6);
+    // Row 1 ends at y 50, row 2 starts at y 60.
+    expect(dropIndexForGrid({ x: 10, y: 54 }, rects)).toBe(0);
+    expect(dropIndexForGrid({ x: 10, y: 57 }, rects)).toBe(3);
+    expect(dropIndexForGrid({ x: 10, y: 55 }, rects)).toBe(0);
+  });
+
+  it("handles a last row that is not full and a single column", () => {
+    expect(dropIndexForGrid({ x: 10, y: 80 }, grid(4))).toBe(3);
+    expect(dropIndexForGrid({ x: 150, y: 80 }, grid(4))).toBe(4);
+    const column = grid(3, 1);
+    expect(dropIndexForGrid({ x: 20, y: 70 }, column)).toBe(1);
+    expect(dropIndexForGrid({ x: 80, y: 70 }, column)).toBe(2);
+  });
+
+  it("keeps chips of different widths and slightly different tops in one row", () => {
+    const chips = [box(0, 0, 80, 32), box(88, 2, 200, 28), box(296, 0, 60, 32), box(0, 40, 120, 32)];
+    expect(dropIndexForGrid({ x: 250, y: 16 }, chips)).toBe(2);
+    expect(dropIndexForGrid({ x: 400, y: 16 }, chips)).toBe(3);
+    expect(dropIndexForGrid({ x: 50, y: 56 }, chips)).toBe(3);
+    expect(dropIndexForGrid({ x: 300, y: 56 }, chips)).toBe(4);
   });
 });

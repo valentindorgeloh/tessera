@@ -59,6 +59,48 @@ export function dropIndexFor(point: Point, rects: ReadonlyArray<Rect>, axis: Axi
   return rects.length;
 }
 
+/**
+ * Insertion index for a pointer among items that wrap in a grid (stickies,
+ * quick-link chips; decision 105). `rects` are in reading order (row-major)
+ * and exclude the dragged item. Rows are found by grouping: a rect starts a
+ * new row when its top lies at or below the vertical midpoint of the row's
+ * first rect. The pointer picks the row by y (the row whose band holds it,
+ * else the nearest band; a tie goes to the earlier row), then the slot by x
+ * inside that row: the first item whose horizontal midpoint lies past the
+ * pointer, else the slot after the row's last item. Left-to-right layouts only.
+ */
+export function dropIndexForGrid(point: Point, rects: ReadonlyArray<Rect>): number {
+  if (rects.length === 0) return 0;
+  type Row = { start: number; end: number; top: number; bottom: number; mid: number };
+  const rows: Row[] = [];
+  for (let i = 0; i < rects.length; i++) {
+    const rect = rects[i];
+    const bottom = rect.top + rect.height;
+    const row = rows[rows.length - 1];
+    if (row !== undefined && rect.top < row.mid) {
+      row.end = i + 1;
+      row.top = Math.min(row.top, rect.top);
+      row.bottom = Math.max(row.bottom, bottom);
+    } else {
+      rows.push({ start: i, end: i + 1, top: rect.top, bottom, mid: rect.top + rect.height / 2 });
+    }
+  }
+  let best = rows[0];
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const row of rows) {
+    const distance = point.y < row.top ? row.top - point.y : point.y > row.bottom ? point.y - row.bottom : 0;
+    if (distance < bestDistance) {
+      best = row;
+      bestDistance = distance;
+    }
+  }
+  for (let i = best.start; i < best.end; i++) {
+    const rect = rects[i];
+    if (point.x < rect.left + rect.width / 2) return i;
+  }
+  return best.end;
+}
+
 /** `ids` without `draggedId`, the list drop indices are measured against. */
 export function withoutId(ids: ReadonlyArray<string>, draggedId: string): string[] {
   return ids.filter((id) => id !== draggedId);

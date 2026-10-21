@@ -89,6 +89,7 @@ export type ConnectorGeom = {
   key: string;
   d: string;
   conflict: boolean;
+  type: GanttEdgeType;
   fromId: string;
   toId: string;
 };
@@ -127,6 +128,7 @@ export function connectorPaths(
       key: `${edge.from_id}:${edge.type}:${edge.to_id}`,
       d,
       conflict: edgeConflict(edge, byId),
+      type: edge.type,
       fromId: edge.from_id,
       toId: edge.to_id,
     });
@@ -143,4 +145,44 @@ export function conflictItemIds(paths: readonly ConnectorGeom[]): Set<string> {
     ids.add(path.toId);
   }
   return ids;
+}
+
+/**
+ * Plain-text notes per item for the conflict tooltip (decision 92): each
+ * conflicting connector tells both of its bars which item it clashes with, by
+ * key, and the date that breaks the rule. `blocked_by` names the blocker and
+ * its end date on the blocked bar. The same text is the bar's description for
+ * assistive technology.
+ */
+export function conflictNotes(
+  paths: readonly ConnectorGeom[],
+  byId: ReadonlyMap<string, DateEnds>,
+  keyById: ReadonlyMap<string, string>,
+): Map<string, string[]> {
+  const notes = new Map<string, string[]>();
+  const add = (id: string, note: string) => {
+    const list = notes.get(id);
+    if (list) {
+      if (!list.includes(note)) list.push(note);
+    } else notes.set(id, [note]);
+  };
+  for (const path of paths) {
+    if (!path.conflict) continue;
+    const from = byId.get(path.fromId);
+    const to = byId.get(path.toId);
+    const fromKey = keyById.get(path.fromId);
+    const toKey = keyById.get(path.toId);
+    if (!from || !to || !fromKey || !toKey) continue;
+    if (path.type === "blocked_by") {
+      add(path.fromId, `Blocked by ${toKey}, which ends ${to.target_date}`);
+      add(path.toId, `Blocks ${fromKey}, which starts ${from.start_date}`);
+    } else if (path.type === "start_before") {
+      add(path.fromId, `Should start before ${toKey}, which starts ${to.start_date}`);
+      add(path.toId, `Should start after ${fromKey}, which starts ${from.start_date}`);
+    } else {
+      add(path.fromId, `Should finish before ${toKey}, which ends ${to.target_date}`);
+      add(path.toId, `Should finish after ${fromKey}, which ends ${from.target_date}`);
+    }
+  }
+  return notes;
 }

@@ -29,7 +29,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { createWorkItemAction, moveWorkItemAction, updateWorkItemAction } from "@/app/actions/work-items";
 import { notePeekPush } from "@/components/detail/peek-history";
-import { currentHref, peekHref } from "@/components/detail/peek-url";
+import { currentHref, peekHref, withSearchParam } from "@/components/detail/peek-url";
 import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
 import { SaveViewButton } from "@/components/views/SaveViewButton";
 import { normalizeFilters } from "@/components/views/view-state";
@@ -40,6 +40,7 @@ import { ExportIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { BoardLayout } from "./BoardLayout";
 import { CalendarLayout } from "./CalendarLayout";
 import { BulkBar } from "./BulkBar";
+import { clearedUrlState, hasActiveFilters } from "./clear-filters";
 import { CreateWorkItemDialog } from "./CreateWorkItemDialog";
 import { DisplayMenu, LayoutSwitch, useDisplayWriter } from "./DisplayMenu";
 import { FilterBar } from "./FilterBar";
@@ -56,7 +57,7 @@ import { useSelection } from "./use-selection";
 import { createDefaultsFromScope, openMemberships, quickAddAllowed, quickAddInput, withScopeDefaults, type QuickAddContext } from "./quick-add";
 import { TableLayout } from "./TableLayout";
 import type { LayoutProps, MoveInput, QuickAddGroup, ScopeDefaults, SettingsScope, UpdateWorkItemPatch } from "./types";
-import { decodeUrlState } from "./url-state";
+import { decodeUrlState, encodeUrlState } from "./url-state";
 import { usePagedList } from "./use-paged-list";
 
 export type WorkItemsScreenProps = {
@@ -319,6 +320,12 @@ export function WorkItemsScreen({
   const selection = useSelection(orderedIds, selectionOn);
   // Distinct loaded rows: a multi-valued grouping lists one item in several groups.
   const loadedCount = useMemo(() => new Set(orderedIds).size, [orderedIds]);
+  // No-results state (docs/contracts/ui.md "Work items screen"): while a filter, a search or an Advanced tree applies,
+  // an empty list offers "Clear filters", which clears like the filter bar (simple filters explicit-empty, Advanced tree dropped).
+  const activeRich = effectiveRichFilters(richFilters, urlState.rich_filters);
+  const onClearFilters = hasActiveFilters(filters, activeRich)
+    ? () => router.replace(withSearchParam(pathname, searchParams, "q", encodeUrlState(clearedUrlState(urlState, filters, activeRich)) || null), { scroll: false })
+    : undefined;
   const layoutProps: LayoutProps = {
     result: optimistic,
     display,
@@ -335,6 +342,7 @@ export function WorkItemsScreen({
     onLoadMoreUngrouped: paged.loadMoreUngrouped,
     isLoadingMore: paged.isLoading,
     onOrderChange: (orderBy) => applyDisplay({ order_by: orderBy }),
+    onClearFilters,
   };
   // The dialog starts in the scope: `{ ...scopeDefaults, ...createDefaults }` with module ids united.
   const dialogDefaults = scopeDefaults ? withScopeDefaults(createDefaults ?? {}, scopeDefaults) : createDefaults;

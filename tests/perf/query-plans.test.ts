@@ -103,16 +103,17 @@ describe("query plans (decision 126)", () => {
 
   const scope = () => ({ type: "project" as const, project_id: projectId });
   /**
-   * Cases and the full scans of work_item they may keep. The workspace list has
-   * no project predicate, so it must visit every row once for the total and once
-   * for the page: no index can change that (a partial index on the live rows
-   * still scans all of them), so the plan is pinned at two instead of zero.
+   * Cases and the full scans of work_item they may keep: none. The workspace list
+   * has no project predicate, but migration 0011 gives it two partial indexes on
+   * the live rows: `work_item_live_sort_idx` serves the page in display order
+   * (no sort, and the LIMIT stops the walk) and `work_item_live_state_idx` is a
+   * covering index for the total, so neither statement reads the wide table rows.
    * The cycle scope names the cycle's project as well as `cycle_id`, so it uses
-   * a cycle index (`(project_id, cycle_id)` or the partial `cycle_id` one) and allows no scan.
+   * a cycle index (`(project_id, cycle_id)` or the partial `cycle_id` one).
    */
   const cases: [string, () => unknown, number][] = [
     ["list page, ungrouped", () => listWorkItems(ctx, { scope: scope(), limit: 200 }), 0],
-    ["list page, workspace scope", () => listWorkItems(ctx, { scope: { type: "workspace" }, limit: 200 }), 2],
+    ["list page, workspace scope", () => listWorkItems(ctx, { scope: { type: "workspace" }, limit: 200 }), 0],
     ["list page, filtered by priority", () => listWorkItems(ctx, { scope: scope(), filters: { priority: ["high"] }, limit: 200 }), 0],
     ["list page, filtered by label", () => listWorkItems(ctx, { scope: scope(), filters: { labels: [labelId] }, limit: 200 }), 0],
     ["list page, filtered by assignee", () => listWorkItems(ctx, { scope: scope(), filters: { assignees: [USER_ACTOR_ID] }, limit: 200 }), 0],
@@ -155,6 +156,17 @@ describe("query plans (decision 126)", () => {
     });
     expect(plans.flatMap((entry) => bareScans(entry.lines))).toEqual([]);
     expect(plans.flatMap((entry) => entry.lines).join("\n")).toMatch(/work_item_cycle_idx/);
+  });
+
+  it("workspace list reads the live rows through the migration 0011 indexes, without a sort", () => {
+    const plans = plansOf(sqlite, () => listWorkItems(ctx, { scope: { type: "workspace" }, limit: 200 }));
+    const text = plans.flatMap((entry) => entry.lines).join("\n");
+    expect(plans.flatMap((entry) => bareScans(entry.lines))).toEqual([]);
+    expect(text).toMatch(/work_item_live_sort_idx/);
+    expect(text).toMatch(/COVERING INDEX work_item_live_state_idx/);
+    // The page statement is the one that orders work_item rows; the index delivers them in order.
+    const page = plans.find((entry) => entry.lines.some((line) => line.includes("work_item_live_sort_idx")));
+    expect(page?.lines.join("\n")).not.toMatch(/USE TEMP B-TREE FOR (LAST \d+ TERMS OF )?ORDER BY/);
   });
 
   it("revision probes use their activity indexes", () => {

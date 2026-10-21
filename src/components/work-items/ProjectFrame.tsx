@@ -45,12 +45,36 @@ export function ProjectToken({ project, size = "md", className }: { project: Pic
   return <Token label={project.identifier} icon={<Icon icon={resolveLogoIcon(project.logo?.icon)} />} color={project.logo?.color ?? "gray"} size={size} className={className} />;
 }
 
+/** True when `pathname` is `/projects/<projectId>/<segment>/<id>` with exactly one id segment. */
+function isDetailPath(pathname: string, projectId: string, segment: string): boolean {
+  const prefix = `/projects/${projectId}/${segment}/`;
+  if (!pathname.startsWith(prefix)) return false;
+  const rest = pathname.slice(prefix.length).replace(/\/+$/, "");
+  return rest.length > 0 && !rest.includes("/");
+}
+
+/**
+ * True on `/projects/<projectId>/work-items/<itemId>`, the page whose body holds
+ * the item title as the document's h1. There the frame's title steps down to
+ * level 2, so the page keeps one level-1 heading (the backlog's "two h1" entry).
+ */
+export function isWorkItemPagePath(pathname: string, projectId: string): boolean {
+  return isDetailPath(pathname, projectId, "work-items");
+}
+
+/** True on `/projects/<projectId>/pages/<pageId>`, whose body holds the page title as the h1 (PageTitle). */
+export function isProjectPageDetailPath(pathname: string, projectId: string): boolean {
+  return isDetailPath(pathname, projectId, "pages");
+}
+
 export function ProjectFrame({ children }: { children: ReactNode }) {
   const { bundle } = useProject();
   const pathname = usePathname();
   const { project } = bundle;
   const tabs = projectTabs(project);
   const active = activeProjectTab(pathname, project.id, tabs);
+  // A work item page and a project page own the document's h1 in their body, so the frame title steps down there.
+  const titleLevel = isWorkItemPagePath(pathname, project.id) || isProjectPageDetailPath(pathname, project.id) ? 2 : 1;
   return (
     // Header and content go in their slots: as children both landed in the content slot, so the 100%-high
     // LayoutContent sat under the header and the shell scrolled by the header's height.
@@ -60,11 +84,14 @@ export function ProjectFrame({ children }: { children: ReactNode }) {
         <>
           <PanelHeader label={project.name}>
             <PanelBar
+              className="tessera-project-bar"
               start={
                 <>
-                  {/* On a narrow panel the token and the name keep their room and the tabs scroll (shell.css). */}
+                  {/* On a narrow panel the token and the name keep their room and the tabs scroll (shell.css); below 600px the tabs take their own row. */}
                   <ProjectToken project={project} size="sm" className="tessera-project-frame-token" />
-                  <PanelTitle className="tessera-project-frame-title">{project.name}</PanelTitle>
+                  <PanelTitle className="tessera-project-frame-title" accessibilityLevel={titleLevel}>
+                    {project.name}
+                  </PanelTitle>
                   <Divider orientation="vertical" className="tessera-panel-bar-divider" />
                   <TabList value={active?.key ?? ""} onChange={() => {}} size="sm" layout="hug" aria-label={`${project.name} pages`} className="tessera-project-tabs">
                     {tabs.map((tab) => (

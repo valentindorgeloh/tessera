@@ -22,3 +22,21 @@
 .tessera-diff-word[data-change="removed"] {
   background: var(--color-error-muted);
 }
+
+/* Page Activity tab: one wrapping row per change, the time at the end. */
+.tessera-history-activity {
+  max-height: 70vh;
+  overflow: auto;
+  min-width: 0;
+}
+
+.tessera-history-activity-row {
+  justify-content: space-between;
+  padding-block: var(--spacing-1);
+  border-block-end: var(--border-width) solid var(--color-border);
+}
+
+.tessera-history-activity-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

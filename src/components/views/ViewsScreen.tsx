@@ -8,8 +8,12 @@
  * a menu. `?create=1` (what `n v` pushes) opens the New view dialog once and
  * is dropped from the URL. `?describe=1` opens Describe a view the same way
  * when the assistant is available. An archived project shows the list read-only.
+ * Rows reorder by pointer drag (decision 105) with the menu's Move up and Move
+ * down as the keyboard path; the order updates optimistically (decision 13)
+ * and snaps back with a toast when the engine refuses. Dragging is off while
+ * the search field has text, like the menu moves.
  */
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useOptimistic, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
@@ -19,14 +23,22 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { List } from "@astryxdesign/core/List";
 import { VStack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
+import { useToast } from "@astryxdesign/core/Toast";
+import { reorderViewAction } from "@/app/actions/views";
 import { useAiStatus } from "@/components/ai/AiStatusProvider";
 import { ViewFromPromptDialog } from "@/components/ai/ViewFromPromptDialog";
+import { usePointerDrag, type DragDropEvent } from "@/components/dnd/use-pointer-drag";
+import { RowDragOverlay, RowSlot } from "@/components/shared/RowDrag";
 import { PanelBar, PanelHeader, PanelPage } from "@/components/shell/PanelHeader";
 import { useProject } from "@/components/work-items/project-provider";
 import type { View } from "@/lib/tessera/types";
-import { PlusIcon, SparkleIcon, ViewIcon } from "@/themes/catppuccin/icons";
+import { PlusIcon, SparkleIcon, ViewIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { ViewDialog } from "./ViewDialog";
 import { ViewRow } from "./ViewRow";
+import { VIEWS_CONTAINER, moveView, viewDropInput } from "./view-reorder";
+
+/** Controls keep their press; the row's own link does not (a click without travel still opens it). */
+const DRAG_IGNORE = 'button, input, textarea, select, [role="menuitem"], [role="menu"], [role="dialog"]';
 
 export type ViewsScreenProps = {
   projectId: string;
@@ -43,6 +55,7 @@ export function ViewsScreen({ projectId, views, counts, createOnOpen: createRequ
   const searchParams = useSearchParams();
   const { bundle } = useProject();
   const { status } = useAiStatus();
+  const toast = useToast();
   const readOnly = bundle.project.archived_at !== null;
   const viewsOn = bundle.project.views_enabled;
   const aiAvailable = status?.available === true;
@@ -90,14 +103,50 @@ export function ViewsScreen({ projectId, views, counts, createOnOpen: createRequ
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the flag and the status; pathname and params are read when they flip
   }, [describeRequested, readOnly, viewsOn, status]);
 
+  const [ordered, applyMove] = useOptimistic(views, (current: View[], move: { id: string; index: number }) => moveView(current, move.id, move.index));
   const needle = search.trim().toLowerCase();
-  const shown = needle === "" ? views : views.filter((view) => view.name.toLowerCase().includes(needle));
+  const shown = needle === "" ? ordered : ordered.filter((view) => view.name.toLowerCase().includes(needle));
   const canReorder = needle === "";
+  const canDrag = canReorder && !readOnly;
+
+  const onDrop = (event: DragDropEvent) => {
+    const input = viewDropInput(event);
+    const moved = ordered.find((view) => view.id === event.id);
+    if (input === null || moved === undefined) return;
+    startTransition(async () => {
+      applyMove({ id: event.id, index: event.index });
+      const result = await reorderViewAction(input);
+      if (!result.ok) toast({ type: "error", body: `Could not move ${moved.name}: ${result.message}` });
+    });
+  };
+  const { drag, registerContainer, registerItem, registerOverlay, itemHandlers } = usePointerDrag({
+    onDrop,
+    itemsOf: () => ordered.map((view) => view.id),
+    ignoreSelector: DRAG_IGNORE,
+  });
+  const dragged = drag ? ordered.find((view) => view.id === drag.id) : undefined;
   const describeButton =
     readOnly || !viewsOn || !aiAvailable ? null : (
       <Button variant="secondary" size="sm" label="Describe a view" icon={<SparkleIcon />} onClick={() => setDescribeOpen(true)} />
     );
   const newButton = readOnly ? null : <Button variant="primary" size="sm" label="New view" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />;
+
+  // The dragged row leaves the list while it is held; a dashed slot marks where it lands.
+  const rows: ReactNode[] = shown
+    .filter((view) => view.id !== drag?.id)
+    .map((view) => (
+      <ViewRow
+        key={view.id}
+        projectId={projectId}
+        view={view}
+        count={counts[view.id] ?? 0}
+        previousId={shown[shown.indexOf(view) - 1]?.id}
+        nextId={shown[shown.indexOf(view) + 1]?.id}
+        canReorder={canReorder}
+        drag={canDrag ? { rowRef: registerItem(view.id), handlers: itemHandlers(view.id, VIEWS_CONTAINER) } : undefined}
+      />
+    ));
+  if (drag?.target) rows.splice(Math.min(drag.target.index, rows.length), 0, <RowSlot key="slot" height={drag.height} />);
 
   return (
     <>
@@ -146,22 +195,15 @@ export function ViewsScreen({ projectId, views, counts, createOnOpen: createRequ
           ) : shown.length === 0 ? (
             <EmptyState isCompact title="No views match" />
           ) : (
-            <List density="compact" hasDividers>
-              {shown.map((view, index) => (
-                <ViewRow
-                  key={view.id}
-                  projectId={projectId}
-                  view={view}
-                  count={counts[view.id] ?? 0}
-                  previousId={shown[index - 1]?.id}
-                  nextId={shown[index + 1]?.id}
-                  canReorder={canReorder}
-                />
-              ))}
+            <List ref={registerContainer(VIEWS_CONTAINER)} density="compact" hasDividers>
+              {rows}
             </List>
           )}
         </VStack>
       </PanelPage>
+      {drag && dragged ? (
+        <RowDragOverlay registerOverlay={registerOverlay} icon={dragged.logo ? resolveLogoIcon(dragged.logo.icon) : ViewIcon} color={dragged.logo?.color ?? "secondary"} label={dragged.name} />
+      ) : null}
       <ViewDialog isOpen={isCreateOpen} onOpenChange={setCreateOpen} projectId={projectId} mode="create" title="New view" />
       <ViewFromPromptDialog isOpen={isDescribeOpen} onOpenChange={setDescribeOpen} projectId={projectId} />
     </>

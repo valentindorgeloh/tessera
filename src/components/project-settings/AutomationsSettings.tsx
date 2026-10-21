@@ -32,6 +32,9 @@ const MONTH_OPTIONS = [
   { value: "12", label: "12 months" },
 ];
 
+/** Toast text when `run_automations` reports `lease_held` (decision 28). */
+export const LEASE_HELD_TEXT = "Automations are running in another process. Try again shortly.";
+
 export function AutomationsSettings() {
   const context = useOptionalProject();
   if (!context) notFound();
@@ -120,6 +123,12 @@ export function AutomationsSettings() {
       const res = await runAutomationsAction({ project_id: project.id });
       if (!res.ok) {
         toast({ type: "error", body: failureText("Could not run automations", res.message) });
+        return;
+      }
+      // Another process holds the lease (decision 28): this call wrote nothing, so there is no summary
+      // to report and Due now / Last run stay as they are.
+      if (res.data.lease_held) {
+        toast({ type: "info", body: LEASE_HELD_TEXT });
         return;
       }
       const pSummary = res.data.projects.find((p) => p.project_id === project.id);
@@ -234,6 +243,7 @@ export function AutomationsSettings() {
               variant="primary"
               size="sm"
               label="Run now"
+              className="tessera-settings-action"
               isLoading={isRunning}
               isDisabled={isArchived || isRunning}
               onClick={runNow}
@@ -242,6 +252,7 @@ export function AutomationsSettings() {
               variant="ghost"
               size="sm"
               label="Refresh status"
+              className="tessera-settings-action"
               isLoading={isPending}
               onClick={refreshStatus}
             />

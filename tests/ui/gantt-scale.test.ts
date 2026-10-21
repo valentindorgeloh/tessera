@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import {
   conflictItemIds,
+  conflictNotes,
   connectorAnchors,
   connectorPaths,
   edgeConflict,
@@ -109,5 +110,64 @@ describe("connectorPaths", () => {
     const paths = connectorPaths(edges, rowIndex, byId, "2026-10-01", 14);
     expect(paths[0]?.conflict).toBe(true);
     expect([...conflictItemIds(paths)].sort()).toEqual(["a", "b"]);
+  });
+});
+
+describe("conflictNotes", () => {
+  const rowIndex = new Map([
+    ["a", 0],
+    ["b", 1],
+  ]);
+  const keys = new Map([
+    ["a", "WEB-1"],
+    ["b", "WEB-2"],
+  ]);
+  const notesFor = (type: "blocked_by" | "start_before" | "finish_before", a: { start_date: string; target_date: string }, b: { start_date: string; target_date: string }) => {
+    const byId = new Map([
+      ["a", a],
+      ["b", b],
+    ]);
+    const paths = connectorPaths(ganttEdges([{ from_id: "a", to_id: "b", type }]), rowIndex, byId, "2026-10-01", 40);
+    return conflictNotes(paths, byId, keys);
+  };
+
+  it("names the blocker and its end date on the blocked bar, and the blocked item on the blocker (decision 92)", () => {
+    const notes = notesFor("blocked_by", { start_date: "2026-10-02", target_date: "2026-10-04" }, { start_date: "2026-10-01", target_date: "2026-10-10" });
+    expect(notes.get("a")).toEqual(["Blocked by WEB-2, which ends 2026-10-10"]);
+    expect(notes.get("b")).toEqual(["Blocks WEB-1, which starts 2026-10-02"]);
+  });
+
+  it("is empty when the blocker ends the day the blocked item starts", () => {
+    const notes = notesFor("blocked_by", { start_date: "2026-10-10", target_date: "2026-10-12" }, { start_date: "2026-10-01", target_date: "2026-10-10" });
+    expect(notes.size).toBe(0);
+  });
+
+  it("describes start_before and finish_before conflicts by the dates that break them", () => {
+    const start = notesFor("start_before", { start_date: "2026-10-08", target_date: "2026-10-09" }, { start_date: "2026-10-05", target_date: "2026-10-09" });
+    expect(start.get("a")).toEqual(["Should start before WEB-2, which starts 2026-10-05"]);
+    expect(start.get("b")).toEqual(["Should start after WEB-1, which starts 2026-10-08"]);
+    const finish = notesFor("finish_before", { start_date: "2026-10-01", target_date: "2026-10-12" }, { start_date: "2026-10-01", target_date: "2026-10-09" });
+    expect(finish.get("a")).toEqual(["Should finish before WEB-2, which ends 2026-10-09"]);
+    expect(finish.get("b")).toEqual(["Should finish after WEB-1, which ends 2026-10-12"]);
+  });
+
+  it("lists every conflict of one bar once", () => {
+    const byId = new Map([
+      ["a", { start_date: "2026-10-02", target_date: "2026-10-04" }],
+      ["b", { start_date: "2026-10-01", target_date: "2026-10-10" }],
+      ["c", { start_date: "2026-10-01", target_date: "2026-10-08" }],
+    ]);
+    const edges = ganttEdges([
+      { from_id: "a", to_id: "b", type: "blocked_by" },
+      { from_id: "a", to_id: "c", type: "blocked_by" },
+    ]);
+    const index = new Map([
+      ["a", 0],
+      ["b", 1],
+      ["c", 2],
+    ]);
+    const paths = connectorPaths(edges, index, byId, "2026-10-01", 40);
+    const notes = conflictNotes(paths, byId, new Map([...keys, ["c", "WEB-3"]]));
+    expect(notes.get("a")).toEqual(["Blocked by WEB-2, which ends 2026-10-10", "Blocked by WEB-3, which ends 2026-10-08"]);
   });
 });

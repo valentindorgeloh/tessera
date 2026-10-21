@@ -65,6 +65,11 @@
   font-size: var(--text-supporting-size);
 }
 
+/* The legend sits under the plot (outside the chart's image frame, so assistive technology reads it), centred and clear of the x axis. */
+.tessera-planning-chart-legend {
+  padding-block-start: var(--spacing-2);
+}
+
 .tessera-planning-chart-swatch {
   inline-size: var(--spacing-6);
   block-size: var(--spacing-2);

@@ -35,8 +35,69 @@
   min-width: 0;
 }
 
-.tessera-page-outline {
+/*
+ * Page frame: the reading column (.tessera-reading, 960px) and the optional
+ * outline. The column never narrows when the outline opens. Frames too narrow
+ * for both (under 1136px, the column 960 + the outline's 160px minimum + gap, a
+ * structural breakpoint a container query cannot take from a token) stack the
+ * outline above the column, in the column's own width, so it never covers page
+ * text; a phone shows it as a short scrolling block. Wide frames put the column
+ * and the outline side by side, the pair centred; the outline gives way (240px
+ * down to 160px), the column does not.
+ */
+/* The container is the wrapper: a container query cannot style the container itself. */
+.tessera-page-container {
+  container-type: inline-size;
+  width: 100%;
   min-width: 0;
+}
+
+.tessera-page-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+}
+
+.tessera-page-frame > .tessera-page {
+  grid-row: 2;
+}
+
+.tessera-page-outline {
+  grid-row: 1;
+  justify-self: center;
+  align-self: start;
+  box-sizing: border-box;
+  width: calc(100% - var(--spacing-8));
+  max-width: calc(960px - var(--spacing-8));
+  max-height: 40dvh;
+  overflow-y: auto;
+  min-width: 0;
+  margin-block-start: var(--spacing-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-container);
+  background: var(--color-background-popover);
+}
+
+@container (min-width: 1136px) {
+  .tessera-page-frame[data-outline="open"] {
+    grid-template-columns: minmax(0, 1fr) 960px minmax(calc(160px + var(--spacing-4)), calc(240px + var(--spacing-4))) minmax(0, 1fr);
+  }
+
+  .tessera-page-frame[data-outline="open"] > .tessera-page {
+    grid-area: 1 / 2;
+  }
+
+  .tessera-page-frame[data-outline="open"] > .tessera-page-outline {
+    grid-area: 1 / 3;
+    justify-self: stretch;
+    width: auto;
+    max-width: none;
+    max-height: 70dvh;
+    position: sticky;
+    inset-block-start: var(--spacing-4);
+    margin-inline-start: var(--spacing-4);
+  }
 }
 
 /* Title: a heading with an edit button until either is clicked, then a large input. */
@@ -79,4 +140,48 @@
   font-size: var(--text-heading-2-size);
   font-weight: var(--font-weight-semibold);
   line-height: var(--text-heading-2-leading);
+}
+
+/*
+ * Page tree drag (decision 105, use-page-drag.ts): the dragged row dims and a
+ * line shows above or below the row at the landing slot. Rows are TreeList
+ * rows; the line is an inset shadow so it never shifts the layout.
+ */
+.tessera-page-row--dragging {
+  opacity: 0.5;
+}
+
+.tessera-page-row--drop-before {
+  box-shadow: inset 0 var(--spacing-0-5) 0 var(--color-accent);
+}
+
+.tessera-page-row--drop-after {
+  box-shadow: inset 0 calc(-1 * var(--spacing-0-5)) 0 var(--color-accent);
+}
+
+/*
+ * Page tree grip (decision 105): a row that can move shows a grip on hover or
+ * keyboard focus, always on a touch screen. Sizing and touch-action come from
+ * .tessera-row-grip (project-settings.css). The spacer keeps rows that cannot
+ * move (locked, archived) aligned with the ones that can.
+ */
+.tessera-page-row--draggable .tessera-row-grip {
+  opacity: 0;
+}
+
+.tessera-page-row--draggable:hover .tessera-row-grip,
+.tessera-page-row--draggable:focus-within .tessera-row-grip,
+.tessera-page-row--dragging .tessera-row-grip {
+  opacity: 1;
+}
+
+.tessera-page-grip-spacer {
+  flex: none;
+  visibility: hidden;
+}
+
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-page-row--draggable .tessera-row-grip {
+    opacity: 1;
+  }
 }

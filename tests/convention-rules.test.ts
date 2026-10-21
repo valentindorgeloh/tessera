@@ -88,7 +88,8 @@ describe("file budget ratchet", () => {
 
 describe("css token safety", () => {
   const astryx = new Set(["--spacing-4", "--color-border", "--border-width"]);
-  const check = (css: string, ours: string[] = []) => undefinedTokenUses(tokenUses(css, "css"), astryx, new Set(ours)).map((h) => `${h.line}:${h.name}`);
+  const check = (css: string, visible: string[] = [], theme: string[] = []) =>
+    undefinedTokenUses(tokenUses(css, "css"), astryx, new Set(visible), new Set(theme)).map((h) => `${h.line}:${h.name}`);
 
   it("passes tokens Astryx defines", () => {
     expect(check(".a { padding: var(--spacing-4); border: var(--border-width) solid var(--color-border); }")).toEqual([]);
@@ -116,8 +117,19 @@ describe("css token safety", () => {
     expect(check(css)).toHaveLength(10);
   });
 
-  it("accepts our own definitions in an Astryx family and ignores other families", () => {
-    expect(check(".a { color: var(--color-brand); width: var(--other-thing); }", ["--color-brand"])).toEqual([]);
+  it("resolves an Astryx-family name only in Astryx or the theme, not in any other src file", () => {
+    // --color-brand is defined in the theme: fine. The same name only in an area file (the visible set) is not.
+    expect(check(".a { color: var(--color-brand); }", [], ["--color-brand"])).toEqual([]);
+    expect(check(".a { color: var(--color-brand); }", ["--color-brand"])).toEqual(["1:--color-brand"]);
+    expect(check(".a { left: var(--spacing-99); }", ["--spacing-99"], [])).toEqual(["1:--spacing-99"]);
+  });
+
+  it("checks names outside the Astryx families against the file, the theme and the other side of the pair", () => {
+    expect(check(".a { width: var(--other-thing); }")).toEqual(["1:--other-thing"]);
+    expect(check(".a { width: var(--other-thing); }", ["--other-thing"])).toEqual([]);
+    expect(check(".a { width: var(--focus-ring-width); }", [], ["--focus-ring-width"])).toEqual(["1:--focus-ring-width"]);
+    const astryxOwned = undefinedTokenUses(tokenUses(".a { x: var(--astryx-owned); }", "css"), new Set(["--astryx-owned"]), new Set());
+    expect(astryxOwned).toEqual([]);
   });
 
   it("requires --tessera-* names to be defined in src, even when the use has a fallback", () => {
@@ -125,22 +137,22 @@ describe("css token safety", () => {
     expect(check(".a { left: var(--tessera-x); }", ["--tessera-x"])).toEqual([]);
   });
 
-  it("scopes --tessera-* names to their own file or the other side of the pair", () => {
+  it("scopes names to their own file, a theme file or the other side of the pair", () => {
     const set = (...names: string[]) => new Set(names);
-    const all = set("--tessera-a", "--tessera-b", "--color-brand");
-    // a CSS file: its own definition, or a name some ts/tsx file sets via style
-    const css = visibleOurTokens("css", set("--tessera-a"), all, set("--tessera-a", "--tessera-b"), set());
-    expect([...css].sort()).toEqual(["--color-brand", "--tessera-a"]);
-    const cssWithStyle = visibleOurTokens("css", set(), all, set("--tessera-a"), set("--tessera-b"));
-    expect([...cssWithStyle].sort()).toEqual(["--color-brand", "--tessera-b"]);
-    // a ts file: its own definition, or a name some CSS file defines
-    const ts = visibleOurTokens("ts", set(), all, set("--tessera-a"), set("--tessera-b"));
-    expect([...ts].sort()).toEqual(["--color-brand", "--tessera-a"]);
-    const hits = undefinedTokenUses(tokenUses(".a { x: var(--tessera-b); y: var(--color-brand); }", "css"), astryx, css);
+    // a CSS file: its own definition, a theme name, or a name some ts/tsx file sets via style
+    const css = visibleOurTokens("css", set("--tessera-a"), set("--focus-x"), set("--tessera-a", "--tessera-b"), set());
+    expect([...css].sort()).toEqual(["--focus-x", "--tessera-a"]);
+    const cssWithStyle = visibleOurTokens("css", set(), set(), set("--tessera-a"), set("--tessera-b"));
+    expect([...cssWithStyle].sort()).toEqual(["--tessera-b"]);
+    // a ts file: its own definition, a theme name, or a name some CSS file defines
+    const ts = visibleOurTokens("ts", set(), set("--focus-x"), set("--tessera-a"), set("--tessera-b"));
+    expect([...ts].sort()).toEqual(["--focus-x", "--tessera-a"]);
+    const hits = undefinedTokenUses(tokenUses(".a { x: var(--tessera-b); y: var(--color-border); }", "css"), astryx, css);
     expect(hits.map((h) => h.name)).toEqual(["--tessera-b"]);
   });
 
-  it("allows the next/font names and skips template-built names", () => {
+  it("exempts only the next/font names (set at runtime by layout.tsx) and skips template-built names", () => {
+    expect(check("a { font-family: var(--font-heading); }")).toEqual(["1:--font-heading"]);
     expect(check("a { font-family: var(--font-body), var(--font-code); b: var(--spacing-${n}); }")).toEqual([]);
   });
 

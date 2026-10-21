@@ -5,8 +5,11 @@
  * on unlock the unlock icon and "Unlocked" show once and fade, then the
  * button returns to the plain lock icon. `isLocked` is the displayed state
  * (server value plus the optimistic flip, see use-optimistic-lock.ts). The
- * feedback is derived while rendering and ends on the animation's own event,
- * so no effect or timer is involved. The motion lives in
+ * feedback follows `confirmedLocked`, the server value, never the optimistic
+ * flip: a failed unlock rolls the display back, and that rollback is not a
+ * change worth confirming. The feedback is derived while rendering and ends
+ * on the animation's own event, so no effect or timer is involved. The motion
+ * lives in
  * styles/lock-control.css and is cut short under prefers-reduced-motion.
  */
 import { useState } from "react";
@@ -20,6 +23,12 @@ import { nextLockFeedback, type LockFeedback } from "./lock-state";
 export type LockControlProps = {
   /** Whether the item is currently locked (the displayed, possibly optimistic, state). */
   isLocked: boolean;
+  /**
+   * The server's lock state (no optimistic flip). The "Unlocked" feedback fires
+   * when this changes from locked to unlocked, so an optimistic unlock that
+   * rolls back shows nothing. Defaults to `isLocked`.
+   */
+  confirmedLocked?: boolean;
   /** Toggles the lock. */
   onToggle: () => void;
   size?: IconButtonProps["size"];
@@ -31,13 +40,13 @@ export type LockControlProps = {
   className?: string;
 };
 
-export function LockControl({ isLocked, onToggle, size = "sm", variant = "ghost", label, tooltip, isDisabled = false, className }: LockControlProps) {
+export function LockControl({ isLocked, confirmedLocked = isLocked, onToggle, size = "sm", variant = "ghost", label, tooltip, isDisabled = false, className }: LockControlProps) {
   // Adjusting state while rendering (React's documented pattern) instead of an effect.
-  const [seenLocked, setSeenLocked] = useState(isLocked);
+  const [seenLocked, setSeenLocked] = useState(confirmedLocked);
   const [feedback, setFeedback] = useState<LockFeedback>("idle");
-  if (seenLocked !== isLocked) {
-    setSeenLocked(isLocked);
-    setFeedback(nextLockFeedback(seenLocked, isLocked, feedback));
+  if (seenLocked !== confirmedLocked) {
+    setSeenLocked(confirmedLocked);
+    setFeedback(nextLockFeedback(seenLocked, confirmedLocked, feedback));
   }
 
   const action = isLocked ? "Unlock" : "Lock";

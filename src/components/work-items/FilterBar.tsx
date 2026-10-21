@@ -13,7 +13,8 @@
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
-import { Token } from "@astryxdesign/core/Token";
+import { Icon } from "@astryxdesign/core/Icon";
+import { IconButton } from "@astryxdesign/core/IconButton";
 import {
   PowerSearch,
   type DateTimeRangePart,
@@ -29,7 +30,7 @@ import type { DateFilter, Filters, Priority, RichFilters, StateGroup } from "@/l
 import { DATE_FIELDS, LIST_FIELDS, isDateField, isListField, withExplicitClears, type DateField, type ListField } from "./filter-state";
 import { useProject } from "./project-provider";
 import { PRIORITY_OPTIONS, isPriority, stateGroupLabel } from "./properties";
-import { AdvancedFilterIcon } from "@/themes/catppuccin/icons";
+import { AdvancedFilterIcon, XIcon } from "@/themes/catppuccin/icons";
 import type { UrlState } from "./types";
 import { encodeUrlState } from "./url-state";
 
@@ -284,8 +285,9 @@ export function FilterBar({ filters, urlState, resultCount, showProject = false,
         resultCount={resultCount}
       />
       {tokens.length > 0 ? <Button variant="ghost" size="sm" label="Clear" onClick={() => write(withExplicitClears(filters, {}))} /> : null}
-      <Button variant="ghost" size="sm" label="Advanced" icon={<AdvancedFilterIcon />} onClick={() => setAdvancedOpen(true)} />
-      {chip ? <Token label={chip} onRemove={() => writeRich(null)} /> : null}
+      {/* The button carries the count while a tree applies ("Advanced · 3 conditions"), with a button of its own to drop the tree. */}
+      <Button variant={chip ? "secondary" : "ghost"} size="sm" label={chip ?? "Advanced"} icon={<AdvancedFilterIcon />} onClick={() => setAdvancedOpen(true)} />
+      {chip ? <IconButton label="Remove Advanced filter" tooltip="Remove Advanced filter" icon={<Icon icon={XIcon} />} size="sm" variant="ghost" onClick={() => writeRich(null)} /> : null}
       <RichFilterDialog isOpen={advancedOpen} onOpenChange={setAdvancedOpen} tree={tree} onApply={writeRich} />
     </HStack>
   );

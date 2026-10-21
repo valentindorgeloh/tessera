@@ -39,7 +39,13 @@ export function normalizeHomeWidgets(raw: unknown): HomeWidgets {
   return widgets;
 }
 
+/**
+ * Inserts the singleton row when missing. Insert-or-ignore, not check-then-insert:
+ * several processes may open one fresh database file at once, and the losers of the
+ * race must not crash on the primary key (docs/improvements.md "first-open race").
+ */
 export function ensureWorkspaceSettings(db: TesseraDb): void {
+  // The read keeps the common case (row exists) free of a write lock; the insert still ignores a lost race.
   const existing = db.select({ id: workspace_settings.id }).from(workspace_settings).where(eq(workspace_settings.id, WORKSPACE_ID)).get();
   if (existing) return;
   const now = nowIso();
@@ -56,6 +62,7 @@ export function ensureWorkspaceSettings(db: TesseraDb): void {
       created_at: now,
       updated_at: now,
     })
+    .onConflictDoNothing()
     .run();
 }
 

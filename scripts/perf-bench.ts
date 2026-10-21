@@ -23,13 +23,18 @@ import { createContext, type TesseraContext } from "@/lib/tessera/core/context";
 import { getCounts } from "@/lib/tessera/counts";
 import { openDatabase } from "@/lib/tessera/db/client";
 import { migrateIfNeeded } from "@/lib/tessera/db/migrate";
+import { pageSizeFor } from "@/components/work-items/paging";
 import { searchAll } from "@/lib/tessera/search";
+import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
+import type { Display } from "@/lib/tessera/types";
 import { getWorkItem, listWorkItems } from "@/lib/tessera/work-items";
 import { PERF_DB, perfDbPath } from "./perf-db";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const USAGE = "Usage: npm run perf:bench -- [--db <file>] [--runs <n>] [--rounds <n>] [--project <IDENT>]";
 const WARMUP = 3;
+/** Items of the project the detail-read case rotates through; the header prints the real project count next to it. */
+const DETAIL_SAMPLE = 500;
 const LIST_BUDGET_MS = 40;
 const COUNTS_BUDGET_MS = 25;
 const ANALYTICS_BUDGET_MS = 60;
@@ -89,21 +94,24 @@ function parseArgs(argv: string[]): { db: string; runs: number; rounds: number; 
 
 function benches(ctx: TesseraContext, projectId: string, itemIds: readonly string[]): Bench[] {
   const scope = { type: "project" as const, project_id: projectId };
-  const page = (display: Record<string, unknown>, extra: Record<string, unknown>) => () => listWorkItems(ctx, { scope, display, ...extra } as never);
-  const listGrouped = page({ layout: "list", group_by: "state" }, { per_group_limit: 50 });
-  const listFlat = page({ layout: "list", group_by: null }, { limit: 200 });
-  const board = page({ layout: "board", group_by: "state" }, { per_group_limit: 30 });
-  const byPriority = page({ layout: "list", group_by: "priority" }, { per_group_limit: 50 });
-  const byLabels = page({ layout: "list", group_by: "labels" }, { per_group_limit: 50 });
-  const byAssignees = page({ layout: "list", group_by: "assignees" }, { per_group_limit: 50 });
+  // The first page the UI asks for: pageSizeFor picks the rows per group (smaller for labels, assignees, modules).
+  const page = (display: Record<string, unknown>) => () => listWorkItems(ctx, { scope, display, ...pageSizeFor({ ...DEFAULT_DISPLAY, ...display } as Display) } as never);
+  const listGrouped = page({ layout: "list", group_by: "state" });
+  const listFlat = page({ layout: "list", group_by: null });
+  const board = page({ layout: "board", group_by: "state" });
+  const byPriority = page({ layout: "list", group_by: "priority" });
+  const byLabels = page({ layout: "list", group_by: "labels" });
+  const byAssignees = page({ layout: "list", group_by: "assignees" });
+  const byModules = page({ layout: "list", group_by: "module" });
   return [
     { name: "list first page, ungrouped (limit 200)", budget: LIST_BUDGET_MS, run: listFlat },
-    { name: "list first page, grouped by state (50/group)", budget: LIST_BUDGET_MS, run: listGrouped },
+    { name: "list first page, grouped by state (first page)", budget: LIST_BUDGET_MS, run: listGrouped },
     { name: "list first page, workspace scope (limit 200)", budget: LIST_BUDGET_MS, run: () => listWorkItems(ctx, { scope: { type: "workspace" }, limit: 200 }) },
-    { name: "board first page, by state (30/group)", budget: LIST_BUDGET_MS, run: board },
+    { name: "board first page, by state (first page)", budget: LIST_BUDGET_MS, run: board },
     { name: "group projection, by priority", budget: LIST_BUDGET_MS, run: byPriority },
     { name: "group projection, by labels", budget: LIST_BUDGET_MS, run: byLabels },
     { name: "group projection, by assignees", budget: LIST_BUDGET_MS, run: byAssignees },
+    { name: "group projection, by modules", budget: LIST_BUDGET_MS, run: byModules },
     { name: "getCounts, project", budget: COUNTS_BUDGET_MS, run: () => getCounts(ctx, scope) },
     { name: "getCounts, workspace", budget: COUNTS_BUDGET_MS, run: () => getCounts(ctx, { type: "workspace" }) },
     { name: "analytics overview, 30d", budget: ANALYTICS_BUDGET_MS, run: () => getAnalytics(ctx, { tab: "overview", range: "30d" }) },
@@ -133,9 +141,11 @@ function main(): number {
       console.error(`Project ${args.project} is not in ${dbPath}. Run: npm run perf:seed -- --db ${args.db}`);
       return 2;
     }
-    const itemIds = (handles.sqlite.prepare("SELECT id FROM work_item WHERE project_id = ? AND deleted_at IS NULL ORDER BY sort_order LIMIT 500").all(project.id) as { id: string }[]).map((row) => row.id);
+    const itemIds = (handles.sqlite.prepare(`SELECT id FROM work_item WHERE project_id = ? AND deleted_at IS NULL ORDER BY sort_order LIMIT ${DETAIL_SAMPLE}`).all(project.id) as { id: string }[]).map((row) => row.id);
     const total = (handles.sqlite.prepare("SELECT count(*) AS n FROM work_item WHERE deleted_at IS NULL").get() as { n: number }).n;
-    console.log(`Database: ${dbPath} (${total} work items, ${itemIds.length >= 500 ? "500+" : itemIds.length} in ${args.project}), best of ${args.rounds} rounds of ${args.runs} runs after ${WARMUP} warm-up runs`);
+    const inProject = (handles.sqlite.prepare("SELECT count(*) AS n FROM work_item WHERE project_id = ? AND deleted_at IS NULL").get(project.id) as { n: number }).n;
+    console.log(`Database: ${dbPath} (${total} work items, ${inProject} in ${args.project}), best of ${args.rounds} rounds of ${args.runs} runs after ${WARMUP} warm-up runs`);
+    console.log(`Detail read samples ${itemIds.length} of the ${inProject} ${args.project} items (the first ${DETAIL_SAMPLE} by sort order).`);
     const rows = benches(ctx, project.id, itemIds).map((bench) => measure(bench, args.runs, args.rounds));
     const width = Math.max(...rows.map((row) => row.name.length));
     let failed = 0;

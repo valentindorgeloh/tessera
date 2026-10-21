@@ -139,6 +139,10 @@ export const work_item = sqliteTable(
     index("work_item_project_sort_idx").on(t.project_id, t.sort_order),
     // Workspace-scope list/count (decision 126): covers deleted_at / archived_at filters.
     index("work_item_project_live_sort_idx").on(t.project_id, t.deleted_at, t.archived_at, t.sort_order),
+    // Workspace-scope list page and count (decision 126, migration 0011). The page reads live rows in
+    // display order through the first and stops at its limit; the count walks the narrow covering second.
+    index("work_item_live_sort_idx").on(t.sort_order, t.sequence_id).where(sql`deleted_at IS NULL AND archived_at IS NULL`),
+    index("work_item_live_state_idx").on(t.state_id, t.project_id, t.deleted_at, t.archived_at).where(sql`deleted_at IS NULL AND archived_at IS NULL`),
   ],
 );
 

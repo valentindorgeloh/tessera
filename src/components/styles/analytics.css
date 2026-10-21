@@ -25,6 +25,15 @@
   --container-padding-block-end: var(--spacing-0);
 }
 
+/* The title keeps its full word on a phone; the tab strip scrolls in the room left ("Anal…" otherwise). */
+.tessera-analytics-title {
+  flex-shrink: 0;
+}
+
+.tessera-analytics-tabs {
+  min-width: 0;
+}
+
 .tessera-analytics-projects {
   inline-size: calc(var(--spacing-10) * 5);
   max-inline-size: 100%;
@@ -39,4 +48,11 @@
 .tessera-analytics-bar {
   inline-size: calc(var(--spacing-8) * 3);
   flex: none;
+}
+
+/* A finger needs a 44px target; a narrow phone gets it with or without a coarse pointer. */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-analytics-csv {
+    min-block-size: var(--spacing-11);
+  }
 }

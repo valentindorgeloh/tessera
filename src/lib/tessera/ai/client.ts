@@ -4,11 +4,13 @@
  * or embeds it. `new Anthropic()` with no arguments is the SDK's own lookup.
  */
 import Anthropic from "@anthropic-ai/sdk";
+import path from "node:path";
 import { ASSISTANT_ACTOR_ID } from "../actors";
 import { createContext, type TesseraContext } from "../core/context";
 import type { DbHandles } from "../db/client";
 import { AiEffortSchema } from "../schemas";
 import type { AiEffort, AiStatus } from "../types";
+import { assertFakeAiAllowed, createReplayClient } from "./fake-client";
 
 export const AI_MODEL = process.env.TESSERA_AI_MODEL ?? "claude-opus-5-5";
 
@@ -30,10 +32,23 @@ export function aiEffort(): AiEffort {
   return parsed.success ? parsed.data : "high";
 }
 
-/** Lazy process-wide client. A test client from `setAnthropicForTests` wins. */
+/**
+ * Lazy process-wide client. A test client from `setAnthropicForTests` wins.
+ * With `TESSERA_AI_FAKE=<dir>` the client replays the recorded turns in that
+ * directory and never reaches the network (decision 124); the guard throws in
+ * production on the default database.
+ */
 export function getAnthropic(): Anthropic {
   if (testClient) return testClient;
-  if (!singleton) singleton = new Anthropic();
+  if (!singleton) {
+    const fakeDir = process.env.TESSERA_AI_FAKE;
+    if (fakeDir) {
+      assertFakeAiAllowed();
+      singleton = createReplayClient(path.resolve(fakeDir));
+    } else {
+      singleton = new Anthropic();
+    }
+  }
   return singleton;
 }
 

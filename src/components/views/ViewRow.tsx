@@ -11,6 +11,8 @@ import { ListItem } from "@astryxdesign/core/List";
 import { HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
+import type { ItemDragHandlers } from "@/components/dnd/use-pointer-drag";
+import { RowGrip } from "@/components/shared/RowDrag";
 import { FavoriteButton } from "@/components/shell/FavoriteButton";
 import type { View } from "@/lib/tessera/types";
 import { LockIcon, ViewIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
@@ -29,6 +31,8 @@ export type ViewRowProps = {
   nextId?: string;
   /** False while the search field has text (a filtered list has no stable neighbours). */
   canReorder: boolean;
+  /** Pointer drag reorder (decision 105): the row registers with the list's `usePointerDrag` and shows a grip. Absent: no drag. */
+  drag?: { rowRef: (el: HTMLElement | null) => void; handlers: ItemDragHandlers };
 };
 
 /** The lock icon with its tooltip; a row of a locked view and the view page's title adornment. */
@@ -46,11 +50,26 @@ function rowDescription(view: View): string {
   return firstLine !== "" ? firstLine : viewSummary(view);
 }
 
-export function ViewRow({ projectId, view, count, isFavorite, previousId, nextId, canReorder }: ViewRowProps) {
+export function ViewRow({ projectId, view, count, isFavorite, previousId, nextId, canReorder, drag }: ViewRowProps) {
+  const icon = <Icon icon={view.logo ? resolveLogoIcon(view.logo.icon) : ViewIcon} color={view.logo?.color ?? "secondary"} size="sm" />;
   return (
     <ListItem
+      ref={drag?.rowRef}
+      {...drag?.handlers}
+      // The row's anchor is a link, which the browser would start dragging natively and cancel the pointer drag.
+      onDragStart={drag ? (event) => event.preventDefault() : undefined}
+      className={drag ? "tessera-row-draggable" : undefined}
       href={projectId === null ? `/workspace-views/${view.id}` : `/projects/${projectId}/views/${view.id}`}
-      startContent={<Icon icon={view.logo ? resolveLogoIcon(view.logo.icon) : ViewIcon} color={view.logo?.color ?? "secondary"} size="sm" />}
+      startContent={
+        drag ? (
+          <HStack gap={2} vAlign="center">
+            <RowGrip />
+            {icon}
+          </HStack>
+        ) : (
+          icon
+        )
+      }
       label={view.name}
       description={rowDescription(view)}
       endContent={

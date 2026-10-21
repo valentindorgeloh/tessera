@@ -15,6 +15,7 @@
 import type { SearchSource, SearchableItem } from "@astryxdesign/core/Typeahead";
 import { favoriteTarget, isFavoriteInTree } from "@/components/favorites/tree";
 import { readFavoritesTree } from "@/components/favorites/state";
+import { SETTINGS_TABS } from "@/components/project-settings/settings-tabs";
 import type { SearchHit, SearchType } from "@/lib/tessera/types";
 import { COLOR_SCHEME_LABELS, isColorScheme, type ColorScheme } from "./color-scheme";
 import type { CommandContextValue } from "./command-context";
@@ -188,18 +189,14 @@ export const THEME_COMMANDS: readonly CommandSearchItem[] = (Object.keys(COLOR_S
 
 export const PROJECT_SETTINGS_PREFIX = "projectSettings.";
 
-/** The project settings tabs the palette opens (F2's tabs in settings-tabs.ts), with their palette label. */
-const PROJECT_SETTINGS_TABS: readonly { tab: string; label: string }[] = [
-  { tab: "general", label: "General" },
-  { tab: "features", label: "Features" },
-  { tab: "states", label: "States" },
-  { tab: "labels", label: "Labels" },
-  { tab: "estimates", label: "Estimates" },
-  { tab: "agents", label: "Agents" },
-];
+/**
+ * The project settings tabs the palette opens: every tab of the settings layout
+ * (F2's settings-tabs.ts, including Automations), so a new tab cannot be missed here.
+ */
+const PROJECT_SETTINGS_TABS: readonly { tab: string; label: string }[] = SETTINGS_TABS.map(({ key, label }) => ({ tab: key, label }));
 
 /**
- * "Settings: General" ... "Settings: Agents" for the project in scope, in the
+ * "Settings: General" ... "Settings: Automations" for the project in scope, in the
  * Settings section next to the theme commands; none outside a project. The id
  * is `projectSettings.<tab>`, which the command bar routes to
  * `/projects/<projectId>/settings/<tab>`.

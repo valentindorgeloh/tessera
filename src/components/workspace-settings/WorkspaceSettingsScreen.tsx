@@ -68,7 +68,7 @@ function GeneralPane({ name, weekStart }: { name: string; weekStart: number }) {
       />
       <Selector
         label="Week starts on"
-        description="Applies to the calendar layout."
+        description="Applies to calendars and date pickers."
         options={WEEK_START_OPTIONS}
         value={String(weekStart)}
         onChange={(value) => {

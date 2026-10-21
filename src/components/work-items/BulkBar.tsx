@@ -133,7 +133,7 @@ export function BulkBar({ items, selected, onClear, variant = "active", loaded, 
           onOpenChange={(open) => !open && setTransfer(null)}
           mode={transfer}
           ids={ids}
-          projectId={bundle.project.id}
+          sourceProjectIds={[...new Set(chosen.map((item) => item.project_id))]}
           projects={bundle.projects}
           onDone={onClear}
         />

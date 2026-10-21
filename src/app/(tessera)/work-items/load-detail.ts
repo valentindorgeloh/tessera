@@ -17,9 +17,11 @@ import {
   listActivity,
   listActors,
   listChildren,
+  listComments,
   listCycles,
   listLabels,
   listModules,
+  listPageBacklinks,
   listProjects,
   listStates,
   USER_ACTOR_ID,
@@ -83,6 +85,9 @@ export function loadWorkItemDetail(ctx: TesseraContext, id: string): WorkItemDet
     children: listChildren(ctx, id),
     // listActivity returns the newest rows oldest first; the feed wants the newest on top.
     activity: listActivity(ctx, { work_item_id: id }).reverse(),
+    // Threads for the timeline (decision 56) and the pages that embed the item for "Mentioned in" (decision 44).
+    comments: listComments(ctx, id),
+    backlinks: listPageBacklinks(ctx, { entity_type: "work_item", entity_id: id }),
     currentActorId: USER_ACTOR_ID,
     cursor: latestSeq(ctx),
   };

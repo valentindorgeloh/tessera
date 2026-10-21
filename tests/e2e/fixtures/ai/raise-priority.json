@@ -1,0 +1,25 @@
+{
+  "match": "raise the priority of AIX-1",
+  "turns": [
+    {
+      "stopReason": "tool_use",
+      "text": "Looking up AIX-1.",
+      "toolUses": [{ "id": "toolu_lookup", "name": "get_work_item_by_key", "input": { "key": "AIX-1" } }]
+    },
+    {
+      "stopReason": "tool_use",
+      "text": "I will propose raising its priority.",
+      "toolUses": [
+        {
+          "id": "toolu_propose",
+          "name": "propose_update_work_item",
+          "input": { "work_item_id": "{{result:toolu_lookup.id}}", "priority": "urgent" }
+        }
+      ]
+    },
+    {
+      "stopReason": "end_turn",
+      "text": "I proposed raising AIX-1 to urgent. Nothing changes until you apply it."
+    }
+  ]
+}

@@ -156,6 +156,7 @@ export function PageScreen({ page, labels, actors, spaces, space }: PageScreenPr
                 <FavoriteButton entityType="page" entityId={page.id} />
                 <LockControl
                   isLocked={isLocked}
+                  confirmedLocked={page.is_locked}
                   onToggle={toggleLock}
                   size="sm"
                   variant="ghost"
@@ -171,52 +172,57 @@ export function PageScreen({ page, labels, actors, spaces, space }: PageScreenPr
       }
       content={
         <LayoutContent ref={scrollRef} isScrollable padding={0}>
-          <VStack gap={4} paddingInline={4} paddingBlockStart={5} paddingBlockEnd={10} className="tessera-page tessera-reading">
-            {archived ? (
-              <Banner
-                status="warning"
-                title="This page is archived"
-                endContent={
-                  <HStack gap={1}>
-                    <Button variant="secondary" size="sm" label="Restore" onClick={toggleArchive} isDisabled={projectArchived} />
-                    <Button variant="secondary" size="sm" label="Delete…" onClick={() => setDeleteId(page.id)} isDisabled={page.is_locked || projectArchived} />
-                  </HStack>
-                }
-              />
-            ) : null}
-            {!archived && isLocked ? (
-              <Banner
-                status="info"
-                title="This page is locked"
-                endContent={<Button variant="secondary" size="sm" label="Unlock" onClick={toggleLock} isDisabled={projectArchived} />}
-              />
-            ) : null}
-            <PageTitle key={page.id} name={page.name} readOnly={contentReadOnly} onRename={rename} />
-            <PageMeta
-              key={page.id}
-              page={page}
-              labels={labels}
-              actors={actors}
-              labelsReadOnly={contentReadOnly}
-              accessReadOnly={archived || projectArchived}
-              onToggleAccess={toggleAccess}
-              onLabels={setLabels}
-            />
-            <PageBodyEditor
-              key={page.id}
-              pageId={page.id}
-              text={page.description_md}
-              version={page.description_version}
-              readOnly={contentReadOnly}
-              projectId={page.project_id}
-              mentionActors={mentionActors}
-              bodyRef={bodyRef}
-            />
+          {/* The reading column (ui.md PanelPage "reading", 960px) keeps its width; the outline sits beside it, or above it in a frame too narrow for both, and never covers the text (docs/drafts/p10-plan.md "Page outline", styles/pages.css). */}
+          <VStack className="tessera-page-container">
+            <VStack className="tessera-page-frame" data-outline={outlineOpen ? "open" : undefined}>
+              <VStack gap={4} paddingInline={4} paddingBlockStart={5} paddingBlockEnd={10} className="tessera-page tessera-reading">
+                {archived ? (
+                  <Banner
+                    status="warning"
+                    title="This page is archived"
+                    endContent={
+                      <HStack gap={1}>
+                        <Button variant="secondary" size="sm" label="Restore" onClick={toggleArchive} isDisabled={projectArchived} />
+                        <Button variant="secondary" size="sm" label="Delete…" onClick={() => setDeleteId(page.id)} isDisabled={page.is_locked || projectArchived} />
+                      </HStack>
+                    }
+                  />
+                ) : null}
+                {!archived && isLocked ? (
+                  <Banner
+                    status="info"
+                    title="This page is locked"
+                    endContent={<Button variant="secondary" size="sm" label="Unlock" onClick={toggleLock} isDisabled={projectArchived} />}
+                  />
+                ) : null}
+                <PageTitle key={`title-${page.id}`} name={page.name} readOnly={contentReadOnly} onRename={rename} />
+                <PageMeta
+                  key={`meta-${page.id}`}
+                  page={page}
+                  labels={labels}
+                  actors={actors}
+                  labelsReadOnly={contentReadOnly}
+                  accessReadOnly={archived || projectArchived}
+                  onToggleAccess={toggleAccess}
+                  onLabels={setLabels}
+                />
+                <PageBodyEditor
+                  key={`body-${page.id}`}
+                  pageId={page.id}
+                  text={page.description_md}
+                  version={page.description_version}
+                  readOnly={contentReadOnly}
+                  projectId={page.project_id}
+                  mentionActors={mentionActors}
+                  bodyRef={bodyRef}
+                />
+              </VStack>
+              {outlineOpen ? <PageOutline containerRef={bodyRef} scrollContainerRef={scrollRef} /> : null}
+            </VStack>
           </VStack>
           <DeletePageDialog page={page} isOpen={deleteId === page.id} onOpenChange={(open) => setDeleteId(open ? page.id : null)} />
         </LayoutContent>
       }
-      end={outlineOpen ? <PageOutline containerRef={bodyRef} scrollContainerRef={scrollRef} /> : undefined}
     />
   );
 }

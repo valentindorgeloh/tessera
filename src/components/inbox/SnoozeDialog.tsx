@@ -11,6 +11,7 @@ import { DateTimeInput, type ISODateTimeString } from "@astryxdesign/core/DateTi
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import { HStack } from "@astryxdesign/core/Stack";
 import { Dialog, DialogHeader } from "@/components/shell/dialogs";
+import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import { formatLocalDateTime, parseLocalDateTime, snoozeBounds, snoozePresets } from "./inbox-format";
 
 export type SnoozeDialogProps = {
@@ -34,6 +35,8 @@ export function SnoozeDialog({ isOpen, openedAt, onOpenChange, onConfirm }: Snoo
 }
 
 function SnoozeForm({ openedAt, onOpenChange, onConfirm }: { openedAt: Date; onOpenChange: (isOpen: boolean) => void; onConfirm: (until: Date) => void }) {
+  // The inbox has no project bundle: the store answers once the layout's publisher has run, Monday before.
+  const weekStartsOn = useWeekStart();
   const bounds = snoozeBounds(openedAt);
   const initial = snoozePresets(openedAt).find((preset) => preset.id === "tomorrow")?.until ?? bounds.min;
   const [value, setValue] = useState(formatLocalDateTime(initial));
@@ -56,6 +59,7 @@ function SnoozeForm({ openedAt, onOpenChange, onConfirm }: { openedAt: Date; onO
             max={asDateTime(formatLocalDateTime(bounds.max))}
             hasClear={false}
             hourFormat="24h"
+            weekStartsOn={weekStartsOn}
           />
         </LayoutContent>
       }

@@ -658,14 +658,24 @@ describe("buildProjectSettingsCommands", () => {
       "projectSettings.labels",
       "projectSettings.estimates",
       "projectSettings.agents",
+      "projectSettings.automations",
     ]);
-    expect(items.map((item) => item.label)).toEqual(["Settings: General", "Settings: Features", "Settings: States", "Settings: Labels", "Settings: Estimates", "Settings: Agents"]);
+    expect(items.map((item) => item.label)).toEqual([
+      "Settings: General",
+      "Settings: Features",
+      "Settings: States",
+      "Settings: Labels",
+      "Settings: Estimates",
+      "Settings: Agents",
+      "Settings: Automations",
+    ]);
     expect(items.every((item) => item.auxiliaryData?.group === "Settings" && item.auxiliaryData.kind === "command")).toBe(true);
     expect(items.some((item) => isShortcutId(item.id))).toBe(false);
   });
 
   it("maps a command id to its tab and nothing else", () => {
     expect(projectSettingsTab("projectSettings.states")).toBe("states");
+    expect(projectSettingsTab("projectSettings.automations")).toBe("automations");
     expect(projectSettingsTab("projectSettings.nope")).toBeNull();
     expect(projectSettingsTab("nav.settings")).toBeNull();
   });

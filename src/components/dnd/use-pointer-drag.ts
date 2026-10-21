@@ -25,7 +25,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
-import { autoScrollFor, containerAt, dropIndexFor, exceedsThreshold, isNoopDrop, neighboursAt, withoutId, type Axis, type DropTarget, type Point } from "./drag-math";
+import { autoScrollFor, containerAt, dropIndexFor, dropIndexForGrid, exceedsThreshold, isNoopDrop, neighboursAt, withoutId, type Axis, type DropTarget, type Point } from "./drag-math";
 
 export type { DropTarget } from "./drag-math";
 
@@ -56,8 +56,12 @@ export type UsePointerDragOptions = {
   itemsOf: (container: string) => ReadonlyArray<string>;
   /** Pointer travel (px) before a press becomes a drag. @default 5 */
   threshold?: number;
-  /** Axis items are laid out along inside a container. @default "y" */
-  axis?: Axis;
+  /**
+   * Axis items are laid out along inside a container; "grid" is a wrapping
+   * layout (row by y, then slot by x; decision 105, stickies and quick links).
+   * @default "y"
+   */
+  axis?: Axis | "grid";
   /** Distance from a container edge (px) inside which it auto-scrolls. @default 48 */
   autoScrollEdge?: number;
   /** Auto-scroll speed at the edge (px per frame). @default 14 */
@@ -198,7 +202,8 @@ export function usePointerDrag(options: UsePointerDragOptions): UsePointerDragRe
       const el = itemEls.current.get(id) as HTMLElement;
       return el.getBoundingClientRect();
     });
-    const slot = dropIndexFor(point, rects, optionsRef.current.axis ?? "y");
+    const axis = optionsRef.current.axis ?? "y";
+    const slot = axis === "grid" ? dropIndexForGrid(point, rects) : dropIndexFor(point, rects, axis);
     const index = slot < rendered.length ? ids.indexOf(rendered[slot]) : ids.length;
     return { container, index };
   }, []);
@@ -223,7 +228,9 @@ export function usePointerDrag(options: UsePointerDragOptions): UsePointerDragRe
   const autoScrollFrame = useCallback((): boolean => {
     const active = session.current;
     if (!active || !active.started) return false;
-    const { autoScrollEdge = 48, autoScrollSpeed = 14, axis = "y" } = optionsRef.current;
+    const { autoScrollEdge = 48, autoScrollSpeed = 14, axis: layoutAxis = "y" } = optionsRef.current;
+    // A wrapping grid scrolls along y (its page), like a vertical list.
+    const axis: Axis = layoutAxis === "grid" ? "y" : layoutAxis;
     const scrollOptions = { edge: autoScrollEdge, maxSpeed: autoScrollSpeed };
     let scrolled = false;
 

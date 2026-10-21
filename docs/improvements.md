@@ -1,94 +1,102 @@
 # Tessera: what needs improving (2026-10-18)
 
-Reconciled on 2026-10-21 at HEAD f3be717 (after Cursor's 12 commits 07a59d1..f3be717). Sources: a four-area code audit (plan items, perf/engine, UI/a11y, state/docs) and two browser runs on scratch databases (ports 3300 and 3400, never :3000 or `data/tessera.db*`). Where audit and browser disagreed, the browser decided behaviour and the code decided structure. Gates at HEAD: `npm run check` green (tsc, eslint, vitest 139 files / 2093 tests, conventions, licences, theme); `next build` and `check:bundle` pass on a scratch copy. Re-check an item before working on it.
+Reconciled on 2026-10-22 against the working tree after the fix-all round (HEAD e04b840 plus the round's uncommitted changes; nine lanes, two fix rounds, a browser verify pass on scratch copies, never :3000 or `data/tessera.db*`). Gates on that tree: the round's gate is green, and the reconciler re-ran `tsc --noEmit` (clean), `eslint .` (clean), `vitest run` (177 files / 2360 tests pass) and `scripts/check-conventions.ts` (passed). Playwright: 50 passed / 3 failed before fix round 2; after it the full suite passes, 54 of 54 on a scratch production build (2026-10-22). Re-check an item before working on it.
 
 ## Open
 
 ### Features from the plan
-- Page history has no Activity tab (p10 step 15, decision 99): `src/components/history/VersionHistoryDialog.tsx` has no tabs and never reads `history.activity`, though `GET /api/history/page/<id>` already returns the newest 50 rows.
-- Drag reorder, views list (p10 step 20, decision 105): no `usePointerDrag` in `views/ViewsScreen.tsx`, `ViewRow.tsx`, `ViewMenu.tsx`; only the menu Move up/down.
-- Drag reorder, states within a group (decision 105): `project-settings/StatesSettings.tsx:75-85` menu Move up/down only.
-- Drag reorder, labels with drop-to-reparent (decision 105): `LabelsSettings.tsx` has menu Move to / Move up/down only, and `ReorderLabelInput` (`labels.ts:214`) has no `parent_id`, so the engine part is missing too.
-- Drag reorder, wiki/page tree: `pages/PagesScreen.tsx` and `PageRowMenu.tsx:130-139` have menu moves and `MovePageDialog` only.
-- Drag reorder, stickies: `StickyCard.tsx:145-146` menu Move earlier/later only; the 2-D helper `dropIndexForGrid` does not exist in `dnd/drag-math.ts` (only `dropIndexFor`, l.52).
-- Drag reorder, quick links: `home/QuickLinksWidget.tsx:75-76` menu Move left/right only.
-- Drag reorder, Home widgets: `home/ManageWidgetsDialog.tsx:63-67` menu Move up/down only.
-- Gantt conflict tooltip naming the blocker (decision 92): conflicts get the error path and outline (browser), but the bar only gains an aria-label suffix ", date conflict" (`GanttLayout.tsx:207-209`); no tooltip.
-- Analytics "Download CSV per table" (p10 U2): chart data tables have it, but the plain tables (Top assignees, Projects in `analytics/OverviewPanel.tsx:128,154`; cycle and module tables in `PlanningPanels.tsx:95,157`) have none (browser confirmed).
-- Automations tab is missing from the command palette: `shell/command-source.ts:192-199` `PROJECT_SETTINGS_TABS` stops at Agents.
-- Playwright suite (decision 123) is a 5-test shell smoke (`tests/e2e/smoke.spec.ts`) on `next dev`, with no globalSetup, console-error fixture or feature specs; AI fake client for e2e (decision 124, `TESSERA_AI_FAKE`, `tests/e2e/fixtures/ai/`) is not built.
-
-### Bugs
-- (high) Page header stacks copies: `PageScreen.tsx:194-206` gives `PageTitle`, `PageMeta` and `PageBodyEditor` the same `key={page.id}` as siblings, so every lock/unlock (button or Shift+L) and every Outline toggle adds another title+meta block until reload (browser: titles 1 → 3 → 5).
-- Page Outline says "No headings yet" on a page that already has H1–H3 until the first keystroke: `editor/heading-ids.ts` assigns ids only in `appendTransaction` on a doc change, and `useOutlineFromDOM` drops id-less headings (both browser runs on a wiki page; audit reproduced under jsdom).
-- Gantt "Today" button and `t` do nothing in Month (the default) and Quarter zoom, and the gantt opens at scrollLeft 0: `todayRef` points at the sticky head-day cell (`GanttLayout.tsx:55,69,128`); `scrollIntoView` on `.tessera-gantt-today` works (browser).
-- Cycle and Snooze pickers ignore "Week starts on": `planning/CycleDialog.tsx:134` `DateRangeInput` and `inbox/SnoozeDialog.tsx` `DateTimeInput` pass no `weekStartsOn` (browser: New cycle shows Su first with Monday set).
-- Failed lock flashes "Unlocked" for about 0.8 s next to the error toast: rollback of the optimistic value in `use-optimistic-lock.ts:18-24` reads as an unlock to `nextLockFeedback` (`LockControl.tsx:38-40`, `lock-state.ts`) (browser confirmed).
-- Automations "Run now" toasts "Automations completed: 0 closed, 0 archived." when another process holds the lease: `AutomationsSettings.tsx` (`runNow`, l.118) ignores `lease_held`; the button also stays enabled during a run (browser).
-- First-open race: `ensureWorkspaceSettings` (`workspace/settings.ts:42-60`, called from `db/client.ts:51`) is check-then-insert; 1 of 6 simultaneous first opens of a fresh DB crashed with `UNIQUE constraint failed: workspace_settings.id` (audit ad-hoc run). Use `ON CONFLICT DO NOTHING`.
-- Unknown cycle id is recorded in recents when cycles are off: `cycles/[cycleId]/page.tsx:67-70` renders FeatureOffState before looking up the id, so `RecentsTracker` stores the path (browser: present in `tessera.recents.v1`). Modules and views share the ordering.
-- A filter matching nothing shows "No work items yet / Create the first one" (`ListLayout.tsx:418`) instead of a no-results state (browser: "Advanced · 3 conditions", 0 results, 38 items in project).
-- Rich filter, deep tree: the view page's Advanced button reads plain "Advanced" (no count), and the read-only dialog still offers Add condition / Add group (`filters/RichFilterDialog.tsx`, browser).
-- Burnup "Scope" label (`planning/BurndownChart.tsx:123`, `insideTopRight`) now clears its dotted line but the dashed Ideal line runs through the text (browser screenshot).
-- Settings > General helper under "Week starts on" says "Applies to the calendar layout." (`WorkspaceSettingsScreen.tsx:71`), but it also drives the date pickers.
-- Bulk "Copy to project…" lists the source project, so a same-project copy is allowed (`BulkTransferDialog.tsx`); decision 107 is silent. Decide and record.
+- Workspace views list has no drag (decision 105 names "Views"): `views/WorkspaceViewsScreen.tsx` is not wired, though `ViewRow` takes the same optional `drag` prop as the project list.
+- Menu Move up/Move down in views, states, labels and the page tree are not optimistic (decision 13); only the drags are. Low.
 
 ### Accessibility, 375 px and visual
-- Project-scope work item page has two level-1 headings: the frame title is `Heading level={4} accessibilityLevel={1}` (`ProjectFrame.tsx:67`, `PanelHeader.tsx:78`, renders `<h4 aria-level=1>`) plus the item title `h1` (`WorkItemDetail.tsx:105`). The browser's "one h1" count was on `/work-items/<id>` (no frame) and does not count aria-level.
-- 375 px project tab strip: tabs get 118 px, only "Work items" shows, and Astryx's 32 px fade lands on that label, so nothing hints at six more tabs (`ProjectFrame.tsx:62-73`, `shell.css:99-114`; browser scrollWidth 632 vs 118).
-- 375 px board column is 350 px in a 325 px content box (`board.css:36-45`, `BoardLayout.tsx:53`; browser).
-- 375 px drawer search placeholder clips to "Search v…" in a 47 px input (`shell/TopBar.tsx:73-95`, `shell.css:19-22`; browser).
-- Calendar chip keys wrap mid-id ("WEB-" / "35") at 375 and at 1440 with the peek open: the key `Text` has no nowrap (`CalendarLayout.tsx:262-267`, `calendar.css:55-63`; browser).
-- 375 px gantt and module timeline give the label column 256 of 357 px, leaving about 100 px of timeline (browser).
-- Calendar chips have no hover or pressed feedback in either scheme, and an outside-month chip has the same background as its muted cell (`calendar.css:33-35,44-69`; browser saw no change on hover/press). This is the open part of the user's "weird calendar" report.
-- Table first column: header text sits 12 px left of the key text (browser: header 303, key 315, panel title 307 at 1440). `table.css:15-21` gives both `--spacing-3` and the key button adds its own 12 px; `docs/contracts/ui.md:68` promises 16 px alignment and the file comment contradicts itself.
-- List rows: the key lines up with the header (307 = 307), but the last chip ends 13 px from the panel edge versus 17 px for the header actions (`work-items.css:28-35`, 12 px padding against the 16 px inset in `ui.md:66`); the comments are stale.
-- Detail heading gained 20 px under the title (`detail.css:77-99`, `padding-bottom 0` → `--spacing-5` in 07a59d1, no decision; browser: 44 px title → main at 1280); the "symmetric padding" comments are wrong for main (20/40).
-- Page screen: opening the Outline narrows the body (898 vs 926 px), and `PanelPage width="reading"` was replaced by a raw `Layout` + `tessera-reading` (`PageScreen.tsx:129,174`); check against ui.md's reading width.
-
-### Perf and paging
-- Workspace-scope list keeps 2 bare `SCAN work_item` allowed in `tests/perf/query-plans.test.ts`, while decision 126 (`docs/PLAN.md:209`) says such a scan fails. Add an index or write the exception into decision 126.
-- Labels group projection sits on its 40 ms p95 budget: 34.4 ms then 40.5 ms (OVER) on a 12k-item scratch DB with `scripts/perf-bench.ts`. The p11-plan §10 fallback (smaller first page for multi-valued groupings or a GROUP BY path) is not applied (`components/work-items/paging.ts:35-36`).
-- Automation lease has no true race test: `tests/automations.test.ts:151-196` holds the lease sequentially; a 6-process ad-hoc run gave 1 winner, 4 skips and 1 crash (the first-open race above).
-- `npm run perf:bench` prints "500+ in PERF" because it counts a LIMIT 500 sample (`scripts/perf-bench.ts`); cosmetic.
+- Inbox header at 375 px: title clipped to "I…" and the Snoozed tab half faded (verify sweep). `inbox.css` now puts the tabs on their own row under 600 px, copied from the project frame header, but it is not browser-verified.
+- Gantt per-row dates button and the Today button stay 28 px (size sm) at 375 px; only the rows are 44 px (timeline lane).
+- PowerSearch field overlaps its "0 results" text at 375 px on a view page (seen by the list-screen lane, not fixed).
+- `charts/SeriesCharts.tsx` data tables have no column floors at 375 px; the analytics, cycles and modules tables do (`analytics/table-widths.ts`).
+- Not browser-verified this round: Latte for the calendar chips, the gantt and the page outline (checked from token values; the in-app browser's scheme emulation does not switch the app, set `tessera.scheme.v1` instead), a real touch drag on the page-tree grip, and a mid-drag 375 px board with scroll-snap.
 
 ### Docs and housekeeping
-- Field guide `docs/field-guide/index.md:30` still says a token def anywhere silences every file. Since 6092055 `--tessera-*` names resolve only through the defining file or its css/ts counterpart (`scripts/convention-rules.ts` `visibleOurTokens`). Reword it (reconciler-owned).
-- `css-token` rule remaining leniency: Astryx-family names (`--color-`, `--spacing-`, …) pass when defined anywhere in `src`, names outside the listed families are unchecked, and `--font-body`/`--font-code` are exempt (`convention-rules.ts:154`).
-- `docs/as-built/`: P4 and P6–P11 are not mapped; `README.md` still says snapshot 257798c and omits `ai.md`; `work-items.md:98,153` (calendar/gantt EmptyState "until P10") and `engine.md` (MCP route "until P6") contradict the code.
-- `PLAN-STATUS.md`: P5 row says done 2026-10-18 (commits are 2026-10-17) and does not say live acceptance never ran; P10 "done" hides unbuilt §9 items (Activity tab, drag reorder); P11 "zero open todos" though the cache lane was skipped and Playwright is a 5-test smoke; P2a/P2b/P3 still say "user acceptance still to come"; the rework list (lines 238-245) is stale (archived read-only is closed).
-- `docs/PLAN.md` decisions 109–111 and 123–124 read as built; mark them skipped or partial once the user decides (see below).
-- `drizzle/meta` holds snapshots 0000–0002 only; migrations 0003–0010 are hand-written, so `drizzle-kit generate` cannot diff them.
-- Test gaps: no tests for `AutomationsSettings`, `BulkTransferDialog`, `ModulesTimeline`, the `?layout=` effect, the CSV download button, the `useWeekStart` store, `weekStartsOn` on any picker, or the engine `dateRangeOf`/`include_date_range` (`work-items/timeline.ts:34-48`).
-- Stale worktree `.claude/worktrees/app-visual-rework-250c6c` (branch merged at ad30062). It no longer breaks lint (`eslint.config.mjs:88` ignores `.claude/**`); removing it is state-changing git for the root planner.
+- `docs/contracts/service-api.md:114` and `docs/contracts/tools.md` show the old `reorderLabel(ctx, id, { before_id?, after_id? })`; it now takes `parent_id` (reparent plus reorder).
+- `docs/contracts/ui.md` does not record this round's behaviour: `PanelTitle` `accessibilityLevel` 2 on work item and project page detail routes (`ui.md:83` still says the frame title is always the h1), the below-600 px project tab row with 44 px tabs and the full-width drawer search, the page outline layout (stacked block above the column below a 1136 px frame, sticky side column from 1136 px), the "Mentioned in" detail section, and the scope lookup order (not found before feature off).
+- `docs/as-built/`: `shell-detail.md`, `planning.md` and `ai.md` still have stale P4–P9 lines; the other files were refreshed this round.
 
 ## Waiting for the user
-- Cache lane, decisions 109–111: nothing built (no `'use cache'` in `src`, no `src/app/_cache/`, no `tests/cache-safety.test.ts`); `docs/PLAN.md:192-194` and the P11 scope lines still describe it. Decide: drop or rewrite the decisions, or schedule a loader split.
-- Live P5 acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client) is not built.
-- Playwright is no longer waiting: Chromium (build 1243 for 1.63.0) is installed and `npm run test:e2e` runs; 5/5 smoke tests passed again on 2026-10-21 on a scratch copy of f3be717 (run it outside the checkout while a `next dev` is running there, since both use `.next`).
+- Live P5 acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is now built and `assistant.spec.ts` passes on it.
 
-## Future features (not bugs)
-From the Plane comparison; not built and not in the plan.
-- Dock/undock (floating) sidebar; Tessera has collapse, resize and the mobile drawer only.
-- Per-user sidebar display preference (icon only vs icon with label); the collapse-to-icons rail already exists.
-- 300 ms ease-in-out layout and content transitions (only `board.css:95` animates).
-- Virtual scrolling for very long lists; paging (decision 112) covers the current load.
-- Calendar zoom levels week/month/quarter (the calendar has month and week views; zoom was built for the gantt).
+## Planned for P12 (docs/drafts/p12-plan.md)
+- Dock/undock (floating) sidebar.
+- Three sidebar modes: full, 48 px icons, 60 px icons with labels (persisted, on the existing collapse rail).
+- Layout and content transitions (about 300 ms, ease-in-out, honouring `prefers-reduced-motion`).
+- Virtual scrolling for long lists, boards, tables and gantt rows, working with paging (decisions 112–114).
+- Calendar zoom Week / Month / Quarter, consistent with the gantt zoom (decision 90).
 
 ## Closed
 
+### Fixed in the fix-all round (2026-10-21)
+- Full Playwright suite end to end after fix round 2: 54 of 54 pass on a scratch production build; decisions 123 and 124 record it. `workspace.spec.ts` now polls the sidebar sum, which streams in after the analytics total.
+- Page history Activity tab (decision 99): `tests/ui/version-history.test.ts`; browser PASS.
+- Drag reorder, views list (decision 105): browser PASS (drag, reload keeps order); `tests/ui/view-reorder.test.ts`; e2e `drag-surfaces.spec.ts`. No grips while the search field has text, by design (a filtered list would compute neighbours against hidden rows).
+- Drag reorder, states within a group: browser PASS; e2e pointer and menu variants pass.
+- Drag reorder, labels with drop-to-reparent (`ReorderLabelInput.parent_id`): `tests/labels.test.ts` (5 new); browser PASS incl. the nest zone.
+- Drag reorder, page tree (grip on movable rows, touch only from the grip): `tests/ui/pages-drag.test.ts`; e2e pointer variant passes.
+- Drag reorder, stickies (`dropIndexForGrid`): `tests/ui/drag-math.test.ts`, `stickies-reorder.test.ts`; browser PASS in both themes and at 375 px.
+- Drag reorder, quick links (touch scrolls, menu is the touch path): `quick-links-reorder.test.ts`, `home-touch-css.test.ts`; browser PASS.
+- Drag reorder, Home widgets (44 px grip at coarse pointer / 480 px): `widgets-reorder.test.ts`, `home-touch-css.test.ts`; browser PASS, grip 44x44 at 375 px.
+- Stickies Move earlier / quick links Move left placed nothing (neighbour sent as `before_id`): fixed; e2e specs un-fixme'd and pass.
+- Gantt conflict tooltip naming the blocker (decision 92): `tests/ui/gantt-layout.test.ts`; browser PASS (tooltip keeps pointer capture).
+- Analytics Download CSV on Top assignees, Projects, Cycles, Modules, with per-table accessible names and 44 px at 375 px: `analytics-csv.test.ts`, `analytics-touch-css.test.ts`; browser PASS.
+- Automations in the command palette: `command-source.test.ts`, `shortcuts.test.ts`; browser PASS.
+- Playwright suite (decision 123) and AI fake client (decision 124): 15 spec files on `next start` + `data/e2e.db`; console fixture limited to `tests/e2e/tolerated.ts` (`tests/e2e-tolerated.test.ts`); intake, collaboration and pages specs fixed after the run and pass on a scratch build.
+- (high) Page header stacking: `tests/ui/page-screen.test.ts`; browser PASS.
+- Outline empty until the first keystroke: `tests/editor/heading-ids-initial.test.ts`.
+- Gantt Today / `t` / first open centre the today line in every zoom: `gantt-scroll` tests; browser PASS at 1024 and 375.
+- Cycle and Snooze pickers follow "Week starts on": `week-start-store` and picker tests.
+- Failed lock flashed "Unlocked": LockControl derives feedback from the server value; tests; browser PASS.
+- Run now with `lease_held` (info toast, nothing refreshed): `tests/ui/automations-settings.test.ts`; browser PASS.
+- First-open race (also WAL `SQLITE_BUSY` and concurrent migrations): `tests/first-open-race.test.ts`.
+- Unknown cycle/module/view id recorded in recents: `scope-lookup` test; browser PASS (not found in every feature state).
+- Filter matching nothing shows a no-results state with Clear filters: `tests/ui/no-results.test.ts`; browser PASS in list, board, table.
+- Rich filter deep tree: "Advanced · N conditions" plus remove button; read-only dialog shows only Clear all and Close: `no-results.test.ts`; browser PASS.
+- Burnup "Scope" label: replaced by a legend outside the `role=img` frame: `burndown-legend.test.ts`; browser PASS in both themes.
+- Week start helper reads "Applies to calendars and date pickers.": test.
+- Bulk Copy allows the source project, Move excludes every source project (recorded in decision 107): `bulk-transfer-dialog.test.ts`; browser PASS.
+- Two level-1 headings on work item and project page detail: `project-frame.test.ts`, `panel-header` test; browser PASS (one h1).
+- 375 px project tab strip (second row, 44 px tabs): browser PASS.
+- 375 px board column `min(350px, 100cqw)`: browser PASS (325 px).
+- 375 px drawer search full width: `top-bar-search` test; browser PASS.
+- Calendar chip keys no longer wrap; chip 44 px wide at 375 px; move button clickable by mouse: `calendar-css.test.ts`; browser PASS; e2e Move-to-date passes.
+- 375 px gantt and modules timeline label column `min(256px, 40vw)`: browser PASS.
+- Calendar chip hover/pressed feedback and outside-month fill: browser PASS (Frappé; Latte from tokens).
+- Table first column alignment: browser PASS (header, key, title at the same x).
+- List row end inset 16 px: browser PASS (1415 = 1415).
+- Detail heading spacing restored: `shell-detail-css` test; browser PASS.
+- Page outline no longer narrows the 960 px column: side column from a 1136 px frame, stacked block above the column below it (`pages-outline-css.test.ts`; browser: 960 px at 1440, stacked at 900 and 375). ASSUMPTION: the verify wording "floats over the right margin" was stale; a floating card covered text.
+- Workspace list bare scans: migration 0011 indexes, 0 allowed scans in `tests/perf/query-plans.test.ts`, decision 126 updated.
+- Labels group projection over budget: 25-row first page for multi-valued groupings (decisions 113, 115); perf-bench labels p95 29.5 ms; browser PASS for labels, assignees, modules paging.
+- Automation lease race: `tests/automations-lease-race.test.ts` (5 processes, 300 items, one winner).
+- `perf:bench` prints the real project count.
+- Field guide css-token line reworded; `css-token` rule strict for every name (`tests/convention-rules.test.ts`, 18 tests).
+- `drizzle/meta/0011_snapshot.json`: `drizzle-kit generate` in a scratch copy says "No schema changes".
+- `docs/as-built/`: six new files for P4 and P6–P11, README snapshot line, `work-items.md` and `engine.md` stale lines.
+- `PLAN-STATUS.md`: P5 date and live acceptance, P10/P11 rows, P2a/P3 acceptance lines, stale rework list.
+- Test gaps: AutomationsSettings, BulkTransferDialog, ModulesTimeline, `?layout=` (`layout-param.test.ts`), CSV button, `useWeekStart`, `weekStartsOn`, `dateRangeOf` (`tests/timeline.test.ts`, 10 tests).
+- Stale worktree `.claude/worktrees/app-visual-rework-250c6c`: gone (`git worktree list` shows only main).
+
+### Dropped by the user (2026-10-21)
+- Cache lane, decisions 109–111: not built; `docs/PLAN.md` marks them dropped (P12 records it as decision 127).
+
 ### Verified 2026-10-21 at f3be717
-- Automations settings tab: switches, months, Close to state, Run now, Due now, Last run all work (browser). Lease toast is open above.
+- Automations settings tab: switches, months, Close to state, Run now, Due now, Last run all work (browser).
 - Bulk Copy/Move to project (decision 107): copy made OPS-6..8, move shows the destructive confirm, `/browse/WEB-13` redirects to OPS-9 (browser; `tests/bulk-transfer.test.ts`).
 - Rich filter dialog shows field/operator/value names; deep trees show the `describeRichFilters` sentence; views list counts rich conditions ("List · 4 filters").
 - `?layout=` param: gantt and board switch and fold into `q`, bogus is ignored, saved view settings unchanged (browser).
 - Scheduler start log (`automations/scheduler.ts:25`, once per process).
 - "N pts" group totals on list, board and table (`GroupFooter.tsx:48`, `tests/paging.test.ts`).
-- Gantt zoom Week/Month/Quarter: bands, day widths, bar widths and today line correct in all three (browser). Today button is open above.
-- Gantt dependency lines: blocker-end → blocked-start arrows, red conflict path and outlines, Show dependencies toggle, connector follows a drag (browser). Tooltip is open above.
+- Gantt zoom Week/Month/Quarter: bands, day widths, bar widths and today line correct in all three (browser).
+- Gantt dependency lines: blocker-end → blocked-start arrows, red conflict path and outlines, Show dependencies toggle, connector follows a drag (browser).
 - Modules Timeline: drag by 3 days persists after reload, a side-panel date edit moves the bar (browser).
-- Analytics chart data tables download CSV with BOM and matching rows (browser). Plain tables are open above.
-- `weekStartsOn` on DateControl, property rail, calendar move and module pickers (browser: Mo first). Cycle and Snooze are open above.
+- Analytics chart data tables download CSV with BOM and matching rows (browser).
+- `weekStartsOn` on DateControl, property rail, calendar move and module pickers (browser: Mo first).
 - Week start first paint: server HTML already carries the right first weekday (browser).
 - Week start after a change: in-app navigation shows the new first weekday and boundary items with no reload (browser).
 - Webhook echo walk (5442c6f; `tests/webhooks.test.ts` live server case).
@@ -103,11 +111,11 @@ From the Plane comparison; not built and not in the plan.
 - Export Delete "double toast": one visible card; the extra node is the Astryx live-region mirror (both browsers).
 - 375 px calendar Today label does not truncate (browser).
 - Archived project work items are read-only in every layout (`tests/ui/work-items-screen.test.ts:264-282`).
-- Text alignment audit: key, title and chip text midlines match in list and table; input placeholders sit correctly (browser). Inset mismatches are open above.
+- Text alignment audit: key, title and chip text midlines match in list and table; input placeholders sit correctly (browser).
 - Latte and Frappé accent contrast pass WCAG for default placements (`tests/themes/catppuccin-contrast.test.ts`).
-- Lock/unlock success path from the header, Shift+L, page-row and view-row menus, with one "Unlocked" fade (browser). Failed-lock flash and header stacking are open above.
+- Lock/unlock success path from the header, Shift+L, page-row and view-row menus, with one "Unlocked" fade (browser).
 - Sidebar already collapses to an icon rail with tooltips (250 → 48 px, browser); the layout switcher is already central (`DisplayMenu.tsx:152`, `WorkItemsScreen.tsx:366`).
-- `docs/PLAN.md` decision 29 (moved keys) and escaped pipes in row 33; field guide at 48 of 80 lines; `docs/as-built/ai.md` added.
+- `docs/PLAN.md` decision 29 (moved keys) and escaped pipes in row 33; `docs/as-built/ai.md` added.
 
 ### Earlier (2026-10-18 and 2026-10-19)
 - `/agents/[actorId]` build failure fixed (aaa2b38); paging review round (0dab9d7); `--spacing-16` gantt/calendar offset fixed and backups use a bound `VACUUM INTO` parameter (408a624).

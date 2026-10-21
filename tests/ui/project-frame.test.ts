@@ -36,7 +36,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const { ProjectProvider } = await import("@/components/work-items/project-provider");
-const { ProjectFrame } = await import("@/components/work-items/ProjectFrame");
+const { ProjectFrame, isWorkItemPagePath, isProjectPageDetailPath } = await import("@/components/work-items/ProjectFrame");
 
 const PROJECT = "11111111-1111-7111-8111-111111111111";
 const USER = "55555555-5555-7555-8555-555555555555";
@@ -188,6 +188,41 @@ describe("ProjectFrame", () => {
     expect(settings.querySelector(`a[href="/projects/${PROJECT}/settings"]`)).not.toBeNull();
   });
 
+  it("keeps the frame title at level 1 on every screen but a work item page, where the item title is the only h1", async () => {
+    const level = (el: HTMLElement) => el.querySelector(".tessera-project-frame-title")?.getAttribute("aria-level");
+    const cycles = await render(`/projects/${PROJECT}/cycles`);
+    expect(level(cycles)).toBe("1");
+    await act(async () => {
+      root?.unmount();
+    });
+    root = null;
+    cycles.remove();
+    const item = await render(`/projects/${PROJECT}/work-items/22222222-2222-7222-8222-222222222222`);
+    expect(level(item)).toBe("2");
+    // The title is still the project's name; only its level in the outline changes.
+    expect(item.querySelector(".tessera-project-frame-title")?.textContent).toBe("Website");
+  });
+
+  it("steps the frame title down to level 2 on a project page, whose title is the h1", async () => {
+    const level = (el: HTMLElement) => el.querySelector(".tessera-project-frame-title")?.getAttribute("aria-level");
+    const pagesList = await render(`/projects/${PROJECT}/pages`);
+    expect(level(pagesList)).toBe("1");
+    await act(async () => {
+      root?.unmount();
+    });
+    root = null;
+    pagesList.remove();
+    const page = await render(`/projects/${PROJECT}/pages/33333333-3333-7333-8333-333333333333`);
+    expect(level(page)).toBe("2");
+  });
+
+  it("marks the header bar so the tabs take their own row below 600px (shell.css)", async () => {
+    const el = await render(`/projects/${PROJECT}/work-items`);
+    const bar = el.querySelector(".tessera-panel-bar--header");
+    expect(bar?.classList.contains("tessera-project-bar")).toBe(true);
+    expect(bar?.querySelector(".tessera-panel-bar-start .tessera-project-tabs")).not.toBeNull();
+  });
+
   it("shows an archived project's Banner under the header row, outside it", async () => {
     const el = await render(`/projects/${PROJECT}/work-items`, { archived_at: NOW });
     expect(el.textContent).toContain("This project is archived");
@@ -196,5 +231,29 @@ describe("ProjectFrame", () => {
     expect(banner?.closest(".tessera-panel-bar")).toBeNull();
     expect(banner?.closest('[data-testid="page"]')).toBeNull();
     expect(tabs(el)[0]).toEqual(["work-items", true]);
+  });
+});
+
+describe("isWorkItemPagePath", () => {
+  const ITEM = "22222222-2222-7222-8222-222222222222";
+  it("is true only for a work item page of the project", () => {
+    expect(isWorkItemPagePath(`/projects/${PROJECT}/work-items/${ITEM}`, PROJECT)).toBe(true);
+    expect(isWorkItemPagePath(`/projects/${PROJECT}/work-items/${ITEM}/`, PROJECT)).toBe(true);
+    expect(isWorkItemPagePath(`/projects/${PROJECT}/work-items`, PROJECT)).toBe(false);
+    expect(isWorkItemPagePath(`/projects/${PROJECT}/work-items/`, PROJECT)).toBe(false);
+    expect(isWorkItemPagePath(`/projects/${PROJECT}/cycles/${ITEM}`, PROJECT)).toBe(false);
+    expect(isWorkItemPagePath(`/projects/${ITEM}/work-items/${ITEM}`, PROJECT)).toBe(false);
+    expect(isWorkItemPagePath(`/work-items/${ITEM}`, PROJECT)).toBe(false);
+  });
+});
+
+describe("isProjectPageDetailPath", () => {
+  const PAGE = "33333333-3333-7333-8333-333333333333";
+  it("is true only for a page of the project", () => {
+    expect(isProjectPageDetailPath(`/projects/${PROJECT}/pages/${PAGE}`, PROJECT)).toBe(true);
+    expect(isProjectPageDetailPath(`/projects/${PROJECT}/pages/${PAGE}/`, PROJECT)).toBe(true);
+    expect(isProjectPageDetailPath(`/projects/${PROJECT}/pages`, PROJECT)).toBe(false);
+    expect(isProjectPageDetailPath(`/projects/${PROJECT}/pages/${PAGE}/history`, PROJECT)).toBe(false);
+    expect(isProjectPageDetailPath(`/projects/${PROJECT}/work-items/${PAGE}`, PROJECT)).toBe(false);
   });
 });

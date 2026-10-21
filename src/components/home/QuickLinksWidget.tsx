@@ -1,11 +1,14 @@
 "use client";
 
 /**
- * Quick links (docs/drafts/p9-plan.md U1): chips in a wrap, reordered with
- * Move left / Move right. Removing a link is not destructive.
+ * Quick links (docs/drafts/p9-plan.md U1): chips in a wrap. A chip drags to a
+ * new slot with the pointer (decision 105); the chip menu keeps Move left /
+ * Move right as the keyboard path (decision 14). Removing a link is not
+ * destructive.
  */
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition, type ReactNode } from "react";
 import { Button } from "@astryxdesign/core/Button";
+import { Card } from "@astryxdesign/core/Card";
 import { Dialog, DialogHeader } from "@/components/shell/dialogs";
 import { FormLayout } from "@astryxdesign/core/FormLayout";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -13,9 +16,11 @@ import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import { Link } from "@astryxdesign/core/Link";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
-import { Heading } from "@astryxdesign/core/Text";
+import { Heading, Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
+import { usePointerDrag, type DragDropEvent } from "@/components/dnd/use-pointer-drag";
+import { placementFor, reorderBy, stepIndex } from "@/components/stickies/reorder-math";
 import { addQuickLinkAction, moveQuickLinkAction, removeQuickLinkAction, updateQuickLinkAction } from "@/app/actions/quick-links";
 import { LinkSimpleIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { isExternalQuickLink, isQuickLinkUrl, quickLinkLabel, type QuickLinkView } from "./home-format";
@@ -25,6 +30,9 @@ export type QuickLinksWidgetProps = { links: QuickLinkView[] };
 type Draft = { id: string | null; url: string; title: string };
 
 const EMPTY_DRAFT: Draft = { id: null, url: "", title: "" };
+const CHIP_CONTAINER = "quick-links";
+/** A chip drags from anywhere except its menu button (a click on the link still opens it). */
+const DRAG_IGNORE = 'button, input, [role="menu"], [role="menuitem"], [role="dialog"]';
 
 export function QuickLinksWidget({ links }: QuickLinksWidgetProps) {
   const toast = useToast();
@@ -33,16 +41,73 @@ export function QuickLinksWidget({ links }: QuickLinksWidgetProps) {
 
   const fail = (message: string) => toast({ type: "error", body: message });
 
-  const move = (index: number, direction: -1 | 1) => {
-    const link = links[index];
-    const neighbour = links[index + direction];
-    if (!link || !neighbour) return;
-    const input = direction < 0 ? { quick_link_id: link.id, before_id: neighbour.id } : { quick_link_id: link.id, after_id: neighbour.id };
+  const [shown, applyMove] = useOptimistic(links, (current, move: { id: string; index: number }) => reorderBy(current, (link) => link.id, move.id, move.index));
+  const ids = shown.map((link) => link.id);
+
+  const moveTo = (id: string, index: number) => {
+    const placement = placementFor(ids, id, index);
+    if (placement === null) return;
     startTransition(async () => {
-      const result = await moveQuickLinkAction(input);
+      applyMove({ id, index });
+      const result = await moveQuickLinkAction({ quick_link_id: id, ...placement });
       if (!result.ok) fail(`Could not move the link. ${result.message}`);
     });
   };
+
+  const step = (id: string, direction: -1 | 1) => {
+    const to = stepIndex(ids, id, direction);
+    if (to !== null) moveTo(id, to);
+  };
+
+  const { drag, registerContainer, registerItem, registerOverlay, itemHandlers } = usePointerDrag({
+    onDrop: (event: DragDropEvent) => moveTo(event.id, event.index),
+    itemsOf: () => ids,
+    axis: "grid",
+    ignoreSelector: DRAG_IGNORE,
+  });
+  const dragged = drag === null ? undefined : shown.find((link) => link.id === drag.id);
+
+  // The landing slot is a dashed placeholder among the chips that stay; the dragged chip is hidden in place.
+  const chips: ReactNode[] = [];
+  const target = drag?.target ?? null;
+  let stayIndex = 0;
+  let placed = false;
+  const placeholder = drag === null ? null : <Card key="placeholder" variant="muted" padding={0} width={drag.width} height={drag.height} className="tessera-board-placeholder" />;
+  shown.forEach((link, index) => {
+    const isDragged = drag?.id === link.id;
+    if (!isDragged && !placed && target !== null && stayIndex === target.index) {
+      chips.push(placeholder);
+      placed = true;
+    }
+    chips.push(
+      <HStack
+        key={link.id}
+        ref={registerItem(link.id)}
+        {...itemHandlers(link.id, CHIP_CONTAINER)}
+        onDragStart={(event) => event.preventDefault()}
+        gap={1}
+        vAlign="center"
+        className={isDragged ? "tessera-quick-link tessera-quick-link--dragging" : "tessera-quick-link"}
+      >
+        <Icon icon={LinkSimpleIcon} size="sm" color="secondary" />
+        <Link href={link.url} isExternalLink={isExternalQuickLink(link.url)} maxLines={1}>
+          {quickLinkLabel(link)}
+        </Link>
+        <MoreMenu
+          label={`Actions for ${quickLinkLabel(link)}`}
+          size="sm"
+          items={[
+            { id: "edit", label: "Edit", onClick: () => setDraft({ id: link.id, url: link.url, title: link.title }) },
+            { id: "left", label: "Move left", isDisabled: index === 0, onClick: () => step(link.id, -1) },
+            { id: "right", label: "Move right", isDisabled: index === shown.length - 1, onClick: () => step(link.id, 1) },
+            { id: "remove", label: "Remove", variant: "destructive", onClick: () => remove(link) },
+          ]}
+        />
+      </HStack>,
+    );
+    if (!isDragged) stayIndex++;
+  });
+  if (target !== null && !placed) chips.push(placeholder);
 
   const remove = (link: QuickLinkView) => {
     startTransition(async () => {
@@ -59,28 +124,17 @@ export function QuickLinksWidget({ links }: QuickLinksWidgetProps) {
         </Heading>
         <Button variant="secondary" size="sm" label="Add link" icon={<PlusIcon />} onClick={() => setDraft(EMPTY_DRAFT)} />
       </HStack>
-      {links.length === 0 ? null : (
-        <HStack gap={2} wrap="wrap" className="tessera-home-links">
-          {links.map((link, index) => (
-            <HStack key={link.id} gap={1} vAlign="center" className="tessera-quick-link">
-              <Icon icon={LinkSimpleIcon} size="sm" color="secondary" />
-              <Link href={link.url} isExternalLink={isExternalQuickLink(link.url)} maxLines={1}>
-                {quickLinkLabel(link)}
-              </Link>
-              <MoreMenu
-                label={`Actions for ${quickLinkLabel(link)}`}
-                size="sm"
-                items={[
-                  { id: "edit", label: "Edit", onClick: () => setDraft({ id: link.id, url: link.url, title: link.title }) },
-                  { id: "left", label: "Move left", isDisabled: index === 0, onClick: () => move(index, -1) },
-                  { id: "right", label: "Move right", isDisabled: index === links.length - 1, onClick: () => move(index, 1) },
-                  { id: "remove", label: "Remove", variant: "destructive", onClick: () => remove(link) },
-                ]}
-              />
-            </HStack>
-          ))}
+      {shown.length === 0 ? null : (
+        <HStack ref={registerContainer(CHIP_CONTAINER)} gap={2} wrap="wrap" className="tessera-home-links">
+          {chips}
         </HStack>
       )}
+      {drag && dragged ? (
+        <HStack ref={registerOverlay} gap={1} vAlign="center" className="tessera-quick-link tessera-drag-overlay" aria-hidden="true">
+          <Icon icon={LinkSimpleIcon} size="sm" color="secondary" />
+          <Text maxLines={1}>{quickLinkLabel(dragged)}</Text>
+        </HStack>
+      ) : null}
       <QuickLinkDialog
         draft={draft}
         onOpenChange={(isOpen) => {

@@ -17,9 +17,11 @@
  *  no-cwd-in-engine     src/lib/tessera/** resolves paths from the module location, never process.cwd()
  *  decision-ref         a comment in src/** or scripts/** that cites `decision N` or `decision UN` names a row of the
  *                       "Resolved design decisions" tables in docs/PLAN.md (parsed from the file)
- *  css-token            every var(--x) in the css, ts and tsx files of src, of an Astryx token family (--spacing-, --color-, ...) resolves in the
- *                       installed @astryxdesign/core CSS or in our own CSS/theme/style props; a --tessera-* name must be
- *                       defined in the same file, or (CSS use) set by a style prop in a ts/tsx file, or (ts use) defined in a CSS file
+ *  css-token            every var(--x) in the css, ts and tsx files of src resolves. An Astryx-family name (--spacing-, --color-, ...) must be
+ *                       in the installed @astryxdesign/core CSS or in the theme (src/themes/**), never only in an area file; any other
+ *                       name (--tessera-*, ...) in Astryx, or defined in the same file, a theme file, or the other side of the
+ *                       css/ts pair (CSS use: a style prop or setProperty in ts/tsx; ts use: a CSS file). --font-body and
+ *                       --font-code are exempt because next/font defines them at runtime (layout.tsx)
  *  file-budget          .ts/.tsx files under src/ and scripts/ (tests excluded) stay within 600 lines; the ones already
  *                       over are pinned in scripts/file-budget.json and may shrink but not grow
  */
@@ -201,7 +203,7 @@ const astryxTokens = new Set<string>();
 for (const file of astryxCssFiles(path.join(ROOT, "node_modules/@astryxdesign/core/dist"))) {
   for (const name of definedTokens(fs.readFileSync(file, "utf8"), "css")) astryxTokens.add(name);
 }
-const ourTokens = new Set<string>();
+const themeTokens = new Set<string>();
 const tokensByFile = new Map<string, Set<string>>();
 const cssDefined = new Set<string>();
 const tsDefined = new Set<string>();
@@ -209,14 +211,14 @@ for (const f of tokenFiles) {
   const names = definedTokens(f.text, f.lang);
   tokensByFile.set(f.rel, names);
   for (const name of names) {
-    ourTokens.add(name);
+    if (f.rel.startsWith("src/themes/")) themeTokens.add(name);
     (f.lang === "css" ? cssDefined : tsDefined).add(name);
   }
 }
 if (astryxTokens.size === 0) report("node_modules/@astryxdesign/core/dist", 1, "css-token", "found no Astryx tokens; is @astryxdesign/core installed?");
 for (const f of tokenFiles) {
-  const visible = visibleOurTokens(f.lang, tokensByFile.get(f.rel) ?? new Set(), ourTokens, cssDefined, tsDefined);
-  for (const hit of undefinedTokenUses(tokenUses(f.text, f.lang), astryxTokens, visible)) report(f.rel, hit.line, "css-token", hit.message);
+  const visible = visibleOurTokens(f.lang, tokensByFile.get(f.rel) ?? new Set(), themeTokens, cssDefined, tsDefined);
+  for (const hit of undefinedTokenUses(tokenUses(f.text, f.lang), astryxTokens, visible, themeTokens)) report(f.rel, hit.line, "css-token", hit.message);
 }
 
 const budget: Record<string, number> = JSON.parse(fs.readFileSync(path.join(ROOT, BUDGET_FILE), "utf8"));

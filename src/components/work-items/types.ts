@@ -108,6 +108,11 @@ export type LayoutProps = {
   isLoadingMore?: (key: string) => boolean;
   /** Table header sort: set `display.order_by` (URL and saved settings); the server re-orders the whole list. */
   onOrderChange?: (orderBy: OrderBy) => void;
+  /**
+   * Present while a filter, a search or an Advanced tree is active: the list, board and table then show the
+   * no-results state (with a "Clear filters" button calling this) instead of the first-run one when nothing matches.
+   */
+  onClearFilters?: () => void;
 };
 
 /** URL state carried in the `q` search param (base64url JSON). */

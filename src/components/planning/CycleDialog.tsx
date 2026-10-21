@@ -21,6 +21,7 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
 import { createCycleAction, updateCycleAction } from "@/app/actions/cycles";
 import { useProject } from "@/components/work-items/project-provider";
+import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import type { Cycle } from "@/lib/tessera/types";
 import { isDayTaken, localIsoDate, overlapCandidates, rangeOverlaps } from "./cycle-format";
 
@@ -56,6 +57,8 @@ export function CycleDialog({ isOpen, onOpenChange, ...props }: CycleDialogProps
 function CycleForm({ projectId, onOpenChange, cycle }: Omit<CycleDialogProps, "isOpen">) {
   const toast = useToast();
   const { bundle } = useProject();
+  // The picker's first weekday is the workspace setting, like every other date picker.
+  const weekStartsOn = useWeekStart(bundle.week_start);
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState(cycle?.name ?? "");
   const [description, setDescription] = useState(cycle?.description_md ?? "");
@@ -141,6 +144,7 @@ function CycleForm({ projectId, onOpenChange, cycle }: Omit<CycleDialogProps, "i
               }}
               hasClear
               isOptional
+              weekStartsOn={weekStartsOn}
               dateConstraints={[dayIsFree]}
               status={shownDateError ? { type: "error", message: shownDateError } : undefined}
             />

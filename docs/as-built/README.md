@@ -2,7 +2,7 @@
 
 Read this before reworking an area. It says what exists, where it lives and what guards it; the contracts in docs/contracts/ hold the full detail.
 
-Snapshot: HEAD 257798c (2026-10-17). It covers P1–P3 plus the layout rework, the dialogs wrapper and the gate checks. P4, which Cursor is building now, is not in it yet; refresh the affected files when P4 lands.
+Snapshot: working tree after the fix-all round, 2026-10-21 (HEAD e04b840 plus uncommitted lane work). It covers P1–P11, the rework and the assistant. P12 is not in it; refresh the affected files when it lands.
 
 | Area | File | Covers |
 |---|---|---|
@@ -10,9 +10,17 @@ Snapshot: HEAD 257798c (2026-10-17). It covers P1–P3 plus the layout rework, t
 | Shell and detail | [shell-detail.md](shell-detail.md) | shell, recents, Power K, dialogs, the work item detail, the editor, the theme |
 | Work items | [work-items.md](work-items.md) | the work items screen, layouts, quick-add, properties, DnD, projects |
 | Planning | [planning.md](planning.md) | cycles, modules, archives, charts |
+| Assistant | [ai.md](ai.md) | the AI client, proposals, Apply, the assistant panel, MCP route |
+| Views and settings | [views-settings.md](views-settings.md) | P4: saved views, view settings, counts, states, labels, project settings, workspace views, drag reorder |
+| Pages and collaboration | [pages-collaboration.md](pages-collaboration.md) | P6, P7: pages, comments, reactions, relations, notifications, inbox, history dialog, page tree |
+| Planning extras | [planning-extras.md](planning-extras.md) | P8: intake, drafts, estimates, bulk edit, transfer |
+| Workspace | [workspace.md](workspace.md) | P9: Home, favourites, profiles, analytics, stickies, quick links, workspace settings |
+| Operations | [operations.md](operations.md) | P10: calendar, gantt, modules timeline, rich filters, automations, exports, webhooks |
+| Hardening | [hardening.md](hardening.md) | P11: paging, backups, retention, undo, perf budgets, e2e, bundle gate |
 
-Process: docs/process/swarm.md. Surprises: docs/field-guide/index.md. Plans for P5–P11: docs/drafts/.
+Process: docs/process/swarm.md. Surprises: docs/field-guide/index.md. Plans: docs/drafts/. Open work: docs/improvements.md.
 
 Caveats from the writers:
 - Some invariant-to-decision pairs come from the contracts rather than a code read; they are marked in each file.
 - Areas without Vitest are listed in each file's "Tests" section.
+- Each file's "Known debt" records where the code differs from a decision; check it before trusting the decision text. Decisions 109–111 were dropped and are not built.

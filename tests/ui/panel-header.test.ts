@@ -94,6 +94,16 @@ describe("PanelTitle", () => {
   });
 });
 
+describe("PanelTitle level", () => {
+  it("steps down to level 2 where the page body owns the h1 (a work item page)", () => {
+    const container = render(withChildren(PanelTitle, { accessibilityLevel: 2 }, "Website"));
+    const heading = container.querySelector("h1, h2, h3, h4, h5, h6, [role='heading']");
+    expect(heading?.textContent).toBe("Website");
+    expect(heading?.getAttribute("aria-level")).toBe("2");
+    expect(heading?.tagName).not.toBe("H1");
+  });
+});
+
 describe("PanelPage", () => {
   const header = withChildren(PanelHeader, { label: "Home" }, createElement(PanelBar, { start: withChildren(PanelTitle, {}, "Home") }));
 

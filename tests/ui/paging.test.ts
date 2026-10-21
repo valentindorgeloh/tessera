@@ -73,6 +73,20 @@ describe("page sizes", () => {
     expect(pageSizeFor(flat("calendar"))).toEqual({ limit: CALENDAR_CAP });
   });
 
+  it("pages a multi-valued grouping smaller, because an item sits in several groups (decisions 113, 115)", () => {
+    const by = (group_by: Display["group_by"], layout: Display["layout"] = "list"): Display => ({ ...DEFAULT_DISPLAY, layout, group_by });
+    for (const field of ["labels", "assignees", "module"] as const) {
+      expect(pageSizeFor(by(field, "list"))).toEqual({ per_group_limit: 25 });
+      expect(pageSizeFor(by(field, "table"))).toEqual({ per_group_limit: 25 });
+      expect(pageSizeFor(by(field, "board"))).toEqual({ per_group_limit: 20 });
+      expect(loadMoreSize(by(field, "list"))).toBe(25);
+    }
+    // A multi-valued sub-grouping on the board counts too; a single-valued one does not.
+    expect(pageSizeFor({ ...by("state", "board"), sub_group_by: "labels" })).toEqual({ per_group_limit: 20 });
+    expect(pageSizeFor({ ...by("state", "board"), sub_group_by: "priority" })).toEqual({ per_group_limit: 30 });
+    expect(pageSizeFor(by("state"))).toEqual({ per_group_limit: 50 });
+  });
+
   it("reads the gantt and the calendar as flat rows even when a grouping is saved", () => {
     expect(pagesByGroup(grouped("gantt"))).toBe(false);
     expect(pageSizeFor(grouped("gantt"))).toEqual({ limit: 200 });

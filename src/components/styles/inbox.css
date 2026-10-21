@@ -18,3 +18,58 @@
 .tessera-inbox-row-meta {
   flex-shrink: 0;
 }
+
+/* The title keeps its width; the four tabs scroll in the room left instead of squeezing it to "I…". */
+.tessera-inbox-title {
+  flex-shrink: 0;
+}
+
+.tessera-inbox-tabs {
+  min-width: 0;
+}
+
+/*
+ * Below 600px the header is two rows: the title and the actions first, the
+ * tabs full width under them on the hairline, so the strip's fade sits at the
+ * row's right edge and no tab is half hidden under the actions. The start
+ * group dissolves (display: contents) so its children take grid areas next to
+ * the end group (same pattern as .tessera-project-bar in shell.css).
+ */
+@media (max-width: 599px) {
+  .tessera-panel-bar--header.tessera-inbox-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: calc(var(--size-element-md) + var(--spacing-3)) auto;
+    grid-template-areas:
+      "title end"
+      "tabs tabs";
+    column-gap: var(--spacing-3);
+    row-gap: 0;
+    min-height: 0;
+    align-items: center;
+  }
+
+  .tessera-inbox-bar > .tessera-panel-bar-start {
+    display: contents;
+  }
+
+  .tessera-inbox-bar .tessera-inbox-title {
+    grid-area: title;
+    min-width: 0;
+  }
+
+  .tessera-inbox-bar > .tessera-panel-bar-end {
+    grid-area: end;
+  }
+
+  .tessera-inbox-bar .tessera-inbox-tabs {
+    grid-area: tabs;
+    align-self: end;
+    width: 100%;
+  }
+
+  /* A touch target is 44px; the indicator still sits on the hairline. */
+  .tessera-inbox-bar .tessera-inbox-tabs .astryx-tab {
+    min-height: calc(var(--size-element-md) + var(--spacing-3));
+  }
+}

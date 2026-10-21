@@ -33,6 +33,7 @@ import { RowProject } from "./row-project";
 import { ActorLabel, CycleControl, DateControl, PriorityControl, PriorityLabel, StateControl, StateLabel, paletteTokenColor } from "./properties";
 import { GroupFooter, GroupPoints } from "./GroupFooter";
 import { UNGROUPED_KEY, loadedOfTotal } from "./paging";
+import { NoResults } from "./NoResults";
 import { QuickAdd } from "./QuickAdd";
 import type { LayoutProps, QuickAddGroup, UpdateWorkItemPatch } from "./types";
 
@@ -378,6 +379,7 @@ export function ListLayout({
   onLoadMore,
   onLoadMoreUngrouped,
   isLoadingMore,
+  onClearFilters,
 }: LayoutProps) {
   const itemsById = useMemo(() => new Map(result.items.map((item) => [item.id, item])), [result.items]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
@@ -412,7 +414,8 @@ export function ListLayout({
       paddingBlock={2}
       data-list-ready=""
     >
-      {isEmpty ? (
+      {isEmpty && onClearFilters ? <NoResults onClear={onClearFilters} /> : null}
+      {isEmpty && !onClearFilters ? (
         <EmptyState
           isCompact
           title="No work items yet"

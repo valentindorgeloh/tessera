@@ -295,10 +295,16 @@ export function RichFilterDialog({ isOpen, onOpenChange, tree, onApply }: RichFi
         footer={
           <LayoutFooter>
             <HStack gap={2} wrap="wrap">
-              <Button variant="ghost" size="sm" label="Add condition" onClick={() => draft && setDraft({ ...draft, conditions: [...draft.conditions, blankCondition()] })} isDisabled={draft === null || atLimit} />
-              <Button variant="ghost" size="sm" label="Add group" onClick={() => draft && setDraft({ ...draft, groups: [...draft.groups, { match: "or", conditions: [blankCondition()] }] })} isDisabled={draft === null || atLimit} />
+              {/* A tree the builder cannot show is read-only: only its summary and Clear all, nothing to add to. */}
+              {draft !== null ? (
+                <>
+                  <Button variant="ghost" size="sm" label="Add condition" onClick={() => setDraft({ ...draft, conditions: [...draft.conditions, blankCondition()] })} isDisabled={atLimit} />
+                  <Button variant="ghost" size="sm" label="Add group" onClick={() => setDraft({ ...draft, groups: [...draft.groups, { match: "or", conditions: [blankCondition()] }] })} isDisabled={atLimit} />
+                </>
+              ) : null}
               <Button variant="ghost" size="sm" label="Clear all" onClick={() => onApply(null)} />
-              <Button variant="secondary" size="sm" label="Cancel" onClick={() => onOpenChange(false)} />
+              {/* The read-only footer keeps a single Close: Cancel would do the same thing. */}
+              {draft !== null ? <Button variant="secondary" size="sm" label="Cancel" onClick={() => onOpenChange(false)} /> : null}
               <Button variant="primary" size="sm" label={draft ? "Apply" : "Close"} isDisabled={draft !== null && !isComplete} onClick={draft ? apply : () => onOpenChange(false)} />
             </HStack>
           </LayoutFooter>

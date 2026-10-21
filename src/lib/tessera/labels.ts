@@ -9,7 +9,7 @@ import { and, asc, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { diffFields, logActivity } from "./activity";
 import type { TesseraContext } from "./core/context";
-import { archived, conflict, notFound, rule, validateInput } from "./core/errors";
+import { archived, conflict, notFound, rule, validateInput, validation } from "./core/errors";
 import { newId } from "./core/ids";
 import { nameKey } from "./core/keys";
 import { lastSortOrder, sortOrderAfter, sortOrderForMove } from "./core/order";
@@ -215,27 +215,74 @@ export const ReorderLabelInput = z
   .object({
     before_id: IdSchema.optional().describe("Id of the label that will come directly before this one."),
     after_id: IdSchema.optional().describe("Id of the label that will come directly after this one."),
+    parent_id: IdSchema.nullable()
+      .optional()
+      .describe("Container to place the label in: a top-level label of the same project (becomes its child) or null for the top level. Omit to keep the current parent."),
   })
   .strict()
-  .refine((value) => value.before_id !== undefined || value.after_id !== undefined, { message: "before_id or after_id is required" });
+  .refine((value) => value.before_id !== undefined || value.after_id !== undefined || value.parent_id !== undefined, {
+    message: "before_id, after_id or parent_id is required",
+  });
 
 export type ReorderLabelInputType = z.input<typeof ReorderLabelInput>;
 
+/** The labels of one container (the top level, or one parent's children) in display order. */
+function siblingsIn(ordered: Label[], parentId: string | null): Label[] {
+  return ordered.filter((row) => row.parent_id === parentId);
+}
+
+/**
+ * Moves a label inside its container (before_id and after_id name its siblings
+ * there) or, with `parent_id`, into another container and a slot of it in one
+ * transaction (decision 105: a drag drop onto another parent reparents and
+ * reorders in one call). The depth rules of `updateLabel` apply when the
+ * parent changes. Neighbours must be siblings in the target container
+ * (VALIDATION otherwise); `parent_id` with no neighbour appends to the end of
+ * the container.
+ */
 export function reorderLabel(ctx: TesseraContext, id: string, input: ReorderLabelInputType): Label {
   const data = validateInput(ReorderLabelInput, input);
   return withTx(ctx, () => {
     const before = getLabel(ctx, id);
     loadWritableProject(ctx, before.project_id);
+    const targetParent = data.parent_id === undefined ? before.parent_id : data.parent_id;
+    let parentName: string | null = null;
+    if (targetParent !== before.parent_id && targetParent !== null) {
+      if (targetParent === id) throw rule("label_self_parent", "A label cannot be its own parent");
+      if (listChildren(ctx, id).length > 0) {
+        throw rule("label_has_children", `"${before.name}" has child labels and cannot be nested under another label`);
+      }
+      parentName = resolveParent(ctx, before.project_id, targetParent).name;
+    }
     const ordered = listLabels(ctx, before.project_id);
-    const sortOrder = sortOrderForMove(ordered, id, data.before_id, data.after_id, "label");
+    const siblings = siblingsIn(ordered, targetParent);
+    for (const neighbour of [data.before_id, data.after_id]) {
+      if (neighbour === undefined || neighbour === id) continue;
+      if (ordered.some((row) => row.id === neighbour) && !siblings.some((row) => row.id === neighbour)) {
+        throw validation({ [neighbour === data.before_id ? "before_id" : "after_id"]: neighbour }, "before_id and after_id must be labels of the target container");
+      }
+    }
+    const others = siblings.filter((row) => row.id !== id);
+    const last = others.at(-1);
+    const sortOrder =
+      data.before_id === undefined && data.after_id === undefined
+        ? // Only `parent_id` was given: the label goes to the end of that container.
+          last === undefined
+          ? before.sort_order
+          : sortOrderAfter(last.sort_order)
+        : sortOrderForMove(siblings, id, data.before_id, data.after_id, "label");
     const now = ctx.now();
     const after = ctx.db
       .update(label)
-      .set({ sort_order: sortOrder, updated_at: now, updated_by: ctx.actor.id })
+      .set({ sort_order: sortOrder, parent_id: targetParent, updated_at: now, updated_by: ctx.actor.id })
       .where(eq(label.id, id))
       .returning()
       .get();
-    diffFields(ctx, { project_id: before.project_id, entity_type: "label", entity_id: id }, before, after, ["sort_order"], () => before.name);
+    const oldParentName = before.parent_id === null ? null : labelNameOrNull(ctx, before.parent_id);
+    diffFields(ctx, { project_id: before.project_id, entity_type: "label", entity_id: id }, before, after, ["sort_order", "parent_id"], (field, value) => {
+      if (field === "parent_id") return value === before.parent_id ? oldParentName : parentName;
+      return before.name;
+    });
     return after;
   });
 }

@@ -274,6 +274,8 @@ export function buildOrder(display: Display): SQL[] {
   const primary = NULLABLE_ORDER_FIELDS.has(field)
     ? sql`${orderExpression(field)} ${dir} NULLS LAST`
     : sql`${orderExpression(field)} ${dir}`;
+  // Ordering by sort_order already: do not repeat it, so SQLite can read work_item_live_sort_idx in order (decision 126).
+  if (field === "sort_order") return [primary, asc(work_item.sequence_id)];
   return [primary, asc(work_item.sort_order), asc(work_item.sequence_id)];
 }
 

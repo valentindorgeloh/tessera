@@ -45,16 +45,21 @@ import { UNGROUPED_KEY } from "./paging";
 import { isOptimisticId } from "./optimistic";
 import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } from "./properties";
 import { GroupFooter, GroupPoints } from "./GroupFooter";
+import { NoResults } from "./NoResults";
 import { QuickAdd } from "./QuickAdd";
 import { acceptsGroupMove, isOpenGroupValue, openMemberships } from "./quick-add";
 import type { LayoutProps, MoveInput, ProjectBundle, QuickAddGroup } from "./types";
 
-/** Structural column width in px; board.css repeats the number for the flex basis. */
-const COLUMN_WIDTH = 350;
+/**
+ * Column width: 350px, but never wider than the strip's content box, so a phone shows one full column
+ * and scrolls (snapping) to the next. `cqw` is the strip's content width: board.css makes the strip the size container
+ * and repeats this value as --tessera-board-column-width for the flex basis.
+ */
+const COLUMN_WIDTH = "min(350px, 100cqw)";
 
 const STATE_GROUPS: ReadonlySet<string> = new Set<StateGroup>(["backlog", "unstarted", "started", "completed", "cancelled", "triage"]);
 
-export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAdd, canQuickAdd, readOnly = false, onLoadMore, onLoadMoreUngrouped, isLoadingMore }: LayoutProps) {
+export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAdd, canQuickAdd, readOnly = false, onLoadMore, onLoadMoreUngrouped, isLoadingMore, onClearFilters }: LayoutProps) {
   const { columns, lanes, containers, byId } = useBoardModel(result, display);
   // Collapsed swimlanes (F3.2): their cells stay mounted but hidden and take no drops.
   const [collapsedLanes, setCollapsedLanes] = useState<ReadonlySet<string>>(() => new Set());
@@ -261,6 +266,15 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
     const nonce = quickAddNonces[column.id] ?? 0;
     return <QuickAdd key={`${column.id}:${nonce}`} defaultIsActive={nonce > 0} label={`Add a work item to ${column.name}`} onSubmit={(name) => quickAdd(column, name)} />;
   };
+
+  // A filter that matches nothing: one message with "Clear filters" instead of a strip of empty columns.
+  if (onClearFilters && result.total === 0 && result.items.length === 0) {
+    return (
+      <VStack className="tessera-board" gap={0} paddingBlock={2} data-list-ready="">
+        <NoResults onClear={onClearFilters} />
+      </VStack>
+    );
+  }
 
   return (
     <VStack className="tessera-board" gap={0} data-list-ready="">

@@ -4,7 +4,8 @@
  * helper `loadWorkItemDetail(ctx, id)` fills `WorkItemDetailData`; the
  * components here code against the shape.
  */
-import type { ActivityLogEntry, WorkItem, WorkItemDetail } from "@/lib/tessera/types";
+import type { ActivityLogEntry, PageBacklink, WorkItem, WorkItemDetail } from "@/lib/tessera/types";
+import type { CommentView } from "./CommentItem";
 
 export type WorkItemDetailData = {
   /** WorkItem & { subscriber_ids, links: WorkItemLinkRow[] }. */
@@ -15,6 +16,10 @@ export type WorkItemDetailData = {
   children: WorkItem[];
   /** listActivity(ctx, { work_item_id: id }), newest first. */
   activity: ActivityLogEntry[];
+  /** listComments(ctx, id): roots oldest first, replies nested (decision 56). Optional: a host without comments shows updates only. */
+  comments?: CommentView[];
+  /** listPageBacklinks(ctx, { entity_type: "work_item", entity_id }): the pages that embed the item, for "Mentioned in" (decision 44). */
+  backlinks?: PageBacklink[];
   /** USER_ACTOR_ID, filled server-side ("assign me", the subscribe toggle). */
   currentActorId: string;
   /** latestSeq at load. */

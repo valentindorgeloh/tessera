@@ -84,12 +84,12 @@ export function migrate(db: MigrateDb, sqlite: SqliteDatabase): number {
   return pending;
 }
 
-function sleepSync(ms: number): void {
+export function sleepSync(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 /** Creates `<filePath>.migrate.lock` exclusively, waiting up to `timeoutMs` for another process to finish (BUSY afterwards). */
-function acquireLock(filePath: string, timeoutMs: number): () => void {
+export function acquireLock(filePath: string, timeoutMs: number): () => void {
   const lockPath = `${filePath}.migrate.lock`;
   const deadline = Date.now() + timeoutMs;
   for (;;) {

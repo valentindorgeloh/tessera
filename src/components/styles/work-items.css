@@ -23,14 +23,15 @@
 
 /*
  * Rows: at least 44px; the key button opens the item; the properties hug the
- * end edge. The insets line the key's text and the last chip up with the
- * panel header's 16px (the key button brings its own 12px).
- * Use symmetric padding for better visual balance.
+ * end edge. The end inset is 16px, the panel header's: the last chip ends where
+ * the header actions do. The start inset stays 12px: the select checkbox and
+ * the key button bring their own insets.
  */
 .tessera-wi-row {
   min-width: 0;
   min-height: calc(var(--size-element-md) + var(--spacing-3));
-  padding-inline: var(--spacing-3);
+  padding-inline-start: var(--spacing-3);
+  padding-inline-end: var(--spacing-4);
   /* When the title would get less than its minimum, the properties wrap onto a second line under it. */
   flex-wrap: wrap;
   row-gap: var(--spacing-1);

@@ -90,10 +90,12 @@ export function InboxScreen({ query, notifications, digest, actorId, children }:
       header={
         <PanelHeader label="Inbox">
           <PanelBar
+            className="tessera-inbox-bar"
             start={
               <>
-                <PanelTitle>Inbox</PanelTitle>
-                <TabList value={query.tab} onChange={() => {}} size="sm" layout="hug" aria-label="Inbox">
+                {/* Below 600px the tabs take their own row under the title (inbox.css), like the project frame's pages. */}
+                <PanelTitle className="tessera-inbox-title">Inbox</PanelTitle>
+                <TabList value={query.tab} onChange={() => {}} size="sm" layout="hug" aria-label="Inbox" className="tessera-inbox-tabs">
                   {INBOX_TABS.map((tab) => (
                     <Tab key={tab} value={tab} label={TAB_LABELS[tab]} href={inboxHref(tab, query.unread, query.item)} />
                   ))}

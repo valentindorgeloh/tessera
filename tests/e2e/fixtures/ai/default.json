@@ -1,0 +1,4 @@
+{
+  "turns": [{ "stopReason": "end_turn", "text": "Nothing is recorded for this prompt." }],
+  "create": { "stopReason": "end_turn", "text": "Everything is quiet." }
+}

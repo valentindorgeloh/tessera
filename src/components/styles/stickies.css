@@ -30,3 +30,24 @@
 .tessera-sticky-name {
   background: transparent;
 }
+
+/* Drag reorder (decision 105): the grip is the only drag source, so touch panning keeps working on the card. */
+.tessera-sticky-grip {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+/* The dragged card leaves the grid while its clone follows the pointer; it stays mounted so an unsaved edit survives. */
+.tessera-sticky--dragging {
+  display: none;
+}
+
+/* A finger needs a 44px grip: the 28px button grows by its padding and gives the room back through a negative margin. */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-sticky-grip {
+    box-sizing: content-box;
+    padding: var(--spacing-2);
+    margin: calc(-1 * var(--spacing-2));
+  }
+}

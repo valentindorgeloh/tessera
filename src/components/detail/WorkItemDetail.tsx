@@ -37,17 +37,17 @@ import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import { useProject } from "@/components/work-items/project-provider";
 import type { WorkItemDetail as WorkItemDetailModel } from "@/lib/tessera/types";
 import { PencilIcon, RestoreIcon } from "@/themes/catppuccin/icons";
-import type { CommentView } from "./CommentItem";
 import { DescriptionEditor } from "./DescriptionEditor";
 import { DetailHeader, workItemPath } from "./DetailHeader";
 import { LinksList } from "./LinksList";
+import { MentionedIn } from "./MentionedIn";
 import { PropertyRailFields, type PropertyName } from "./PropertyRail";
 import { SubItems } from "./SubItems";
 // The `.tsx` extension is required here: `timeline.ts` sits beside this file, and a
 // case-insensitive volume resolves `./Timeline` to that module before `Timeline.tsx`.
 // @ts-expect-error TS5097 — extension import, see the comment above.
 import { Timeline } from "./Timeline.tsx";
-import type { DetailHost, WorkItemDetailData, WorkItemDetailProps } from "./types";
+import type { DetailHost, WorkItemDetailProps } from "./types";
 import { useDetailActions, type DetailActions } from "./use-detail-actions";
 
 type TitleProps = {
@@ -110,12 +110,6 @@ function DetailTitle({ item, host, readOnly, actions }: TitleProps) {
       )}
     </HStack>
   );
-}
-
-// ASSUMPTION: listComments is not on the detail payload yet. A loader that adds `comments` is picked up; until then the timeline shows updates only.
-function commentsFrom(data: WorkItemDetailData): CommentView[] {
-  const extra = data as WorkItemDetailData & { comments?: CommentView[] };
-  return Array.isArray(extra.comments) ? extra.comments : [];
 }
 
 /** Focuses and clicks the first button of a `data-property` wrapper (the P2a ghost selectors open on click); false when the property is not shown. */
@@ -275,11 +269,12 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
           <SubItems parent={item} readOnly={readOnly} onOpenItem={onOpenItem}>
             {children}
           </SubItems>
+          <MentionedIn backlinks={data.backlinks ?? []} />
           <LinksList workItemId={item.id} links={item.links} readOnly={readOnly} />
           <Timeline
             workItemId={item.id}
             projectId={item.project_id}
-            comments={commentsFrom(data)}
+            comments={data.comments ?? []}
             activity={activity}
             readOnly={readOnly}
             currentActorId={currentActorId}

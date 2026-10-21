@@ -229,6 +229,92 @@ describe("reorderLabel", () => {
   });
 });
 
+describe("reorderLabel with parent_id (decision 105)", () => {
+  function names(ctx: TesseraContext, projectId: string, parentId: string | null): string[] {
+    return listLabels(ctx, projectId)
+      .filter((l) => l.parent_id === parentId)
+      .map((l) => l.name);
+  }
+
+  it("reparents and reorders in one call, logging both fields", () => {
+    const { ctx, projectId } = setup();
+    const area = createLabel(ctx, { project_id: projectId, name: "Area" });
+    const ui = createLabel(ctx, { project_id: projectId, name: "UI", parent_id: area.id });
+    const api = createLabel(ctx, { project_id: projectId, name: "API", parent_id: area.id });
+    const loose = createLabel(ctx, { project_id: projectId, name: "Loose" });
+    const seqBefore = latestSeq(ctx);
+    const moved = reorderLabel(ctx, loose.id, { parent_id: area.id, before_id: ui.id, after_id: api.id });
+    expect(moved.parent_id).toBe(area.id);
+    expect(names(ctx, projectId, area.id)).toEqual(["UI", "Loose", "API"]);
+    expect(names(ctx, projectId, null)).toEqual(["Area"]);
+    const rows = activityRows(ctx, loose.id).filter((r) => r.seq > seqBefore);
+    expect(rows.map((r) => r.field).sort()).toEqual(["parent_id", "sort_order"]);
+    expect(rows.find((r) => r.field === "parent_id")).toMatchObject({ old_identifier: null, new_identifier: "Area" });
+  });
+
+  it("places a child at the top level between top-level neighbours, and at either edge of a container", () => {
+    const { ctx, projectId } = setup();
+    const a = createLabel(ctx, { project_id: projectId, name: "A" });
+    const b = createLabel(ctx, { project_id: projectId, name: "B" });
+    const kid = createLabel(ctx, { project_id: projectId, name: "Kid", parent_id: a.id });
+    const kid2 = createLabel(ctx, { project_id: projectId, name: "Kid2", parent_id: a.id });
+    reorderLabel(ctx, kid.id, { parent_id: null, before_id: a.id, after_id: b.id });
+    expect(names(ctx, projectId, null)).toEqual(["A", "Kid", "B"]);
+    expect(getLabel(ctx, kid.id).parent_id).toBeNull();
+    // Into B's (empty) children with no neighbours, then before and after the existing child.
+    reorderLabel(ctx, kid.id, { parent_id: b.id });
+    expect(names(ctx, projectId, b.id)).toEqual(["Kid"]);
+    reorderLabel(ctx, kid2.id, { parent_id: b.id, after_id: kid.id });
+    expect(names(ctx, projectId, b.id)).toEqual(["Kid2", "Kid"]);
+    reorderLabel(ctx, kid2.id, { parent_id: b.id, before_id: kid.id });
+    expect(names(ctx, projectId, b.id)).toEqual(["Kid", "Kid2"]);
+    // Same parent with no neighbour: to the end of the container.
+    reorderLabel(ctx, kid.id, { parent_id: b.id });
+    expect(names(ctx, projectId, b.id)).toEqual(["Kid2", "Kid"]);
+  });
+
+  it("works across containers whose sort keys interleave in the flat list", () => {
+    const { ctx, projectId } = setup();
+    const a = createLabel(ctx, { project_id: projectId, name: "A" });
+    const c1 = createLabel(ctx, { project_id: projectId, name: "C1", parent_id: a.id });
+    createLabel(ctx, { project_id: projectId, name: "B" });
+    const c2 = createLabel(ctx, { project_id: projectId, name: "C2", parent_id: a.id });
+    // C1 and C2 are not adjacent in the flat list (B sits between), but they are adjacent siblings.
+    const x = createLabel(ctx, { project_id: projectId, name: "X" });
+    reorderLabel(ctx, x.id, { parent_id: a.id, before_id: c1.id, after_id: c2.id });
+    expect(names(ctx, projectId, a.id)).toEqual(["C1", "X", "C2"]);
+  });
+
+  it("keeps the one-level rule and the container rule", () => {
+    const { ctx, projectId } = setup();
+    const area = createLabel(ctx, { project_id: projectId, name: "Area" });
+    const ui = createLabel(ctx, { project_id: projectId, name: "UI", parent_id: area.id });
+    const other = createLabel(ctx, { project_id: projectId, name: "Other" });
+    const loose = createLabel(ctx, { project_id: projectId, name: "Loose" });
+    expect(ruleName(() => reorderLabel(ctx, area.id, { parent_id: other.id }))).toBe("label_has_children");
+    expect(ruleName(() => reorderLabel(ctx, area.id, { parent_id: area.id }))).toBe("label_self_parent");
+    expect(ruleName(() => reorderLabel(ctx, loose.id, { parent_id: ui.id }))).toBe("label_depth");
+    expect(errorCode(() => reorderLabel(ctx, loose.id, { parent_id: newId() }))).toBe("NOT_FOUND");
+    // A neighbour from another container is refused, and nothing changed.
+    expect(errorCode(() => reorderLabel(ctx, loose.id, { parent_id: area.id, before_id: other.id }))).toBe("VALIDATION");
+    expect(errorCode(() => reorderLabel(ctx, ui.id, { before_id: other.id }))).toBe("VALIDATION");
+    expect(getLabel(ctx, loose.id).parent_id).toBeNull();
+    expect(names(ctx, projectId, null)).toEqual(["Area", "Other", "Loose"]);
+    // A parent with children can still move among the top level.
+    reorderLabel(ctx, area.id, { parent_id: null, before_id: loose.id });
+    expect(names(ctx, projectId, null)).toEqual(["Other", "Loose", "Area"]);
+    expect(errorCode(() => reorderLabel(ctx, loose.id, {}))).toBe("VALIDATION");
+  });
+
+  it("refuses an archived project", () => {
+    const { ctx, projectId } = setup();
+    const a = createLabel(ctx, { project_id: projectId, name: "A" });
+    const b = createLabel(ctx, { project_id: projectId, name: "B" });
+    archiveProject(ctx, projectId);
+    expect(errorCode(() => reorderLabel(ctx, b.id, { parent_id: a.id }))).toBe("ARCHIVED");
+  });
+});
+
 describe("deleteLabel", () => {
   it("deletes the children of a parent label", () => {
     const { ctx, projectId } = setup();

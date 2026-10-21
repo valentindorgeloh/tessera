@@ -4,7 +4,7 @@
  * Markdown; they are rebuilt from heading text whenever the doc changes.
  */
 import { Extension } from "@tiptap/core";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Plugin, PluginKey, type EditorState, type Transaction } from "@tiptap/pm/state";
 
 /** Lowercase slug for an outline anchor; empty text becomes "heading". */
 export function headingSlug(text: string): string {
@@ -29,6 +29,25 @@ export function uniqueHeadingId(base: string, used: Set<string>): string {
   return id;
 }
 
+/**
+ * A transaction that gives every heading its id, or null when all are set.
+ * Shared by the plugin (every doc change) and `onCreate` (the initial doc,
+ * which is built from `content` and never passes through a transaction).
+ */
+export function headingIdTransaction(state: EditorState): Transaction | null {
+  const tr = state.tr;
+  let modified = false;
+  const used = new Set<string>();
+  state.doc.descendants((node, pos) => {
+    if (node.type.name !== "heading") return;
+    const id = uniqueHeadingId(headingSlug(node.textContent), used);
+    if (node.attrs.id === id) return;
+    tr.setNodeMarkup(pos, undefined, { ...node.attrs, id });
+    modified = true;
+  });
+  return modified ? tr : null;
+}
+
 export const HeadingIds = Extension.create({
   name: "headingIds",
 
@@ -47,23 +66,22 @@ export const HeadingIds = Extension.create({
     ];
   },
 
+  // The initial content has no ids until the first edit otherwise, so the Outline would read "No headings yet".
+  onCreate() {
+    const { editor } = this;
+    if (editor.isDestroyed) return;
+    const tr = headingIdTransaction(editor.state);
+    // Not an edit: no update event (the page would save an identical body) and no undo step.
+    if (tr) editor.view.dispatch(tr.setMeta("preventUpdate", true).setMeta("addToHistory", false));
+  },
+
   addProseMirrorPlugins() {
     return [
       new Plugin({
         key: new PluginKey("headingIds"),
         appendTransaction(transactions, _oldState, newState) {
           if (!transactions.some((tr) => tr.docChanged)) return null;
-          const tr = newState.tr;
-          let modified = false;
-          const used = new Set<string>();
-          newState.doc.descendants((node, pos) => {
-            if (node.type.name !== "heading") return;
-            const id = uniqueHeadingId(headingSlug(node.textContent), used);
-            if (node.attrs.id === id) return;
-            tr.setNodeMarkup(pos, undefined, { ...node.attrs, id });
-            modified = true;
-          });
-          return modified ? tr : null;
+          return headingIdTransaction(newState);
         },
       }),
     ];

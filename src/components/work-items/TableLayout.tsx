@@ -42,6 +42,7 @@ import type { DisplayProperties, Group, GroupBy, StateGroup, WorkItem } from "@/
 import { GroupFooter, GroupPoints } from "./GroupFooter";
 import { isOptimisticId } from "./optimistic";
 import { UNGROUPED_KEY, hasUnloaded, loadedOfTotal } from "./paging";
+import { NoResults } from "./NoResults";
 import { RowProject } from "./row-project";
 import { TABLE_SORT_FIELDS, orderByFromSort, sortFromOrderBy } from "./table-sort";
 import { ActorLabel, AssigneeControl, CycleControl, DateControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, PriorityLabel, StateControl, StateLabel, isPriority, paletteTokenColor } from "./properties";
@@ -279,7 +280,7 @@ function GroupHeading({ group, field, bundle }: { group: Group | undefined; fiel
   return <Text weight="semibold">{group.name}</Text>;
 }
 
-export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection, onLoadMore, onLoadMoreUngrouped, isLoadingMore, onOrderChange }: LayoutProps) {
+export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection, onLoadMore, onLoadMoreUngrouped, isLoadingMore, onOrderChange, onClearFilters }: LayoutProps) {
   const groups = useMemo(() => result.groups ?? [], [result.groups]);
   const grouped = display.group_by !== null && groups.length > 0;
 
@@ -393,7 +394,10 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
         };
       },
       transformBodyCell: (props, column, row) => {
-        if (!isDataRow(row) || !EDITABLE.has(column.key)) return props;
+        if (!isDataRow(row)) return props;
+        // The key cell's text starts where the Key header's does (table.css): its open button brings the inset.
+        if (column.key === "key") return { ...props, htmlProps: { ...props.htmlProps, className: "tessera-table-key-cell" } };
+        if (!EDITABLE.has(column.key)) return props;
         return {
           ...props,
           htmlProps: {
@@ -442,7 +446,13 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
         hasHover
         textOverflow="truncate"
         rowCount={result.total}
-        emptyState={<EmptyState isCompact title="No work items" description={readOnly ? "Change the filters to see more." : "Create a work item or change the filters."} />}
+        emptyState={
+          onClearFilters ? (
+            <NoResults onClear={onClearFilters} />
+          ) : (
+            <EmptyState isCompact title="No work items" description={readOnly ? "Change the filters to see more." : "Create a work item or change the filters."} />
+          )
+        }
       />
       {!grouped && result.has_more && onLoadMoreUngrouped ? (
         <GroupFooter display={display} loaded={result.items.length} total={result.total} isLoading={isLoadingMore?.(UNGROUPED_KEY)} onLoadMore={onLoadMoreUngrouped} />

@@ -16,6 +16,7 @@ import { Popover } from "@astryxdesign/core/Popover";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
+import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { useTimelineDrag } from "@/components/dnd/use-timeline-drag";
 import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import { daysBetween } from "@/lib/tessera/core/time";
@@ -23,7 +24,8 @@ import type { WorkItem } from "@/lib/tessera/types";
 import { CalendarDotsIcon, CalendarIcon } from "@/themes/catppuccin/icons";
 import { isWeekend, monthLabel, weekBandLabel, weekendShift } from "./calendar-math";
 import { applyDayDelta, barPlacement, barSpan, eachDay, previewEnds, scheduleOnDay, timelineRange, type BarDragMode, type DateEnds } from "./date-span";
-import { conflictItemIds, connectorPaths, ganttEdges, monthSpans, weekSpans } from "./gantt-scale";
+import { conflictNotes, connectorPaths, ganttEdges, monthSpans, weekSpans } from "./gantt-scale";
+import { useTodayScroll } from "./gantt-scroll";
 import { GroupFooter } from "./GroupFooter";
 import { isOptimisticId } from "./optimistic";
 import { UNGROUPED_KEY } from "./paging";
@@ -52,7 +54,6 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
   const days = eachDay(range.start, range.end);
   const todayOffset = daysBetween(range.start, today);
   const dayRef = useRef<HTMLElement | null>(null);
-  const todayRef = useRef<HTMLElement | null>(null);
   const dayWidth = useCallback(() => dayRef.current?.getBoundingClientRect().width ?? 0, []);
 
   const { preview, onPointerDown, onClickCapture } = useTimelineDrag({
@@ -66,7 +67,8 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
     },
   });
 
-  const scrollToday = () => todayRef.current?.scrollIntoView({ inline: "center", block: "nearest" });
+  // The today line (not the sticky head cell) is what scrolls into the middle of the bar area, in every zoom.
+  const { rootRef, scrollToday } = useTodayScroll(zoom, result.items.length > 0);
   useHotkeys([{ keys: "t", onPress: scrollToday }]);
 
   const schedule = (item: WorkItem, event: ReactMouseEvent<HTMLElement>) => {
@@ -86,7 +88,7 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
   const rowIndex = new Map(result.items.map((item, index) => [item.id, index]));
   const edges = showRelations ? ganttEdges(result.relations) : [];
   const paths = edges.length === 0 ? [] : connectorPaths(edges, rowIndex, byId, range.start, days.length);
-  const conflicts = conflictItemIds(paths);
+  const notes = conflictNotes(paths, byId, new Map(result.items.map((item) => [item.id, item.key])));
   const topSpans = zoom === "month" ? weekSpans(days, weekStartsOn, weekBandLabel) : monthSpans(days, monthLabel);
 
   if (result.items.length === 0) {
@@ -95,6 +97,7 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
 
   return (
     <VStack
+      ref={rootRef}
       gap={0}
       className="tessera-gantt"
       data-zoom={zoom}
@@ -104,7 +107,7 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
         "--tessera-gantt-weekend-shift": weekendShift(range.start),
       })}
     >
-      <HStack gap={2} vAlign="center" padding={2}>
+      <HStack gap={2} vAlign="center" padding={2} className="tessera-gantt-tools">
         <Button label="Today" size="sm" variant="ghost" icon={<CalendarDotsIcon />} onClick={scrollToday} />
       </HStack>
       <HStack gap={0} vAlign="end" className="tessera-gantt-head">
@@ -125,7 +128,6 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
                 key={day}
                 ref={(element) => {
                   if (index === 0) dayRef.current = element;
-                  if (day === today) todayRef.current = element;
                 }}
                 type="supporting"
                 hasTabularNumbers
@@ -157,7 +159,7 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
             ends={byId.get(item.id) ?? item}
             rangeStart={range.start}
             readOnly={readOnly}
-            conflict={conflicts.has(item.id)}
+            conflictText={notes.get(item.id)?.join("; ")}
             onOpen={onOpen}
             onUpdate={onUpdate}
             onSchedule={schedule}
@@ -178,7 +180,7 @@ function GanttRow({
   ends,
   rangeStart,
   readOnly,
-  conflict,
+  conflictText,
   onOpen,
   onUpdate,
   onSchedule,
@@ -189,7 +191,8 @@ function GanttRow({
   ends: DateEnds;
   rangeStart: string;
   readOnly: boolean;
-  conflict: boolean;
+  /** What this bar clashes with, naming the other items (decision 92); undefined when it has no conflict. */
+  conflictText?: string;
   onOpen: LayoutProps["onOpen"];
   onUpdate: LayoutProps["onUpdate"];
   onSchedule: (item: WorkItem, event: ReactMouseEvent<HTMLElement>) => void;
@@ -204,6 +207,8 @@ function GanttRow({
   const open = () => {
     if (!isOptimisticId(item.id)) onOpen(item.id);
   };
+  const conflict = conflictText !== undefined;
+  const barRef = useRef<HTMLElement | null>(null);
   const barLabel = placement
     ? `${item.key} ${item.name}, ${ends.start_date ?? "open"} to ${ends.target_date ?? "open"}${conflict ? ", date conflict" : ""}`
     : `${item.key} ${item.name}, no dates`;
@@ -227,7 +232,7 @@ function GanttRow({
             }
           }}
         >
-          <Text type="supporting" hasTabularNumbers>
+          <Text type="supporting" hasTabularNumbers className="tessera-gantt-key">
             {item.key}
           </Text>
           <Text maxLines={1} className="tessera-gantt-name">
@@ -238,51 +243,59 @@ function GanttRow({
       </HStack>
       <HStack className="tessera-gantt-track" onClick={(event) => onSchedule(item, event)}>
         {placement ? (
-          <HStack
-            role="button"
-            tabIndex={0}
-            className="tessera-gantt-bar"
-            aria-label={barLabel}
-            data-open-start={placement.openStart ? "" : undefined}
-            data-open-end={placement.openEnd ? "" : undefined}
-            data-conflict={conflict ? "" : undefined}
-            data-readonly={canDrag ? undefined : ""}
-            style={cssVars({ "--tessera-gantt-offset": placement.offset, "--tessera-gantt-span": placement.span })}
-            onClick={(event) => {
-              event.stopPropagation();
-              open();
-            }}
-            onClickCapture={onClickCapture}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
+          <>
+            <HStack
+              ref={barRef}
+              role="button"
+              tabIndex={0}
+              className="tessera-gantt-bar"
+              aria-label={barLabel}
+              data-open-start={placement.openStart ? "" : undefined}
+              data-open-end={placement.openEnd ? "" : undefined}
+              data-conflict={conflict ? "" : undefined}
+              data-readonly={canDrag ? undefined : ""}
+              style={cssVars({ "--tessera-gantt-offset": placement.offset, "--tessera-gantt-span": placement.span })}
+              onClick={(event) => {
+                event.stopPropagation();
                 open();
-              }
-            }}
-            onPointerDown={canDrag ? (event) => onPointerDown(item.id, "move", event) : undefined}
-          >
-            <Text type="supporting" maxLines={1}>
-              {item.key}
-            </Text>
-            {canDrag ? (
-              <HStack
-                className="tessera-gantt-handle"
-                data-edge="start"
-                aria-hidden
-                onPointerDown={(event) => onPointerDown(item.id, "start", event)}
-                onClick={(event) => event.stopPropagation()}
-              />
+              }}
+              onClickCapture={onClickCapture}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  open();
+                }
+              }}
+              onPointerDown={canDrag ? (event) => onPointerDown(item.id, "move", event) : undefined}
+            >
+              <Text type="supporting" maxLines={1}>
+                {item.key}
+              </Text>
+              {canDrag ? (
+                <HStack
+                  className="tessera-gantt-handle"
+                  data-edge="start"
+                  aria-hidden
+                  onPointerDown={(event) => onPointerDown(item.id, "start", event)}
+                  onClick={(event) => event.stopPropagation()}
+                />
+              ) : null}
+              {canDrag ? (
+                <HStack
+                  className="tessera-gantt-handle"
+                  data-edge="end"
+                  aria-hidden
+                  onPointerDown={(event) => onPointerDown(item.id, "end", event)}
+                  onClick={(event) => event.stopPropagation()}
+                />
+              ) : null}
+            </HStack>
+            {conflictText ? (
+              // Sibling mode: a conflict that appears mid-drag mounts the tooltip next to the bar instead of wrapping it, so the bar keeps its pointer capture.
+              // Astryx puts the tooltip's id in the bar's aria-describedby, and the tooltip layer holds the same text while closed.
+              <Tooltip anchorRef={barRef} content={conflictText} focusTrigger="always" touchTrigger="none" placement="above" />
             ) : null}
-            {canDrag ? (
-              <HStack
-                className="tessera-gantt-handle"
-                data-edge="end"
-                aria-hidden
-                onPointerDown={(event) => onPointerDown(item.id, "end", event)}
-                onClick={(event) => event.stopPropagation()}
-              />
-            ) : null}
-          </HStack>
+          </>
         ) : null}
       </HStack>
     </HStack>

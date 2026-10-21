@@ -17,6 +17,13 @@ export const ROW_PAGE = 200;
 export const BOARD_GROUP_PAGE = 30;
 /** Rows per list or table group. */
 export const LIST_GROUP_PAGE = 50;
+/**
+ * Smaller first pages for multi-valued groupings (labels, assignees, modules): an item sits in several groups, so
+ * the union of the loaded pages (the rows the engine hydrates) is several times the page size. Decisions 113, 115.
+ */
+export const MULTI_LIST_GROUP_PAGE = 25;
+export const MULTI_BOARD_GROUP_PAGE = 20;
+const MULTI_VALUED_GROUPS: readonly (string | null)[] = ["labels", "assignees", "module"];
 /** Items the calendar loads before it shows a banner. */
 export const CALENDAR_CAP = 1000;
 /** Loading key of the rows of an ungrouped list (the group keys are `groupLimitKey` values). */
@@ -31,9 +38,16 @@ export function pagesByGroup(display: Display): boolean {
   return display.group_by !== null && display.layout !== "gantt" && display.layout !== "calendar";
 }
 
+/** Rows of a group's first page (and of each "Show more") on a grouped layout; smaller for a multi-valued grouping. */
+export function groupPageSize(display: Display): number {
+  const multi = MULTI_VALUED_GROUPS.includes(display.group_by) || MULTI_VALUED_GROUPS.includes(display.sub_group_by);
+  if (display.layout === "board") return multi ? MULTI_BOARD_GROUP_PAGE : BOARD_GROUP_PAGE;
+  return multi ? MULTI_LIST_GROUP_PAGE : LIST_GROUP_PAGE;
+}
+
 /** The paging keys of the first server page for a layout (decision 112). */
 export function pageSizeFor(display: Display): { limit?: number; per_group_limit?: number } {
-  if (pagesByGroup(display)) return { per_group_limit: display.layout === "board" ? BOARD_GROUP_PAGE : LIST_GROUP_PAGE };
+  if (pagesByGroup(display)) return { per_group_limit: groupPageSize(display) };
   if (display.layout === "calendar") return { limit: CALENDAR_CAP };
   return { limit: ROW_PAGE };
 }
@@ -86,7 +100,7 @@ export function effectiveRichFilters(richFilters: RichFilters | null | undefined
 
 /** How many more rows a "Show more" click asks for. */
 export function loadMoreSize(display: Display): number {
-  if (pagesByGroup(display)) return display.layout === "board" ? BOARD_GROUP_PAGE : LIST_GROUP_PAGE;
+  if (pagesByGroup(display)) return groupPageSize(display);
   return ROW_PAGE;
 }
 

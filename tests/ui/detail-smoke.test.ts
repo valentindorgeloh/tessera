@@ -207,7 +207,25 @@ const activity: ActivityLogEntry[] = [
   },
 ];
 
-const data = { item, parent: { id: PARENT, key: "WEB-0", name: "Launch" }, children: [child], activity, currentActorId: USER, cursor: 42 };
+const PAGE = "55555555-5555-7555-8555-555555555555";
+const comment = {
+  id: "66666666-6666-7666-8666-666666666666",
+  work_item_id: ITEM,
+  parent_id: null,
+  actor_id: USER,
+  actor_name: "You",
+  actor_kind: "user",
+  body_md: "A comment from the loader",
+  body_version: 1,
+  created_at: "2026-10-01T10:00:00.000Z",
+  updated_at: "2026-10-01T10:00:00.000Z",
+  edited_at: null,
+  deleted_at: null,
+  reactions: [],
+  replies: [],
+} as unknown as import("@/components/detail/CommentItem").CommentView;
+const backlinks = [{ id: PAGE, name: "Launch notes", project_id: PROJECT, archived_at: null }];
+const data = { item, parent: { id: PARENT, key: "WEB-0", name: "Launch" }, children: [child], activity, comments: [comment], backlinks, currentActorId: USER, cursor: 42 };
 
 /** Reads the stores the detail registers into, so the test can assert on them without hooks. */
 function Probe() {
@@ -286,6 +304,10 @@ describe("WorkItemDetail", () => {
     expect(text).toContain("WEB-2");
     expect(text).toContain("Pick a provider");
     expect(text).toContain("Links (1)");
+    // The loader's comments reach the timeline (collaboration.spec) and the embedding pages list under "Mentioned in" (decision 44).
+    expect(text).toContain("A comment from the loader");
+    expect(text).toContain("Mentioned in (1)");
+    expect(el.querySelector(`a[href="/projects/${PROJECT}/pages/${PAGE}"]`)?.textContent).toBe("Launch notes");
     expect(text).toContain("docs.example.com");
     expect(text).toContain("changed the state from Backlog to In progress");
     expect(text).toContain("created this work item");

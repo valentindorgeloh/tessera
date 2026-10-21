@@ -55,6 +55,23 @@ export function WorkspaceName({ name }: { name: string }) {
   return null;
 }
 
+/** Below this width (px) the search field is the drawer's: full width, no ⌘K chip, a shorter placeholder (shell.css repeats it). */
+const NARROW_SEARCH_QUERY = "(max-width: 599px)";
+
+function subscribeNarrow(listener: () => void) {
+  const query = window.matchMedia(NARROW_SEARCH_QUERY);
+  query.addEventListener("change", listener);
+  return () => query.removeEventListener("change", listener);
+}
+
+function readNarrow() {
+  return window.matchMedia(NARROW_SEARCH_QUERY).matches;
+}
+
+function serverNarrow() {
+  return false;
+}
+
 /** Keys that open Power K from the search field: Enter, Space, the arrow down and any printable character. */
 function opensSearch(event: KeyboardEvent<HTMLInputElement>): boolean {
   if (event.metaKey || event.ctrlKey || event.altKey) return false;
@@ -68,9 +85,11 @@ function opensSearch(event: KeyboardEvent<HTMLInputElement>): boolean {
  * would type into it, so the field never holds a query of its own and focus
  * comes back to it when the palette closes. A printable key becomes the
  * palette's first query. The group and field labels join into one name,
- * "Search work items and commands".
+ * "Search work items and commands". Below 600px (the drawer) the field takes the
+ * full width, the ⌘K chip is left out and the placeholder reads "Search".
  */
-function SearchTrigger({ onOpen }: { onOpen: (initialQuery?: string) => void }) {
+export function SearchTrigger({ onOpen }: { onOpen: (initialQuery?: string) => void }) {
+  const isNarrow = useSyncExternalStore(subscribeNarrow, readNarrow, serverNarrow);
   return (
     <Stack className="tessera-topbar-search" onClick={() => onOpen()}>
       <InputGroup label="Search" isLabelHidden size="sm">
@@ -82,16 +101,18 @@ function SearchTrigger({ onOpen }: { onOpen: (initialQuery?: string) => void }) 
           size="sm"
           value=""
           startIcon={SearchIcon}
-          placeholder="Search work items, or type a command"
+          placeholder={isNarrow ? "Search" : "Search work items, or type a command"}
           onKeyDown={(event) => {
             if (!opensSearch(event)) return;
             event.preventDefault();
             onOpen(event.key.length === 1 && event.key !== " " ? event.key : undefined);
           }}
         />
-        <InputGroupText>
-          <Kbd keys="mod+k" />
-        </InputGroupText>
+        {isNarrow ? null : (
+          <InputGroupText>
+            <Kbd keys="mod+k" />
+          </InputGroupText>
+        )}
       </InputGroup>
     </Stack>
   );

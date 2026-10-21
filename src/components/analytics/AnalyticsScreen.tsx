@@ -69,8 +69,8 @@ export function AnalyticsScreen({ tab, result, projects, filters, digest, today 
             canWrap
             start={
               <>
-                <PanelTitle>Analytics</PanelTitle>
-                <TabList value={tab} onChange={() => {}} size="sm" layout="hug" aria-label="Analytics">
+                <PanelTitle className="tessera-analytics-title">Analytics</PanelTitle>
+                <TabList value={tab} onChange={() => {}} size="sm" layout="hug" aria-label="Analytics" className="tessera-analytics-tabs">
                   {ANALYTICS_TABS.map((item) => (
                     <Tab key={item} value={item} label={TAB_LABELS[item]} href={analyticsHref(item, filters)} />
                   ))}

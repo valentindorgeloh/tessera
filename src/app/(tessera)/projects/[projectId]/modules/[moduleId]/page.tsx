@@ -3,6 +3,7 @@ import { io } from "next/cache";
 import { notFound } from "next/navigation";
 import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { lookupScoped } from "@/app/(tessera)/projects/[projectId]/scope-lookup";
 import { ListSkeleton, ScopedWorkItems } from "@/app/(tessera)/projects/[projectId]/work-items/scoped-list";
 import { FeatureOffState } from "@/components/planning/FeatureOffState";
 import { ModuleDetailScreen } from "@/components/planning/ModuleDetailScreen";
@@ -28,7 +29,9 @@ const HIDDEN_GROUP_FIELDS: readonly GroupBy[] = ["module"];
  * progress, the "Add existing" candidates (skipped for an archived module),
  * today's date and any stored digest in one read; the module's work items
  * stream in below the header through E4's `ScopedWorkItems`. A module of another project, or an
- * unknown or malformed id, is not found.
+ * unknown, deleted or malformed id, is not found, whether modules are on or
+ * off: the module is looked up before the feature toggle (../../scope-lookup.ts),
+ * so the shell never records a dead path as a recent.
  */
 export default function ModulePage({ params, searchParams }: Props) {
   return (
@@ -49,11 +52,12 @@ async function ModuleData({ params, searchParams }: Props) {
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();
     throw err;
   }
-  if (data === null) return <FeatureOffState feature="modules" projectId={projectId} />;
-  if (data.detail.module.project_id !== projectId) notFound();
-  const isArchived = data.detail.module.archived_at !== null;
+  if (data.kind === "missing") notFound();
+  if (data.kind === "feature_off") return <FeatureOffState feature="modules" projectId={projectId} />;
+  const { detail, digest } = data.value;
+  const isArchived = detail.module.archived_at !== null;
   return (
-    <ModuleDetailScreen projectId={projectId} data={data.detail} digest={data.digest}>
+    <ModuleDetailScreen projectId={projectId} data={detail} digest={digest}>
       <Suspense fallback={<ListSkeleton />}>
         <ScopedWorkItems
           projectId={projectId}
@@ -76,20 +80,24 @@ function loadCandidates(ctx: TesseraContext, projectId: string, memberIds: reado
   return result.items.filter((item) => !members.has(item.id)).map(({ id, key, name, state_id, cycle_id }) => ({ id, key, name, state_id, cycle_id }));
 }
 
-/** null when the project has modules turned off; nothing else is read then. */
+/** The module is read first; `lookupScoped` then tells a missing module from a project with modules turned off. */
 function loadModule(projectId: string, moduleId: string) {
-  return readTessera((ctx): { detail: ModuleDetailData; digest: ReturnType<typeof getStoredDigest> } | null => {
-    const project = getProject(ctx, projectId);
-    if (!project.modules_enabled) return null;
-    const loaded = getModule(ctx, moduleId);
-    const isOpen = loaded.archived_at === null && loaded.project_id === projectId;
-    const stored = getStoredDigest(ctx, "module", moduleId);
-    const seq = currentDigestSeq(ctx, "module", moduleId);
-    return {
-      detail: { module: loaded, candidates: isOpen ? loadCandidates(ctx, projectId, loaded.work_item_ids) : [], today: ctx.today() },
-      digest: stored === null ? null : { ...stored, is_stale: seq > stored.input_seq },
-    };
-  });
+  return readTessera((ctx) =>
+    lookupScoped(getProject(ctx, projectId), {
+      isEnabled: (project) => project.modules_enabled,
+      load: (): { detail: ModuleDetailData; digest: ReturnType<typeof getStoredDigest> } => {
+        const loaded = getModule(ctx, moduleId);
+        const isOpen = loaded.archived_at === null && loaded.project_id === projectId;
+        const stored = getStoredDigest(ctx, "module", moduleId);
+        const seq = currentDigestSeq(ctx, "module", moduleId);
+        return {
+          detail: { module: loaded, candidates: isOpen ? loadCandidates(ctx, projectId, loaded.work_item_ids) : [], today: ctx.today() },
+          digest: stored === null ? null : { ...stored, is_stale: seq > stored.input_seq },
+        };
+      },
+      projectIdOf: (loaded) => loaded.detail.module.project_id,
+    }),
+  );
 }
 
 function ModuleSkeleton() {

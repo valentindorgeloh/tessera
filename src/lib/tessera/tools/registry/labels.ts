@@ -40,7 +40,8 @@ export const labelTools = [
   defineTool({
     name: "reorder_label",
     title: "Reorder label",
-    description: "Moves a label directly before or after another label of the same project; before_id or after_id is required.",
+    description:
+      "Moves a label directly before or after a sibling in its container (the top level, or one parent's children); before_id, after_id or parent_id is required. parent_id moves it into another container in the same call: a top-level label of the same project (it becomes that label's child; RULE label_has_children when it has children itself, RULE label_depth when the target is itself a child) or null for the top level. With parent_id and no neighbour the label goes to the end of that container; neighbours must be siblings in the target container.",
     input: ReorderLabelInput.extend({ label_id: LabelId }),
     mutates: true,
     phase: "P1",

@@ -17,6 +17,9 @@ import { Link } from "@astryxdesign/core/Link";
 import type { OverviewAnalytics } from "@/components/analytics/types";
 import { ActorLabel } from "@/components/work-items/properties/AssigneeControl";
 import { ProjectToken } from "@/components/work-items/ProjectFrame";
+import { AnalyticsTableHeading } from "@/components/analytics/TableHeading";
+import { BAR_COLUMN, COUNT_COLUMN, NAME_COLUMN } from "@/components/analytics/table-widths";
+import type { CsvTable } from "@/components/charts/csv-download";
 import { BarSeriesChart, TrendChart } from "@/components/charts/SeriesCharts";
 import {
   asBuckets,
@@ -87,6 +90,16 @@ export function OverviewPanel({ result, projectIds, today }: { result: OverviewA
     totalN: row.total,
   }));
 
+  const assigneesCsv: CsvTable = {
+    fileStem: "analytics-assignees",
+    header: ["Assignee", "Open", "Completed"],
+    rows: result.top_assignees.map((row) => [row.name, row.open, row.completed]),
+  };
+  const projectsCsv: CsvTable = {
+    fileStem: "analytics-projects",
+    header: ["Project", "Identifier", "Open", "Completed", "Total"],
+    rows: result.projects.map((row) => [row.name, row.identifier, row.open, row.completed, row.total]),
+  };
   return (
     <VStack gap={6}>
       <Grid columns={{ minWidth: 160, max: 4 }} gap={3}>
@@ -121,7 +134,7 @@ export function OverviewPanel({ result, projectIds, today }: { result: OverviewA
         segments={[]}
       />
       <VStack gap={2}>
-        <Heading level={2}>Top assignees</Heading>
+        <AnalyticsTableHeading title="Top assignees" csv={assigneesCsv} />
         {assignees.length === 0 ? (
           <Text color="secondary">No assignees in this view.</Text>
         ) : (
@@ -130,24 +143,25 @@ export function OverviewPanel({ result, projectIds, today }: { result: OverviewA
             idKey="id"
             data={assignees}
             columns={[
-              { key: "name", header: "Assignee", renderCell: (row) => <ActorLabel name={row.name} /> },
+              { key: "name", header: "Assignee", width: NAME_COLUMN, renderCell: (row) => <ActorLabel name={row.name} /> },
               {
                 key: "open",
                 header: "Open",
                 align: "end",
+                width: COUNT_COLUMN,
                 renderCell: (row) => (
                   <Link href={row.href} label={`${row.open} open assigned to ${row.name}`}>
                     {row.open}
                   </Link>
                 ),
               },
-              { key: "completed", header: "Completed", align: "end" },
+              { key: "completed", header: "Completed", align: "end", width: COUNT_COLUMN },
             ]}
           />
         )}
       </VStack>
       <VStack gap={2}>
-        <Heading level={2}>Projects</Heading>
+        <AnalyticsTableHeading title="Projects" csv={projectsCsv} />
         {projects.length === 0 ? (
           <Text color="secondary">No projects in this view.</Text>
         ) : (
@@ -159,6 +173,7 @@ export function OverviewPanel({ result, projectIds, today }: { result: OverviewA
               {
                 key: "name",
                 header: "Project",
+                width: NAME_COLUMN,
                 renderCell: (row) => (
                   <HStack gap={2} vAlign="center">
                     <ProjectToken project={{ identifier: row.identifier, logo: row.logo }} size="sm" />
@@ -166,12 +181,13 @@ export function OverviewPanel({ result, projectIds, today }: { result: OverviewA
                   </HStack>
                 ),
               },
-              { key: "open", header: "Open", align: "end" },
-              { key: "completed", header: "Completed", align: "end" },
-              { key: "total", header: "Total", align: "end" },
+              { key: "open", header: "Open", align: "end", width: COUNT_COLUMN },
+              { key: "completed", header: "Completed", align: "end", width: COUNT_COLUMN },
+              { key: "total", header: "Total", align: "end", width: COUNT_COLUMN },
               {
                 key: "completedN",
                 header: "Completion",
+                width: BAR_COLUMN,
                 renderCell: (row) =>
                   row.totalN <= 0 ? (
                     <Text type="supporting">No work items</Text>

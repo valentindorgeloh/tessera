@@ -44,14 +44,20 @@ export type BurndownChartProps = {
 /** Dash patterns: the lines never differ by colour alone (WCAG 1.4.1). */
 const DASH = { ideal: "4 4", scope: "2 4" } as const;
 
-type LegendEntry = { key: string; label: string; color: ChartColorKey; dash?: string; width: number };
+/** The solid line's name: what is left on a burndown, what is done on a burnup. */
+export function actualSeriesName(kind: ChartKind): string {
+  return kind === "burndown" ? "Pending" : "Completed";
+}
 
-function legendEntries(kind: ChartKind): LegendEntry[] {
+export type LegendEntry = { key: string; label: string; color: ChartColorKey; dash?: string; width: number };
+
+/** Legend rows in drawing order: the solid line, the dashed Ideal line and, on a burnup, the dotted Scope line. */
+export function legendEntries(kind: ChartKind): LegendEntry[] {
   const entries: LegendEntry[] = [
-    { key: "actual", label: kind === "burndown" ? "Pending (solid)" : "Done (solid)", color: "actual", width: 2 },
-    { key: "ideal", label: "Ideal (dashed)", color: "ideal", dash: DASH.ideal, width: 1.5 },
+    { key: "actual", label: actualSeriesName(kind), color: "actual", width: 2 },
+    { key: "ideal", label: "Ideal", color: "ideal", dash: DASH.ideal, width: 1.5 },
   ];
-  if (kind === "burnup") entries.push({ key: "scope", label: "Scope (dotted)", color: "scope", dash: DASH.scope, width: 1.5 });
+  if (kind === "burnup") entries.push({ key: "scope", label: "Scope", color: "scope", dash: DASH.scope, width: 1.5 });
   return entries;
 }
 
@@ -64,10 +70,11 @@ function LegendSwatch({ stroke, dash, width }: { stroke: string; dash?: string; 
   );
 }
 
-function ChartLegend({ kind }: { kind: ChartKind }) {
+/** The legend: each series' swatch (colour token and dash) and its name. */
+export function ChartLegend({ kind }: { kind: ChartKind }) {
   const colors = useChartColors();
   return (
-    <HStack gap={4} wrap="wrap" vAlign="center">
+    <HStack gap={4} wrap="wrap" vAlign="center" hAlign="center" className="tessera-planning-chart-legend">
       {legendEntries(kind).map((entry) => (
         <HStack key={entry.key} gap={1.5} vAlign="center">
           <LegendSwatch stroke={colors[entry.color]} dash={entry.dash} width={entry.width} />
@@ -80,7 +87,7 @@ function ChartLegend({ kind }: { kind: ChartKind }) {
 
 function ChartSvg({ model, height, today }: { model: ChartModel; height: number; today: string }) {
   const colors = useChartColors();
-  const actualName = model.kind === "burndown" ? "Pending" : "Done";
+  const actualName = actualSeriesName(model.kind);
   return (
     <LineChart
       data={model.rows}
@@ -120,7 +127,6 @@ function ChartSvg({ model, height, today }: { model: ChartModel; height: number;
           stroke={colors.scope}
           strokeDasharray={DASH.scope}
           strokeWidth={1.5}
-          label={{ value: "Scope", fill: colors.axis, position: "insideTopRight" }}
         />
       ) : null}
       {model.today ? (
@@ -154,7 +160,7 @@ function DataTable({ model, today }: { model: ChartModel; today: string }) {
         data={rows}
         columns={[
           { key: "day", header: "Date" },
-          { key: "actual", header: model.kind === "burndown" ? "Pending" : "Done", align: "end" },
+          { key: "actual", header: actualSeriesName(model.kind), align: "end" },
           { key: "ideal", header: "Ideal", align: "end" },
         ]}
       />
@@ -191,7 +197,8 @@ export function BurndownChart({ cycle, progress, kind, today, height = 240, hasD
       <VStack role="img" aria-label={summary} className="tessera-planning-chart-frame">
         {hydrated ? <ChartSvg model={model} height={height} today={today} /> : <Skeleton height={height} />}
       </VStack>
-      {hydrated ? <ChartLegend kind={kind} /> : null}
+      {/* The legend sits beside the role="img" frame, not inside it: children of an image are presentational, so inside it the series key would be hidden from assistive technology. */}
+      {hydrated ? <ChartLegend kind={model.kind} /> : null}
       <Text type="supporting">{summary}</Text>
       {hasDataTable ? <DataTable model={model} today={today} /> : null}
     </VStack>

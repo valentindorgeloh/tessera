@@ -150,10 +150,13 @@ export const ASTRYX_TOKEN_FAMILIES = [
   "--text-",
 ];
 
-/** Names that are legitimately not in any CSS file: next/font sets them from layout.tsx. */
+/**
+ * Names that are legitimately not in any CSS file. `next/font` sets --font-body and --font-code from
+ * src/app/layout.tsx at runtime (a class on <html>), so no stylesheet and no Astryx file defines them.
+ */
 export const TOKEN_EXCEPTIONS: ReadonlySet<string> = new Set(["--font-body", "--font-code"]);
 
-/** Our own custom properties; they only need a definition somewhere in src. */
+/** Our own custom properties, named like `--tessera-gantt-offset`. They follow the same file/pair rule as any name outside the Astryx families. */
 export const TESSERA_TOKEN_PREFIX = "--tessera-";
 
 /** Replaces comments with blanks, keeping every newline so line numbers stay true. `//` only counts after whitespace (URLs stay). */
@@ -190,45 +193,47 @@ export function tokenUses(text: string, lang: "css" | "ts"): { line: number; nam
 }
 
 /**
- * The names a file may use out of everything our src defines (the strict --tessera-* rule). Astryx-family
- * names (--color-brand, ...) stay global. A --tessera-* name counts only when the file defines it itself,
- * or when the other side of the pair does: a CSS file may use one that some ts/tsx file sets through a style
- * prop or setProperty; a ts/tsx file may use one that some CSS file defines. Two CSS areas, or two components,
- * can no longer satisfy each other with the same name.
+ * The names a file may use out of what src defines, for a name outside the Astryx families (--tessera-*, --focus-*, ...):
+ * what the file defines itself, what a theme file defines (src/themes/**), and what the other side of the
+ * css/ts pair defines. A CSS file may use a name that some ts/tsx file sets through a style prop or setProperty; a ts/tsx
+ * file may use a name that some CSS file defines. Two CSS areas, or two components, cannot satisfy each other with the
+ * same name. Astryx-family names are not in this set: they resolve only in Astryx or the theme (see undefinedTokenUses).
  */
 export function visibleOurTokens(
   lang: "css" | "ts",
   own: ReadonlySet<string>,
-  all: ReadonlySet<string>,
+  theme: ReadonlySet<string>,
   fromCss: ReadonlySet<string>,
   fromTs: ReadonlySet<string>,
 ): Set<string> {
-  const out = new Set([...all].filter((name) => !name.startsWith(TESSERA_TOKEN_PREFIX)));
-  for (const name of own) out.add(name);
+  const out = new Set<string>([...theme, ...own]);
   for (const name of lang === "css" ? fromTs : fromCss) out.add(name);
   return out;
 }
 
 /**
- * Uses that resolve nowhere. `astryx` is every name in the installed Astryx CSS, `ours` every name defined in src
- * (CSS, theme, inline style keys). Astryx-family names may come from either; --tessera-* names only from `ours`
- * (pass the per-file set from visibleOurTokens to apply the same-area rule).
+ * Uses that resolve nowhere. `astryx` is every name in the installed Astryx CSS and `theme` every name the
+ * Catppuccin theme (src/themes/**) defines; an Astryx-family name (--color-, --spacing-, ...) must be in one of
+ * them, so a def somewhere else in src never silences it. Any other name must be in `astryx` or in `visible`, the
+ * per-file set from visibleOurTokens (the same file, a theme file, or the other side of the css/ts pair).
+ * Names in `exceptions` are skipped.
  */
 export function undefinedTokenUses(
   uses: { line: number; name: string }[],
   astryx: ReadonlySet<string>,
-  ours: ReadonlySet<string>,
+  visible: ReadonlySet<string>,
+  theme: ReadonlySet<string> = new Set(),
   exceptions: ReadonlySet<string> = TOKEN_EXCEPTIONS,
 ): { line: number; name: string; message: string }[] {
   const out: { line: number; name: string; message: string }[] = [];
   for (const { line, name } of uses) {
     if (exceptions.has(name)) continue;
-    if (name.startsWith(TESSERA_TOKEN_PREFIX)) {
-      if (!ours.has(name)) out.push({ line, name, message: `var(${name}) is never defined in src (CSS or an inline style key)` });
-    } else if (ASTRYX_TOKEN_FAMILIES.some((f) => name.startsWith(f))) {
-      if (!astryx.has(name) && !ours.has(name)) {
-        out.push({ line, name, message: `var(${name}) is not defined by Astryx or by our CSS/theme; the whole declaration is invalid` });
+    if (ASTRYX_TOKEN_FAMILIES.some((f) => name.startsWith(f))) {
+      if (!astryx.has(name) && !theme.has(name)) {
+        out.push({ line, name, message: `var(${name}) is not defined by Astryx or by the theme (src/themes/**); the whole declaration is invalid. Add it to the theme, not to an area file` });
       }
+    } else if (!astryx.has(name) && !visible.has(name)) {
+      out.push({ line, name, message: `var(${name}) is not defined in this file, a theme file, or the other side of its css/ts pair (a style prop or setProperty for CSS, a stylesheet for ts)` });
     }
   }
   return out;

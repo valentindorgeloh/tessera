@@ -24,3 +24,76 @@
 .tessera-settings-child {
   padding-inline-start: var(--spacing-6);
 }
+
+/*
+ * Row drag reorder (decision 105): views list, States and Labels. The grip is
+ * the touch handle (touch-action: none on it only, so a finger on the rest of
+ * a row still scrolls); mouse and pen drag from anywhere on the row. The slot
+ * is the landing marker, the same dashed look as the board's placeholder.
+ * Components: src/components/shared/RowDrag.tsx.
+ */
+.tessera-row-draggable {
+  user-select: none;
+}
+
+.tessera-row-grip {
+  flex: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+.tessera-row-slot {
+  border: var(--border-width) dashed var(--color-border-emphasized);
+  background-color: var(--color-background-muted);
+  border-radius: var(--radius-element);
+}
+
+/* The slot is aria-hidden filler: no hover or press tint. */
+.tessera-row-slot > * {
+  visibility: hidden;
+}
+
+/* A finger needs a 44px grip, and rows tall enough that neighbouring grips never overlap. */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-row-draggable {
+    min-height: var(--spacing-11);
+  }
+
+  .tessera-row-grip {
+    box-sizing: content-box;
+    padding: calc(var(--spacing-3) + var(--spacing-1) / 2);
+    margin: calc(-1 * (var(--spacing-3) + var(--spacing-1) / 2));
+  }
+}
+
+/* Labels: a parent and its children are two lists; a hairline separates the groups. */
+.tessera-label-group + .tessera-label-group {
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.tessera-label-children {
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+/* While a label is dragged, an empty parent shows a drop zone for nesting under it. */
+.tessera-label-nest-zone {
+  margin-inline-start: var(--spacing-6);
+  min-height: var(--spacing-8);
+  border: var(--border-width) dashed var(--color-border-emphasized);
+  border-radius: var(--radius-element);
+  background-color: var(--color-background-muted);
+}
+
+/*
+ * A finger needs 44px: the settings tabs and the Automations buttons grow on a
+ * phone or a coarse pointer. A tab's indicator still sits on the header's hairline.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-settings-tabs .astryx-tab {
+    min-height: var(--spacing-11);
+  }
+
+  .tessera-settings-action {
+    min-block-size: var(--spacing-11);
+  }
+}

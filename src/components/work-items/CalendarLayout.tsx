@@ -282,7 +282,7 @@ function CalendarItem({
     if (!isOptimisticId(item.id)) onOpen(item.id);
   };
   return (
-    <HStack gap={1} vAlign="center" className="tessera-cal-item">
+    <HStack gap={0} vAlign="center" className="tessera-cal-item">
       <HStack
         ref={itemRef}
         gap={1}
@@ -301,8 +301,8 @@ function CalendarItem({
         onPointerDown={handlers?.onPointerDown}
         onClickCapture={handlers?.onClickCapture}
       >
-        {state ? <StatusDot variant={stateGroupVariant(state.state_group)} label={stateGroupLabel(state.state_group)} /> : null}
-        <Text type="supporting" hasTabularNumbers>
+        {state ? <StatusDot className="tessera-cal-dot" variant={stateGroupVariant(state.state_group)} label={stateGroupLabel(state.state_group)} /> : null}
+        <Text type="supporting" hasTabularNumbers className="tessera-cal-key">
           {item.key}
         </Text>
         <Text maxLines={1} className="tessera-cal-name">

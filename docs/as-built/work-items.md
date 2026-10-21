@@ -1,6 +1,6 @@
 # As-built map: work items UI
 
-State described: git HEAD `257798c` (P3 merged, P4 not started in HEAD). Line counts are HEAD counts. Read this before the contracts; open the contract only for the section named in section 8.
+State described: git HEAD `257798c` (P3), with the stale deferred lines refreshed against the working tree after the fix-all round, 2026-10-21. Line counts are HEAD counts. P4 to P11 additions to this screen (calendar, gantt, bulk bar, paging, rich filters) are mapped in views-settings.md, planning-extras.md, operations.md and hardening.md; sections 5 to 7 below are corrected where they said otherwise. Read this before the contracts; open the contract only for the section named in section 8.
 
 ## 1. Purpose and boundaries
 
@@ -95,7 +95,7 @@ Open item: `onOpen` builds `peekHref(pathname, searchParams, id)` and `notePeekP
 | Reads go under Suspense after `await io()`; no `router.refresh()`; mutations are Server Actions that `refresh()` | 12 | `ScopedWorkItems`, `ProjectShell`, `toolAction` wrappers | none direct (convention gate) |
 | Board/list moves are optimistic, revert and Toast on failure | 13 | `WorkItemsScreen.onMove/onUpdate/onQuickAdd`, `reduceOptimisticList` | no reducer test in HEAD (see 7) |
 | DnD is the hand-written pointer port; keyboard path is the "Move to" menu | 14 | `usePointerDrag`, `BoardLayout` card menu | `drag-math.test.ts` (21 cases) |
-| Layouts are list, board, table; calendar and gantt show an EmptyState until P10 | 18 | `WorkItemsScreen` layout switch | `work-items-screen.test.ts` |
+| Layouts are list, board, table, calendar and gantt (the last two since P10, `CalendarLayout` and `GanttLayout`; see operations.md) | 18 | `WorkItemsScreen` layout switch | `work-items-screen.test.ts` |
 | Filters and display are `view` JSON; URL layers over saved settings | 20, 23 | `mergeDisplay`, `mergeFilters`, `withoutHiddenGroups` | `url-state.test.ts` |
 | Display is remembered per scope row (`project`, `cycle`, `module`); a list saves to its own row | 23 | `useDisplayWriter(settingsScope)`, `settingsScope` prop | `work-items-screen.test.ts` ("saves … to the list's own settings scope") |
 | URL display patch stays sparse (no zod defaults filled in) | 23 | `UrlDisplayPatchSchema`, `decodeUrlState` | `url-state.test.ts` ("keeps the display patch sparse") |
@@ -134,30 +134,29 @@ Not covered: `reduceOptimisticList`, `ListLayout`/`BoardLayout`/`TableLayout` re
 
 ## 6. Extension points a later phase will use
 
-- Layouts: add a component taking `LayoutProps` and a branch in `WorkItemsScreen` where `display.layout` picks the layout. P10 replaces the two EmptyState branches (`calendar`, `gantt`) with `CalendarLayout` and `GanttLayout`; `usePointerDrag` and `drag-math` (`applyMove`, `MoveAdapter`) are built to be shared by them.
+- Layouts: add a component taking `LayoutProps` and a branch in `WorkItemsScreen` where `display.layout` picks the layout. P10 added `CalendarLayout` and `GanttLayout` as the `calendar` and `gantt` branches of `WorkItemsScreen`; `usePointerDrag` and `drag-math` (`applyMove`, `MoveAdapter`) are built to be shared by them.
 - Project pages: add a `ProjectTabDef` (`key`, `label`, `segment`) and a `ProjectTabKey` member in `project-tabs.ts`, plus an icon in `ProjectFrame`'s `TAB_ICONS`, a route under `projects/[projectId]/<segment>/`, and a toggle on `Project` if the tab is optional. P4 views and later pages, intake and settings tabs go here.
 - Scoped lists: `ScopedWorkItems` props `scope` (`WorkItemsScope`), `settingsScope` (`SettingsScope`), `scopeDefaults` (`ScopeDefaults`), `canCreate`, `hiddenGroupFields`, `title`, `count`. A saved view or a module/cycle list reuses it without changes to `WorkItemsScreen`.
 - Bundle: add fields to `ProjectBundle` (`types.ts`), load them in `ProjectShell`, expose maps in `buildProjectContext`/`ProjectContextValue`.
-- Property controls: new control in `properties/` taking `{ value, onChange, compact?, readOnly?, label? }`, exported from `properties/index.ts`. `EstimateControl` arrives in P8 (index.ts says so; the detail rail shows a disabled estimate).
-- Filters: add keys to `LIST_FIELDS`/`DATE_FIELDS` (`filter-state.ts`) and the matching `PowerSearch` field in `FilterBar.tsx`. The P10 rich filter tree replaces the one-to-one token map.
+- Property controls: new control in `properties/` taking `{ value, onChange, compact?, readOnly?, label? }`, exported from `properties/index.ts`. `EstimateControl` is exported from `properties/index.ts` (P8).
+- Filters: add keys to `LIST_FIELDS`/`DATE_FIELDS` (`filter-state.ts`) and the matching `PowerSearch` field in `FilterBar.tsx`. The P10 rich filter tree (the Advanced dialog) sits beside the token map; see operations.md.
 - Display options: extend `Display` in `src/lib/tessera/schemas`, mirror it in `UrlDisplayPatchSchema` (a parity test checks it against `DisplaySchema.shape`) and add the control to `DisplayMenu`.
 - Optimistic actions: add a member to `OptimisticAction` and a case in `reduceOptimisticList`.
-- Bulk actions (P4 contract draft): `LayoutProps` has no selection; bulk work needs a selection prop added to the type and to all three layouts.
-- Create flow: `CreateWorkItemDialog` `defaults` prop (`Partial<Omit<CreateWorkItemInputType, "project_id">>`) and `onCreated`; P8 wires drafts into its discard confirm.
+- Bulk actions (P8): `LayoutProps.selection` and the `BulkBar` exist; see planning-extras.md.
+- Create flow: `CreateWorkItemDialog` `defaults` prop (`Partial<Omit<CreateWorkItemInputType, "project_id">>`) and `onCreated`; P8 wired drafts into it through `SaveDraftDialog` (see planning-extras.md).
 
 ## 7. Known debt and quirks
 
 File budget (`scripts/file-budget.json` at HEAD): only `cycles.ts` 925, `db/schema.ts` 857, `modules.ts` 735. Nothing in this area is listed; the biggest file here is `BoardLayout.tsx` (544 of 600). The field guide still names `work-items.ts`, `tools/registry.ts` and `CommandBar.tsx` as budgeted; HEAD's json no longer does. Cursor's working tree edits the json, so recheck it.
 
 Deferred, from the contracts:
-- Calendar and Gantt: EmptyState "arrives in P10". Module gallery/timeline: P9/P10.
-- `EstimateControl`: P8. Intake badge on the project list: P8. Drafts in the create dialog: P8 (until then discard just confirms).
+- Calendar and Gantt, the modules timeline, `EstimateControl`, the intake badge and drafts in the create dialog were deferred when this file was written and have since shipped (P8 to P10); see planning-extras.md and operations.md.
 - Labels, assignees and modules are read-only in list and table rows (`onUpdate` carries only the `update_work_item` patch; the `set_*` tools are reached from the detail).
 - Date filters (`start_date`, `target_date`) have no empty form, so a saved date filter cannot be cleared from the bar.
-- Deleting a state, cycle or module does not strip them from saved view filters (`filters.ts` tolerates unknown ids; P4).
+- Deleting a state, label, cycle or module now strips its id from saved views and remembered view settings (`saved-filters.ts`, decision 32); see views-settings.md. `filters.ts` still tolerates unknown ids.
 - `UrlDisplayPatchSchema` duplicates the engine's `DisplayPatchSchema` (that one is in server-only `view-settings.ts`) until it moves to `schemas.ts`.
 - `LayoutProps.readOnly` is declared ("archived project: no create, no drag") but `WorkItemsScreen` never sets it and Board/List ignore it; an archived project's list is only marked by the banner.
-- `LIMIT = 2000` in `scoped-list.tsx` (engine cap 5000); no paging yet. Table sorting is client-side within the loaded result only.
+- Paging (P11) replaced the fixed `LIMIT = 2000`: first pages of 200 rows or 50/30 per group, then "Show more" (hardening.md). A table header sort now writes `display.order_by` through `table-sort.ts`, so the server re-sorts the whole filtered list.
 - `date-format.ts` calls `new Date()` for the current-year check in render paths; the field guide warns against argless `new Date()` in render (the bundle's `today` exists for this).
 - The side peek narrows the list/board instead of overlaying it; at 1440 px the board's fourth column is cut while it is open.
 - The poll runs every 4 s (fixed rate), not 5 s as `docs/PLAN.md` and `ui.md` "External writes" still say.

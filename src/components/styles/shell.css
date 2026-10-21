@@ -21,6 +21,19 @@
   cursor: pointer;
 }
 
+/*
+ * Below 600px the field is the drawer's search: it takes the whole centre slot
+ * and TopBar.tsx drops the ⌘K chip and shortens the placeholder to "Search", so
+ * the placeholder no longer clips to "Search v…" in a 47px input.
+ */
+@media (max-width: 599px) {
+  .tessera-topbar-search {
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+}
+
 .tessera-topbar-search input {
   cursor: pointer;
 }
@@ -99,6 +112,63 @@
 .tessera-project-tabs {
   align-self: flex-end;
   min-width: 0;
+}
+
+/*
+ * Below 600px the project's pages are a strip of their own: the token, the name
+ * and the actions share the first row and the tabs take a full-width row under
+ * them, docked on the header's hairline, so about three tabs show and the fade
+ * of the scrolling strip sits at the row's right edge instead of covering the
+ * only tab. The start group dissolves (display: contents) so its children can
+ * take grid areas next to the end group (PanelBar.tsx, ProjectFrame.tsx).
+ */
+@media (max-width: 599px) {
+  .tessera-panel-bar--header.tessera-project-bar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: calc(var(--size-element-md) + var(--spacing-3)) auto;
+    grid-template-areas:
+      "token title end"
+      "tabs tabs tabs";
+    column-gap: var(--spacing-3);
+    row-gap: 0;
+    min-height: 0;
+    align-items: center;
+  }
+
+  .tessera-project-bar > .tessera-panel-bar-start {
+    display: contents;
+  }
+
+  .tessera-project-bar .tessera-project-frame-token {
+    grid-area: token;
+  }
+
+  .tessera-project-bar .tessera-project-frame-title {
+    grid-area: title;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .tessera-project-bar .tessera-panel-bar-divider {
+    display: none;
+  }
+
+  .tessera-project-bar .tessera-panel-bar-end {
+    grid-area: end;
+  }
+
+  .tessera-project-bar .tessera-project-tabs {
+    grid-area: tabs;
+    align-self: end;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* A touch target is 44px (the same height as the first row); the indicator still sits on the hairline. */
+  .tessera-project-bar .tessera-project-tabs .astryx-tab {
+    min-height: calc(var(--size-element-md) + var(--spacing-3));
+  }
 }
 
 /*

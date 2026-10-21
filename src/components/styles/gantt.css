@@ -7,10 +7,22 @@
 
 .tessera-gantt {
   --tessera-gantt-day: var(--spacing-8);
-  --tessera-gantt-label: calc(var(--spacing-8) * 8);
+  /*
+   * Label column: 256px, but at most 40% of the screen so a phone keeps at least
+   * 200px of bar area (357px at 375px wide). `vw` because the gantt itself is as
+   * wide as its days, so a percentage would resolve against the whole timeline.
+   */
+  --tessera-gantt-label: min(calc(var(--spacing-8) * 8), 40vw);
   --tessera-gantt-row: var(--size-element-md);
   min-width: max-content;
   padding-block-end: var(--spacing-4);
+}
+
+/* A touch screen gets 44px rows, so a row's open target and its bar are easy to hit. */
+@media (pointer: coarse) {
+  .tessera-gantt {
+    --tessera-gantt-row: calc(var(--spacing-10) + var(--spacing-1));
+  }
 }
 
 /* Decision 90: week is a wide day column, month the default, quarter the narrowest. */
@@ -24,6 +36,13 @@
 
 .tessera-gantt[data-zoom="quarter"] {
   --tessera-gantt-day: var(--spacing-4);
+}
+
+/* The toolbar stays at the left edge while the timeline scrolls sideways, so Today is always in reach. */
+.tessera-gantt-tools {
+  position: sticky;
+  inset-inline-start: 0;
+  align-self: flex-start;
 }
 
 .tessera-gantt-body {
@@ -122,6 +141,12 @@
 .tessera-gantt-name {
   min-width: 0;
   flex: 1;
+}
+
+/* The key never breaks across lines or shrinks: the title truncates instead. */
+.tessera-gantt-key {
+  flex: none;
+  white-space: nowrap;
 }
 
 .tessera-gantt-track {

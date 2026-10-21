@@ -1,8 +1,9 @@
 /*
  * Board layout (src/components/work-items/BoardLayout.tsx) and the pointer
  * drag overlay (src/components/dnd/use-pointer-drag.ts). Tokens only; the
- * column width is the one structural px value and matches COLUMN_WIDTH in
- * BoardLayout.tsx.
+ * column width is the one structural px value: 350px on a desktop, never wider
+ * than the strip's content box (one full column on a phone). It matches
+ * COLUMN_WIDTH in BoardLayout.tsx.
  *
  * Corners are concentric (`astryx docs shape`): a column or swimlane cell is
  * its cards' radius plus the spacing-2 padding around them, so the inner and
@@ -15,8 +16,14 @@
   width: 100%;
 }
 
-/* The horizontal strip scrolls on its own; columns keep their width and fill the height. */
+/*
+ * The horizontal strip scrolls on its own; columns keep their width and fill the height. The strip is the size
+ * container, so `cqw` is its content width: a column is 350px, or the whole strip when that is narrower (a phone).
+ * On a narrow screen the columns snap to the strip's start, with the padding kept clear.
+ */
 .tessera-board-strip {
+  container-type: inline-size;
+  --tessera-board-column-width: min(350px, 100cqw);
   height: 100%;
   min-height: 0;
   width: 100%;
@@ -27,6 +34,17 @@
 
 .tessera-board-strip > * {
   flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .tessera-board-strip {
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--spacing-4);
+  }
+
+  .tessera-board-strip > .tessera-board-column {
+    scroll-snap-align: start;
+  }
 }
 
 .tessera-board-column,
@@ -40,11 +58,15 @@
   flex-direction: column;
   min-height: 0;
   max-height: 100%;
-  flex: 0 0 350px;
+  flex: 0 0 var(--tessera-board-column-width);
 }
 
 .tessera-board-column > * {
   min-height: 0;
+}
+
+.tessera-board-column-head {
+  flex: 0 0 var(--tessera-board-column-width);
 }
 
 .tessera-board-column-title {
@@ -79,7 +101,7 @@
 
 .tessera-board-cell {
   min-height: calc(var(--spacing-12) * 2);
-  flex: 0 0 350px;
+  flex: 0 0 var(--tessera-board-column-width);
 }
 
 /* Cards are the drag handles: no text selection, no touch panning, a lift on hover. */

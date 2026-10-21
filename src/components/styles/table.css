@@ -8,17 +8,19 @@
 }
 
 /*
- * The first column lines up with the panel header's text (16px in): the
- * header cell pads to it, the key cell less, since its open button brings
- * its own inset. Group header and empty-state cells keep Astryx's padding.
- * Both use --spacing-3 for consistency and to reduce the gap.
+ * The first column lines up with the panel header's text (16px in, the inset of every panel row): the first header
+ * and body cell pad to --spacing-4. With the selection column on, that is the checkbox; the key column then follows
+ * it. In both cases the key header's text and the key text start at the same x: the header pads to --spacing-4 and
+ * the key cell to --spacing-1, since its ghost open button brings its own 12px (--spacing-3) inset.
  */
-.tessera-table .astryx-table-header-cell:first-child {
-  padding-inline-start: var(--spacing-3);
+.tessera-table .astryx-table-header-cell:first-child,
+.tessera-table .astryx-table-cell:first-child,
+.tessera-table .astryx-table-header-cell[data-column-key="key"] {
+  padding-inline-start: var(--spacing-4);
 }
 
-.tessera-table .astryx-table-cell:first-child {
-  padding-inline-start: var(--spacing-3);
+.tessera-table .astryx-table-cell.tessera-table-key-cell {
+  padding-inline-start: var(--spacing-1);
 }
 
 /* Rows open the item, so they read as clickable; editable cells keep the default cursor. */

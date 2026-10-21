@@ -72,10 +72,12 @@ export function PanelBar({ size = "header", start, end, hasDivider = false, clas
 /**
  * The page title in a panel header: the document's h1, set at the working
  * size (14px, medium) like the rest of the header rather than at display size.
+ * `accessibilityLevel` is 2 where the page body owns the h1 (the project
+ * frame's title on a work item page, whose item title is the only level 1).
  */
-export function PanelTitle({ children, className }: { children: string; className?: string }) {
+export function PanelTitle({ children, className, accessibilityLevel = 1 }: { children: string; className?: string; accessibilityLevel?: 1 | 2 }) {
   return (
-    <Heading level={4} accessibilityLevel={1} maxLines={1} className={className}>
+    <Heading level={4} accessibilityLevel={accessibilityLevel} maxLines={1} className={className}>
       {children}
     </Heading>
   );

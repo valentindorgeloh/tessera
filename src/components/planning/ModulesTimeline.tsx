@@ -32,6 +32,7 @@ import {
   type DateEnds,
 } from "@/components/work-items/date-span";
 import { monthSpans } from "@/components/work-items/gantt-scale";
+import { useTodayScroll } from "@/components/work-items/gantt-scroll";
 import { DateControl } from "@/components/work-items/properties/DateControl";
 import { daysBetween } from "@/lib/tessera/core/time";
 import type { Module } from "@/lib/tessera/types";
@@ -66,7 +67,6 @@ export function ModulesTimeline({ projectId, modules, today, readOnly = false }:
   const days = eachDay(range.start, range.end);
   const todayOffset = daysBetween(range.start, today);
   const dayRef = useRef<HTMLElement | null>(null);
-  const todayRef = useRef<HTMLElement | null>(null);
   const dayWidth = useCallback(() => dayRef.current?.getBoundingClientRect().width ?? 0, []);
 
   const writeDates = useCallback(
@@ -104,7 +104,8 @@ export function ModulesTimeline({ projectId, modules, today, readOnly = false }:
     },
   });
 
-  const scrollToday = () => todayRef.current?.scrollIntoView({ inline: "center", block: "nearest" });
+  // Centres the today line on the button, on `t` and once when the timeline first shows modules.
+  const { rootRef, scrollToday } = useTodayScroll("month", modules.length > 0);
   useHotkeys([{ keys: "t", onPress: scrollToday }]);
 
   const schedule = (module: Module, event: ReactMouseEvent<HTMLElement>) => {
@@ -132,6 +133,7 @@ export function ModulesTimeline({ projectId, modules, today, readOnly = false }:
 
   return (
     <VStack
+      ref={rootRef}
       gap={0}
       className="tessera-gantt"
       data-zoom="month"
@@ -141,7 +143,7 @@ export function ModulesTimeline({ projectId, modules, today, readOnly = false }:
         "--tessera-gantt-weekend-shift": weekendShift(range.start),
       })}
     >
-      <HStack gap={2} vAlign="center" padding={2}>
+      <HStack gap={2} vAlign="center" padding={2} className="tessera-gantt-tools">
         <Button label="Today" size="sm" variant="ghost" icon={<CalendarDotsIcon />} onClick={scrollToday} />
       </HStack>
       <HStack gap={0} vAlign="end" className="tessera-gantt-head">
@@ -162,7 +164,6 @@ export function ModulesTimeline({ projectId, modules, today, readOnly = false }:
                 key={day}
                 ref={(element) => {
                   if (index === 0) dayRef.current = element;
-                  if (day === today) todayRef.current = element;
                 }}
                 type="supporting"
                 hasTabularNumbers

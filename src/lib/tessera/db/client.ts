@@ -12,7 +12,7 @@ import path from "node:path";
 import { ensureSystemActors } from "../actors";
 import { ensureWorkspaceSettings } from "../workspace/settings";
 import { ensureFtsTables } from "./fts";
-import { migrate, migrateIfNeeded, REPO_ROOT } from "./migrate";
+import { acquireLock, LOCK_TIMEOUT_MS, migrate, migrateIfNeeded, pendingMigrations, REPO_ROOT, sleepSync } from "./migrate";
 import { schema } from "./schema";
 
 export type TesseraDb = BetterSQLite3Database<typeof schema>;
@@ -28,11 +28,52 @@ export function resolveDbPath(raw?: string): string {
   return path.isAbsolute(value) ? value : path.resolve(REPO_ROOT, value);
 }
 
+const WAL_RETRY_MS = 5000;
+
+/**
+ * Switches a file database to WAL. The switch needs an exclusive lock, and SQLite answers
+ * SQLITE_BUSY at once (it skips the busy handler) while another connection is opening or switching the
+ * same fresh file, so a first open by several processes retries here. WAL persists in the file: an
+ * already-WAL database returns without a lock.
+ */
+function enableWal(sqlite: SqliteDatabase): void {
+  const deadline = Date.now() + WAL_RETRY_MS;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      sqlite.pragma("journal_mode = WAL");
+      return;
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      if ((code !== "SQLITE_BUSY" && code !== "SQLITE_LOCKED") || Date.now() >= deadline) throw err;
+      // Spread the retries of competing processes by pid (no Math.random in engine code).
+      sleepSync(10 + ((process.pid + attempt * 7) % 40));
+    }
+  }
+}
+
 function applyPragmas(sqlite: SqliteDatabase, inMemory: boolean): void {
-  if (!inMemory) sqlite.pragma("journal_mode = WAL");
+  sqlite.pragma("busy_timeout = 5000");
+  if (!inMemory) enableWal(sqlite);
   sqlite.pragma("synchronous = NORMAL");
   sqlite.pragma("foreign_keys = ON");
-  sqlite.pragma("busy_timeout = 5000");
+}
+
+/**
+ * Applies pending migrations. A file database takes the migration lock around the
+ * apply (the lock getDb() already uses), so processes that open one fresh file at
+ * once do not race on CREATE TABLE; the losers find nothing pending afterwards.
+ */
+function migrateOnOpen(db: TesseraDb, sqlite: SqliteDatabase, filePath: string): void {
+  if (filePath === MEMORY_DB || pendingMigrations(sqlite) === 0) {
+    migrate(db, sqlite);
+    return;
+  }
+  const release = acquireLock(filePath, LOCK_TIMEOUT_MS);
+  try {
+    migrate(db, sqlite);
+  } finally {
+    release();
+  }
 }
 
 /**
@@ -45,7 +86,7 @@ export function openDatabase(filePath: string = MEMORY_DB): DbHandles {
   const sqlite = new Database(filePath);
   applyPragmas(sqlite, inMemory);
   const db = drizzle(sqlite, { schema });
-  migrate(db, sqlite);
+  migrateOnOpen(db, sqlite, filePath);
   ensureFtsTables(sqlite);
   ensureSystemActors(db);
   ensureWorkspaceSettings(db);

@@ -2,14 +2,24 @@ import { defineConfig, devices } from "@playwright/test";
 import path from "node:path";
 
 /**
- * Chromium smoke suite (decision 123). Not part of `npm run check`.
- * `npm run test:e2e` builds nothing; start against a scratch database via
- * webServer. Never points at data/tessera.db.
+ * Chromium suite (decisions 123 and 124). Not part of `npm run check`: it runs
+ * against a production build, so `npm run check:e2e` builds first. Never points
+ * at data/tessera.db.
  *
- * Setup: migrate + seed demo WEB into data/e2e.db, then `next dev` on :3100.
- * Install browsers once: `npx playwright install chromium`.
+ * The web server is `next start -H 127.0.0.1` on E2E_PORT (default 3100) with
+ * TESSERA_DB_PATH=data/e2e.db, automations and webhook delivery off, and
+ * TESSERA_AI_FAKE replaying tests/e2e/fixtures/ai/*.json. Before it starts,
+ * tests/e2e/prepare-db.ts moves an existing e2e database aside (never deletes
+ * it), migrates and seeds the deterministic fixture. That runs in the command,
+ * not in `globalSetup`: Playwright starts the web server first and probes its
+ * URL, and the probe would open the database before a later setup replaced it.
+ *
+ * Specs isolate by creating projects with unique identifiers. One worker.
+ * Install the browser once: `npx playwright install chromium`.
  */
-const E2E_DB = path.resolve("data/e2e.db");
+const PORT = Number(process.env.E2E_PORT ?? 3100);
+const BASE_URL = `http://127.0.0.1:${PORT}`;
+const E2E_DB = path.resolve(process.env.TESSERA_DB_PATH ?? "data/e2e.db");
 
 export default defineConfig({
   testDir: "tests/e2e",
@@ -17,24 +27,30 @@ export default defineConfig({
   workers: 1,
   forbidOnly: true,
   retries: 0,
+  timeout: 90_000,
+  expect: { timeout: 10_000 },
   outputDir: "test-results",
   reporter: [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]],
   use: {
-    baseURL: "http://127.0.0.1:3100",
+    baseURL: BASE_URL,
     trace: "retain-on-failure",
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
     ...devices["Desktop Chrome"],
   },
   webServer: {
-    command: `npx tsx scripts/migrate.ts && npx tsx scripts/db-seed.ts && npx next dev -H 127.0.0.1 -p 3100`,
-    url: "http://127.0.0.1:3100",
-    reuseExistingServer: !process.env.CI,
+    command: `npx tsx tests/e2e/prepare-db.ts && npx next start -H 127.0.0.1 -p ${PORT}`,
+    url: BASE_URL,
+    // A reused server keeps its database; only for local debugging (E2E_REUSE=1).
+    reuseExistingServer: process.env.E2E_REUSE === "1",
     timeout: 180_000,
     env: {
       ...process.env,
       TESSERA_DB_PATH: E2E_DB,
       TESSERA_AUTOMATIONS: "off",
       TESSERA_WEBHOOKS: "off",
-      PORT: "3100",
-    },
+      TESSERA_AI_FAKE: path.resolve("tests/e2e/fixtures/ai"),
+      PORT: String(PORT),
+    } as Record<string, string>,
   },
 });

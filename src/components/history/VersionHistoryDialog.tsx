@@ -7,12 +7,15 @@ import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Text } from "@astryxdesign/core/Text";
 import { Timestamp } from "@astryxdesign/core/Timestamp";
 import { listActorsAction, restorePageVersionAction, restoreWorkItemVersionAction } from "@/app/actions/history";
+import { RelativeTime } from "@/components/detail/RelativeTime";
 import { AlertDialog, Dialog, DialogHeader } from "@/components/shell/dialogs";
-import type { HistoryResponse, VersionInfo } from "@/lib/tessera/types";
+import type { HistoryActivity, HistoryResponse, VersionInfo } from "@/lib/tessera/types";
 import { diffLines } from "./diff-lines";
+import { activityActorName, describePageActivity } from "./page-activity";
 
 export type VersionHistoryDialogProps = {
   isOpen: boolean;
@@ -21,6 +24,8 @@ export type VersionHistoryDialogProps = {
 };
 
 type Mode = "changes" | "current" | "full";
+/** A page also has an Activity tab (decision 99); a work item's activity lives in its detail feed. */
+type View = "versions" | "activity";
 
 /** Shown when an actor id has no row (a removed agent) or the actors list could not load. */
 const UNKNOWN_ACTOR = "Unknown";
@@ -30,12 +35,34 @@ function previousText(versions: VersionInfo[], selected: VersionInfo): string {
   return older[0]?.description_md ?? "";
 }
 
+function PageActivity({ rows, actorNames }: { rows: readonly HistoryActivity[]; actorNames: ReadonlyMap<string, string> }) {
+  if (rows.length === 0) return <Text>No activity yet.</Text>;
+  return (
+    <VStack gap={1} className="tessera-history-activity" aria-label="Page activity" role="list">
+      {rows.map((row) => (
+        <HStack key={row.seq} gap={2} vAlign="start" role="listitem" className="tessera-history-activity-row">
+          <Text size="sm" className="tessera-history-activity-text">
+            <Text as="span" weight="medium">
+              {actorNames.size === 0 ? "" : activityActorName(row.actor_id, actorNames)}
+            </Text>{" "}
+            {describePageActivity(row)}
+          </Text>
+          <Text type="supporting" color="secondary" size="sm">
+            <RelativeTime value={row.created_at} hasTooltip={false} />
+          </Text>
+        </HStack>
+      ))}
+    </VStack>
+  );
+}
+
 export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHistoryDialogProps) {
   const [history, setHistory] = useState<HistoryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actorNames, setActorNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("changes");
+  const [view, setView] = useState<View>("versions");
   const [confirm, setConfirm] = useState(false);
   const [conflict, setConflict] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -66,6 +93,7 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
     };
   }, [isOpen, entity.id, entity.type]);
 
+  const activity = history?.activity;
   const selected = history?.versions.find((row) => row.id === selectedId) ?? null;
   const currentText = history?.description_md ?? entity.currentText;
   const descriptionVersion = history?.description_version ?? entity.descriptionVersion;
@@ -113,8 +141,15 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
               />
             ) : null}
             {history === null && error === null ? <Spinner label="Loading versions" /> : null}
-            {history && history.versions.length === 0 ? <Text>No versions yet. They are kept when the description changes.</Text> : null}
-            {history && selected ? (
+            {activity !== undefined ? (
+              <TabList value={view} onChange={(value) => setView(value === "activity" ? "activity" : "versions")} size="sm" aria-label="History view">
+                <Tab value="versions" label="Versions" />
+                <Tab value="activity" label="Activity" />
+              </TabList>
+            ) : null}
+            {history && view === "activity" && activity !== undefined ? <PageActivity rows={activity} actorNames={actorNames} /> : null}
+            {history && view === "versions" && history.versions.length === 0 ? <Text>No versions yet. They are kept when the description changes.</Text> : null}
+            {history && view === "versions" && selected ? (
               <HStack gap={4} vAlign="stretch">
                 <VStack gap={2} className="tessera-history-pane">
                   {history.versions.map((row) => (

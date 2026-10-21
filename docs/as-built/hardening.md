@@ -1,0 +1,124 @@
+# As-built map: hardening (P11): paging, backups, retention, undo, performance gates, e2e
+
+State described: the working tree after the fix-all round, 2026-10-21 (HEAD `e04b840` plus uncommitted lane work, including migration 0011 and the e2e suite changes). Line counts are tree counts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Plan: docs/drafts/p11-plan.md. Decisions 109 to 111 were dropped by the user on 2026-10-21 and are not built (P12 records the drop as decision 127).
+
+## 1. Purpose and boundaries
+
+P11 made the app safe to run on a real, large workspace: list paging with exact group counts, kinded and rotated backups, a daily maintenance job with retention, an undo for assistant batches, a performance fixture with budgets and query-plan tests, a Playwright suite on a production build, and a static bundle gate.
+
+Lives elsewhere (this area only calls it):
+- The scheduler timers and leases (`automations/scheduler.ts`, `lease.ts`): operations.md. The `maintenance` lease row is taken here; the timers are there.
+- The screen that hosts paging (`WorkItemsScreen`, url state, layouts): work-items.md.
+- The assistant panel, proposals and Apply: ai.md. Undo here reads `ai_proposal.apply_batch_id`, `seq_from`, `seq_to` that Apply writes.
+- Migration mechanics (lock file, `migrate()`): engine.md; this file covers only the backup step inside `migrateIfNeeded`.
+
+## 2. File map
+
+### Engine (`src/lib/tessera/`)
+
+| File | Responsibility | Key exports |
+|---|---|---|
+| `work-items/paging.ts` (291) | Group paging for `listWorkItems`. Reads a narrow projection of the whole filtered set (ids plus group-by keys) in display order, groups it with `groupItems`, takes each group's page of ids and hydrates only their union. Group counts, `total` and `has_more` therefore cover the whole set. | `planGroupPaging`, `groupKeyRows`, `pageGroups`, `listGroupPage`, `DEFAULT_PER_GROUP` (50) |
+| `db/backups.ts` | Backup files `<db dir>/backups/tessera-<kind>-<stamp>.db`. `VACUUM INTO ?` (bound parameter) on a second connection, then `PRAGMA quick_check` on the copy; a failed check deletes the copy and throws. Pure `planRotation`; `rotateBackups` deletes the remove set. Legacy `tessera-<stamp>.db` parses as kind `migration`. | `backupDatabase`, `listBackups`, `parseBackupName`, `planRotation`, `rotateBackups`, `pruneBackups` (legacy), `BACKUP_KEEP` |
+| `db/migrate.ts` (151) | `migrateIfNeeded` takes the lock, and when migrations are pending and the file already existed writes a `migration` backup, rotates, then migrates. | `migrateIfNeeded`, `pendingMigrations` |
+| `maintenance/index.ts` (131) | `runMaintenance`: takes the `maintenance` lease (15 min TTL), writes an `auto` backup when `workspace_settings.auto_backup` is on and the last `auto` file is 24 h or older (or missing), applies retention, rotates backups, stores `last_run_at` and `last_summary` on the lease row. `dry_run` reports and writes nothing. A held lease returns `lease_held: true`. | `runMaintenance`, `RunMaintenanceInput`, `MaintenanceSummary` |
+| `maintenance/retention.ts` (118) | Plans and applies the purge as derived and delivery state only, no activity rows. | `planRetention`, `applyRetention`, `emptyRetention` |
+| `ai/undo.ts` (181), `ai/undo-note.ts` | Undo of the latest applied assistant batch: finds it (status `applied`, has `apply_batch_id`, not undone, `decided_at` within 24 h), refuses when a later activity row touched the same entity and field (or deleted the entity), then inverts the batch's assistant activity rows newest first in one transaction and stamps `undone_at`, `undo_seq_from`, `undo_seq_to` on the batch's proposals. | `findLatestUndoableBatch`, `findLatestUndoableBatchId`, `undoLastAssistantBatch`, `UNDO_BATCH_TTL_MS`, `ASSISTANT_UNDO_NOTE` |
+| `work-items/undo.ts` (90) | Separate, older helper: reverses the newest activity row of one work item when it is a stored field update or an archive. Exported from `work-items/index.ts`; no registry tool calls it. | `undoLastWorkItemChange`, `UNDO_NOTE` |
+| `seed-perf.ts` (346) | Deterministic perf fixture (seeded `mulberry32`): one big project plus small ones with labels, actors, cycles, modules, relations, comments and activity. | `seedPerf`, `PERF_BASE_DATE`, `mulberry32` |
+| `tools/registry/maintenance.ts` | Registry tools `list_backups` (read), `create_backup {confirm}` (manual kind, `userOnly`), `run_maintenance` (`userOnly`), `get_undoable_assistant_batch` (read), `undo_last_assistant_batch {confirm}` (`userOnly`, destructive). Wrappers in `src/app/actions/maintenance.ts`. | `maintenanceTools` |
+
+The index migrations of this phase: `0008_hardening` (indexes the perf pass proved) and `0011_workspace_list_idx` (partial indexes `work_item_live_sort_idx (sort_order, sequence_id)` and `work_item_live_state_idx (state_id, project_id, deleted_at, archived_at)` on live rows).
+
+### Client paging (`src/components/work-items/`)
+
+| File | Responsibility |
+|---|---|
+| `paging.ts` (275) | Pure helpers. Page sizes `ROW_PAGE` 200, `LIST_GROUP_PAGE` 50, `BOARD_GROUP_PAGE` 30, `MULTI_LIST_GROUP_PAGE` 25, `MULTI_BOARD_GROUP_PAGE` 20, `CALENDAR_CAP` 1000. `pageSizeFor(display)` picks by layout and by whether the grouping is multi-valued; `listPaging` builds the first-page input the loaders use; `mergeGroupPage` and `mergeRowsPage` append a fetched page, `refetchPlan` and `keepLoaded` rebuild the loaded length after a refresh, plus `showMoreLabel`, `hasUnloaded`, `loadedOfTotal`, `loadMoreSize`. |
+| `use-paged-list.ts` (138) | `usePagedList`: holds the loaded result, "Show more" calls `listWorkItemsAction` (a `toolAction("list_work_items")`, a read, so no `refresh()`), and after a server refresh re-requests each expanded group up to its loaded length in one call with `group_limits`. |
+
+### UI and scripts
+
+| Path | Responsibility |
+|---|---|
+| `src/app/(tessera)/settings/backups/page.tsx` (48), `components/backups/BackupsScreen.tsx` (154), `backup-format.ts` (24) | Workspace settings tab "Backups" (listed in `workspace-settings/settings-format.ts`). Lists backups, "Back up now" through `createBackupAction({ confirm: true })`, the daily switch through `updateWorkspaceSettingsAction({ auto_backup })`, the rotation rule as text, and a stale-auto hint (`autoBackupStale`). |
+| `scripts/db-backup.ts` | `npm run db:backup`, default kind manual; `--plan` prints the keep/remove split without deleting. |
+| `scripts/db-restore.ts` | `npm run db:restore -- <file> [--yes]`. Restore is a script only, never a tool or UI action (decision 120). Header: refuses while a migrate lock exists or another process holds a write lock, prints "stop the server first" and exits 1 without `--yes`, takes a `pre-restore` backup first. |
+| `scripts/maintenance.ts` | `npm run maintenance [-- --dry-run] [--now <ISO>]` runs retention and the optional auto backup on the configured database. |
+| `scripts/perf-seed.ts`, `perf-bench.ts`, `perf-db.ts` | `npm run perf:seed` builds the fixture (default `data/p11-perf.db`); `perf:bench` times engine reads and exits 1 above budget; `perf-db.ts` refuses `:memory:`, `data/tessera.db` and whatever `TESSERA_DB_PATH` resolves to. |
+| `scripts/check-bundle.ts`, `bundle-rules.ts` | `npm run check:bundle [-- <dir>]` scans `.next/static` (never builds). Exit 0 clean, 1 findings, 2 missing directory. |
+| `playwright.config.ts` (57), `tests/e2e/{prepare-db,fixtures,tolerated}.ts` | Chromium suite on `next start -H 127.0.0.1 -p $E2E_PORT` (default 3100). |
+
+## 3. Data and control flow
+
+Paging read. A loader calls `listPaging(display)`, which adds `per_group_limit` (grouped) or `limit` 200 (flat) to the `list_work_items` input. The engine projects the filtered set, groups it, pages each group and returns `groups[]` with the full `count`, `item_ids` of the loaded page and `has_more`. "Show more" sends `group_value` (and `sub_group_value`) with `limit`/`offset`; the merge helpers append to the loaded group. MCP callers that omit all paging keys get all items.
+
+Backup write. `backupDatabase(file, kind)` opens a second connection, runs `VACUUM INTO` the kinded path, runs `quick_check` on the copy, deletes it on failure and throws. Callers: `create_backup` (manual), `runMaintenance` (auto), `migrateIfNeeded` (migration), `scripts/db-backup.ts`, `scripts/db-restore.ts` (pre-restore). Rotation per kind (`planRotation`): manual newest 20, migration 10, pre-restore 5; auto keeps the newest per day for 7 days, per ISO week for 4 weeks and per month for 12 months (the union of the three sets).
+
+Maintenance. Scheduler (or `run_maintenance`, or the script) calls `runMaintenance`. Order: lease, optional auto backup, `planRetention` then `applyRetention`, `rotateBackups`. If the backup throws, the run stops before retention and the lease is released in `finally`.
+
+Retention rules (`retention.ts`): `ai_proposal` rows `discarded` or `failed` older than 30 days (by `decided_at`), `pending` older than 30 days (by `created_at`), and `applied` older than 90 days, except the latest undoable batch; `notification` rows archived over 90 days ago and read-but-not-archived ones read over 180 days ago; `webhook_delivery` rows `delivered` older than 30 days; `export_job` rows (any status) and their files older than 30 days.
+
+Undo. `get_undoable_assistant_batch` returns the batch or null. `undo_last_assistant_batch { confirm: true }` runs `undoLastAssistantBatch` as the caller (user only): `blockedByLater` scans activity after `seq_to`; a later row on the same entity and field, or a delete of a batch entity, throws `CONFLICT undo_blocked` with the list. Rows with the undo note are skipped. Inversion handles only work-item rows: verb `archived` becomes `unarchiveWorkItem`, verb `updated` on `name`, `state_id`, `priority`, `parent_id`, `cycle_id`, `estimate_point_id`, `start_date`, `target_date` becomes `updateWorkItem` with the stored old value. Any other activity row in the batch refuses the whole undo with `undo_blocked`. Inverses carry `ctx.activityNote = "Undid assistant change"`.
+
+E2E run. `webServer.command` is `npx tsx tests/e2e/prepare-db.ts && npx next start ...`. `prepare-db.ts` moves an existing `data/e2e.db` (and `-wal`, `-shm`, `-lock`) to a backup folder, migrates and seeds. It runs in the command, not in `globalSetup`, because Playwright probes the server URL first. Env: `TESSERA_AUTOMATIONS=off`, `TESSERA_WEBHOOKS=off`, `TESSERA_AI_FAKE=tests/e2e/fixtures/ai`. `getAnthropic()` replays the recorded turns when `TESSERA_AI_FAKE` is set and calls `assertFakeAiAllowed()` first (refuses in production on the default database). Specs create their own projects with unique identifiers; the `page` fixture fails a test on a page error or a console error outside `tolerated.ts`. `npm run check:e2e` is `next build && check:bundle && playwright test`; it is not part of `npm run check`.
+
+## 4. Invariants
+
+| Rule | Where enforced | Decision | Guarding test |
+|---|---|---|---|
+| Group counts, `total` and `has_more` cover the whole filtered set, not the loaded page | `work-items/paging.ts` | 113 | `tests/paging.test.ts`, `tests/ui/paging.test.ts` |
+| Multi-valued groupings (labels, assignees, modules) use smaller first pages (25 list, 20 board) | `components/work-items/paging.ts` `pageSizeFor` | 113 | `tests/ui/paging.test.ts` |
+| "Show more" is a read action and expanded groups re-request up to their loaded length after a refresh | `use-paged-list.ts` | 112 | `tests/ui/use-paged-list.test.ts` |
+| Backup names carry the kind; legacy names count as `migration`; paths with quotes, spaces and non-ASCII work | `db/backups.ts` | 119 | `tests/backups.test.ts` |
+| Every copy is integrity-checked and a failing copy is deleted | `backupDatabase` | 119 | `tests/backups.test.ts` ("writes a kinded VACUUM INTO copy") |
+| Rotation keeps 20 manual, 10 migration, 5 pre-restore; auto by day, week, month | `planRotation` | 119 | `tests/backups.test.ts` |
+| Backup creation by an agent is refused; restore is not a tool | `userOnly` on `create_backup`; `scripts/db-restore.ts` | 120, 121, 104 | registry tests (see engine.md) |
+| One maintenance run at a time across processes | `acquireLease(..., "maintenance")` | 120 | `tests/maintenance.test.ts` (retention only; see debt) |
+| Retention never deletes the latest undoable batch and never touches activity rows | `retention.ts` | 122 | `tests/maintenance.test.ts` |
+| Perf scripts only open a scratch database | `scripts/perf-db.ts` | 115 | `tests/perf-db.test.ts` |
+| The fixture is deterministic | `seed-perf.ts` | 115 | `tests/seed-perf.test.ts` |
+| No full table scan on `work_item` or `activity` in the hot reads; both 0011 index names appear in the workspace plan | `drizzle/0008`, `0011` | 126 | `tests/perf/query-plans.test.ts`, `tests/perf/list-page.test.ts` |
+| Server-only strings never reach the browser bundle | `scripts/bundle-rules.ts` `FORBIDDEN` (`ANTHROPIC`, `sk-ant-`, `better-sqlite3`, `drizzle-orm/better-sqlite3`, `TESSERA_DB_PATH`, `server-only`); no phrase is exempt | 125 | `tests/check-bundle.test.ts` |
+| The fake AI client cannot answer the real workspace | `assertFakeAiAllowed` | 124 | `tests/ai/fake-client.test.ts` |
+| Console noise in e2e is limited to the field-guide list | `tests/e2e/tolerated.ts`, `fixtures.ts` | 123 | `tests/e2e-tolerated.test.ts` |
+| A later write blocks assistant undo; nothing is half-undone | `ai/undo.ts` | 116, 117 | `tests/ai/assistant-undo.test.ts` |
+| Several processes opening one fresh database file do not crash and seed one row each | `db/client.ts` | improvements.md | `tests/first-open-race.test.ts` (children: `tests/helpers/first-open.ts`) |
+| Only one process applies an automation run | `automations/lease.ts` | 28 | `tests/automations-lease-race.test.ts` |
+
+## 5. Tests
+
+- Vitest (in `npm run check`): `tests/{backups,maintenance,paging,undo,perf-db,seed-perf,check-bundle,first-open-race,automations-lease-race,e2e-tolerated}.test.ts`, `tests/perf/{list-page,query-plans}.test.ts`, `tests/ai/{assistant-undo,fake-client}.test.ts`, `tests/ui/{paging,use-paged-list}.test.ts`.
+- Playwright (`npm run test:e2e`, Chromium, one worker, 90 s test timeout, no retries, `forbidOnly`): fifteen spec files under `tests/e2e/` (assistant, collaboration, detail-editor, drag, drag-surfaces, external-writes, intake-drafts-bulk, layouts, mobile, pages, schemes, smoke, views-settings, work-items, workspace). The suite is the full suite; the two `test.fixme` tests were removed for the 2026-10-22 run.
+- E2E result of 2026-10-22 on a scratch copy of the tree (decisions 123 and 124): the full suite passes, `intake-drafts-bulk.spec.ts` passes, `collaboration.spec.ts` fails (comment shown in the peek timeline after reload and the Comments filter), `pages.spec.ts` fails (the embedded work item does not show Mentioned in). Both failures are product gaps, recorded in pages-collaboration.md.
+- Perf: `npm run perf:bench` (engine budgets: first list page 40 ms p95 for flat, grouped, workspace, board and the four group projections; `getCounts` 25 ms; analytics overview 60 ms; search 30 ms; detail read 25 ms, which has no budget in decision 115). It runs 3 rounds of 50 calls and reports the round with the lowest p95. Not part of `npm run check`.
+
+## 6. Extension points
+
+- A new backup kind: extend `BackupKind` in `types`, `KIND_KEEP` and the name regex in `db/backups.ts`, then `BACKUP_KIND_LABEL` in `backup-format.ts`.
+- A new retention rule: add a query to `planRetention`, its ids to `RetentionPlan` and the delete to `applyRetention`; add the count to `RetentionCounts`, `emptyRetention` and the dry-run summary.
+- A new undoable verb: add a branch to `invertRow` in `ai/undo.ts`; until then the whole batch is refused.
+- A new forbidden bundle string: append to `FORBIDDEN` in `bundle-rules.ts`.
+- A new paged layout: add its size to `pageSizeFor` and its first-page input to `listPaging`; the screen then needs a "Show more" footer wired to `usePagedList`.
+- A new e2e spec: import `test` and `expect` from `tests/e2e/fixtures.ts`, create a project with a unique identifier, and use `waitForSaved`, `dragByPointer`, `listRows` from the same file.
+
+## 7. Known debt
+
+- Decision 118 (undo surfaces) is not built. There is no "Applied N changes" toast with Undo, no History view in the assistant panel, no Power K entry and no `UndoConfirmDialog`. Undo exists only as the registry tools `get_undoable_assistant_batch` and `undo_last_assistant_batch` and their Server Action wrappers; no component calls them.
+- Decision 117 differs from the code. The code has no `UNDO_INVERSES` and no `NOT_UNDOABLE` list; it inverts only work-item field updates and archives and refuses any batch holding other activity.
+- `undoLastWorkItemChange` (`work-items/undo.ts`) is exported but no registry tool or UI uses it.
+- Decision 119's "a failed backup never blocks a migration that has a verified backup from the last 10 minutes" is not in `migrateIfNeeded`: a failing `backupDatabase` throws and the migration stops (the pre-P11 rule). ASSUMPTION: no other file implements the 10-minute exception; the grep for it found none.
+- `list_backups` returns `check: null` for every file (`listBackups` never runs `quick_check`), so the Backups screen check column shows a dash. The check runs only when a copy is written.
+- Decision 115's Playwright perf spec (p95 of 20 runs to `[data-list-ready]` at most 300 ms) does not exist. The `[data-list-ready]` marker exists on list, board and table, and `waitForList` in `fixtures.ts` uses it, but nothing measures time. Only `perf:bench` enforces budgets.
+- `tests/maintenance.test.ts` has one test, for retention (latest undoable batch kept, old discarded proposals purged). `runMaintenance` itself (lease, due check, auto backup, dry run) and the scheduler wiring have no direct test.
+- The `maintenance` lease is exercised by the same lease code as automations but has no race test of its own.
+- Decisions 109 to 111 were dropped by the user and are not built; do not look for them here.
+- `pruneBackups` and `BACKUP_KEEP` remain as the legacy prune; only `tests/foundation.test.ts` and `tests/backups.test.ts` call `pruneBackups`, nothing in `src/` or `scripts/`.
+
+## 8. Where to read more
+
+- docs/PLAN.md decisions 112 to 126, and the status lines under 123 and 124.
+- docs/drafts/p11-plan.md (design), docs/improvements.md (backlog, first-open race).
+- docs/contracts/schema.md "Migrations and database file".
+- docs/field-guide/index.md for the tolerated console noise and the dev-server hang.
+- operations.md for the scheduler; ai.md for Apply batches; engine.md for the tool registry and `userOnly`.

@@ -4,7 +4,10 @@
  * Copy or move the selected work items into another live project (decision
  * 107, docs/drafts/p10-plan.md "Bulk bar"). One call, all or nothing. A move
  * asks for confirmation inside the dialog: the old keys stop resolving, so the
- * action button is destructive and named for the count.
+ * action button is destructive and named for the count. Project choices follow
+ * the single-item dialog (detail/ProjectTransferDialog.tsx): a copy may land in
+ * any live project, the source included; a move leaves out every project that
+ * holds a selected item, since the engine refuses a move into the item's own project.
  */
 import { useState, useTransition } from "react";
 import { Banner } from "@astryxdesign/core/Banner";
@@ -24,29 +27,35 @@ export const BULK_TRANSFER_LIMIT = 100;
 const COPY_RULES = "Copies keep description, priority, dates and labels with the same name; cycle, modules, estimate and assignees are cleared.";
 const MOVE_RULES = "Items get new keys. Labels and states are matched by name; cycle, modules, estimate and parent are cleared; sub-items stay in this project.";
 
+/** The projects the dialog offers: every one for a copy, all but the source projects for a move. */
+export function transferChoices<T extends { id: string }>(projects: readonly T[], mode: "copy" | "move", sourceProjectIds: readonly string[]): T[] {
+  return projects.filter((project) => mode === "copy" || !sourceProjectIds.includes(project.id));
+}
+
 export type BulkTransferDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   mode: "copy" | "move";
   ids: readonly string[];
-  projectId: string;
+  /** Projects that hold the selected items (more than one in a cross-project list). A move never targets them. */
+  sourceProjectIds: readonly string[];
   projects: readonly { id: string; name: string; identifier: string }[];
   /** Called after a successful transfer, e.g. to clear the selection. */
   onDone: () => void;
 };
 
-export function BulkTransferDialog({ isOpen, onOpenChange, mode, ids, projectId, projects, onDone }: BulkTransferDialogProps) {
+export function BulkTransferDialog({ isOpen, onOpenChange, mode, ids, sourceProjectIds, projects, onDone }: BulkTransferDialogProps) {
   return (
     <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={480} aria-label={mode === "copy" ? "Copy to project" : "Move to project"}>
-      {isOpen ? <TransferForm mode={mode} ids={ids} projectId={projectId} projects={projects} onOpenChange={onOpenChange} onDone={onDone} /> : null}
+      {isOpen ? <TransferForm mode={mode} ids={ids} sourceProjectIds={sourceProjectIds} projects={projects} onOpenChange={onOpenChange} onDone={onDone} /> : null}
     </Dialog>
   );
 }
 
-function TransferForm({ mode, ids, projectId, projects, onOpenChange, onDone }: Omit<BulkTransferDialogProps, "isOpen">) {
+function TransferForm({ mode, ids, sourceProjectIds, projects, onOpenChange, onDone }: Omit<BulkTransferDialogProps, "isOpen">) {
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
-  const choices = projects.filter((project) => mode === "copy" || project.id !== projectId);
+  const choices = transferChoices(projects, mode, sourceProjectIds);
   const [target, setTarget] = useState(choices[0]?.id ?? "");
   const options: SelectorOptionData[] = choices.map((project) => ({ value: project.id, label: `${project.identifier} ${project.name}` }));
   const count = ids.length;

@@ -11,7 +11,7 @@
  * ASSUMPTION: `spaces` is the active projects with Pages on, which the move
  * dialog needs and the plan's prop list does not name.
  */
-import { useEffect, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useOptimistic, useState, useTransition, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
@@ -22,12 +22,15 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { Token } from "@astryxdesign/core/Token";
 import { TreeList, type TreeListItemData } from "@astryxdesign/core/TreeList";
 import { useToast } from "@astryxdesign/core/Toast";
-import { createPageAction } from "@/app/actions/pages";
+import { createPageAction, movePageAction } from "@/app/actions/pages";
+import { RowDragOverlay, RowGrip } from "@/components/shared/RowDrag";
 import { PanelBar, PanelHeader, PanelPage, PanelTitle } from "@/components/shell/PanelHeader";
 import { paletteTokenColor } from "@/components/work-items/properties";
 import type { Label, PageSummary, PageTab, Project } from "@/lib/tessera/types";
-import { LockIcon, PageIcon, PlusIcon, SearchIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { DragHandleIcon, LockIcon, PageIcon, PlusIcon, SearchIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { PageRowMenu } from "./PageRowMenu";
+import { applyPageMove, type PageMove } from "./page-move";
+import { usePageDrag } from "./use-page-drag";
 import { pageHref, toTreeItems, withPageTab, type PageSpaceOption, type PageTreeItem } from "./page-tree";
 
 export type PagesScreenProps = {
@@ -64,13 +67,16 @@ function rowEnd(node: PageTreeItem, labelsById: ReadonlyMap<string, Label>, menu
   );
 }
 
-export function PagesScreen({ space, tab, pages, labels, spaces }: PagesScreenProps) {
+export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: PagesScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const toast = useToast();
   const [query, setQuery] = useState("");
   const [isCreating, startCreate] = useTransition();
+  const [, startMove] = useTransition();
+  // Dragged order shows at once (decision 13); it drops back to the server list when a move fails.
+  const [pages, applyMove] = useOptimistic(serverPages, (current, move: PageMove) => applyPageMove(current, move));
   const project = space.kind === "project" ? space.project : null;
   const projectArchived = project !== null && project.archived_at !== null;
   const canCreate = tab !== "archived" && !projectArchived;
@@ -124,14 +130,34 @@ export function PagesScreen({ space, tab, pages, labels, spaces }: PagesScreenPr
     </HStack>
   );
 
+  const move = (input: PageMove) =>
+    startMove(async () => {
+      applyMove(input);
+      const result = await movePageAction(input);
+      if (!result.ok) {
+        const name = pages.find((entry) => entry.id === input.page_id)?.name ?? "the page";
+        toast({ type: "error", body: `Could not move ${name}. ${result.message}` });
+      }
+    });
+  const dragEnabled = tab !== "archived" && query.trim() === "" && !projectArchived;
+  // Drag reorder: not in a search (a flat result list), on the Archived tab or in an archived project.
+  const { setRoot, handlers, draggingId, registerOverlay, isRowDraggable, rowClassName } = usePageDrag({ pages, enabled: dragEnabled, onMove: move });
+  const draggedPage = draggingId === null ? undefined : pages.find((entry) => entry.id === draggingId);
+
   const items = toTreeItems(pages, query);
   const tree = (nodes: readonly PageTreeItem[]): TreeListItemData[] =>
     nodes.map((node) => ({
       id: node.id,
       label: node.name,
       href: node.href,
+      className: rowClassName(node.id),
       isExpanded: node.isExpanded && node.children.length > 0,
-      startContent: <Icon icon={node.page.logo ? resolveLogoIcon(node.page.logo.icon) : PageIcon} size="sm" color={node.page.logo?.color} />,
+      startContent: (
+        <HStack gap={1} vAlign="center">
+          {isRowDraggable(node.id) ? <RowGrip /> : dragEnabled ? <Icon icon={DragHandleIcon} size="sm" className="tessera-page-grip-spacer" /> : null}
+          <Icon icon={node.page.logo ? resolveLogoIcon(node.page.logo.icon) : PageIcon} size="sm" color={node.page.logo?.color} />
+        </HStack>
+      ),
       endContent: rowEnd(
         node,
         labelsById,
@@ -162,12 +188,13 @@ export function PagesScreen({ space, tab, pages, labels, spaces }: PagesScreenPr
         </PanelHeader>
       }
     >
-      <VStack gap={2} paddingBlockStart={2} paddingBlockEnd={10}>
+      <VStack ref={setRoot} {...handlers} gap={2} paddingBlockStart={2} paddingBlockEnd={10}>
         {items.length === 0 ? (
           <EmptyState icon={<Icon icon={PageIcon} />} title={query.trim() === "" ? emptyTitle : "No matching pages"} description={query.trim() === "" ? emptyDescription : "Try a different name."} actions={query.trim() === "" ? (newButton ?? undefined) : undefined} />
         ) : (
           <TreeList items={tree(items)} density="compact" variant="lineGuides" aria-label="Pages" />
         )}
+        {draggedPage ? <RowDragOverlay registerOverlay={registerOverlay} icon={draggedPage.logo ? resolveLogoIcon(draggedPage.logo.icon) : PageIcon} color={draggedPage.logo?.color} label={draggedPage.name} /> : null}
       </VStack>
     </PanelPage>
   );
