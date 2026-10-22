@@ -16,9 +16,10 @@ Reconciled on 2026-10-22 against the working tree after the fix-all round (HEAD 
 - Not browser-verified this round: Latte for the calendar chips, the gantt and the page outline (checked from token values; the in-app browser's scheme emulation does not switch the app, set `tessera.scheme.v1` instead), a real touch drag on the page-tree grip, and a mid-drag 375 px board with scroll-snap.
 
 ### Docs and housekeeping
-- `docs/contracts/service-api.md:114` and `docs/contracts/tools.md` show the old `reorderLabel(ctx, id, { before_id?, after_id? })`; it now takes `parent_id` (reparent plus reorder).
-- `docs/contracts/ui.md` does not record this round's behaviour: `PanelTitle` `accessibilityLevel` 2 on work item and project page detail routes (`ui.md:83` still says the frame title is always the h1), the below-600 px project tab row with 44 px tabs and the full-width drawer search, the page outline layout (stacked block above the column below a 1136 px frame, sticky side column from 1136 px), the "Mentioned in" detail section, and the scope lookup order (not found before feature off).
-- `docs/as-built/`: `shell-detail.md`, `planning.md` and `ai.md` still have stale P4–P9 lines; the other files were refreshed this round.
+- `docs/contracts/ui.md`: the route-group lines near the top, the "Home at `/home`" bullet and the P2b table naming `TabBar.tsx` and `tab-registry.ts` are stale (Home is `/`, there are no tabs).
+- `docs/as-built/pages-collaboration.md` describes the page outline as it was before the fix-all round (ui.md "Page screen: the outline" is current).
+- Stale code text: the `[[` page trigger in `editor/mentions.tsx` still says "Pages arrive in P6" and inserts nothing; the ASSUMPTION header comments in `detail/CommentComposer.tsx` and `CommentItem.tsx` and the subscribe toast predate P7.
+- Undo of an assistant apply has engine actions but no UI (no Undo on the "Applied N changes" toast, no history view); recorded in `docs/as-built/ai.md` known debt.
 
 ## Waiting for the user
 - Live P5 acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is now built and `assistant.spec.ts` passes on it.
@@ -33,6 +34,7 @@ Reconciled on 2026-10-22 against the working tree after the fix-all round (HEAD 
 ## Closed
 
 ### Fixed in the fix-all round (2026-10-21)
+- Docs after the round (2026-10-22): `reorderLabel` takes `parent_id` in `service-api.md`; `ui.md` records the detail-route heading level, the below-600 px tab row and drawer search, the page outline layout, "Mentioned in" and the scope lookup order; `as-built/shell-detail.md`, `planning.md` and `ai.md` refreshed at 85140b6.
 - Full Playwright suite end to end after fix round 2: 54 of 54 pass on a scratch production build; decisions 123 and 124 record it. `workspace.spec.ts` now polls the sidebar sum, which streams in after the analytics total.
 - Page history Activity tab (decision 99): `tests/ui/version-history.test.ts`; browser PASS.
 - Drag reorder, views list (decision 105): browser PASS (drag, reload keeps order); `tests/ui/view-reorder.test.ts`; e2e `drag-surfaces.spec.ts`. No grips while the search field has text, by design (a filtered list would compute neighbours against hidden rows).

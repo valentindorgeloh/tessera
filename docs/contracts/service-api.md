@@ -111,7 +111,7 @@ deleteState(ctx, id, { move_to_state_id? } = {}): void
 // labels.ts
 listLabels(ctx, projectId): Label[]
 createLabel(ctx, { project_id, name, color?, parent_id? }): Label
-updateLabel(ctx, id, patch): Label / reorderLabel(ctx, id, { before_id?, after_id? }): Label / deleteLabel(ctx, id): void
+updateLabel(ctx, id, patch): Label / reorderLabel(ctx, id, { before_id?, after_id?, parent_id? }): Label (parent_id null = top level, an id = child of that top-level label; reparent and reorder in one transaction, one level deep; omit to keep the parent) / deleteLabel(ctx, id): void
 
 // work-items.ts
 listWorkItems(ctx, {

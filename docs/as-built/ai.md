@@ -1,6 +1,6 @@
 # As-built map: the assistant (P5)
 
-State described: git HEAD `07a59d1` (2026-10-18). Files in the working tree that other lanes are editing right now are not covered. Written for a reworking agent: read this first, then open only the contract section named in section 8.
+State described: HEAD 85140b6 (2026-10-22). Written for a reworking agent: read this first, then open only the contract section named in section 8.
 
 ## 1. Purpose and boundaries
 
@@ -10,10 +10,12 @@ In scope: `src/lib/tessera/ai/**`, `src/lib/tessera/tools/anthropic.ts`, `src/ap
 
 Lives elsewhere:
 - Registry tools, `listTools`, `runToolWithContext`: `docs/as-built/engine.md`.
-- Where digest cards and the Ask button are mounted: the screens in `pages-collab.md` (inbox), `intake-workspace.md` (home, analytics, intake triage) and `planning.md` (cycle, module).
-- Undo of an applied batch: engine in `ai/undo.ts`, tools in `tools/registry/maintenance.ts` (see `operations.md` for the maintenance side).
+- Where digest cards and the Ask button are mounted: the screens in `pages-collaboration.md` (inbox), `workspace.md` (home, analytics) and `planning.md` (cycle, module).
+- Undo of an applied batch: engine in `ai/undo.ts`, tools in `tools/registry/maintenance.ts` (see `hardening.md`).
 
-Not built (see section 7): live acceptance with the real model, `TESSERA_AI_FAKE`, the undo toast button and History view, per-workspace model/effort.
+With `TESSERA_AI_FAKE=<dir>` the client is a replay of recorded turns and nothing reaches the network (decision 124); the Playwright server runs this way.
+
+Not built (see section 7): live acceptance with the real model, the undo toast button and History view, per-workspace model/effort.
 
 ## 2. File map
 
@@ -21,7 +23,8 @@ Not built (see section 7): live acceptance with the real model, `TESSERA_AI_FAKE
 
 | Path (lines) | Responsibility | Key exports |
 |---|---|---|
-| `client.ts` (102) | The one Anthropic client. Key stays in the environment or the `ant auth login` profile; `new Anthropic()` with no arguments. Model `TESSERA_AI_MODEL` or `claude-opus-5-5`; effort `TESSERA_AI_EFFORT` or `high`. `getAiStatus` calls `models.retrieve` and caches 10 min (30 s when offline). | `AI_MODEL`, `AI_BETAS` (`server-side-fallback-2026-07-01`), `AI_FALLBACKS` (`"default"`), `aiEffort`, `getAnthropic`, `setAnthropicForTests`, `assistantContext`, `getAiStatus`, `toAiError` |
+| `client.ts` (117) | The one Anthropic client. Key stays in the environment or the `ant auth login` profile; `new Anthropic()` with no arguments. Model `TESSERA_AI_MODEL` or `claude-opus-5-5`; effort `TESSERA_AI_EFFORT` or `high`. `getAnthropic` returns a test client first, then the replay client when `TESSERA_AI_FAKE` is set, else the SDK client. `getAiStatus` calls `models.retrieve` and caches 10 min (30 s when offline). | `AI_MODEL`, `AI_BETAS` (`server-side-fallback-2026-07-01`), `AI_FALLBACKS` (`"default"`), `aiEffort`, `getAnthropic`, `setAnthropicForTests`, `assistantContext`, `getAiStatus`, `toAiError` |
+| `fake-client.ts` (322) | The scripted client, no network. `fakeAnthropic(script)` serves the Vitest tests; `createReplayClient(dir)` reads every `*.json` in the directory and answers a chat turn with the recording whose `match` is in the last user message (else the one without `match`), plus one `create` (digest) and one `parse` (view) recording. Recorded tool inputs may use `{{result:<tool_use_id>.<path>}}` and `{{scope:<name>}}`. `assertFakeAiAllowed` refuses it in production on the default database. | `fakeAnthropic`, `createReplayClient`, `loadRecordings`, `pickRecording`, `assertFakeAiAllowed` |
 | `assistant.ts` (139) | One chat turn as an async generator of `AssistantEvent`. `beta.messages.toolRunner`, `stream: true`, `max_iterations: 12`, adaptive thinking, two system blocks (frozen prompt with `cache_control`, then the volatile scope block). Handles `refusal`, `max_tokens` (`continue: true`), `pause_turn` (resumed at most twice), abort, `fallback` notices. | `runAssistant` |
 | `event-queue.ts` (50) | Async queue so stream events and tool events (proposals, tool results) leave in order. | `createEventQueue` |
 | `prompts.ts` (180) | Frozen prompts (chat, four digests, view) and `describeScope`, which renders project, open work item (description cut at 2 000 chars), cycle, module and this conversation's proposals into text. Lists cap at 50. | `SYSTEM_PROMPT`, `DIGEST_SYSTEM`, `INBOX_DIGEST_SYSTEM`, `HOME_DIGEST_SYSTEM`, `ANALYTICS_DIGEST_SYSTEM`, `VIEW_SYSTEM`, `describeScope` |
@@ -83,6 +86,7 @@ Errors: the SSE stream carries a failure after it started as an `error` event (`
 | Undo takes the latest applied batch (shared `apply_batch_id`) of any conversation, not undone, less than 24 h old; one batch at a time | 116 | `undo.findLatestUndoableBatch`; `tests/ai/assistant-undo.test.ts` |
 | Undo refuses (CONFLICT `undo_blocked`) when later activity touched the same entity and field, or when the batch holds a verb it cannot invert; inverse rows carry the note "Undid assistant change" | 117 | `undo.blockedByLater`, `invertRow`, `ASSISTANT_UNDO_NOTE` |
 | AI routes answer loopback hosts only, same-origin, JSON POST | 123 (security gate, p5 plan) | `guardAiRequest`; `tests/ui/http-guard.test.ts` |
+| `TESSERA_AI_FAKE` replays recorded turns and is refused in production on the default `data/tessera.db`, so it never answers the real workspace | 124 | `fake-client.assertFakeAiAllowed` (called by `getAnthropic`); `tests/ai/fake-client.test.ts`, `tests/e2e/assistant.spec.ts` |
 | No key, `ANTHROPIC` text or `server-only` marker in the client bundle | 125 | `scripts/check-bundle.ts`, `bundle-rules.ts`; `tests/check-bundle.test.ts` |
 | A mutating assistant tool call fails at Apply, not at proposal time, for `userOnly` tools and for agent-access rules | 104, 63 | `tools/registry/access.assertToolAllowed` (the proposal itself is not checked) |
 
@@ -90,31 +94,33 @@ Errors: the SSE stream carries a failure after it started as an `error` event (`
 
 | File | Covers |
 |---|---|
-| `tests/ai/fake-anthropic.ts` | Scripted Anthropic client injected with `setAnthropicForTests`; no network |
+| `tests/ai/fake-anthropic.ts` | Re-exports `fakeAnthropic` from `ai/fake-client.ts`; injected with `setAnthropicForTests`; no network |
+| `tests/ai/fake-client.test.ts` | The production guard of `TESSERA_AI_FAKE` and the replay client reading `tests/e2e/fixtures/ai/*.json` |
+| `tests/e2e/assistant.spec.ts` | Playwright on the replay client: the panel proposes a priority change, nothing is written, Apply writes it |
 | `tests/ai/anthropic-tools.test.ts`, `proposals.test.ts`, `prompts.test.ts` | Tool names and truncation; create / apply / discard / expiry / double apply / destructive confirm; frozen prompt and scope block |
 | `tests/ai/assistant-events.test.ts` | Event order, refusal, `max_tokens`, `pause_turn`, abort, fallback notice |
 | `tests/ai/digest.test.ts`, `digest-store.test.ts`, `view-from-prompt.test.ts` | Digest reuse and refusal, stale flag per kind, structured view output |
 | `tests/ai/assistant-undo.test.ts` | Batch undo and the conflict case |
 | `tests/ui/assistant-store.test.ts`, `assistant-scope.test.ts`, `ask-items.test.ts`, `sse-encode.test.ts`, `sse-parse.test.ts`, `http-guard.test.ts` | Transcript reducer, scope from path, Ask items, SSE framing both ways, the request guard |
 
-Untested: the panel and provider components, the three digest cards, the routes themselves (only their pure helpers), and any call to the real model.
+Untested: the panel and provider components beyond that one Playwright scenario, the digest cards, the routes themselves (only their pure helpers), and any call to the real model.
 
 ## 6. Extension points
 
 - A new digest kind: add to `DigestKindSchema` (`schemas.ts`), a branch in `digestInputs` / `currentDigestSeq` (`digest-store.ts`), a system prompt in `prompts.ts`, and mount `DigestCard` with the new kind. Entity id formats are free text.
 - A new assistant-visible tool: nothing to do, `buildAssistantTools` lists the registry; set `core: true` to put it in the default set (37 tools are core).
 - A new undoable verb: add an inverse in `undo.invertRow` and extend the `UPDATE_FIELDS` list; keep the `blockedByLater` check.
-- Workspace-level model and effort: `workspace_settings.ai` is stored and edited on the General settings screen, but `client.ts` reads only the environment (decision 84 says settings first).
+- Workspace-level model and effort: `workspace_settings.ai` is stored and edited on the AI tab of workspace settings, but `client.ts` reads only the environment (decision 84 says settings first).
+- A new Playwright AI scenario: add a recording to `tests/e2e/fixtures/ai/` (`raise-priority.json` matches by `match`, `default.json` answers everything else); no code change.
 - A different transport for chat: `runAssistant(handles, request, signal)` is transport-free; `sseStream` is the only SSE code.
 
 ## 7. Known debt and quirks
 
 - P5 live acceptance with the real model never ran. It needs the user's approval (about $1–3 of API use per run).
-- `TESSERA_AI_FAKE` (decision 124) is described in PLAN and the p11 plan, but no source file reads it; Playwright cannot run an AI scenario yet.
 - Decision 118 surfaces are missing: the "Applied N changes" toast has no Undo button and the assistant panel has no History view. `undoLastAssistantBatchAction` and `getUndoableAssistantBatchAction` exist but no component calls them.
 - Decision 117 asks for an `UNDO_INVERSES` entry per mutating tool; the code inverts only work-item field updates (`name`, `state_id`, `priority`, `parent_id`, `cycle_id`, `estimate_point_id`, `start_date`, `target_date`) and archives, and refuses the whole batch for anything else.
 - `work-items/undo.ts` (`undoLastWorkItemChange`, covered by `tests/undo.test.ts`) is exported but has no registry tool and no UI.
-- `workspace_settings.ai.model` / `.effort` are ignored by the client (decision 84). `digest_enabled` is honoured by the Home digest only.
+- `workspace_settings.ai.model` / `.effort` are ignored by the client (decision 84). `digest_enabled` is honoured by the Home digest only (`digestsEnabled` in `SinceLastVisit`); the cycle, module, inbox and analytics cards ignore it, though decision 84 says every Summarise button hides.
 - Proposals are not checked against `userOnly` or agent access when created, only when applied, so the assistant can propose `create_webhook` and then fail at Apply (`user_only`).
 - `createProposal` takes no note, so `view-from-prompt.attachRationale` updates the stored preview after the insert (marked ASSUMPTION in the file).
 - `ViewSpecSchema` has no `rich_filters`; a prompt-made view is flat filters only.

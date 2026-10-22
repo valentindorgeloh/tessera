@@ -39,7 +39,7 @@ type ProjectBundle = {
 };
 ```
 
-It renders `<ProjectProvider bundle={bundle}>` (client context in `src/components/work-items/project-provider.tsx`, lane C) and `<ProjectFrame>`: the panel header (`PanelHeader` with one 52px `PanelBar`, "Panel headers" under Shell) holding the project token, the project name as the page's h1 (`PanelTitle`), a vertical divider and the section `TabList` (`size="sm" layout="hug"`, docked on the header hairline) for Work items / Cycles / Modules / Views / Pages / Intake / Settings according to the feature toggles; tabs whose routes do not exist yet are omitted. The tabs are the project's only page navigation (the sidebar lists projects as flat rows); project-wide actions go in the bar's `end`. The frame's content is one scrolling `LayoutContent`. Every property control reads the bundle from `useProject()`; nothing fetches lists client-side except search typeahead.
+It renders `<ProjectProvider bundle={bundle}>` (client context in `src/components/work-items/project-provider.tsx`, lane C) and `<ProjectFrame>`: the panel header (`PanelHeader` with one 52px `PanelBar`, "Panel headers" under Shell) holding the project token, the project name (`PanelTitle`, the page's h1 except on a work item or project page detail, where it is level 2: see "Panel headers" under Shell), a vertical divider and the section `TabList` (`size="sm" layout="hug"`, docked on the header hairline) for Work items, then Cycles / Modules / Views / Pages / Intake according to the feature toggles, then Archives and Settings (`projectTabs`, `project-tabs.ts`). Below 600px (`shell.css`, `max-width: 599px`) the bar becomes a two-row grid: the token, the name and the end actions share a 44px first row, and the tab strip takes its own full-width row under them, still docked on the header hairline, with 44px tabs (`--size-element-md` plus `--spacing-3`, the touch target); the strip scrolls inside that row (`tests/ui/shell-detail-css.test.ts` reads the rules). The tabs are the project's only page navigation (the sidebar lists projects as flat rows); project-wide actions (the favourite star and the project menu) go in the bar's `end`. The frame's content is one scrolling `LayoutContent`. Every property control reads the bundle from `useProject()`; nothing fetches lists client-side except search typeahead.
 
 ## Work items screen (lane C)
 
@@ -78,15 +78,26 @@ Filter bar: Astryx `PowerSearch` tokens for state, priority, labels, assignees, 
 ## Shell (lane B)
 
 - Frame (`TesseraShell.tsx`): `AppShell variant="wash" contentPadding={2}`, so the top bar and the sidebar sit on the wash (`--color-background-body`) and the content sits in one rounded panel 8px in from the wash on every side: a `Card padding={0} height="100%"` with class `tessera-panel` (`--radius-page`, 16px). Only the screen's own `LayoutContent` scrolls inside it. The shell also mounts `ToastViewport` and `CommandBar`; `(tessera)/layout.tsx` adds `RecentsTracker` and `ChangesPoller` together in one `Suspense` beside the content, not in the sidebar, whose mobile drawer React pauses while closed. There is no tab strip.
-- Top bar (`TopBar.tsx`, Astryx `TopNav`): the sidebar collapse button (desktop only) and the brand ("Tessera", logo tile, → `/home`); in the middle the search field (`tessera-topbar-search`, about 364px, sm): a read-only `TextInput` (named "Search work items and commands", `aria-haspopup="dialog"`) with a `mod+k` `Kbd` that opens Power K on a click, Enter, Space, the arrow down or any printable key, the key becoming the palette's first query (`openCommandBar(initialQuery)`); at the end a help button (keyboard shortcuts, as `mod+/`) and the account menu (`Avatar` in a ghost `IconButton`) with the Colour scheme radio group and Keyboard shortcuts.
+- Top bar (`TopBar.tsx`, Astryx `TopNav`): the sidebar collapse button (desktop only) and the brand (the workspace name from the workspace settings, which `WorkspaceName` publishes and which reads "Tessera" until then; logo tile, → `/`); in the middle the search field (`tessera-topbar-search`, about 364px, sm): a read-only `TextInput` (named "Search work items and commands", `aria-haspopup="dialog"`) with a `mod+k` `Kbd` that opens Power K on a click, Enter, Space, the arrow down or any printable key, the key becoming the palette's first query (`openCommandBar(initialQuery)`). Below 600px (`SearchTrigger` reads `(max-width: 599px)`, `shell.css` repeats it) the field is the mobile drawer's search: it takes the drawer's full width (`width: 100%`), the `Kbd` chip is left out and the placeholder reads "Search" instead of "Search work items, or type a command", so it no longer clips in a narrow input (`tests/ui/top-bar-search.test.ts`, `tests/ui/shell-detail-css.test.ts`). At the end: the assistant toggle (`mod+j`, only while `GET /api/ai/status` says the assistant is available), a help button (keyboard shortcuts, as `mod+/`) and the account menu (`Avatar` in a ghost `IconButton`) with the Colour scheme radio group and Keyboard shortcuts.
 - Sidebar (`Sidebar.tsx`, Astryx `SideNav` on the wash): the "Work" heading (→ `/home`); a quiet secondary sm "New work item" button (an icon button while collapsed) that opens the create dialog for the last visited project (`tessera.lastProject.v1`), else the first, and is disabled with "Create a project first" when there are none; Home and Projects; the "Projects" section with a "+" (Create project, as `n p`) and the projects as flat rows (logo icon, name, total count; the current project selected). A project's own pages are the tabs in its panel header, not sidebar children. Resizable from 236 to 350px (250 by default), the width kept in `tessera.sidebarWidth.v1` and read after mount so the first render matches the server's. `mod+b` and the top bar's button collapse it; the collapsed state is `TesseraShell` state and is not persisted (it resets on reload). The "New work item" tooltip names the global chord (`n i`, "N then I"). `SidebarSkeleton.tsx` mirrors it while the layout streams.
-- Panel headers (`PanelHeader.tsx`): a screen puts one `PanelHeader` (an Astryx `LayoutHeader`, hairline below; a labelled `div`, not a landmark, as before the rework) in its `Layout` header and stacks `PanelBar` rows in it: `size="header"` 52px (title, tabs, page actions), `"subheader"` 44px (the view's name and count, layout, display, the primary action), `"filters"` 44px (the filter bar; `hasDivider` draws the hairline above it). Heights come from tokens (`--size-element-md` plus `--spacing-5` or `--spacing-3`). `canWrap` (the work items sub-header) lets a row wrap: the end group drops under the title when both do not fit (a phone, the peek open) and wraps its own actions; without it the start group shrinks and the end group stays whole. A bar is a plain `HStack` with a 16px inline padding, not an Astryx `Toolbar`, so the tabs and the filter field keep their own arrow-key handling. `PanelTitle` is the page's h1 at the working size (14px medium, `Heading level={4} accessibilityLevel={1}`). `PanelPage` is a pinned header over scrolling content, `width="reading"` centring it in a 960px column (a `VStack` with class `tessera-reading`: Home and Projects) or `"full"`. The not-found screen is its own centred `EmptyState`, also used outside the shell.
+- Panel headers (`PanelHeader.tsx`): a screen puts one `PanelHeader` (an Astryx `LayoutHeader`, hairline below; a labelled `div`, not a landmark, as before the rework) in its `Layout` header and stacks `PanelBar` rows in it: `size="header"` 52px (title, tabs, page actions), `"subheader"` 44px (the view's name and count, layout, display, the primary action), `"filters"` 44px (the filter bar; `hasDivider` draws the hairline above it). Heights come from tokens (`--size-element-md` plus `--spacing-5` or `--spacing-3`). `canWrap` (the work items sub-header) lets a row wrap: the end group drops under the title when both do not fit (a phone, the peek open) and wraps its own actions; without it the start group shrinks and the end group stays whole. A bar is a plain `HStack` with a 16px inline padding, not an Astryx `Toolbar`, so the tabs and the filter field keep their own arrow-key handling. `PanelTitle` is the page's h1 at the working size (14px medium, `Heading level={4}`), with `accessibilityLevel` 1 by default and 2 where the screen's own body holds the h1: `ProjectFrame` passes 2 on `/projects/<projectId>/work-items/<itemId>` (the item title, `Heading level={1}` in `DetailTitle` on the page host) and on `/projects/<projectId>/pages/<pageId>` (`PageTitle`), through `isWorkItemPagePath` and `isProjectPageDetailPath`, which match exactly one id segment. The title then looks the same but the content title is the document's only level-1 heading. The cycle and module detail headers keep the frame's h1 and give their own name level 2. Guard: `tests/ui/project-frame.test.ts`. `PanelPage` is a pinned header over scrolling content, `width="reading"` centring it in a 960px column (a `VStack` with class `tessera-reading`: Home and Projects) or `"full"`. The not-found screen is its own centred `EmptyState`, also used outside the shell.
 - Recents (`recents.ts`, `recents-store.ts`, `RecentsTracker.tsx`): every visited path, normalised as before (`resolveRoute`, `isTransientPath`), goes to the front of a list of at most 12 (`addRecent`; `/home` and transient routes skipped; a work item's project route and its global `/work-items/<id>` route count as one entry, `isSameRecent`), kept in `localStorage` `tessera.recents.v1` (`parseRecents` validates it) behind a `useSyncExternalStore` store whose server snapshot is empty. A work item opened in the peek is recorded by `PeekHost` once it has loaded, as a visit to its full page (`workItemPath`), so a peek that shows "not found" never becomes a recent. Every write starts from the stored list and a `storage` listener follows other tabs, so tabs never erase each other's visits. `forgetRecentsUnder(path)` drops a route and the routes under it: the detail calls it after a delete (the project path and `/work-items/<id>`), and the not-found screens (`NotFoundScreen`, the project's "Not found in this project") call `useMissingRoute()`, which forgets their own address and skips the tracker's visit to it, so a dead recent goes away once it has led there. Home shows the newest 8 first (`RecentsList.tsx`); Power K shows a "Recent" group of 5 when the query is empty, leaving out the page on screen and the item open in its peek (`onScreenPaths`, `otherRecents`). Pure functions in `recents.ts` and the store have Vitest coverage.
 - Sidebar data: `listProjects` (with counts).
 - `QuickCreate`: global create dialog host so the sidebar button and `n i` shortcut open the same dialog as lane C's screen (lane C exports `CreateWorkItemDialog`; lane B mounts it).
 - Home at `/home` (`PanelPage width="reading"`): Recents, then the "Since you were last here" placeholder card (P5/P9 fill it), then project rows from `listProjects` in a `List` with `edgeCompensation="inline"` (no Section around it: Section bleeds outward and would shift the heading).
 - Keyboard: `useHotkeys` from `@astryxdesign/core/hooks` (verify the call form in `node_modules/@astryxdesign/core/hooks`); shortcut list per docs/PLAN.md §6. `isTypingTarget` lives in `shortcuts.ts`.
 - Colour scheme: the account menu in the top bar holds "Colour scheme" (Frappé (dark), Latte (light), Match system). State lives in `src/components/shell/color-scheme.ts` (`useColorScheme`, `setColorScheme`, `localStorage` key `tessera.scheme.v1`); its values are the Astryx `<Theme mode>` values, which `src/app/providers.tsx` passes through.
+
+## Page screen: the outline (lane D)
+
+`PageScreen` (`src/components/pages/PageScreen.tsx`) serves `/pages/<pageId>` (workspace wiki pages, no project frame) and `/projects/<projectId>/pages/<pageId>` (inside the frame). The Outline toggle (`ToggleButton`, icon only) sits in the header bar's end.
+
+- The outline is an `aside` named "Outline" (`PageOutline.tsx`, a `VStack` with class `tessera-page-outline`) inside the page frame, not a `Layout` end panel, so opening it never narrows the reading column. It is mounted only while open. The structure is `LayoutContent` > `.tessera-page-container` > `.tessera-page-frame` (a grid, `data-outline="open"` while open) > the reading column (`.tessera-page tessera-reading`, 960px) and the outline.
+- Frame under 1136px: the outline is a stacked block in grid row 1, above the column (row 2). It is centred, `calc(100% - var(--spacing-8))` wide up to `calc(960px - var(--spacing-8))`, a bordered card (`--radius-container`, `--color-background-popover`) with `max-height: 40dvh` and its own scroll, so it never covers page text; on a phone it is a short scrolling block.
+- Frame from 1136px: a container query on `.tessera-page-container` (the content width, not the viewport; `container-type: inline-size`) puts the column and the outline side by side, the pair centred. The columns are `minmax(0, 1fr) 960px minmax(160px + gap, 240px + gap) minmax(0, 1fr)`, so the outline gives way (240px down to 160px) and the column does not. The outline sits in column 3, sticky at `--spacing-4` from the top, `max-height: 70dvh`.
+- 1136px is the column's 960px plus the outline's 160px minimum plus the gap. It is a raw value because a container query cannot take a token.
+- Content: Astryx `useOutlineFromDOM` reads the headings from the editor DOM; an empty body shows "No headings yet". Heading ids come from the `HeadingIds` extension (`editor/heading-ids.ts`): slugs rebuilt from the heading text on every change, never written into the Markdown, set on the initial document in `onCreate` (a transaction with `preventUpdate` and `addToHistory: false`, so nothing saves and no undo step appears).
+- Guard: `tests/ui/pages-outline-css.test.ts` reads the stylesheet (stacked and sticky rules), since jsdom has no layout.
 
 ## Theme
 
@@ -247,6 +258,8 @@ export type WorkItemDetailData = {
   parent: Pick<WorkItem, "id" | "key" | "name"> | null;   // getWorkItem(ctx, item.parent_id)
   children: WorkItem[];                                   // listChildren(ctx, id) (line 506)
   activity: ActivityLogEntry[];                           // listActivity(ctx, { work_item_id: id }) (changes.ts line 163), newest first
+  comments?: CommentView[];                               // listComments(ctx, id): roots oldest first, replies nested (decision 56)
+  backlinks?: PageBacklink[];                             // listPageBacklinks(ctx, { entity_type: "work_item", entity_id }) (decision 44), for "Mentioned in"
   currentActorId: string;                                 // USER_ACTOR_ID, filled server-side ("assign me", subscribe toggle)
   cursor: number;                                         // latestSeq at load
 };
@@ -276,7 +289,8 @@ export function WorkItemDetail(props: WorkItemDetailProps): JSX.Element;
   `PropertyRail` (a 320–384 px column behind a hairline on `page` once the detail is
   960 px wide, a `detail` container query; stacked under the title between hairlines
   on `modal`, a 760 px Dialog, and on `peek` with `compact`); `DescriptionEditor`; `SubItems`;
-  `LinksList`; `ActivityFeed` (collapsed to the last 20 with "Show all"). Registers
+  `MentionedIn`; `LinksList`; `Timeline` (comments and updates merged oldest first, the newest 20
+  shown until "Show older", then the comment composer unless the item is read-only). Registers
   the entity label (D3's store) and the command context (D4's store, below) in one
   effect, both unregistered on unmount.
 - `DetailHeader` `{ item, parent, host, onClose, onHostChange, onOpenItem, onCopyItem, onDelete }`:
@@ -332,7 +346,19 @@ export function WorkItemDetail(props: WorkItemDetailProps): JSX.Element;
   Title + URL) → `addLinkAction({ work_item_id, url, title })`
   (`AddLinkInput`, links.ts line 79, http(s) only); edit → `updateLinkAction({ link_id, title?, url? })`;
   remove → `removeLinkAction({ link_id })`.
-- `ActivityFeed` `{ entries: ActivityLogEntry[] }`: a timeline, newest first. Each
+- `MentionedIn` `{ backlinks: readonly PageBacklink[] }` (`MentionedIn.tsx`, class `tessera-detail-links`),
+  between `SubItems` and `LinksList` in the main column on all three hosts: a "Mentioned in (N)"
+  label (`Text type="label"`) over a list named "Mentioned in", one row per page that embeds the
+  item, a page icon and a `Link` to the page (`pageHref`: `/pages/<id>` for a wiki page,
+  `/projects/<projectId>/pages/<id>` for a project page); a page that is archived stays listed and
+  reads "Archived" beside its name. It renders nothing when no page embeds the item. The pages
+  are those whose body links the item with a `work:KEY` entity link, which `replacePageEmbeds`
+  turns into `page_embed` rows (decision 44). `loadWorkItemDetail` (`work-items/load-detail.ts`)
+  fills `backlinks` with `listPageBacklinks(ctx, { entity_type: "work_item", entity_id })` in the
+  same read as the item, for the full page, the peek and the modal. Guards:
+  `tests/ui/mentioned-in.test.ts`, `tests/detail-loader.test.ts`.
+- `ActivityFeed` `{ entries: ActivityLogEntry[] }` (no longer rendered by `WorkItemDetail`, where
+  `Timeline` replaced it; still exported): a timeline, newest first. Each
   entry is a 28px icon tile for the kind of change (by verb: created, archived,
   restored, deleted, copied, moved; else by field; else a pencil) on a hairline
   that joins the tiles, then `actor_name`, verb and field in words ("changed state",
@@ -691,9 +717,26 @@ them with flat sidebar rows and recents, see "As built (layout rework merge,
   alias routes `/cycles/[cycleId]` and `/modules/[moduleId]` still redirect (the
   target then shows the state). `FeatureOffState` is an Astryx `EmptyState`
   (`dist/EmptyState/EmptyState.d.ts`: `title`, `description`, `icon`, `actions`,
-  `isCompact`) titled "Cycles are turned off for this project" (or "Modules …"),
-  description "Project settings arrive in P4; an agent can turn them on with
-  update_project_features." No action button.
+  `isCompact`) titled "Cycles are turned off for this project" (or "Modules …",
+  "Views …", "Pages …", "Intake …"), description "Turn them on in Settings ›
+  Features." with an "Open Features settings" button to
+  `/projects/<projectId>/settings/features` (the P3 text said settings arrive in
+  P4, with no button).
+- Lookup order on the detail routes of a scope (`/cycles/[cycleId]`,
+  `/modules/[moduleId]` and the saved view page `/views/[viewId]`): the record is
+  looked up before the feature toggle is read (`lookupScoped`,
+  `src/app/(tessera)/projects/[projectId]/scope-lookup.ts`, called inside the page's
+  one `readTessera` after `getProject`). An unknown, deleted or malformed id, or a
+  record of another project, is "missing" and the page answers `notFound()` whether
+  the feature is on or off; only a real record of a project that has the feature
+  turned off reaches `FeatureOffState`. An unknown project still throws its own
+  NOT_FOUND, which the page maps to `notFound()` as before. The order matters to
+  recents: `RecentsTracker` records the paths of pages that render, and a
+  feature-off state shown before the lookup stored dead ids as recents, so a
+  missing id now renders the not-found screen, which `useMissingRoute` keeps out of
+  the list. The list routes (`/cycles`, `/modules`, `/views`) have no id to look
+  up and still check the toggle first. Guard: `tests/ui/scope-lookup.test.ts`
+  (decision 31).
 - `?create=1` on `/cycles` and `/modules` opens the create dialog once and is then
   dropped with `router.replace` (the `WorkItemsScreen` `createOnOpen` handling). It
   is what `n c` / `n m` push.
