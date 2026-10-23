@@ -1,22 +1,22 @@
 "use client";
 
 /**
- * Star for one entity (docs/drafts/p9-plan.md U2). Pressed means it is a
- * favourite. The layout's tree wins once it has loaded; `isFavorite` covers
- * a page that already knows. StarIcon is not exported, so the glyph is the
- * logo Star from the icon set.
+ * Star for one entity (docs/drafts/p9-plan.md U2). A favourite shows a filled
+ * star in the warning colour (yellow) on a plain ghost button; it is not a
+ * ToggleButton, whose pressed background read as a held-down button. The
+ * label names the action ("Add to favorites" / "Remove from favorites"), so
+ * there is no aria-pressed. The layout's tree wins once it has loaded;
+ * `isFavorite` covers a page that already knows.
  */
 import { useState, useTransition } from "react";
 import type { ButtonSize } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
-import { ToggleButton } from "@astryxdesign/core/ToggleButton";
+import { IconButton } from "@astryxdesign/core/IconButton";
 import { useToast } from "@astryxdesign/core/Toast";
 import { addFavoriteAction, removeFavoriteAction } from "@/app/actions/favorites";
 import { useIsFavorite } from "@/components/favorites/store";
 import type { FavoriteEntityType } from "@/lib/tessera/types";
-import { resolveLogoIcon } from "@/themes/catppuccin/icons";
-
-const StarGlyph = resolveLogoIcon("Star");
+import { StarFillIcon, StarIcon } from "@/themes/catppuccin/icons";
 
 export type FavoriteButtonProps = {
   entityType: FavoriteEntityType;
@@ -57,14 +57,13 @@ export function useFavoriteToggle(entityType: FavoriteEntityType, entityId: stri
 export function FavoriteButton({ entityType, entityId, isFavorite = false, size = "sm" }: FavoriteButtonProps) {
   const favorite = useFavoriteToggle(entityType, entityId, isFavorite);
   return (
-    <ToggleButton
+    <IconButton
       label={favorite.label}
+      variant="ghost"
       size={size}
-      isIconOnly
-      isPressed={favorite.isFavorite}
-      icon={<Icon icon={StarGlyph} />}
-      pressedIcon={<Icon icon={StarGlyph} />}
-      onPressedChange={() => favorite.toggle()}
+      tooltip={favorite.label}
+      icon={favorite.isFavorite ? <Icon icon={StarFillIcon} color="warning" /> : <Icon icon={StarIcon} />}
+      onClick={favorite.toggle}
     />
   );
 }

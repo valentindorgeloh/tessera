@@ -1,4 +1,4 @@
-import { createProjectViaUi, expect, openWorkItems, quickAddItems, test, waitForDialog } from "./fixtures";
+import { createProjectViaMcp, createProjectViaUi, expect, mcp, openWorkItems, quickAddItems, test, waitForDialog } from "./fixtures";
 
 /** P9: Home (quick links, recents), favourites in the sidebar, and analytics that equal the sidebar counts. */
 
@@ -33,6 +33,22 @@ test("a favourited project shows in the sidebar Favorites group and leaves it ag
 
   await page.getByRole("button", { name: "Remove from favorites" }).first().click();
   await expect(group.getByRole("link", { name: new RegExp(project.name) })).toHaveCount(0);
+});
+
+test("the header star of a favourite is a filled yellow star on a phone and a desktop, not a pressed button", async ({ page }) => {
+  const project = await createProjectViaMcp();
+  // Favourited before the page loads, so only the published tree can tell the star.
+  await mcp("add_favorite", { entity_type: "project", entity_id: project.id }, "e2e-favorite");
+  for (const width of [375, 1440]) {
+    await page.setViewportSize({ width, height: 812 });
+    await openWorkItems(page, project.id);
+    // Below 481px the sidebar drawer is closed and paused; the star must still know the favourite.
+    const star = page.getByRole("button", { name: "Remove from favorites" }).first();
+    await expect(star, `star at ${width}px`).toBeVisible();
+    await expect(star).not.toHaveAttribute("aria-pressed");
+    await expect(star.locator("svg")).toHaveAttribute("data-color", "warning");
+    expect(await star.evaluate((button) => getComputedStyle(button).backgroundColor), "no pressed background").toBe("rgba(0, 0, 0, 0)");
+  }
 });
 
 test("the analytics work item total equals the sum of the sidebar project counts", async ({ page }) => {

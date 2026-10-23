@@ -47,21 +47,28 @@ export default function TesseraLayout({ children }: { children: ReactNode }) {
 const loadProjects = cache(() => readTessera((ctx) => listProjects(ctx, {})));
 
 /**
+ * One favourites read per request, shared by the sidebar and the favourites
+ * publisher. `listFavorites` is read when the engine exports it; until then
+ * the tree is empty.
+ */
+const loadFavorites = cache(() => readTessera((ctx) => (engineModule as EngineExtras).listFavorites?.(ctx) ?? EMPTY_FAVORITES));
+
+/**
  * Projects, the unread and draft counts, favourites and the workspace name.
- * `listFavorites` and `getWorkspaceSettings` are read when the engine exports
- * them; until then the sidebar gets an empty tree and the name "Tessera".
+ * `getWorkspaceSettings` is read when the engine exports it; until then the
+ * name is "Tessera".
  */
 async function SidebarData() {
   await io();
-  const [projects, counts] = await Promise.all([
+  const [projects, favorites, counts] = await Promise.all([
     loadProjects(),
+    loadFavorites(),
     readTessera((ctx) => {
       const engine = engineModule as EngineExtras;
       const workspaceSettings = engine.getWorkspaceSettings?.(ctx) ?? getWorkspaceSettings(ctx);
       return {
         unread: getUnreadCount(ctx),
         drafts: countDrafts(ctx),
-        favorites: engine.listFavorites?.(ctx) ?? EMPTY_FAVORITES,
         workspaceSettings: workspaceSettings,
       };
     }),
@@ -69,8 +76,7 @@ async function SidebarData() {
   return (
     <>
       <WorkspaceName name={counts.workspaceSettings.name} />
-      <FavoritesPublisher tree={counts.favorites} />
-      <Sidebar projects={projects} unreadCount={counts.unread} draftCount={counts.drafts} favorites={counts.favorites} />
+      <Sidebar projects={projects} unreadCount={counts.unread} draftCount={counts.drafts} favorites={favorites} />
     </>
   );
 }
@@ -84,24 +90,27 @@ type EngineExtras = {
  * The watchers that render nothing: the recents tracker, which reads the
  * request-bound pathname and gets the project names its labels need, the
  * changes poller with the cursor it starts from, and the workspace settings
- * publisher (week start). Archived projects leave the sidebar but their
- * recents still resolve, so their names are read too. The publisher lives
- * here, not in the sidebar, because below the mobile breakpoint React pauses
- * the sidebar drawer's content, and a paused publisher never emits a changed
- * week start.
+ * (week start) and favourites publishers. Archived projects leave the sidebar
+ * but their recents still resolve, so their names are read too. The
+ * publishers live here, not in the sidebar, because below the mobile
+ * breakpoint React pauses the sidebar drawer's content, and a paused publisher
+ * never emits: a phone's header stars then showed "Add to favorites" for a
+ * favourite.
  */
 async function WatchersData() {
   await io();
-  const [projects, archived, cursor, unread, workspace] = await Promise.all([
+  const [projects, archived, cursor, unread, workspace, favorites] = await Promise.all([
     loadProjects(),
     readTessera((ctx) => listProjects(ctx, { archived: true })),
     readTessera((ctx) => latestSeq(ctx)),
     readTessera((ctx) => getUnreadCount(ctx)),
     readTessera((ctx) => getWorkspaceSettings(ctx)),
+    loadFavorites(),
   ]);
   return (
     <>
       <WorkspaceSettingsPublisher settings={{ name: workspace.name, week_start: workspace.week_start }} />
+      <FavoritesPublisher tree={favorites} />
       <RecentsTracker projectNames={projectNameMap([...projects, ...archived])} projectFeatures={projectFeatureMap([...projects, ...archived])} />
       <ChangesPoller initialCursor={cursor} initialUnread={unread} />
     </>
