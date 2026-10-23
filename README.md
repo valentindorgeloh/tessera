@@ -39,6 +39,7 @@ The app listens on http://127.0.0.1:3000. The assistant appears only when an Ant
 | `npm run check` | typecheck, lint, tests, convention gate, licence gate (the merge gate) |
 | `npm run test` / `test:watch` | Vitest |
 | `npm run db:generate` / `db:migrate` / `db:seed` / `db:backup` / `db:fts-rebuild` | database lifecycle (from P1) |
+| `npm run db:demo` | fill the configured database with the Orbit showcase demo (4 projects, pages, agents, inbox, intake); writes nothing when a project MOB exists, so run `db:backup` first |
 | `npm run mcp:stdio` | stdio MCP server for coding agents (from P1) |
 | `npm run automations` | run auto-archive and auto-close once (from P10) |
 | `npm run import:handbook` | import `content/*.md` into Pages (P6) |

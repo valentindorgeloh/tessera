@@ -19,6 +19,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/db-seed.ts",
+    "db:demo": "tsx scripts/db-demo.ts",
     "db:fts-rebuild": "tsx scripts/fts-rebuild.ts",
     "db:backup": "tsx scripts/db-backup.ts",
     "db:restore": "tsx scripts/db-restore.ts",

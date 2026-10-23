@@ -14,6 +14,19 @@ Shell
 ### Coverage gaps (not checked this round)
 - Real devices: all touch checks are Playwright emulation (the page-tree grip uses CDP touch events in `coverage-touch.spec.ts`).
 
+### Found by the demo seed checks (2026-10-24)
+The `npm run db:demo` run (about 70 routes at 1440 and 375 in both schemes on a seeded copy) found these app problems. The seed works around some of them (friendly agent names, editor-canonical markdown, mentions without "@"), so the demo data does not show them; agents writing through MCP still can. Re-check each before working on it.
+- Mentions: the editor's mention tokenizer rewrites a link whose text starts with "@" (`[@Name](actor:<id>)`) to `@(actor:<id>)`, so a raw actor UUID shows in comments, page bodies and the Home/Inbox rows. Agents write mentions this way. High.
+- The "This description uses Markdown the editor would rewrite" banner (decision 10) showed on 33 of 119 agent-written items in the first draft of the seed: for an AI-first app it may show on most agent-written descriptions. Plan question: when is the banner worth it?
+- Agents registered without a display name show as raw `mcp:<client>` with an "M" avatar (Home Since, Inbox, Agents, intake, activity); on a phone it truncates to "mcp:do…". Medium.
+- Home Since wording: rows such as "Claude Code added link (2 more changes)", "Assistant reacted reaction", "commented subscriber (1 more change)" repeat the kind word or use a detail name as a verb (`src/components/home/home-format.ts`). Medium.
+- Agent profile activity rows (`/agents/<id>`) do not name the work item (key and title) they refer to. Medium.
+- The board layout's default has no grouping (`DEFAULT_DISPLAY.group_by` is null), so a project board opens as one "All work items" column until the user picks Group by. Plane groups the board by state by default. Medium.
+- Home stickies strip shows raw markdown (for example "- [x] Changelog drafted …"); `/stickies` renders it. Low.
+- Intake: after switching to the Closed tab the right pane keeps the open item with Accept and Decline; an intake create writes two "create" activity rows. Low.
+- 375 px: the top bar says "Tessera" while desktop shows the workspace name; the overflow check flagged the table and gantt headers, the analytics tiles and the Agents table. Low.
+- Home quick links whose URL is an internal path show the raw path with the project UUID as their subtitle. Low.
+
 ## Waiting for the user
 - Live P5 acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is built and `assistant.spec.ts` and `round-features.spec.ts` pass on it.
 
