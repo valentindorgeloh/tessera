@@ -163,6 +163,7 @@ export function PropertyRailFields({ actions, compact = false, parent = null, su
               <Button
                 variant="ghost"
                 size="md"
+                className="tessera-detail-subscribe"
                 icon={actions.isSubscribed ? <BellSlashIcon /> : <BellIcon />}
                 label={actions.isSubscribed ? "Unsubscribe" : "Subscribe"}
                 tooltip={actions.isSubscribed ? "Stop following this work item" : "Follow this work item (notifications arrive in P7)"}

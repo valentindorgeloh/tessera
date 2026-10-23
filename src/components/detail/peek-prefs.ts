@@ -15,6 +15,20 @@ export const PEEK_MIN_WIDTH = 360;
 export const PEEK_MAX_WIDTH = 720;
 export const PEEK_DEFAULT_WIDTH = 480;
 
+/** The least width above the minimum that is worth a resize handle; under it the panel is as good as fixed (D13). */
+export const PEEK_MIN_RESIZE_RANGE = 48;
+
+/**
+ * Whether a container of this width leaves the side panel nothing to resize
+ * within: it cannot hold the minimum width plus a usable range. A panel whose
+ * stored width merely reaches the container (a tablet, a drag to the
+ * maximum) still has a range, so its handle stays and can be dragged back.
+ * An unmeasured container (width 0) counts as having one.
+ */
+export function hasNoResizeRange(containerWidth: number): boolean {
+  return containerWidth > 0 && containerWidth - PEEK_MIN_WIDTH < PEEK_MIN_RESIZE_RANGE;
+}
+
 export type PeekMode = "side" | "modal";
 
 export type PeekPrefs = { width: number; mode: PeekMode };

@@ -13,7 +13,7 @@ import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
 import { List, ListItem } from "@astryxdesign/core/List";
-import { HStack } from "@astryxdesign/core/Stack";
+import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -24,7 +24,7 @@ import { PanelBar } from "@/components/shell/PanelHeader";
 import { CreateWorkItemDialog } from "@/components/work-items/CreateWorkItemDialog";
 import { priorityOption } from "@/components/work-items/properties";
 import type { IntakeCounts, IntakeItemView, IntakeTab } from "@/lib/tessera/types";
-import { PlusIcon, SparkleIcon } from "@/themes/catppuccin/icons";
+import { CaretLeftIcon, PlusIcon, SparkleIcon } from "@/themes/catppuccin/icons";
 import { intakeHref, INTAKE_TABS, sourceLabel, statusToken, type IntakeQuery } from "./intake-format";
 
 const TAB_LABEL: Record<IntakeTab, string> = { open: "Open", snoozed: "Snoozed", closed: "Closed" };
@@ -67,7 +67,7 @@ export function IntakeScreen({ projectId, query, items, counts, children }: Inta
     <>
       <Layout
         height="fill"
-        className="tessera-intake"
+        className={query.item === null ? "tessera-intake" : "tessera-intake tessera-intake--item"}
         start={
           <LayoutPanel width={360} hasDivider padding={0} isScrollable label="Intake items" className="tessera-intake-list">
             <PanelBar
@@ -82,7 +82,9 @@ export function IntakeScreen({ projectId, query, items, counts, children }: Inta
             />
             <PanelBar
               size="filters"
-              start={<TextInput label="Search intake" isLabelHidden hasClear value={search} onChange={setSearch} placeholder="Search intake" className="tessera-intake-search" />}
+              canWrap
+              className="tessera-intake-filters"
+              start={<TextInput size="sm" width="100%" label="Search intake" isLabelHidden hasClear value={search} onChange={setSearch} placeholder="Search intake" className="tessera-intake-search" />}
               end={
                 <HStack gap={1}>
                   <Button variant="secondary" size="sm" label="New intake item" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />
@@ -95,32 +97,45 @@ export function IntakeScreen({ projectId, query, items, counts, children }: Inta
             {items.length === 0 ? (
               <EmptyState title={EMPTY[query.tab]} description={query.q === "" ? undefined : "Nothing matches this search."} headingLevel={2} />
             ) : (
-              <List hasDividers density="balanced" aria-label="Intake items">
-                {items.map((item) => {
-                  const token = statusToken(item);
-                  return (
-                    <ListItem
-                      key={item.id}
-                      href={intakeHref(projectId, query.tab, query.q, item.work_item_id)}
-                      isSelected={query.item === item.work_item_id}
-                      startContent={<Icon icon={priorityOption(item.priority).icon} size="sm" color="secondary" />}
-                      label={item.name}
-                      description={
-                        <Text type="supporting" color="secondary">
-                          {item.key} · {item.created_by.name} via {sourceLabel(item.source)} · <RelativeTime value={item.created_at} hasTooltip={false} />
-                        </Text>
-                      }
-                      endContent={token ? <Token label={token} size="sm" /> : undefined}
-                    />
-                  );
-                })}
-              </List>
+              <VStack paddingInline={2}>
+                <List hasDividers density="balanced" aria-label="Intake items">
+                  {items.map((item) => {
+                    const token = statusToken(item);
+                    return (
+                      <ListItem
+                        key={item.id}
+                        className="tessera-row-hit"
+                        href={intakeHref(projectId, query.tab, query.q, item.work_item_id)}
+                        isSelected={query.item === item.work_item_id}
+                        startContent={<Icon icon={priorityOption(item.priority).icon} size="sm" color="secondary" />}
+                        label={item.name}
+                        description={
+                          <Text type="supporting" color="secondary">
+                            {item.key} · {item.created_by.name} via {sourceLabel(item.source)} · <RelativeTime value={item.created_at} hasTooltip={false} />
+                          </Text>
+                        }
+                        endContent={token ? <Token label={token} size="sm" /> : undefined}
+                      />
+                    );
+                  })}
+                </List>
+              </VStack>
             )}
           </LayoutPanel>
         }
         content={
-          <LayoutContent padding={0} isScrollable label="Intake item">
-            {query.item === null || children === undefined || children === null ? <EmptyState title="Select an intake item" headingLevel={2} /> : children}
+          <LayoutContent padding={0} isScrollable label="Intake item" className="tessera-intake-detail-pane">
+            {query.item === null || children === undefined || children === null ? (
+              <EmptyState title="Select an intake item" headingLevel={2} />
+            ) : (
+              <>
+                {/* Below 1024px the item replaces the list, so the way back is a button (intake.css hides it from 1024px up; the same split as the inbox). */}
+                <HStack paddingInline={4} paddingBlock={2} className="tessera-intake-back">
+                  <Button variant="ghost" size="sm" label="Back to intake" icon={<CaretLeftIcon />} href={intakeHref(projectId, query.tab, query.q, null)} />
+                </HStack>
+                {children}
+              </>
+            )}
           </LayoutContent>
         }
       />

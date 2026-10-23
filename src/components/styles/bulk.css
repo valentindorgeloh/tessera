@@ -4,9 +4,21 @@
   opacity: 0;
 }
 
+/*
+ * No hover to reveal it: the checkbox is always visible where the primary input
+ * cannot hover (a phone), so a finger can find it. Fine pointers keep the reveal.
+ * Its 44px hit area comes from the theme's checkbox rule (shell.css, S1).
+ */
+@media (hover: none) {
+  .tessera-wi-select {
+    opacity: 1;
+  }
+}
+
 .tessera-wi-row:hover .tessera-wi-select,
 .tessera-wi-row:focus-within .tessera-wi-select,
 .tessera-wi-list--selecting .tessera-wi-select,
+.tessera-wi-group .astryx-collapsible-trigger:hover .tessera-wi-select,
 .tessera-wi-group-header:hover .tessera-wi-select,
 .tessera-wi-group-header:focus-within .tessera-wi-select {
   opacity: 1;
@@ -21,4 +33,52 @@
   padding-block: var(--spacing-2);
   padding-inline: var(--spacing-4);
   border-block-start: var(--border-width) solid var(--color-border);
+}
+
+/*
+ * A selected row: the accent wash Astryx gives a selected item (--color-accent-muted:
+ * 20% in Frappe, 8% in Latte, the table's selection). Only the colour is set, so the
+ * row's hover overlay still paints over it and a selected row under the pointer reads
+ * stronger than a plain hover.
+ */
+.tessera-wi-row[data-selected] {
+  background-color: var(--color-accent-muted);
+}
+
+/*
+ * The actions of the bar. Wide, the wrapper takes no box (display: contents), so they flow in the bar's own
+ * wrapping row. A phone: the bar is two rows, the count and Clear over one row of actions that scrolls sideways
+ * (44px each, no padding between them: 89px with the border, under 2 x 44 + 8), instead of seven stacked lines.
+ */
+.tessera-bulk-actions,
+.tessera-bulk-summary {
+  display: contents;
+}
+
+@media (max-width: 480px) {
+  .tessera-bulk-bar {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    row-gap: 0;
+    padding-block: 0;
+  }
+
+  .tessera-bulk-summary {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .tessera-bulk-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    /* The controls keep their width; the row scrolls instead of squeezing them. */
+    flex-shrink: 0;
+  }
+
+  .tessera-bulk-actions > * {
+    flex-shrink: 0;
+  }
 }

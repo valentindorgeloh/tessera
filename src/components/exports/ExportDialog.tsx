@@ -69,13 +69,13 @@ export function ExportDialog({ isOpen, onOpenChange, title, scope }: ExportDialo
         header={<DialogHeader title="Export work items" onOpenChange={onOpenChange} hasDivider />}
         content={
           <LayoutContent>
-            <VStack gap={4}>
+            <VStack gap={4} className="tessera-settings-fields">
               <TextInput label="Name" value={name} onChange={setName} />
               <SegmentedControl label="Format" size="sm" value={format} onChange={(value) => setFormat(value === "json" ? "json" : "csv")}>
                 <SegmentedControlItem value="csv" label="CSV" />
                 <SegmentedControlItem value="json" label="JSON" />
               </SegmentedControl>
-              <Switch label="Include archived work items" value={archived} onChange={setArchived} />
+              <Switch label="Include archived work items" size="sm" value={archived} onChange={setArchived} />
               {downloadId ? <Text type="supporting">The file is ready.</Text> : null}
             </VStack>
           </LayoutContent>

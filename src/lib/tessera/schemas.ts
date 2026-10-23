@@ -454,7 +454,8 @@ export const ProposalViewSchema = z.object({
 /** A stored digest of a cycle, a module, or one actor's inbox. */
 export const DigestViewSchema = z.object({
   kind: DigestKindSchema.describe("Cycle, module, inbox, home or analytics."),
-  entity_id: IdSchema.describe("Cycle id, module id, or the recipient actor id for an inbox digest."),
+  // A string, not a uuid: a home digest is keyed "workspace" and an analytics digest "<tab>:<projects>:<range>".
+  entity_id: z.string().min(1).describe("Cycle id, module id, the recipient actor id for an inbox digest, \"workspace\" for home, or the analytics key."),
   body_md: z.string().describe("Digest text in markdown."),
   input_seq: z.number().int().nonnegative().describe("Highest activity seq the digest summarised."),
   model: z.string().describe("Model id that wrote it."),

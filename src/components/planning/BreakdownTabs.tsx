@@ -96,7 +96,7 @@ export function BreakdownTabs({ byState, assignees, labels, byAssignee, byLabel 
       assigneeRows.length === 0 ? (
         <EmptyRows text="No work items" />
       ) : (
-        <List density="compact">
+        <List density="compact" className="tessera-planning-panel-list">
           {assigneeRows.map((row) => {
             const name = row.id === null ? "No assignee" : (actorsById.get(row.id)?.name ?? REMOVED);
             return (
@@ -114,7 +114,7 @@ export function BreakdownTabs({ byState, assignees, labels, byAssignee, byLabel 
       labelRows.length === 0 ? (
         <EmptyRows text="No work items" />
       ) : (
-        <List density="compact">
+        <List density="compact" className="tessera-planning-panel-list">
           {labelRows.map((row) => {
             const label = row.id === null ? undefined : labelsById.get(row.id);
             const name = row.id === null ? "No label" : (label?.name ?? REMOVED);
@@ -132,7 +132,7 @@ export function BreakdownTabs({ byState, assignees, labels, byAssignee, byLabel 
       knownStates.length + unknownStates.length === 0 ? (
         <EmptyRows text="No work items" />
       ) : (
-        <List density="compact">
+        <List density="compact" className="tessera-planning-panel-list">
           {knownStates.map((state) => (
             <ListItem
               key={state.id}
@@ -162,7 +162,7 @@ export function BreakdownTabs({ byState, assignees, labels, byAssignee, byLabel 
 
   return (
     <VStack gap={2}>
-      <TabList role="tablist" aria-label="Breakdown" value={active} onChange={(value) => isTabKey(value) && setActive(value)} size="sm" layout="hug">
+      <TabList role="tablist" aria-label="Breakdown" value={active} onChange={(value) => isTabKey(value) && setActive(value)} size="sm" layout="hug" className="tessera-planning-breakdown-tabs">
         {TABS.map((tab) => (
           <Tab key={tab.key} value={tab.key} label={tab.label} id={`${base}-tab-${tab.key}`} panelId={`${base}-panel-${tab.key}`} />
         ))}

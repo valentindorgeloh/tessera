@@ -7,7 +7,7 @@
  * itself and its direct sub-items. The engine rejects deeper cycles with
  * RULE, which the caller shows as a toast.
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { ComplexSelector } from "@astryxdesign/core/ComplexSelector";
 import { List, ListItem } from "@astryxdesign/core/List";
@@ -16,6 +16,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { SearchIcon } from "@/themes/catppuccin/icons";
 import { parentTriggerLabel, toCandidates, type WorkItemCandidate } from "./search-hits";
+import { searchUrl, useWorkItemSearch } from "./use-work-item-search";
 
 export type ParentPickerProps = {
   /** Parent id or null. */
@@ -35,44 +36,7 @@ export type ParentPickerProps = {
 /** A work item hit as the picker shows it. */
 export type ParentCandidate = WorkItemCandidate;
 
-const SEARCH_DEBOUNCE_MS = 150;
-const SEARCH_LIMIT = 8;
-
-export function searchUrl(query: string, projectId: string): string {
-  return `/api/search?q=${encodeURIComponent(query)}&scope=${encodeURIComponent(projectId)}&types=work_item&limit=${SEARCH_LIMIT}`;
-}
-
-type SearchState = { status: "idle" | "loading" | "ready" | "unavailable"; hits: ParentCandidate[] };
-
-/** Debounced search against the route; the previous request is aborted on every new query. */
-function useParentSearch(query: string, projectId: string, isOpen: boolean): SearchState {
-  const [state, setState] = useState<SearchState>({ status: "idle", hits: [] });
-  useEffect(() => {
-    // An empty query has no hits (searchAll returns none), so nothing is fetched until the user types.
-    if (!isOpen || query.trim() === "") return;
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      setState((previous) => ({ ...previous, status: "loading" }));
-      try {
-        const response = await fetch(searchUrl(query, projectId), { signal: controller.signal });
-        if (!response.ok) {
-          setState({ status: response.status === 404 ? "unavailable" : "ready", hits: [] });
-          return;
-        }
-        setState({ status: "ready", hits: toCandidates(await response.json()) });
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        console.error("[tessera] parent search failed", err);
-        setState({ status: "unavailable", hits: [] });
-      }
-    }, SEARCH_DEBOUNCE_MS);
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [isOpen, projectId, query]);
-  return state;
-}
+export { searchUrl };
 
 type MenuProps = {
   value: string | null;
@@ -84,7 +48,7 @@ type MenuProps = {
 
 function ParentMenu({ value, projectId, exclude, isOpen, onPick }: MenuProps) {
   const [query, setQuery] = useState("");
-  const search = useParentSearch(query, projectId, isOpen);
+  const search = useWorkItemSearch(query, projectId, isOpen, toCandidates);
   const isEmptyQuery = query.trim() === "";
   const hits = isEmptyQuery ? [] : search.hits.filter((hit) => !exclude.has(hit.id));
   let status: string | null = null;

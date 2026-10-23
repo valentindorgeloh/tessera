@@ -22,6 +22,80 @@
 }
 
 /*
+ * Filter tokens. Astryx keeps each token at its natural width, so a token wider
+ * than the field ran out of it and under the "N results" text and the clear-all
+ * button, which Tokenizer pins to the field's end (out of flow). The token may
+ * narrow to the field, its label and value end in an ellipsis and the remove
+ * button stays whole. While tokens show, the field keeps the end lane clear
+ * (results text, 44px clear-all button, inset) so a token wraps before it.
+ */
+.tessera-wi-search .astryx-tokenizer:has(.astryx-token) {
+  padding-inline-end: calc(var(--spacing-12) * 2 + var(--spacing-6));
+}
+
+.tessera-wi-search .astryx-tokenizer > :has(> .astryx-token) {
+  min-width: 0;
+  max-width: 100%;
+  flex-shrink: 1;
+}
+
+.tessera-wi-search .astryx-token > :not(button:last-child) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tessera-wi-search .astryx-token > button:last-child {
+  flex-shrink: 0;
+}
+
+/*
+ * A phone with filter tokens showing: the field takes the whole filters line and Clear and Advanced
+ * wrap to the line under it, so the tokens have the full width and nothing shares their line. Without
+ * tokens the field and Advanced share the one 44px row, as before the touch rework (the hit areas of
+ * the 28px controls add no height, so nothing needs the second line).
+ */
+@media (max-width: 480px) {
+  .tessera-wi-filter:has(.astryx-token) {
+    flex-wrap: wrap;
+    row-gap: var(--spacing-2);
+  }
+
+  .tessera-wi-filter:has(.astryx-token) > .astryx-power-search {
+    flex: 1 1 100%;
+  }
+}
+
+/*
+ * The sub-header (title and count, layout switch, Display, Export, New work item) in a 481-796px window: its end
+ * group (515px of actions) dissolves into the bar and Display, Export and New work item form one unit that wraps
+ * as a whole. Beside the 250px sidebar a 768px window leaves 468px: the title keeps the layout switch on its line
+ * and the three actions share the line under it, right-aligned, instead of the group wrapping on its own and
+ * leaving New work item alone on a third line. From 797px (sidebar, two 16px insets and the 515px group) the group
+ * fits whole on the line under the title, which stays as it was, and a phone keeps its own wrapping: the actions
+ * unit is `display: contents` everywhere else, so its buttons flow in the end group as before.
+ */
+.tessera-wi-subheader .tessera-wi-subheader-actions {
+  display: contents;
+}
+
+@media (min-width: 481px) and (max-width: 796px) {
+  .tessera-wi-subheader {
+    column-gap: var(--spacing-2);
+    justify-content: flex-end;
+  }
+
+  .tessera-wi-subheader > .tessera-panel-bar-end {
+    display: contents;
+  }
+
+  .tessera-wi-subheader .tessera-wi-subheader-actions {
+    display: flex;
+    flex-wrap: nowrap;
+  }
+}
+
+/*
  * Rows: at least 44px; the key button opens the item; the properties hug the
  * end edge. The end inset is 16px, the panel header's: the last chip ends where
  * the header actions do. The start inset stays 12px: the select checkbox and
@@ -83,9 +157,11 @@
  * date buttons, `tessera-wi-chip`) as small outlined chips, 24px tall with
  * the inner radius and supporting-size text; the chevron goes, since the
  * control outline already marks a chip as a control. A selector's own clear
- * button keeps its Astryx look. The detail keeps the full controls.
+ * button keeps its Astryx look. The detail keeps the full controls. The create
+ * dialog's property row uses the same chips (multi-selectors included).
  */
 .tessera-wi-props .astryx-selector[data-variant="ghost"],
+.tessera-wi-props .astryx-multi-selector[data-variant="ghost"],
 .tessera-wi-props .tessera-wi-chip {
   height: calc(var(--size-element-sm) - var(--spacing-1));
   min-height: 0;
@@ -95,8 +171,36 @@
   font-size: var(--text-supporting-size);
 }
 
-.tessera-wi-props .astryx-selector-indicator-icon {
+.tessera-wi-props .astryx-selector-indicator-icon,
+.tessera-wi-props .astryx-multi-selector-indicator-icon {
   display: none;
+}
+
+/*
+ * The other chips of a row (label, module and estimate tokens, the sub-items
+ * and links counts) are the same 24px chip as the controls, with the inner
+ * radius, so every chip of a row shares a height. The chip gap is 8px (the
+ * HStack gap in ListLayout.tsx).
+ */
+.tessera-wi-props .astryx-token,
+.tessera-wi-props .tessera-wi-count {
+  height: calc(var(--size-element-sm) - var(--spacing-1));
+  border-radius: var(--radius-inner);
+}
+
+.tessera-wi-props .tessera-wi-count {
+  padding-inline: var(--spacing-2);
+  font-size: var(--text-supporting-size);
+}
+
+/*
+ * An overdue target date (the target date is before today and the item is not
+ * done, decision 6: the server's local date) reads in the error text colour,
+ * the same as Plane's date chip. --color-text-red is the text-safe red (at
+ * least 4.5:1 on the row in Frappe and Latte; --color-error is not).
+ */
+.tessera-wi-chip[data-overdue] {
+  color: var(--color-text-red);
 }
 
 /*
@@ -122,24 +226,59 @@
   }
 }
 
+/* A hover paints the band with the hover overlay, as an image on the band colour (the band sets only the colour). */
+@media (hover: hover) {
+  .tessera-wi-group .astryx-collapsible-trigger:hover {
+    background-image: linear-gradient(var(--color-overlay-hover), var(--color-overlay-hover));
+  }
+}
+
 /* Focus scrolled into view stays clear of the sticky band (40px, plus the key button's inset). */
 .tessera-wi-scroller:has(.tessera-wi-group) {
   scroll-padding-block-start: calc(var(--size-element-md) + var(--spacing-4));
 }
 
+/*
+ * The group marker (dot or glyph) starts at the x of a row's key text, and its
+ * name follows it. A row puts 12px of inset, the 20px checkbox, a 4px gap and
+ * the key button's 12px padding before the key text (48px from the row edge);
+ * the band puts its 12px inset, the 17px chevron and the 8px trigger gap before
+ * the header, so the header adds the 11px that remain. The select checkbox
+ * adds no slot: it is positioned over the gutter between the chevron and the
+ * marker (decision 14 keeps its 44px hit area on touch), hover-revealed like a
+ * row's.
+ */
 .tessera-wi-group-header {
   min-width: 0;
-  padding-inline: var(--spacing-2);
+  padding-inline-start: calc(var(--spacing-3) - var(--border-width));
+  padding-inline-end: var(--spacing-2);
   padding-block: var(--spacing-1);
+}
+
+.tessera-wi-group-select {
+  position: absolute;
+  inset-inline-start: calc(var(--spacing-3) + var(--spacing-4));
+  inset-block-start: 50%;
+  transform: translateY(-50%);
 }
 
 .tessera-wi-group-name {
   min-width: 0;
 }
 
+/*
+ * The idle row's "+" sits where a row's checkbox and the chevron sit (12px from
+ * the row edge: the button's own 12px padding, no row inset), and its text at
+ * the row key's x (the 20px gap, over the 8px the button has by itself).
+ */
 .tessera-wi-quickadd {
-  padding-inline: var(--spacing-2);
+  padding-inline-start: 0;
+  padding-inline-end: var(--spacing-2);
   padding-block: var(--spacing-1);
+}
+
+.tessera-wi-quickadd .astryx-button {
+  column-gap: var(--spacing-5);
 }
 
 .tessera-wi-quickadd-active {
@@ -150,6 +289,24 @@
 .tessera-wi-display {
   width: 100%;
   min-width: 0;
+  /*
+   * The popover surface (12px padding and a 1px border each side) stays at 480px, or 600px from a
+   * 1024px tall window, and never taller than the window less two 48px gutters, so it
+   * always fits below its trigger instead of sliding up over it; the body scrolls.
+   */
+  max-block-size: calc(min(calc(var(--spacing-12) * 10), calc(100dvh - var(--spacing-12) * 2)) - var(--spacing-6) - var(--border-width) * 2);
+  overflow-y: auto;
+}
+
+@media (min-height: 1024px) {
+  .tessera-wi-display {
+    max-block-size: calc(var(--spacing-12) * 12 - var(--border-width) * 2);
+  }
+}
+
+/* A balanced description: no single word left alone on the last line of the empty state. */
+.tessera-wi-empty {
+  text-wrap: balance;
 }
 
 /* Full-page detail (P2a): capped reading column; the description keeps its line breaks. */
@@ -172,4 +329,106 @@
 .tessera-wi-pending-key {
   min-width: 72px;
   white-space: nowrap;
+}
+
+/*
+ * Touch targets (S1 and decision 14, option A). Under (pointer: coarse) or at
+ * 480px and narrower every Astryx button, tab, segment, input wrapper and
+ * selector trigger keeps its drawn size and gets a 44px HIT area, an absolutely
+ * positioned `::before` that paints nothing and moves nothing (the theme and
+ * shell.css). The dense rows therefore keep their 1440 look: the chips (24px,
+ * outlined), the property rows and the filter bar are as high as they are at
+ * 1440. What follows is only what a hit area cannot do: the spacing between
+ * wrapped chip lines, the bare inputs and the rows that are 44px by design.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  /*
+   * Wrapped chip lines sit 8px apart (4px at 1440): a chip's 44px hit area reaches
+   * 10px past its 24px box, so a line takes at most 2px of the chip above it and the
+   * rows stay about as high as before the touch rework (they were 44px a line).
+   * The create dialog's form row and the list rows' properties share the rule.
+   */
+  .tessera-wi-props,
+  .tessera-wi-form-props {
+    row-gap: var(--spacing-2);
+  }
+
+  /*
+   * A chip's hit area reaches 10px past its 24px box. The row's lines (key and title, then the chips) sit 8px
+   * apart (4px at 1440) so the chips take at most 2px of the key's hit area, and the last chip line keeps 8px
+   * of row padding so its area stays inside the row.
+   */
+  .tessera-wi-row {
+    row-gap: var(--spacing-2);
+    padding-block-end: var(--spacing-2);
+  }
+
+  /* The checkbox's invisible input is 44px about a 20px box (12px each side): the key button starts 8px further right so the two areas meet instead of overlapping. */
+  .tessera-wi-select {
+    margin-inline-end: var(--spacing-2);
+  }
+
+  /*
+   * With that margin the checkbox and the 72px key button are a 104px start slot. The title's 14rem minimum
+   * (224px, plus the 8px gap) then no longer fits the 329px of a 375px row (314px at 360px), so the title dropped
+   * under the key: rows 36px taller than before the touch rework and a quick-add row 290px lower. 10rem
+   * (160px) keeps key and title on one line down to 360px with room (104 + 8 + 160 = 272 of 314); only a 320px window with a key wider than 72px still wraps; the title still grows
+   * into the free width and ends in an ellipsis, and the chips wrap under it as they did.
+   */
+  .tessera-wi-row > :has(.tessera-wi-title) {
+    min-width: min(10rem, 100%);
+  }
+
+  /*
+   * The tokenizer's 44px hit area is an absolutely positioned `::before`, which paints above a static child, so the
+   * filter field's input was no longer the top element at its own centre: Playwright reported "tokenizer intercepts
+   * pointer events" and a click on the input timed out at phone width. A positioned input paints above the pseudo
+   * (later in tree order) and moves nothing; a tap beside the input still lands on the area and focuses it.
+   */
+  .tessera-wi-search .astryx-tokenizer input {
+    position: relative;
+  }
+
+  /* A group band is a 44px target (the collapse trigger); the sticky band and the scroll padding follow. */
+  .tessera-wi-group .astryx-collapsible-trigger {
+    min-block-size: var(--spacing-11);
+  }
+
+  .tessera-wi-scroller:has(.tessera-wi-group) {
+    scroll-padding-block-start: calc(var(--spacing-11) + var(--spacing-4));
+  }
+
+  /*
+   * The quick-add and create-dialog text fields, the date chips and the filter field's input keep their drawn
+   * size: the field wrapper (TextInput, Tokenizer) and the chip (a Button) carry the 44px hit area from the
+   * theme. A bare <input> cannot carry a pseudo-element, so a field the theme does not key (none here) would
+   * need the input-level `min-block-size` + equal negative margin.
+   */
+
+  /*
+   * A filter token (20px) has two buttons, its label and the remove cross (16px). Both keep their size; their 44px
+   * hit areas are shell.css's (`.astryx-token > button`), and the cross's reaches outward only so it never covers
+   * the label. Wrapped token lines keep Astryx's own gap.
+   */
+
+  /* The options of the filter field's suggestion list (a typeahead dropdown, not an Astryx menu item). */
+  .astryx-typeahead-dropdown [role="option"] {
+    min-block-size: var(--spacing-11);
+  }
+
+  /*
+   * The row gutter on a phone: the select checkbox's 44px hit area pushes the key button 8px right (the
+   * margin above), so the group marker and the quick-add text move 8px too and stay on the key's x.
+   */
+  .tessera-wi-group-header {
+    padding-inline-start: calc(var(--spacing-3) - var(--border-width) + var(--spacing-2));
+  }
+
+  .tessera-wi-group-select {
+    inset-inline-start: calc(var(--spacing-3) + var(--spacing-4) + var(--spacing-2));
+  }
+
+  .tessera-wi-quickadd .astryx-button {
+    column-gap: calc(var(--spacing-5) + var(--spacing-2));
+  }
 }

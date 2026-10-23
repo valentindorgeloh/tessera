@@ -95,6 +95,12 @@ export function ViewBar({ projectId, view, isModified, effective }: ViewBarProps
               isDisabled={view.is_locked}
               tooltip={view.is_locked ? "Unlock the view to update it" : undefined}
             />
+            {/* A disabled button cannot be tapped to show its tooltip: where nothing hovers the reason is written out (views.css). */}
+            {view.is_locked ? (
+              <Text type="supporting" color="secondary" className="tessera-view-bar-reason">
+                Unlock the view to update it
+              </Text>
+            ) : null}
           </>
         )}
       </HStack>

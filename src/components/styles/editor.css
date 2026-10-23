@@ -25,6 +25,9 @@
 .tessera-editor-toolbar {
   padding-inline: var(--spacing-1);
   padding-block-start: var(--spacing-1);
+  /* Above the body, so the Source button's 44px touch area (its lower 8px reach into the body) is not taken by the text. */
+  position: relative;
+  z-index: 1;
 }
 
 /* Table controls (full width only): shown while the selection is in a table, set apart from the Source toggle. */
@@ -59,7 +62,8 @@
 .tessera-editor-content {
   min-height: 240px;
   outline: none;
-  padding-inline: var(--spacing-4);
+  /* The start padding holds the block drag handle (20px box + a gap) inside the frame. */
+  padding-inline: var(--spacing-8) var(--spacing-4);
   padding-block: var(--spacing-2) var(--spacing-4);
   font-family: var(--font-family-body);
   font-size: var(--text-body-size);
@@ -74,8 +78,30 @@
   padding-block: var(--spacing-1) var(--spacing-2);
 }
 
-.tessera-editor--readonly .tessera-editor-content {
-  color: var(--color-text-secondary);
+/*
+ * Phone width or a coarse pointer: the block drag handle is hover-only
+ * (Tiptap's handle uses HTML5 drag, which a finger cannot start), so the
+ * 32px start padding it needs is dropped to the 16px end inset (the handle
+ * is hidden with it, after its own rule below). 32px of 375 left the first block at x=58 (visual audit).
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-editor-content {
+    padding-inline-start: var(--spacing-4);
+  }
+}
+
+/*
+ * A read-only compact editor (a comment, a locked peek description) is text
+ * only: no 120px composer height, and no toolbar row (its Source toggle) in
+ * rich mode. Source mode keeps its toolbar so the toggle can switch back.
+ * Read-only text keeps the primary colour; the banner and the lock say so.
+ */
+.tessera-editor--compact.tessera-editor--readonly .tessera-editor-content {
+  min-height: auto;
+}
+
+.tessera-editor--compact.tessera-editor--readonly:not(.tessera-editor--source) .tessera-editor-toolbar {
+  display: none;
 }
 
 .tessera-editor-content > * + * {
@@ -89,22 +115,28 @@
   margin-block-start: var(--spacing-4);
 }
 
+/* The theme's scale steps (24/32, 20/28, 17/24, all semibold), below the page title (29/36, pages.css). */
 .tessera-editor-content h1 {
+  font-size: var(--text-heading-1-size);
+  line-height: var(--text-heading-1-leading);
+  font-weight: var(--text-heading-1-weight);
+}
+
+.tessera-editor-content h2 {
   font-size: var(--text-heading-2-size);
   line-height: var(--text-heading-2-leading);
   font-weight: var(--text-heading-2-weight);
 }
 
-.tessera-editor-content h2 {
+.tessera-editor-content h3 {
   font-size: var(--text-heading-3-size);
   line-height: var(--text-heading-3-leading);
   font-weight: var(--text-heading-3-weight);
 }
 
-.tessera-editor-content h3 {
-  font-size: var(--text-heading-4-size);
-  line-height: var(--text-heading-4-leading);
-  font-weight: var(--text-heading-4-weight);
+/* The first block starts at the frame's padding whatever it is. */
+.tessera-editor-content > :first-child {
+  margin-block-start: 0;
 }
 
 .tessera-editor-content ul,
@@ -136,10 +168,48 @@
   gap: var(--spacing-2);
 }
 
+/*
+ * The checkbox is 16px in the accent colour (mauve). Its label is the hit area:
+ * 24px, 44px on a touch screen, centred on the first text line, with negative
+ * margins so the 16px checkbox keeps the layout it had.
+ */
 .tessera-editor-content ul[data-type="taskList"] > li > label {
+  --tessera-task-hit: var(--spacing-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
-  margin-block-start: var(--spacing-0-5);
+  box-sizing: border-box;
+  inline-size: var(--tessera-task-hit);
+  block-size: var(--tessera-task-hit);
+  margin-inline: calc((var(--spacing-4) - var(--tessera-task-hit)) / 2);
+  margin-block: calc((var(--text-body-size) * var(--text-body-leading) - var(--tessera-task-hit)) / 2);
   user-select: none;
+}
+
+.tessera-editor-content ul[data-type="taskList"] > li > label input {
+  inline-size: var(--spacing-4);
+  block-size: var(--spacing-4);
+  margin: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+/*
+ * On a touch screen the 44px label would reach into the neighbouring task (the lines sit 22px
+ * apart), so each task is at least as tall as its hit area: the labels stack without overlap and
+ * a tap always lands on the box it was aimed at. The label also paints above the task text, so
+ * the 6px strip it shares with the first letters stays part of the checkbox.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-editor-content ul[data-type="taskList"] > li {
+    min-block-size: var(--spacing-11);
+  }
+
+  .tessera-editor-content ul[data-type="taskList"] > li > label {
+    --tessera-task-hit: var(--spacing-11);
+    position: relative;
+  }
 }
 
 .tessera-editor-content ul[data-type="taskList"] > li > div {
@@ -297,6 +367,17 @@
   line-height: var(--text-label-leading);
 }
 
+/* A chip inside a sentence is an inline link (exempt from the 44px target rule); inline-block would make it a 20px target. */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-editor-content a[href^="work:"],
+  .tessera-editor-content a[href^="page:"],
+  .tessera-editor-content a[href^="cycle:"],
+  .tessera-editor-content a[href^="module:"],
+  .tessera-editor-content a[href^="actor:"] {
+    display: inline;
+  }
+}
+
 .tessera-editor-content a[href^="work:"]:hover,
 .tessera-editor-content a[href^="page:"]:hover,
 .tessera-editor-content a[href^="cycle:"]:hover,
@@ -384,8 +465,22 @@
   cursor: pointer;
 }
 
+/* A pick is a finger target on a touch screen. */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-editor-option {
+    min-block-size: var(--spacing-11);
+  }
+}
+
 .tessera-editor-option--active {
   background: var(--color-overlay-hover);
+}
+
+/* A block command's glyph: 16px in a 20px box. */
+.tessera-editor-option-icon {
+  flex: none;
+  width: var(--spacing-5);
+  height: var(--spacing-5);
 }
 
 .tessera-editor-option-text {
@@ -393,16 +488,34 @@
   min-width: 0;
 }
 
-/* Drag handle rendered beside the hovered block. */
+/*
+ * Drag handle rendered beside the hovered block (Tiptap positions it with
+ * left-start, its top on the block's top). A 20px box sits inside the content's
+ * start padding, 4px off the text, and a modifier centres it on the block's
+ * first line: (line - 20px) / 2, which is 0 for a paragraph (MarkdownEditor passes the modifier).
+ */
 .tessera-editor-drag {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--size-element-sm);
-  height: var(--size-element-sm);
+  width: var(--spacing-5);
+  height: var(--spacing-5);
+  margin-inline-start: calc(-1 * var(--spacing-1));
   border-radius: var(--radius-inner);
   color: var(--color-icon-secondary);
   cursor: grab;
+}
+
+.tessera-editor-drag--h1 {
+  margin-block-start: calc((var(--text-heading-1-size) * var(--text-heading-1-leading) - var(--spacing-5)) / 2);
+}
+
+.tessera-editor-drag--h2 {
+  margin-block-start: calc((var(--text-heading-2-size) * var(--text-heading-2-leading) - var(--spacing-5)) / 2);
+}
+
+.tessera-editor-drag--h3 {
+  margin-block-start: calc((var(--text-heading-3-size) * var(--text-heading-3-leading) - var(--spacing-5)) / 2);
 }
 
 .tessera-editor-drag:hover {
@@ -412,4 +525,11 @@
 
 .tessera-editor-drag:active {
   cursor: grabbing;
+}
+
+/* No room for it on a phone or under touch (see the start padding above). */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-editor-drag {
+    display: none;
+  }
 }

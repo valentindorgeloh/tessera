@@ -22,6 +22,8 @@ Plan: [docs/PLAN.md](PLAN.md). Ownership: [docs/contracts/OWNERS.md](contracts/O
 
 Backlog: open and deferred work after P11 is in [docs/improvements.md](improvements.md) (verified against the code and the browser, reconciled 2026-10-21). Per-area maps of what exists: [docs/as-built/](as-built/README.md).
 
+Visual alignment round (2026-10-22): an audit of nine areas at 1440 and 375 px in both schemes against the Plane reference gave 161 findings, which an Opus judge merged into 130 fix items (`docs/drafts/visual-audit-items.json`, one per root cause). The verify pass reported 158 pass and 4 fail before fix 2, the rework of the touch rule from grown 44px boxes to 44px hit areas that keep the drawn size. Built: touch targets as hit areas (theme adaptations plus `shell.css`, decision 14), the two-row `tabsBelow` header and shared tab-strip rules, the `tessera-fallback` focus layer, the relations and reactions UI on the work item detail (decisions 55 and 57; attachments stay out of scope), plus per-area layout and gutter fixes. The Latte icon contrast of yellow, peach, pink and green is an accepted trade-off. Recorded in `docs/contracts/ui.md` (Theme, Shell, "Visual alignment rules by area") and the as-built maps.
+
 ## Hand-off notes
 
 ### P11 (2026-10-18)

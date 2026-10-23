@@ -1,6 +1,6 @@
 # As-built map: planning (cycles, modules, archives)
 
-State described: HEAD 85140b6 (2026-10-22). Read this before the long contracts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Contract: docs/contracts/ui.md "## P3: cycles, modules, archives".
+State described: the working tree after the visual alignment round (2026-10-22, on HEAD 5f0cc7c). Read this before the long contracts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Contract: docs/contracts/ui.md "## P3: cycles, modules, archives".
 
 ## 1. Purpose and boundaries
 
@@ -42,11 +42,11 @@ Lives elsewhere (this area only calls it):
 | File | Responsibility | Key exports |
 |---|---|---|
 | `types.ts` | Shared view models | `ItemCandidate`, `CycleDetailData`, `ModuleDetailData`, `ProgressTarget` |
-| `CyclesScreen.tsx`, `CycleRow.tsx`, `ActiveCycleSummary.tsx` | Cycles list: sections via `groupCycles`, summary card of the current cycle with chart, rows with progress bar and menu | `CyclesScreen`, `CycleRow`, `cycleRowDescription`, `ActiveCycleSummary` |
-| `ActiveCyclesScreen.tsx` | `/active-cycles`: one section per current cycle with the project token and `ActiveCycleSummary`; empty state "No active cycles" | `ActiveCyclesScreen`, `ActiveCycleSection` |
+| `CyclesScreen.tsx`, `CycleRow.tsx`, `ActiveCycleSummary.tsx` | Cycles list: sections via `groupCycles`, summary card of the current cycle with chart, rows with progress bar and menu (at 480 px and narrower the 96 px bar is hidden and the count stays) | `CyclesScreen`, `CycleRow`, `cycleRowDescription`, `ActiveCycleSummary` |
+| `ActiveCyclesScreen.tsx` | `/active-cycles`: one section per current cycle with the project token and `ActiveCycleSummary`; empty state "No active cycles"; content gutter 16 px (`VStack padding={4}`) | `ActiveCyclesScreen`, `ActiveCycleSection` |
 | `CycleDetailScreen.tsx`, `CycleHeader.tsx`, `CycleSidePanel.tsx` | Cycle detail frame: sub-header (status, range, days left, Add existing, panel toggle, favourite star, menu), digest card on top of the list, read-only line, 360px progress panel | `CycleDetailScreen`, `CycleHeader`, `CycleSidePanel` |
 | `CycleMenu.tsx`, `CycleDialog.tsx`, `TransferDialog.tsx` | Menu (favourite, edit, transfer, archive, restore, delete), create/edit dialog with overlap pre-check, transfer of open items. The menu is disabled in an archived project | `CycleMenu`, `failureText`, `CycleDialog`, `TransferDialog`, `NO_CYCLE` |
-| `ModulesScreen.tsx`, `ModuleRow.tsx`, `ModulesTimeline.tsx` | Modules list with a List/Timeline switch (`?layout=`) and row (status, lead, range, progress). The timeline is the Gantt over `start_date`..`target_date`; dragging a bar writes `update_module` (decision 108) | `ModulesScreen`, `ModuleRow`, `ModulesTimeline` |
+| `ModulesScreen.tsx`, `ModuleRow.tsx`, `ModulesTimeline.tsx` | Modules list with a List/Timeline switch (`?layout=`) and row (status, lead, range, progress; fixed lead and members slots of 24 and 96 px at wide widths, shrunk to content at 480 px and narrower, where the progress bar stays at 48 px). The timeline is the Gantt over `start_date`..`target_date`; dragging a bar writes `update_module` (decision 108) | `ModulesScreen`, `ModuleRow`, `ModulesTimeline` |
 | `ModuleDetailScreen.tsx`, `ModuleHeader.tsx`, `ModuleSidePanel.tsx` | Module detail with digest card; optimistic inline writes; `readOnly` for an archived module or project | `ModuleDetailScreen`, `useModuleWriter`, `ModuleWriter`, `ModuleHeader`, `ModuleSidePanel` |
 | `ModuleMenu.tsx`, `ModuleDialog.tsx`, `ModuleLinks.tsx`, `LeadControl.tsx` | Menu, create/edit dialog and status control, links list with add/edit/remove, lead picker | `ModuleMenu`, `ModuleDialog`, `ModuleStatusControl`, `ModuleStatusLabel`, `ModuleLinks`, `LeadControl`, `EditableModule` |
 | `AddExistingItemsDialog.tsx` | Shared "Add existing work items" for cycles and modules (filter, checkboxes, 500-row cap via `MAX_ROWS`) | `AddExistingItemsDialog`, `eligibleCandidates`, `matchesFilter` |
@@ -65,11 +65,13 @@ Lives elsewhere (this area only calls it):
 
 | File | Classes |
 |---|---|
-| `planning.css` | `tessera-planning-{row-end,cycle-bar,detail-bar,detail-title,side-panel,row-bar,tabpanel,chart-frame,chart-legend,chart-swatch,data-table}`; side panel capped at `max-width: 100%` |
-| `modules.css` | `tessera-modules-{row,row-count,row-bar,row-end,row-name,description,links}` |
+| `planning.css` | `tessera-planning-{row-end,cycle-bar,detail-bar,detail-title,side-panel,row-bar,panel-list,breakdown-tabs,link,tabpanel,chart-frame,chart-legend,chart-swatch,data-table}`; side panel capped at `max-width: 100%`; `tessera-row-hit` (the row's link gets a block-axis hit area under touch; shared by the views, intake, drafts and projects lists), `tessera-cycle-dates`, `tessera-dialog-form` (touch rules, see below) |
+| `modules.css` | `tessera-modules-{row,row-lead,row-members,row-progress,row-count,row-bar,row-end,row-name,description,links,props}` (`props--dialog`: 44 px property rows under touch) |
 | `archives.css` | `tessera-archives-tabs` (pulled in 12px so the first tab sits on the 16px inset), `tessera-archives-projects` |
 
 The timeline uses the `tessera-gantt-*` classes of `gantt.css`.
+
+Visual alignment rules (ui.md "Planning (cycles, modules, intake, views, projects)"): side-panel lists are pulled out 8 px (`tessera-planning-panel-list`) so dots and text sit on the 16 px inset and the breakdown tabs are pulled in 12 px; the calendar button, sm selector triggers and standalone links (`tessera-planning-link`) get 44 px touch targets without changing size (decision 14); a scrolling dialog form keeps 8 px under its last field so its hit area is not clipped; the module dialog's property rows are 44 px under touch while the side panel keeps its dense rows.
 
 ## 3. Data and control flow
 
@@ -143,6 +145,7 @@ The timeline uses the `tessera-gantt-*` classes of `gantt.css`.
 | tests/ui/planning-a11y.test.ts | Dialog names, archive rows, panel toggle states, sub-headers and banners of the list and detail screens, no Restore in an archived project |
 | tests/ui/scope-lookup.test.ts | `lookupScoped`: missing, foreign and feature-off cases for cycles and modules |
 | tests/ui/modules-timeline.test.ts | Timeline drag rules over `update_module`, failed write reverts, Today centring |
+| tests/ui/planning-visual-css.test.ts, planning-touch-phone.test.ts | Stylesheet rules of the alignment round (gutters, panel lists, module row slots, 480 px row layout) and the touch hit areas (`tessera-row-hit`, `tessera-planning-link`, dialog rules), read from the CSS |
 | tests/ui/dialog-names.test.ts, dialog-teardown.test.ts | `aria-label` on the work item, project and link dialogs; dialogs close when a route is hidden |
 | tests/ui/project-tabs.test.ts | Project frame tabs follow the feature toggles |
 | tests/ui/recents.test.ts, recents-store.test.ts | Labels of cycles, modules, archives, aliases, `projectIdFromPath`, forget on delete |
@@ -171,7 +174,7 @@ No test submits `CycleDialog` or `TransferDialog`, runs the Restore and Delete f
 
 ## 7. Known debt and quirks
 
-File budget (scripts/file-budget.json): `src/lib/tessera/cycles.ts` 871 and `src/lib/tessera/modules.ts` 694 (both at their budget; they may not grow). No file in `src/components/planning` is near 600 lines; the largest are `ModulesTimeline.tsx` (339) and `ModuleDialog.tsx` (298).
+File budget (scripts/file-budget.json): `src/lib/tessera/cycles.ts` 871 and `src/lib/tessera/modules.ts` 694 (both at their budget; they may not grow). No file in `src/components/planning` is near 600 lines; the largest are `ModulesTimeline.tsx` (350) and `ModuleDialog.tsx` (298).
 
 Not built (ui.md P3 "Scope and deferrals" and "As built"):
 - Module gallery layout and a module burndown (the module side panel has no chart).

@@ -7,7 +7,7 @@
  * clamped so the start never passes the target. Zoom and dependency
  * connectors follow decisions 90–92.
  */
-import { useCallback, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useId, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { useHotkeys } from "@astryxdesign/core/hooks";
@@ -24,7 +24,8 @@ import type { WorkItem } from "@/lib/tessera/types";
 import { CalendarDotsIcon, CalendarIcon } from "@/themes/catppuccin/icons";
 import { isWeekend, monthLabel, weekBandLabel, weekendShift } from "./calendar-math";
 import { applyDayDelta, barPlacement, barSpan, eachDay, previewEnds, scheduleOnDay, timelineRange, type BarDragMode, type DateEnds } from "./date-span";
-import { conflictNotes, connectorPaths, ganttEdges, monthSpans, weekSpans } from "./gantt-scale";
+import { useGanttMetrics } from "./gantt-metrics";
+import { barColorToken, conflictNotes, connectorPaths, ganttEdges, monthSpans, weekSpans } from "./gantt-scale";
 import { useTodayScroll } from "./gantt-scroll";
 import { GroupFooter } from "./GroupFooter";
 import { isOptimisticId } from "./optimistic";
@@ -87,7 +88,10 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
   }
   const rowIndex = new Map(result.items.map((item, index) => [item.id, index]));
   const edges = showRelations ? ganttEdges(result.relations) : [];
-  const paths = edges.length === 0 ? [] : connectorPaths(edges, rowIndex, byId, range.start, days.length);
+  // The connector layer is drawn in CSS pixels: its day column, row height and bar inset are measured (gantt-metrics.ts).
+  const metrics = useGanttMetrics(rootRef, edges.length > 0 && result.items.length > 0);
+  const markerId = useId().replace(/:/g, "");
+  const paths = edges.length === 0 ? [] : connectorPaths(edges, rowIndex, byId, range.start, days.length, metrics ?? undefined);
   const notes = conflictNotes(paths, byId, new Map(result.items.map((item) => [item.id, item.key])));
   const topSpans = zoom === "month" ? weekSpans(days, weekStartsOn, weekBandLabel) : monthSpans(days, monthLabel);
 
@@ -103,23 +107,26 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
       data-zoom={zoom}
       style={cssVars({
         "--tessera-gantt-days": days.length,
+        "--tessera-gantt-rows": result.items.length,
         "--tessera-gantt-today": todayOffset,
         "--tessera-gantt-weekend-shift": weekendShift(range.start),
       })}
     >
-      <HStack gap={2} vAlign="center" padding={2} className="tessera-gantt-tools">
+      <HStack gap={2} vAlign="center" padding={4} className="tessera-gantt-tools">
         <Button label="Today" size="sm" variant="ghost" icon={<CalendarDotsIcon />} onClick={scrollToday} />
       </HStack>
       <HStack gap={0} vAlign="end" className="tessera-gantt-head">
-        <HStack className="tessera-gantt-label" vAlign="center" paddingInline={2}>
+        <HStack className="tessera-gantt-label" vAlign="center" paddingInline={4}>
           <Text type="supporting">Work item</Text>
         </HStack>
         <VStack gap={0} className="tessera-gantt-scale">
           <HStack gap={0}>
             {topSpans.map((span) => (
-              <Text key={span.key} type="supporting" maxLines={1} className="tessera-gantt-month" style={cssVars({ width: `calc(${span.span} * var(--tessera-gantt-day))` })}>
-                {span.label}
-              </Text>
+              <HStack key={span.key} className="tessera-gantt-month" style={cssVars({ width: `calc(${span.span} * var(--tessera-gantt-day))` })}>
+                <Text type="supporting" maxLines={1} className="tessera-gantt-month-label">
+                  {span.label}
+                </Text>
+              </HStack>
             ))}
           </HStack>
           <HStack gap={0} className="tessera-gantt-days" data-zoom-days={zoom}>
@@ -145,10 +152,20 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
       </HStack>
       <VStack gap={0} className="tessera-gantt-body">
         <VStack className="tessera-gantt-today" aria-hidden />
-        {paths.length > 0 ? (
-          <svg className="tessera-gantt-connectors" viewBox={`0 0 ${days.length} ${result.items.length}`} preserveAspectRatio="none" aria-hidden>
+        {paths.length > 0 && metrics ? (
+          <svg className="tessera-gantt-connectors" viewBox={`0 0 ${days.length * metrics.day} ${result.items.length * metrics.row}`} aria-hidden>
+            <defs>
+              <ArrowMarker id={`${markerId}-edge`} />
+              <ArrowMarker id={`${markerId}-conflict`} isConflict />
+            </defs>
             {paths.map((path) => (
-              <path key={path.key} d={path.d} className="tessera-gantt-edge" data-conflict={path.conflict ? "" : undefined} />
+              <path
+                key={path.key}
+                d={path.d}
+                className="tessera-gantt-edge"
+                data-conflict={path.conflict ? "" : undefined}
+                markerEnd={`url(#${markerId}-${path.conflict ? "conflict" : "edge"})`}
+              />
             ))}
           </svg>
         ) : null}
@@ -172,6 +189,15 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
         <GroupFooter display={display} loaded={result.items.length} total={result.total} isLoading={isLoadingMore?.(UNGROUPED_KEY)} onLoadMore={onLoadMoreUngrouped} />
       ) : null}
     </VStack>
+  );
+}
+
+/** The arrowhead at the end of a connector: `currentColor`, which the stylesheet sets (the error colour for a conflict). */
+function ArrowMarker({ id, isConflict = false }: { id: string; isConflict?: boolean }) {
+  return (
+    <marker id={id} className="tessera-gantt-arrow" data-conflict={isConflict ? "" : undefined} markerWidth={7} markerHeight={8} refX={7} refY={4} orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 0 0 L 7 4 L 0 8 z" fill="currentColor" />
+    </marker>
   );
 }
 
@@ -215,7 +241,7 @@ function GanttRow({
 
   return (
     <HStack gap={0} vAlign="stretch" className="tessera-gantt-row">
-      <HStack gap={1} vAlign="center" paddingInline={2} className="tessera-gantt-label">
+      <HStack gap={1} vAlign="center" paddingInline={4} className="tessera-gantt-label">
         {state ? <StatusDot variant={stateGroupVariant(state.state_group)} label={stateGroupLabel(state.state_group)} /> : null}
         <HStack
           gap={1}
@@ -254,7 +280,12 @@ function GanttRow({
               data-open-end={placement.openEnd ? "" : undefined}
               data-conflict={conflict ? "" : undefined}
               data-readonly={canDrag ? undefined : ""}
-              style={cssVars({ "--tessera-gantt-offset": placement.offset, "--tessera-gantt-span": placement.span })}
+              data-state-group={state?.state_group}
+              style={cssVars({
+                "--tessera-gantt-offset": placement.offset,
+                "--tessera-gantt-span": placement.span,
+                "--tessera-bar-color": barColorToken(state ? stateGroupVariant(state.state_group) : "neutral"),
+              })}
               onClick={(event) => {
                 event.stopPropagation();
                 open();
@@ -268,7 +299,7 @@ function GanttRow({
               }}
               onPointerDown={canDrag ? (event) => onPointerDown(item.id, "move", event) : undefined}
             >
-              <Text type="supporting" maxLines={1}>
+              <Text type="supporting" maxLines={1} className="tessera-gantt-bar-label">
                 {item.key}
               </Text>
               {canDrag ? (

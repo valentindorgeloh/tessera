@@ -32,3 +32,26 @@ export function viewDropInput(event: { id: string; before_id?: string; after_id?
   if (event.after_id !== undefined) input.after_id = event.after_id;
   return input;
 }
+
+export type ViewStep = {
+  /** The insertion index among the other views, as `moveView` takes it. */
+  index: number;
+  /** The `reorder_view` neighbour: Move up lands before the previous row (`after_id` = that row), Move down after the next row (`before_id` = that row). */
+  input: ViewDropInput;
+};
+
+/**
+ * The menu's Move up / Move down as one step (decision 105's keyboard path):
+ * the optimistic index and the `reorder_view` input, or null at the list's
+ * end (the menu item is disabled there) or for an unknown view.
+ */
+export function viewStep(ids: readonly string[], id: string, direction: "up" | "down"): ViewStep | null {
+  const at = ids.indexOf(id);
+  if (at < 0) return null;
+  if (direction === "up") {
+    const previous = ids[at - 1];
+    return previous === undefined ? null : { index: at - 1, input: { view_id: id, after_id: previous } };
+  }
+  const next = ids[at + 1];
+  return next === undefined ? null : { index: at + 1, input: { view_id: id, before_id: next } };
+}

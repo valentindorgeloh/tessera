@@ -7,6 +7,63 @@
   min-width: 0;
 }
 
+/*
+ * Versions view: a fixed list column (160 to 240px, 30% between) beside the
+ * diff, which takes the rest. Under 600px the panes stack, the list on top at
+ * most four rows high (48px each), so a version reads as one line each.
+ */
+.tessera-history-list {
+  flex: 0 0 clamp(calc(var(--spacing-12) * 3 + var(--spacing-4)), 30%, calc(var(--spacing-12) * 5));
+}
+
+.tessera-history-diff {
+  flex: 1 1 0;
+}
+
+@media (max-width: 599px) {
+  .tessera-history-split {
+    flex-direction: column;
+  }
+
+  .tessera-history-list {
+    flex: 0 0 auto;
+    max-height: calc(var(--spacing-12) * 4);
+  }
+
+  .tessera-history-diff {
+    flex: 1 1 auto;
+  }
+}
+
+/*
+ * One version row: label, author and time in one block; the selected row is
+ * highlighted as a whole. The label starts at the same inset as the meta line.
+ */
+.tessera-history-row {
+  border-radius: var(--radius-element);
+  min-width: 0;
+}
+
+.tessera-history-row[data-selected] {
+  background: var(--color-background-muted);
+}
+
+.tessera-history-row-button {
+  justify-content: flex-start;
+  inline-size: 100%;
+}
+
+.tessera-history-row-meta {
+  padding-inline: var(--spacing-3);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.tessera-history-footer {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
 .tessera-diff-line[data-change="added"] {
   background: var(--color-success-muted);
 }

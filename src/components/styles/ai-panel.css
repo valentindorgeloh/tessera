@@ -16,6 +16,20 @@
   min-width: 0;
 }
 
+/*
+ * The status chip keeps its full word ("Applied"); a long title wraps in the
+ * space that is left instead of squeezing the chip to "A...".
+ */
+.tessera-ai-proposal-title {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tessera-ai-proposal-head > .astryx-token {
+  flex: none;
+}
+
 .tessera-ai-proposal + .tessera-ai-proposal {
   border-block-start: var(--border-width) solid var(--color-border);
   padding-block-start: var(--spacing-3);
@@ -42,5 +56,35 @@
     width: 100% !important;
     max-width: none;
     height: 100%;
+  }
+}
+
+/*
+ * Touch targets (decision 14). The panel's buttons reach 44px through the
+ * theme; the composer's text area is Astryx's own contenteditable, which the
+ * theme does not size.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-ai-panel [role="textbox"] {
+    min-block-size: var(--spacing-11);
+  }
+}
+
+/*
+ * The tool-call group's disclosure row is a 24px div[role=button] (Astryx
+ * ChatToolCalls). Under touch it keeps its look and gets a 44px hit area on the
+ * block axis, the same pattern the theme gives buttons (visual audit, assistant
+ * transcript at 375). The row spans the bubble width, so the inline axis stays.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-ai-panel .astryx-chat-tool-calls > [role="button"] {
+    position: relative;
+  }
+
+  .tessera-ai-panel .astryx-chat-tool-calls > [role="button"]::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: 0;
   }
 }

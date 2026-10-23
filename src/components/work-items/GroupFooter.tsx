@@ -17,8 +17,11 @@ export type GroupFooterProps = {
   total: number;
   isLoading?: boolean;
   onLoadMore: () => void;
-  /** `row` insets like a list row, `card` sits in a board column or cell, `inline` goes inside a table group header. */
-  variant?: "row" | "card" | "inline";
+  /**
+   * `row` insets like a table row, `list` puts the button on the list rows' key column (so its label starts at the
+   * key text), `card` sits in a board column or cell, `inline` goes inside a table group header.
+   */
+  variant?: "row" | "list" | "card" | "inline";
 };
 
 export function GroupFooter({ display, loaded, total, isLoading = false, onLoadMore, variant = "row" }: GroupFooterProps) {

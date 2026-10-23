@@ -352,9 +352,19 @@ export const catppuccinTheme = {
         "borderRadius": "var(--radius-element)"
       }
     },
+    "list-item": {
+      "base": {
+        "outlineOffset": "calc(-1 * var(--focus-outline-width))"
+      }
+    },
     "calendar-day": {
       "base": {
         "borderRadius": "var(--radius-element)"
+      }
+    },
+    "side-nav-item": {
+      "selected:selected": {
+        "fontWeight": "var(--font-weight-normal)"
       }
     }
   },
@@ -364,7 +374,9 @@ export const catppuccinTheme = {
       "--color-text-primary": "var(--color-on-dark)",
       "--color-icon-primary": "var(--color-on-dark)",
       "--color-accent": "var(--color-on-dark)",
-      "--focus-outline-color": "var(--color-on-dark)"
+      "--focus-outline-color": "var(--color-on-dark)",
+      "--color-overlay-hover": "color-mix(in srgb, var(--color-on-dark) 10%, transparent)",
+      "--color-overlay-pressed": "color-mix(in srgb, var(--color-on-dark) 14%, transparent)"
     }
   },
   __onLight: {
@@ -373,18 +385,345 @@ export const catppuccinTheme = {
       "--color-text-primary": "var(--color-on-light)",
       "--color-icon-primary": "var(--color-on-light)",
       "--color-accent": "var(--color-on-light)",
-      "--focus-outline-color": "var(--color-on-light)"
+      "--focus-outline-color": "var(--color-on-light)",
+      "--color-overlay-hover": "color-mix(in srgb, var(--color-on-light) 8%, transparent)",
+      "--color-overlay-pressed": "color-mix(in srgb, var(--color-on-light) 12%, transparent)"
     }
   },
   __adaptations: {
     "widthBreakpoints": {
-      "sm": 640,
+      "sm": 481,
       "md": 768,
       "lg": 1024,
       "xl": 1280,
       "2xl": 1536
     },
-    "rules": []
+    "rules": [
+      {
+        "when": {
+          "pointer": "coarse"
+        },
+        "value": {
+          "components": {
+            "button": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "tab": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "tab-scroll-button": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "0"
+                }
+              }
+            },
+            "segmented-control-item": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "0"
+                }
+              }
+            },
+            "top-nav-heading": {
+              "base": {
+                "position": "relative",
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "side-nav-heading": {
+              "base": {
+                "position": "relative",
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "0"
+                }
+              }
+            },
+            "dropdown-menu-item": {
+              "base": {
+                "minBlockSize": "var(--spacing-11)"
+              }
+            },
+            "selector-option-row": {
+              "base": {
+                "minBlockSize": "var(--spacing-11)"
+              }
+            },
+            "command-palette-item": {
+              "base": {
+                "minBlockSize": "var(--spacing-11)"
+              }
+            },
+            "side-nav-item": {
+              "base": {
+                "minBlockSize": "var(--spacing-11)"
+              }
+            },
+            "text-input": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "tokenizer": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "number-input": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "date-input": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "time-input": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "toggle-button": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "input-clear-button": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "when": {
+          "width": {
+            "below": "sm"
+          }
+        },
+        "value": {
+          "components": {
+            "button": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "tab": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "tab-scroll-button": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "0"
+                }
+              }
+            },
+            "segmented-control-item": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "0"
+                }
+              }
+            },
+            "top-nav-heading": {
+              "base": {
+                "position": "relative",
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "side-nav-heading": {
+              "base": {
+                "position": "relative",
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "0"
+                }
+              }
+            },
+            "dropdown-menu-item": {
+              "base": {
+                "minBlockSize": "var(--spacing-11)"
+              }
+            },
+            "selector-option-row": {
+              "base": {
+                "minBlockSize": "var(--spacing-11)"
+              }
+            },
+            "command-palette-item": {
+              "base": {
+                "minBlockSize": "var(--spacing-11)"
+              }
+            },
+            "side-nav-item": {
+              "base": {
+                "minBlockSize": "var(--spacing-11)"
+              }
+            },
+            "text-input": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "tokenizer": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "number-input": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "date-input": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "time-input": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "toggle-button": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            },
+            "input-clear-button": {
+              "base": {
+                "::before": {
+                  "content": "\"\"",
+                  "position": "absolute",
+                  "insetBlock": "min(0px, calc((100% - var(--spacing-11)) / 2))",
+                  "insetInline": "min(0px, calc((100% - var(--spacing-11)) / 2))"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
   },
   __axes: {
     "typography": {

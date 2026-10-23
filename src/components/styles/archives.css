@@ -24,3 +24,28 @@
 .tessera-archives-projects {
   min-width: 0;
 }
+
+/*
+ * Project rows and the New project dialog (the projects area has no stylesheet
+ * of its own; archived projects live here, so the shared rules do too).
+ *
+ * The identifier tokens of the project rows (/projects, /projects/archives)
+ * share one minimum width, so every row title starts at the same x whatever
+ * the identifier (WEB, MOB, EMP). Tabular figures keep digits from nudging a
+ * token's width. A longer key (up to 12 letters) outgrows the minimum and
+ * pushes only its own title.
+ */
+.tessera-project-row-token {
+  min-inline-size: calc(var(--spacing-12) + var(--spacing-4));
+  justify-content: flex-start;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * New project dialog: the KEY preview sits at the foot of the Icon and Colour
+ * row (their labels sit above their controls), so it takes a slot as tall as a
+ * control and centres the token in it, on the selects' centre line.
+ */
+.tessera-project-key-slot {
+  min-block-size: var(--size-element-md);
+}

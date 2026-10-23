@@ -31,6 +31,8 @@ export type ViewRowProps = {
   nextId?: string;
   /** False while the search field has text (a filtered list has no stable neighbours). */
   canReorder: boolean;
+  /** The menu's Move up / Move down: the list applies the move optimistically (decision 13). */
+  onMove?: (direction: "up" | "down") => void;
   /** Pointer drag reorder (decision 105): the row registers with the list's `usePointerDrag` and shows a grip. Absent: no drag. */
   drag?: { rowRef: (el: HTMLElement | null) => void; handlers: ItemDragHandlers };
 };
@@ -50,7 +52,7 @@ function rowDescription(view: View): string {
   return firstLine !== "" ? firstLine : viewSummary(view);
 }
 
-export function ViewRow({ projectId, view, count, isFavorite, previousId, nextId, canReorder, drag }: ViewRowProps) {
+export function ViewRow({ projectId, view, count, isFavorite, previousId, nextId, canReorder, onMove, drag }: ViewRowProps) {
   const icon = <Icon icon={view.logo ? resolveLogoIcon(view.logo.icon) : ViewIcon} color={view.logo?.color ?? "secondary"} size="sm" />;
   return (
     <ListItem
@@ -58,7 +60,7 @@ export function ViewRow({ projectId, view, count, isFavorite, previousId, nextId
       {...drag?.handlers}
       // The row's anchor is a link, which the browser would start dragging natively and cancel the pointer drag.
       onDragStart={drag ? (event) => event.preventDefault() : undefined}
-      className={drag ? "tessera-row-draggable" : undefined}
+      className={drag ? "tessera-row-draggable tessera-row-hit" : "tessera-row-hit"}
       href={projectId === null ? `/workspace-views/${view.id}` : `/projects/${projectId}/views/${view.id}`}
       startContent={
         drag ? (
@@ -79,7 +81,7 @@ export function ViewRow({ projectId, view, count, isFavorite, previousId, nextId
           <Text type="supporting" color="secondary" hasTabularNumbers>
             {count === 1 ? "1 work item" : `${count} work items`}
           </Text>
-          <ViewMenu projectId={projectId} view={view} placement="row" previousId={previousId} nextId={nextId} canReorder={canReorder} />
+          <ViewMenu projectId={projectId} view={view} placement="row" previousId={previousId} nextId={nextId} canReorder={canReorder} onMove={onMove} />
         </HStack>
       }
     />

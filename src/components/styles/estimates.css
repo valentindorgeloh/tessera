@@ -4,7 +4,8 @@
   min-width: 0;
 }
 
+/* The Value and Description cells share the row's free width (the menu keeps its own); min-width 0 lets them narrow on a phone. */
 .tessera-estimate-value {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
 }

@@ -44,6 +44,17 @@
   animation: tessera-lock-text-out var(--duration-slow) var(--ease-standard) var(--duration-medium) forwards;
 }
 
+/* The locked state is a pill: 24px tall, an accent tint behind the label (primary text, 4.5:1 or more in both schemes). */
+.tessera-lock-pill {
+  display: inline-flex;
+  align-items: center;
+  block-size: var(--spacing-6);
+  padding-inline: var(--spacing-2);
+  border-radius: var(--radius-inner);
+  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  color: var(--color-text-primary);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tessera-lock-icon-in,
   .tessera-unlock-icon-in,

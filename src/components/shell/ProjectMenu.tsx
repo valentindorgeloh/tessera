@@ -53,16 +53,16 @@ export function ProjectMenu({ project, isFavorite = false, canMoveUp, canMoveDow
     });
   };
 
-  const items: DropdownMenuOption[] = [
-    { id: "settings", label: "Settings", icon: GearIcon, href: `/projects/${project.id}/settings/general` },
-    { id: "archives", label: "Archives", icon: ArchiveIcon, href: `/projects/${project.id}/archives` },
-    { id: "copy", label: "Copy link", icon: LinkIcon, onClick: copyLink },
-    { id: "favorite", label: favorite.label, icon: resolveLogoIcon("Star"), onClick: favorite.toggle },
-    { id: "draft", label: "Draft work item", icon: DraftIcon, href: `/drafts?draft=new&project=${project.id}` },
-    { id: "archive", label: "Archive project", icon: ArchiveIcon, onClick: () => setConfirmArchive(true) },
-    { id: "up", label: "Move up", icon: MoveUpIcon, isDisabled: !canMoveUp, onClick: () => onMove("up") },
-    { id: "down", label: "Move down", icon: MoveDownIcon, isDisabled: !canMoveDown, onClick: () => onMove("down") },
-  ];
+  const items = projectMenuItems({
+    projectId: project.id,
+    favoriteLabel: favorite.label,
+    canMoveUp,
+    canMoveDown,
+    onCopyLink: copyLink,
+    onToggleFavorite: favorite.toggle,
+    onArchive: () => setConfirmArchive(true),
+    onMove,
+  });
 
   return (
     <>
@@ -79,6 +79,36 @@ export function ProjectMenu({ project, isFavorite = false, canMoveUp, canMoveDow
       />
     </>
   );
+}
+
+/**
+ * The menu's rows in four groups separated by dividers (S13): where to go, the
+ * link / favourite / draft actions, archive, and the order. Archive sits apart
+ * from Move up so a slip does not archive.
+ */
+export function projectMenuItems(input: {
+  projectId: string;
+  favoriteLabel: string;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onCopyLink: () => void;
+  onToggleFavorite: () => void;
+  onArchive: () => void;
+  onMove: (direction: "up" | "down") => void;
+}): DropdownMenuOption[] {
+  return [
+    { id: "settings", label: "Settings", icon: GearIcon, href: `/projects/${input.projectId}/settings/general` },
+    { id: "archives", label: "Archives", icon: ArchiveIcon, href: `/projects/${input.projectId}/archives` },
+    { type: "divider" },
+    { id: "copy", label: "Copy link", icon: LinkIcon, onClick: input.onCopyLink },
+    { id: "favorite", label: input.favoriteLabel, icon: resolveLogoIcon("Star"), onClick: input.onToggleFavorite },
+    { id: "draft", label: "Draft work item", icon: DraftIcon, href: `/drafts?draft=new&project=${input.projectId}` },
+    { type: "divider" },
+    { id: "archive", label: "Archive project", icon: ArchiveIcon, onClick: input.onArchive },
+    { type: "divider" },
+    { id: "up", label: "Move up", icon: MoveUpIcon, isDisabled: !input.canMoveUp, onClick: () => input.onMove("up") },
+    { id: "down", label: "Move down", icon: MoveDownIcon, isDisabled: !input.canMoveDown, onClick: () => input.onMove("down") },
+  ];
 }
 
 /** Reorder helper kept next to the menu so the sidebar can share one call. */

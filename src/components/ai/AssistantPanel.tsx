@@ -136,6 +136,8 @@ export function AssistantPanel() {
                   className="tessera-ai-chat"
                   composer={
                     <ChatComposer
+                      // Flat with a border: Astryx draws the control outline (--color-border-emphasized, 3:1 on the panel) and turns it accent on focus.
+                      elevation="none"
                       value={draft}
                       onChange={setDraft}
                       onSubmit={(value) => {

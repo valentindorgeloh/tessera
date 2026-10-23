@@ -6,6 +6,8 @@
  */
 import type { ActivityLogEntry, PageBacklink, WorkItem, WorkItemDetail } from "@/lib/tessera/types";
 import type { CommentView } from "./CommentItem";
+import type { ReactionSummary } from "./reaction-model";
+import type { RelationRowView } from "./relation-model";
 
 export type WorkItemDetailData = {
   /** WorkItem & { subscriber_ids, links: WorkItemLinkRow[] }. */
@@ -20,6 +22,10 @@ export type WorkItemDetailData = {
   comments?: CommentView[];
   /** listPageBacklinks(ctx, { entity_type: "work_item", entity_id }): the pages that embed the item, for "Mentioned in" (decision 44). */
   backlinks?: PageBacklink[];
+  /** listRelations(ctx, id) with the related items resolved, for the Relations section (decision 55). Optional: a host without relations shows none. */
+  relations?: RelationRowView[];
+  /** reactionsFor(ctx, "work_item", [id]): the reactions under the description (decision 57). */
+  reactions?: ReactionSummary[];
   /** USER_ACTOR_ID, filled server-side ("assign me", the subscribe toggle). */
   currentActorId: string;
   /** latestSeq at load. */

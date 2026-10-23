@@ -31,6 +31,7 @@ import {
 } from "@/components/favorites/tree";
 import { CycleIcon, FolderIcon, FolderPlusIcon, ModuleIcon, MoveDownIcon, MoveUpIcon, PageIcon, PencilIcon, TrashIcon, ViewIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { FavoriteDialog } from "./FavoriteDialog";
+import { ExpandedOnly, RailItem, RowActions } from "./RailParts";
 
 const DRAG_IGNORE = 'button, input, textarea, select, [role="menuitem"], [role="menu"], [role="dialog"]';
 
@@ -121,7 +122,9 @@ export function FavoritesSection({ tree }: { tree: FavoritesTree }) {
       ref={registerContainer("top")}
       title="Favorites"
       endContent={
-        <IconButton label="New folder" variant="ghost" size="sm" icon={<Icon icon={FolderPlusIcon} />} tooltip="New folder" onClick={() => setCreateOpen(true)} />
+        <ExpandedOnly>
+          <IconButton label="New folder" variant="ghost" size="sm" icon={<Icon icon={FolderPlusIcon} />} tooltip="New folder" onClick={() => setCreateOpen(true)} />
+        </ExpandedOnly>
       }
     >
       {entries.map((entry) => {
@@ -222,7 +225,7 @@ function FavoriteRow({
     { id: "top", label: "Top level", isDisabled: favorite.folder_id === null, onClick: () => onMove(moveFavoriteToLevel(tree, favorite.id, null)) },
   ];
   return (
-    <SideNavItem
+    <RailItem
       ref={registerItem(favorite.id)}
       {...itemHandlers(favorite.id, container)}
       className="tessera-favorites-row"
@@ -246,5 +249,9 @@ function FavoriteRow({
 }
 
 function RowMenu({ label, items }: { label: string; items: DropdownMenuOption[] }) {
-  return <MoreMenu label={label} size="sm" items={items} placement="below" alignment="end" />;
+  return (
+    <RowActions>
+      <MoreMenu label={label} size="sm" items={items} placement="below" alignment="end" />
+    </RowActions>
+  );
 }

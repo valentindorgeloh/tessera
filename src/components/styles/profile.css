@@ -6,3 +6,76 @@
   inline-size: 100%;
   max-inline-size: calc(var(--spacing-12) * 8);
 }
+
+/*
+ * The profile header's actor group: avatar, name and tokens (Agent, Can write).
+ * The tokens and the avatar keep their size; only the name may narrow (it
+ * truncates last), so on a phone the tokens stay readable beside it. The tab
+ * strip is a second full-width row below 600px (PanelBar `tabsBelow`, shell.css).
+ */
+.tessera-profile-title {
+  min-width: 0;
+}
+
+.tessera-profile-title > :not(.tessera-profile-name) {
+  flex-shrink: 0;
+}
+
+.tessera-profile-name {
+  min-width: 0;
+}
+
+/*
+ * Phone header (PanelBar `tabsBelow`, under 600px): the five tabs fit on a
+ * 375px phone. Their inline padding is 6px (a token expression) instead of
+ * 12px and the strip runs to the panel's right edge (the bar's 16px inset is
+ * claimed back), so no tab hides under the scroll button at rest (S7, audit
+ * rule c). Narrower than the tabs (under about 360px) the strip scrolls as
+ * before. The first tab's text still starts on the panel's 16px inset.
+ */
+@media (max-width: 480px) {
+  .tessera-panel-bar.tessera-panel-bar--tabs-below > .tessera-panel-bar-start > .tessera-profile-tabs.astryx-tab-list {
+    --tessera-profile-tab-pad: calc(var(--spacing-1) * 1.5);
+    width: calc(100% + var(--tessera-profile-tab-pad) + var(--spacing-4));
+    max-width: none;
+    margin-inline-start: calc(-1 * var(--tessera-profile-tab-pad));
+  }
+
+  .tessera-profile-tabs .astryx-tab {
+    padding-inline: calc(var(--spacing-1) * 1.5);
+  }
+}
+
+/*
+ * Lists under a section heading (Projects, Recent activity, Activity) pull
+ * their rows out by the row's own 8px inset, so the row text starts at the
+ * heading's x (the same rule as the settings lists).
+ */
+.tessera-profile-list {
+  margin-inline: calc(-1 * var(--spacing-2));
+}
+
+/* A finger needs 44px: the profile's link rows (decision 14's touch rule; the 1440 rows are unchanged). */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-profile-list .astryx-item {
+    min-block-size: var(--spacing-11);
+  }
+
+  /*
+   * The row's link is what takes the tap, and it is only as high as its two text lines (40px). It grows to 44px and
+   * takes the room back with an equal negative margin, so the row keeps its height; the title and subline stay a
+   * column (justify-content, not align-items: that would centre the nowrap title on the inline axis, as on Home).
+   */
+  .tessera-profile-list li.astryx-item a {
+    min-block-size: var(--spacing-11);
+    justify-content: center;
+    margin-block: calc((var(--spacing-10) - var(--spacing-11)) / 2);
+  }
+
+  /* An agent's name in the Agents table: a text link is 20px high, and a compact row 33px. */
+  .tessera-profile-link {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--spacing-11);
+  }
+}

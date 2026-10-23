@@ -11,6 +11,7 @@ import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
+import { VStack } from "@astryxdesign/core/Stack";
 import { useToast } from "@astryxdesign/core/Toast";
 import { deleteDraftAction } from "@/app/actions/drafts";
 import { AlertDialog } from "@/components/shell/dialogs";
@@ -67,36 +68,39 @@ export function DraftsScreen({ drafts, projects, draftParam, draft, bundle }: Dr
             {drafts.length === 0 ? (
               <EmptyState title="No drafts" description="Drafts you save from the create dialog show up here." icon={<DraftIcon />} />
             ) : (
-              <List hasDividers density="balanced" aria-label="Drafts">
-                {drafts.map((item) => (
-                  <ListItem
-                    key={item.id}
-                    onClick={() => router.push(item.project_id ? `/drafts?draft=${item.id}&project=${item.project_id}` : `/drafts?draft=${item.id}`)}
-                    startContent={<DraftIcon />}
-                    label={item.name.trim() === "" ? "Untitled draft" : item.name}
-                    description={
-                      <>
-                        {item.project ? item.project.name : "No project"} · edited <RelativeTime value={item.updated_at} hasTooltip={false} />
-                      </>
-                    }
-                    endContent={
-                      <MoreMenu
-                        label={`Actions for ${item.name || "untitled draft"}`}
-                        size="sm"
-                        items={[
-                          { id: "edit", label: "Edit", onClick: () => router.push(item.project_id ? `/drafts?draft=${item.id}&project=${item.project_id}` : `/drafts?draft=${item.id}`) },
-                          {
-                            id: "move",
-                            label: "Move to project",
-                            onClick: () => router.push(item.project_id ? `/drafts?draft=${item.id}&project=${item.project_id}` : `/drafts?draft=${item.id}`),
-                          },
-                          { id: "delete", label: "Delete", icon: TrashIcon, onClick: () => setDeleting(item) },
-                        ]}
-                      />
-                    }
-                  />
-                ))}
-              </List>
+              <VStack paddingInline={2}>
+                <List hasDividers density="balanced" aria-label="Drafts">
+                  {drafts.map((item) => (
+                    <ListItem
+                      key={item.id}
+                      className="tessera-row-hit"
+                      onClick={() => router.push(item.project_id ? `/drafts?draft=${item.id}&project=${item.project_id}` : `/drafts?draft=${item.id}`)}
+                      startContent={<DraftIcon />}
+                      label={item.name.trim() === "" ? "Untitled draft" : item.name}
+                      description={
+                        <>
+                          {item.project ? item.project.name : "No project"} · edited <RelativeTime value={item.updated_at} hasTooltip={false} />
+                        </>
+                      }
+                      endContent={
+                        <MoreMenu
+                          label={`Actions for ${item.name || "untitled draft"}`}
+                          size="sm"
+                          items={[
+                            { id: "edit", label: "Edit", onClick: () => router.push(item.project_id ? `/drafts?draft=${item.id}&project=${item.project_id}` : `/drafts?draft=${item.id}`) },
+                            {
+                              id: "move",
+                              label: "Move to project",
+                              onClick: () => router.push(item.project_id ? `/drafts?draft=${item.id}&project=${item.project_id}` : `/drafts?draft=${item.id}`),
+                            },
+                            { id: "delete", label: "Delete", icon: TrashIcon, onClick: () => setDeleting(item) },
+                          ]}
+                        />
+                      }
+                    />
+                  ))}
+                </List>
+              </VStack>
             )}
           </LayoutContent>
         }

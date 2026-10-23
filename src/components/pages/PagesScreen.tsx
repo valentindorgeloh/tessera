@@ -90,11 +90,17 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
 
   const create = () => {
     startCreate(async () => {
-      const result = await createPageAction({
-        project_id: projectId,
-        name: "Untitled",
-        access: tab === "private" ? "private" : "public",
-      });
+      let result: Awaited<ReturnType<typeof createPageAction>>;
+      try {
+        result = await createPageAction({
+          project_id: projectId,
+          name: "Untitled",
+          access: tab === "private" ? "private" : "public",
+        });
+      } catch {
+        toast({ type: "error", body: "Could not create the page. The request did not go through." });
+        return;
+      }
       if (!result.ok) {
         toast({ type: "error", body: `Could not create the page. ${result.message}` });
         return;
@@ -125,7 +131,7 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
   );
   const actions = (
     <HStack gap={2} vAlign="center" wrap="wrap" className="tessera-pages-actions">
-      <TextInput label="Search pages" isLabelHidden size="sm" value={query} onChange={setQuery} startIcon={SearchIcon} hasClear className="tessera-pages-search" />
+      <TextInput label="Search pages" isLabelHidden size="sm" placeholder="Search pages" value={query} onChange={setQuery} startIcon={SearchIcon} hasClear className="tessera-pages-search" />
       {newButton}
     </HStack>
   );
@@ -133,10 +139,17 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
   const move = (input: PageMove) =>
     startMove(async () => {
       applyMove(input);
-      const result = await movePageAction(input);
-      if (!result.ok) {
+      // A request that rejects (the network is gone) reverts like a refused move; it must not reach the error boundary (decision 13).
+      let failure: string | null = null;
+      try {
+        const result = await movePageAction(input);
+        if (!result.ok) failure = result.message;
+      } catch {
+        failure = "The request did not go through.";
+      }
+      if (failure !== null) {
         const name = pages.find((entry) => entry.id === input.page_id)?.name ?? "the page";
-        toast({ type: "error", body: `Could not move ${name}. ${result.message}` });
+        toast({ type: "error", body: `Could not move ${name}. ${failure}` });
       }
     });
   const dragEnabled = tab !== "archived" && query.trim() === "" && !projectArchived;
@@ -145,6 +158,8 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
   const draggedPage = draggingId === null ? undefined : pages.find((entry) => entry.id === draggingId);
 
   const items = toTreeItems(pages, query);
+  // A tree with a chevron column and grips shifts the grip on a touch screen so the two 44px hit areas do not overlap (pages.css).
+  const hasBranches = dragEnabled && items.some((node) => node.children.length > 0);
   const tree = (nodes: readonly PageTreeItem[]): TreeListItemData[] =>
     nodes.map((node) => ({
       id: node.id,
@@ -153,7 +168,7 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
       className: rowClassName(node.id),
       isExpanded: node.isExpanded && node.children.length > 0,
       startContent: (
-        <HStack gap={1} vAlign="center">
+        <HStack gap={1} vAlign="center" className={hasBranches ? "tessera-page-row-lead tessera-page-row-lead--branches" : "tessera-page-row-lead"}>
           {isRowDraggable(node.id) ? <RowGrip /> : dragEnabled ? <Icon icon={DragHandleIcon} size="sm" className="tessera-page-grip-spacer" /> : null}
           <Icon icon={node.page.logo ? resolveLogoIcon(node.page.logo.icon) : PageIcon} size="sm" color={node.page.logo?.color} />
         </HStack>
@@ -167,6 +182,7 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
           spaceName={project?.name}
           previousId={node.previousId}
           nextId={node.nextId}
+          onMove={move}
           isDisabled={projectArchived}
         />,
       ),
@@ -178,13 +194,13 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
 
   return (
     <PanelPage
-      width={space.kind === "wiki" ? "reading" : "full"}
+      width="full"
       header={
         <PanelHeader label={space.kind === "wiki" ? "Wiki" : "Pages"}>
           {space.kind === "wiki" ? (
             <PanelBar start={<PanelTitle>Wiki</PanelTitle>} />
           ) : null}
-          <PanelBar size="subheader" canWrap start={tabs} end={actions} />
+          <PanelBar size="subheader" tabsBelow className="tessera-pages-bar" start={tabs} end={actions} />
         </PanelHeader>
       }
     >

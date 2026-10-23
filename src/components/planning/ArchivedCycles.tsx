@@ -98,6 +98,7 @@ function ArchivedCycleRow({ projectId, cycle, onDelete }: RowProps) {
 
   return (
     <ListItem
+      className="tessera-row-hit"
       href={`/projects/${projectId}/cycles/${cycle.id}`}
       label={cycle.name}
       description={

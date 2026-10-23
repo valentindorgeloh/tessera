@@ -19,7 +19,8 @@
  * - containers auto-scroll near their edges and the optional outer scroller
  *   (the board's horizontal strip) does the same;
  * - Escape or `pointercancel` abandons the drag; mouse, touch and pen all go
- *   through pointer events (give items `touch-action: none`).
+ *   through pointer events (give a touch grip `touch-action: none`, never the
+ *   whole item: the board card starts a touch drag from its grip only).
  *
  * The pure maths live in ./drag-math.ts (tested in tests/ui/drag-math.test.ts).
  */

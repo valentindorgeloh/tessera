@@ -6,7 +6,7 @@
  * `createProjectAction` and lands on the new project's work items; a CONFLICT
  * (name or identifier taken) shows inline.
  */
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import { Dialog, DialogHeader } from "@/components/shell/dialogs";
@@ -80,6 +80,9 @@ function CreateProjectForm({ onOpenChange }: Pick<CreateProjectDialogProps, "onO
   const [icon, setIcon] = useState<ProjectLogoIconName>("Folder");
   const [color, setColor] = useState<PaletteColor>("blue");
   const [error, setError] = useState<{ field: "name" | "identifier" | "form"; message: string } | null>(null);
+  // A rejected submit leaves focus on the field to correct: the Create button is disabled while pending, which drops focus to <body> (visual audit).
+  const nameRef = useRef<HTMLInputElement>(null);
+  const identifierRef = useRef<HTMLInputElement>(null);
 
   const identifierValid = PROJECT_IDENTIFIER_PATTERN.test(identifier);
   const canSubmit = name.trim() !== "" && identifierValid && !isPending;
@@ -101,6 +104,7 @@ function CreateProjectForm({ onOpenChange }: Pick<CreateProjectDialogProps, "onO
         const message = result.message;
         const field = result.code === "CONFLICT" ? (/identifier/i.test(message) ? "identifier" : "name") : "form";
         setError({ field, message });
+        (field === "identifier" ? identifierRef : nameRef).current?.focus();
         return;
       }
       onOpenChange(false);
@@ -116,9 +120,10 @@ function CreateProjectForm({ onOpenChange }: Pick<CreateProjectDialogProps, "onO
       content={
         <LayoutContent>
           <VStack gap={4}>
-        <FormLayout>
+        <FormLayout className="tessera-dialog-form">
           <TextInput
             label="Name"
+            ref={nameRef}
             value={name}
             hasAutoFocus
             isRequired
@@ -132,6 +137,7 @@ function CreateProjectForm({ onOpenChange }: Pick<CreateProjectDialogProps, "onO
           />
           <TextInput
             label="Identifier"
+            ref={identifierRef}
             description="2 to 12 letters or digits, starting with a letter. Work items are keyed like WEB-12."
             value={identifier}
             isRequired
@@ -167,7 +173,9 @@ function CreateProjectForm({ onOpenChange }: Pick<CreateProjectDialogProps, "onO
               onChange={(value) => isPaletteColor(value) && setColor(value)}
               renderOption={(option) => <Token label={option.label ?? option.value} size="sm" color={isPaletteColor(option.value) ? option.value : "gray"} />}
             />
-            <Token label={identifier || "KEY"} icon={<Icon icon={resolveLogoIcon(icon)} />} color={color} />
+            <HStack vAlign="center" className="tessera-project-key-slot">
+              <Token label={identifier || "KEY"} icon={<Icon icon={resolveLogoIcon(icon)} />} color={color} />
+            </HStack>
           </HStack>
         </FormLayout>
             {error?.field === "form" ? <FieldStatus type="error" message={error.message} /> : null}
@@ -176,7 +184,7 @@ function CreateProjectForm({ onOpenChange }: Pick<CreateProjectDialogProps, "onO
       }
       footer={
         <LayoutFooter>
-          <HStack gap={3} hAlign="end">
+          <HStack gap={2} hAlign="end">
             <Button variant="ghost" label="Cancel" onClick={() => onOpenChange(false)} isDisabled={isPending} />
             <Button variant="primary" label="Create project" onClick={submit} isLoading={isPending} isDisabled={!canSubmit} />
           </HStack>

@@ -15,7 +15,7 @@ import { Switch } from "@astryxdesign/core/Switch";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Text } from "@astryxdesign/core/Text";
 import { SearchIcon, SparkleIcon } from "@/themes/catppuccin/icons";
-import { liveHighlight } from "./command-source";
+import { autoHighlightRow, liveHighlight } from "./command-source";
 
 export type PaletteMode = "search" | "ask";
 
@@ -96,27 +96,47 @@ export function PaletteInput({
   const highlighted = palette?.highlightedIndex ?? -1;
   const rowCount = palette?.selectableItems.length ?? 0;
   const setHighlighted = palette?.setHighlightedIndex;
+  // The query whose first row was already highlighted: that happens once per
+  // query, so a row the user un-highlights (mouse leave, ArrowUp to -1) stays so.
+  const autoHighlighted = useRef(false);
   useEffect(() => {
+    autoHighlighted.current = false;
     setHighlighted?.(-1);
   }, [query, setHighlighted]);
   useEffect(() => {
     if (highlighted >= rowCount) setHighlighted?.(-1);
   }, [highlighted, rowCount, setHighlighted]);
 
-  // The palette highlights nothing until an arrow key moves; Enter on a fresh
-  // query opens the first result (a key such as WEB-1, or "Ask: …"). A row the
-  // user highlighted is the palette's to open; a stale highlight is not.
+  // Once the results for a query have landed, the first row is the active one:
+  // it carries the highlight overlay and the input's aria-activedescendant, so
+  // the row Enter opens is the row on screen (S12). Only after a query change
+  // (the idle empty-query list keeps Astryx's no-highlight start) and only
+  // once per query, and never while a search is in flight.
+  const isBusy = palette?.isBusy ?? true;
+  const autoRow = palette ? autoHighlightRow(query ?? "", isBusy, palette.selectableItems) : -1;
+  useEffect(() => {
+    if (autoRow < 0 || autoHighlighted.current) return;
+    autoHighlighted.current = true;
+    if (highlighted < 0) setHighlighted?.(autoRow);
+  }, [autoRow, highlighted, setHighlighted]);
+
+  // Enter on a fresh query opens the first result (a key such as WEB-1, or
+  // "Ask: …"), which is also the highlighted row once the results land. A row
+  // the user highlighted is the palette's to open; a stale highlight is not.
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== "Enter") {
       pendingEnter.current = false;
       return;
     }
-    if (!palette || liveHighlight(palette.highlightedIndex, palette.selectableItems) >= 0) return;
+    if (!palette) return;
+    // A search in flight: wait for its results, even when a row of the old list
+    // is highlighted (the first row is highlighted automatically).
     if (palette.isBusy) {
       event.preventDefault();
       pendingEnter.current = true;
       return;
     }
+    if (liveHighlight(palette.highlightedIndex, palette.selectableItems) >= 0) return;
     if (openFirst()) event.preventDefault();
   };
   const shownMode = isAskShown ? mode : "search";
@@ -143,7 +163,7 @@ export function PaletteFooter({ scope, onAllProjectsChange }: { scope: PaletteSc
   return (
     <CommandPaletteFooter>
       <HStack gap={4} vAlign="center" hAlign="between" width="100%">
-        <HStack gap={3} vAlign="center" wrap="wrap">
+        <HStack gap={3} vAlign="center" wrap="wrap" className="tessera-cmd-hints">
           <HStack gap={1} vAlign="center">
             <Kbd keys="up" />
             <Kbd keys="down" />

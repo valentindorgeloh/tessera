@@ -1,0 +1,2478 @@
+{
+ "date": "2026-10-22",
+ "head": "85140b6",
+ "summary": "I triaged 158 findings from 9 auditors and checked the contested ones against plane-visual-reference.md, ui.md, PLAN.md, the as-built docs and the code. I also checked the 4 known leftovers in code, and all 4 are real: WorkspaceViewsScreen passes no drag prop to ViewRow; the menu Move up/Down in ViewMenu, StatesSettings, LabelsSettings and PageRowMenu calls the action without applyMove; operations.md:104 records the gantt Today and dates buttons as 28px; SeriesCharts tables use no table-widths floors.\n\nResult: 99 fix items, one per root cause, in severity order (21 high, 44 medium, 34 low). I rejected 4 findings: 1 is intended behaviour and 3 conflict with the Density rule in ui.md. I moved 3 findings to needs_decision.\n\nShared root causes, fixed once in the shell lane:\n- a coarse-pointer touch-size rule for Astryx controls across the whole theme (S1);\n- a fallback focus ring plus accent-color for focusable elements that are not Astryx components (S5);\n- an inset ListItem focus ring, so flush lists no longer clip it (S6);\n- one shared header tab-strip pattern: docked on the hairline, first tab on the 16px inset, a two-row layout below 600px with 44px tabs (S7).\nLane items build on these.\n\nDuplicates merged:\n- list-1 with planning-2 (FilterBar token overflow);\n- board-table-4 with planning-16 (Name column);\n- planning-13 with workspace-9 (clipped row ring);\n- detail-2 with detail-8 (sub-item props);\n- list-11 with detail-19 (label overflow);\n- the tab-inset findings settings-2, settings-3, workspace-5, planning-8 and pages-15.\n\nLane moves by file ownership: shell-13 and shell-14 go to planning (CreateProjectDialog is in projects/); workspace-2 and workspace-3 go to settings (profile/); workspace-4 goes to detail (ai-surfaces.css); detail-7 goes to pages (editor.css).\n\nTouch-target findings are rated high, because the brief defines high as anything under 44px at 375. How to apply 44px is in needs_decision.\n\nI did not start a server: every surviving finding had numeric evidence in results.json or extra*.json that matched the code I read (for example the gantt connector svg has top:0/bottom:0 and no height, and table.css has no row-level stopPropagation for the selection cell).",
+ "items": [
+  {
+   "id": "S1",
+   "lane": "shell",
+   "severity": "high",
+   "title": "Theme-wide 44px touch targets for Astryx controls at 375 / coarse pointer",
+   "instruction": "In src/themes/catppuccin (catppuccin.css, or a new rule block imported by the theme), add one `@media (pointer: coarse), (max-width: 480px)` block that gives Astryx interactive controls a 44px hit target: `min-block-size: var(--spacing-11)` on Button, IconButton (also `min-inline-size: var(--spacing-11)`), ToggleButton, Tab (.astryx-tab), SegmentedControl items, MenuItem / dropdown options, Dialog close and the Toast dismiss. For Switch and Checkbox, keep the visual size and enlarge only the hit area with a `::before` pseudo-element: `position:absolute; inset: calc((var(--spacing-11) - 100%) / -2)`, or a padding/negative-margin pair as in project-settings.css .tessera-row-grip. Get the exact root class names from node_modules/@astryxdesign/core/src/<Component> (e.g. astryx-tab, astryx-tab-scroll-button); do not guess. Leave controls inside dense rows (list chips, table cells, property rail) to the lane items. Tokens only. Shell's own screens must then measure 44: top-bar Assistant, Help, Account, burger/close, drawer rows (give .tessera-sidebar rows min-block-size var(--spacing-11) in shell.css under the same media query), the New work item button, section +/New folder, row ... buttons, palette rows and Search/Ask tabs, the project menu items, the frame header star and project actions, the tab scroll button, Create project and Shortcuts dialog Close/Cancel/Create, Toast Dismiss and Go home. Leave the 1440 layout unchanged.",
+   "files": [
+    "src/themes/catppuccin/catppuccin.css",
+    "src/themes/catppuccin/catppuccinTheme.ts",
+    "src/components/styles/shell.css",
+    "src/components/shell/TopBar.tsx",
+    "src/components/shell/Sidebar.tsx"
+   ],
+   "expected": "Every shell control reaches >= 44x44 at 375 (both schemes); the 1440 geometry is unchanged (top bar 48, rows 32, header controls 28)",
+   "source": "Audit rule (d) for this run; field guide 'Drag and touch' (44x44 under (pointer: coarse), (max-width: 480px)); shell.css tab-row comment 'A touch target is 44px'",
+   "finding_ids": [
+    "shell-10",
+    "shell-11",
+    "shell-12",
+    "list-7",
+    "board-table-13",
+    "detail-3",
+    "planning-15",
+    "settings-5",
+    "settings-6",
+    "settings-7",
+    "pages-6",
+    "workspace-11",
+    "workspace-12",
+    "timeline-3"
+   ],
+   "verify": "shell/measure.mjs WIDTHS=375 SCHEMES=dark,light, all screens: audit.touch must be empty for shell controls; re-run WIDTHS=1440 to confirm sidebar.items h=32 and the top bar at 48",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "L1",
+   "lane": "list",
+   "severity": "high",
+   "title": "Filter bar tokens overflow the PowerSearch field at 375",
+   "instruction": "In FilterBar.tsx and work-items.css (.tessera-wi-filter, .tessera-wi-search), let the token field shrink: on the field and its token row, `min-width: 0; flex: 1 1 auto; flex-wrap: wrap`; on each token, `max-width: 100%` with ellipsis on the token label (keep the remove button visible). Below 480px put the 'N results' text and the Clear / clear-all buttons on their own line under the field (`flex-basis: 100%` or a two-row grid), so nothing intersects. The filters bar may grow beyond 44 while tokens wrap. The 'Remove Priority' button must be clickable without interception.",
+   "files": [
+    "src/components/work-items/FilterBar.tsx",
+    "src/components/styles/work-items.css"
+   ],
+   "expected": "0 overlaps among field, tokens, results text, clear-all and Clear at 375; every token inside the field box; the Remove button clickable (Playwright click not intercepted)",
+   "source": "plane-visual-reference.md §9; audit rule (c)",
+   "finding_ids": [
+    "list-1",
+    "planning-2"
+   ],
+   "verify": "list/measure.mjs ONLY=view-web,view-mob,filter-tokens,filter-nomatch WIDTHS=375 SCHEMES=dark,light (powerSearch.overlaps empty); planning/viewbar.mjs at 375 reaches the Modified ViewBar",
+   "status": "fixed: verify PASS; evidence: browser measure (list/measure.mjs, 1440 and 375, both schemes, screenshots) + tests/ui/list-touch-css, list-visual-fixes"
+  },
+  {
+   "id": "L7",
+   "lane": "list",
+   "severity": "high",
+   "title": "List row controls under 44px at 375",
+   "instruction": "After S1 lands, add a `@media (pointer: coarse), (max-width: 480px)` block to work-items.css: key button `min-block-size: var(--spacing-11)`; .tessera-wi-props chips (selectors, date chips, tokens): keep their 24px visual, but give the interactive element `min-block-size: var(--spacing-11)` through padding-block plus an equal negative margin-block, so the row (already >= 44) does not grow; layout switch items, header buttons and the filter field at var(--spacing-11); popover/dialog comboboxes at var(--spacing-11). Keep the 1440 values.",
+   "files": [
+    "src/components/styles/work-items.css",
+    "src/components/styles/bulk.css"
+   ],
+   "expected": "audit.small on list-grouped|375 lists no interactive element under 44 high (key button, chips, date chips, layout switch, header buttons, filter field, comboboxes)",
+   "source": "Audit rule (d); field guide 'Drag and touch'",
+   "finding_ids": [
+    "list-7"
+   ],
+   "verify": "list/measure.mjs ONLY=list-grouped,list-flat,create-dialog WIDTHS=375 SCHEMES=dark,light (audit.small)",
+   "status": "fixed: verify PASS; evidence: browser measure (list/measure.mjs, 1440 and 375, both schemes, screenshots) + tests/ui/list-touch-css, list-visual-fixes"
+  },
+  {
+   "id": "B1",
+   "lane": "board-table",
+   "severity": "high",
+   "title": "Board card is a whole-card touch grip; a column cannot be scrolled by finger",
+   "instruction": "In board.css remove `touch-action: none` from .tessera-board-card. In BoardCards.tsx move the pointer-drag handlers onto a dedicated grip (reuse RowGrip / .tessera-row-grip, 44x44 under (pointer: coarse), (max-width: 480px)) in the card's key row. With a mouse the whole card may still start a drag (pointerType mouse), but under touch only the grip starts one. Keep the drag overlay identical. The column body (.tessera-board-column scroller) must have touch-action pan-y; the strip keeps pan-x.",
+   "files": [
+    "src/components/styles/board.css",
+    "src/components/work-items/BoardCards.tsx",
+    "src/components/work-items/BoardLayout.tsx"
+   ],
+   "expected": "At 375 with touch: a swipe up on a card or gap scrolls the column (scrollTop > 0); a swipe left on a card scrolls the strip; a drag from the grip still shows the overlay and touchCancel restores 48 cards",
+   "source": "docs/field-guide/index.md 'Drag and touch' line 1; ui.md Board",
+   "finding_ids": [
+    "board-table-1"
+   ],
+   "verify": "board-table/measure.mjs ONLY=board_state WIDTHS=375 SCHEMES=dark,light, .touch: cardSwipeUpMid and gapSwipeUp colScrollTop > 0, cardSwipeLeftStripDelta > 0, the grip drag overlay follows the finger",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "B2",
+   "lane": "board-table",
+   "severity": "high",
+   "title": "Clicking a table row's selection checkbox also opens the peek",
+   "instruction": "In TableLayout.tsx transformBodyCell, stop click propagation for the selection column, as is already done for the EDITABLE columns: wrap the checkbox cell content with onClick={e => e.stopPropagation()}, or exclude the selection key from the row click handler. Keyboard Space on the checkbox must not open the peek either.",
+   "files": [
+    "src/components/work-items/TableLayout.tsx"
+   ],
+   "expected": "Clicking 'Select WEB-5' checks the row; the URL has no peek= and no peek panel opens",
+   "source": "TableLayout.tsx file header (clicks in interactive cells stay in the cell)",
+   "finding_ids": [
+    "board-table-2"
+   ],
+   "verify": "board-table/measure.mjs ONLY=table,table_grouped,wview_table WIDTHS=1440 SCHEMES=dark,light: .select.peekOpenedByCheckbox false",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "B11",
+   "lane": "board-table",
+   "severity": "high",
+   "title": "Board and table touch targets under 44 at 375",
+   "instruction": "Add a `@media (pointer: coarse), (max-width: 480px)` block to board.css and table.css (after S1): card ... menu and column add button `min-inline-size/min-block-size: var(--spacing-11)`; quick-add row and lane trigger `min-block-size: var(--spacing-11)`; table body rows `min-block-size: var(--spacing-11)`, with the cell triggers (State, Priority, Cycle, Assignees, Modules), date chips, clear-X, key button and checkboxes enlarged to var(--spacing-11) hit areas (padding plus negative margin where the visual must stay small); sort buttons `min-block-size: var(--spacing-11)`. The desktop compact density is unchanged (see the rejected board-table-14 desktop part; only its coarse-pointer part is done here).",
+   "files": [
+    "src/components/styles/board.css",
+    "src/components/styles/table.css",
+    "src/components/work-items/TableLayout.tsx"
+   ],
+   "expected": "content.smallTouch on board_state|375 and table|375 lists no control under 44; desktop rows stay 37 and the header 29.5",
+   "source": "Audit rule (d); field guide RowGrip 44x44",
+   "finding_ids": [
+    "board-table-13",
+    "board-table-14"
+   ],
+   "verify": "board-table/measure.mjs ONLY=board_state,board_lanes,table WIDTHS=375 SCHEMES=dark,light (content.smallTouch)",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "T1",
+   "lane": "timeline",
+   "severity": "high",
+   "title": "Gantt dependency connectors drawn at the wrong scale (svg height from aspect ratio); no arrowheads",
+   "instruction": "The svg .tessera-gantt-connectors has top:0/bottom:0 but height auto, so as a replaced element it takes its height from the viewBox ratio. Give it an explicit height, `height: calc(var(--tessera-gantt-rows) * var(--tessera-gantt-row))`, setting --tessera-gantt-rows as a style prop in GanttLayout.tsx (css-token convention: define it on the other side of the css/ts pair). Draw the paths in CSS pixels: measure the row height from the first rendered row, as dayWidth already is (decision 90), so coarse 44px rows work. Do not use a scaled viewBox: arrowheads would distort under preserveAspectRatio=none. Add a `<marker>` arrowhead (marker-end) on every path, in currentColor, with the conflict paths in the error colour, and end the path at the bar's inset edge (bars are inset by --spacing-1), not at the day boundary. Apply the same pattern to the modules timeline if it ever draws connectors (decision 108 says none).",
+   "files": [
+    "src/components/styles/gantt.css",
+    "src/components/work-items/GanttLayout.tsx",
+    "src/components/work-items/gantt-scale.ts"
+   ],
+   "expected": "svg height = rows x row height in every zoom and at 375 touch; endpoint dy against the row centres <= 1px for all edges; each path has an arrowhead pointing at the blocked item's start (decision 92)",
+   "source": "docs/PLAN.md decision 92; cross-cutting rule 8",
+   "finding_ids": [
+    "timeline-1",
+    "timeline-17"
+   ],
+   "verify": "timeline/conn.mjs, all zooms at 1440 and 375 (results-conn.json ratio 1.0, paths[].dyStart/dyEnd <= 1); timeline/measure.mjs ONLY=gantt-month: gantt.connectorMarkers > 0, both schemes",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "T2",
+   "lane": "timeline",
+   "severity": "high",
+   "title": "Gantt, modules timeline and calendar controls under 44px at 375 (known leftover)",
+   "instruction": "Extend gantt.css and calendar.css with `@media (pointer: coarse), (max-width: 480px)`: the gantt Today button and per-row 'Set dates' IconButton (GanttDates in GanttLayout.tsx and ModuleDates in ModulesTimeline.tsx) at `min-block-size: var(--spacing-11)` (icon button also min-inline-size var(--spacing-11)); .tessera-gantt-open `min-block-size: var(--spacing-11)`; rows at var(--spacing-11) under max-width 480 too, not only pointer coarse; bar `block-size: calc(var(--spacing-11) - var(--spacing-2))`; resize handles `inline-size: var(--spacing-4)` (16) with the pseudo hit area out to var(--spacing-11). Calendar: Previous/Next/Today/'N unscheduled' and the '+N more' button at `min-block-size: var(--spacing-11)`. Update docs/as-built/operations.md line 104 in the same change (it records the 28px leftover).",
+   "files": [
+    "src/components/styles/gantt.css",
+    "src/components/styles/calendar.css",
+    "src/components/work-items/GanttLayout.tsx",
+    "src/components/work-items/CalendarLayout.tsx",
+    "src/components/planning/ModulesTimeline.tsx"
+   ],
+   "expected": "At 375 (with and without touch emulation): Today 44 high, Set dates 44x44, Open row button 44 high, calendar toolbar and +N more 44 high; 1440 unchanged (32 rows, 28 buttons)",
+   "source": "Run brief known leftover; docs/as-built/operations.md:104; field guide 'Drag and touch'",
+   "finding_ids": [
+    "timeline-2",
+    "timeline-3"
+   ],
+   "verify": "timeline/measure.mjs ONLY=gantt-month,gantt-week,modules-timeline,cal-month-we WIDTHS=375 SCHEMES=dark,light (generic.small empty for these controls); more.mjs on the v-timeline-more DB for +N more",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "D1",
+   "lane": "detail",
+   "severity": "high",
+   "title": "Version history list pane collapses to 40px (13px at 375)",
+   "instruction": "In history.css give the first .tessera-history-pane a fixed column: `flex: 0 0 clamp(160px, 30%, 240px)` (write the bounds as calc of tokens, e.g. calc(var(--spacing-12) * 3 + var(--spacing-4)) = 160 and calc(var(--spacing-12) * 5) = 240) with min-width 0 and the diff pane `flex: 1 1 0; min-width: 0`. Below 600px stack the panes vertically (the list on top, max-block-size calc(var(--spacing-12) * 4), scrolling), so the version button, the actor and the relative time read on one line each.",
+   "files": [
+    "src/components/styles/history.css",
+    "src/components/history/VersionHistoryDialog.tsx"
+   ],
+   "expected": "List pane >= 160px at 1440 and full width at 375; 'Version 0', 'You' and '10 minutes ago' unclipped (scrollWidth = clientWidth)",
+   "source": "Audit rule (c), no clipping; cross-cutting rule 3",
+   "finding_ids": [
+    "detail-1"
+   ],
+   "verify": "detail/measure.mjs ONLY=history WIDTHS=1440,375 SCHEMES=dark,light (clipped empty, pane width)",
+   "status": "fixed: verify PASS; evidence: browser measure (detail/measure.mjs and probes, 1440 and 375, both schemes, screenshots) + tests/ui detail tests"
+  },
+  {
+   "id": "D2",
+   "lane": "detail",
+   "severity": "high",
+   "title": "Sub-item rows: name collapses to 0 at 375 and is cramped in the peek; Options cut off",
+   "instruction": "In detail.css .tessera-detail-row-props replace `flex: 0 0 auto` with `flex: 0 1 auto; min-width: 0` and give .tessera-detail-row-name `flex: 1 1 auto; min-width: min(10rem, 100%)`. Let the row wrap (`flex-wrap: wrap`) so the props drop to a second line, end-aligned, when the name would fall under ~10rem (the same pattern as list rows in work-items.css). The Options button always stays inside the row. Below 480px hide the compact assignee chip label if needed. Row min-height becomes var(--spacing-11) under the coarse/480 query.",
+   "files": [
+    "src/components/styles/detail.css",
+    "src/components/detail/SubItems.tsx"
+   ],
+   "expected": "At 375 every sub-item shows its name (width > 0) and the Options button's right edge <= the panel right edge; in the 480 peek the names are >= 160px wide or the props wrap",
+   "source": "ui.md Detail components SubItems; audit rules (c) and (d)",
+   "finding_ids": [
+    "detail-2",
+    "detail-8"
+   ],
+   "verify": "detail/measure.mjs ONLY=peek,page WIDTHS=375,1440 SCHEMES=dark,light (rowsDetail kids[1].w > 0, outside empty)",
+   "status": "fixed: verify PASS; evidence: browser measure (detail/measure.mjs and probes, 1440 and 375, both schemes, screenshots) + tests/ui detail tests"
+  },
+  {
+   "id": "D3",
+   "lane": "detail",
+   "severity": "high",
+   "title": "Detail, history and assistant controls under 44 at 375",
+   "instruction": "After S1, add a `@media (pointer: coarse), (max-width: 480px)` block to detail.css, history.css and ai-panel.css: property rail controls (selectors, date fields, the Clear buttons and Open calendar) at min-block-size var(--spacing-11), hit area only where the visual must stay smaller; Edit title, the header Copy link/More/Open as, link options, comment actions, activity filter buttons, Add link/Add sub-item/Source/Comment, the history Version button and segmented items, and the assistant Close/New conversation/suggestion chips at var(--spacing-11). The 1440 values stay.",
+   "files": [
+    "src/components/styles/detail.css",
+    "src/components/styles/history.css",
+    "src/components/styles/ai-panel.css"
+   ],
+   "expected": "m.touchSmall empty on page|375, history|375 and assistant|375 in both schemes",
+   "source": "Audit rule (d); precedent home.css, pages.css, project-settings.css",
+   "finding_ids": [
+    "detail-3"
+   ],
+   "verify": "detail/measure.mjs ONLY=page,peek,history,assistant WIDTHS=375 SCHEMES=dark,light (touchSmall)",
+   "status": "fixed: verify PASS; evidence: browser measure (detail/measure.mjs and probes, 1440 and 375, both schemes, screenshots) + tests/ui detail tests"
+  },
+  {
+   "id": "P1",
+   "lane": "planning",
+   "severity": "high",
+   "title": "Intake search field collapses to 0px",
+   "instruction": "In IntakeScreen.tsx the filters PanelBar's end group (New intake item + Triage with assistant) takes all 360px. Pass canWrap on that PanelBar, or move the two buttons to the sub-header bar, so the search keeps `min-inline-size: calc(var(--spacing-12) * 3)` (144). In intake.css give .tessera-intake-search `flex: 1 1 auto; min-width: calc(var(--spacing-12) * 3)`. Below 480 the buttons wrap under the field (field guide: a wrapping end slot needs max-width 100%).",
+   "files": [
+    "src/components/intake/IntakeScreen.tsx",
+    "src/components/styles/intake.css"
+   ],
+   "expected": "Search input >= 144px wide at 1440 and 375 and accepts typing; the buttons are not clipped",
+   "source": "docs/as-built/planning-extras.md IntakeScreen; intake.css .tessera-intake-search",
+   "finding_ids": [
+    "planning-1"
+   ],
+   "verify": "planning/probe-intake.mjs at 1440 and 375, dark and light (input width >= 144)",
+   "status": "fixed: verify PASS; evidence: browser measure (planning/measure.mjs, focusshot, rows/dlg probes, 1440 and 375, both schemes) + tests/ui/planning-*"
+  },
+  {
+   "id": "P12",
+   "lane": "planning",
+   "severity": "high",
+   "title": "Planning controls under 44 at 375",
+   "instruction": "After S1, add `@media (pointer: coarse), (max-width: 480px)` rules to planning.css, modules.css (not timeline rules), views.css and archives.css: row menus (Actions for ...) at var(--spacing-11) square; Hide progress, the Burndown/Burnup and Work items/Points segments, breakdown tabs and layout-switch segments at min-block-size var(--spacing-11); side-panel date inputs: the calendar button and Clear button hit areas at var(--spacing-11) (padding plus negative margin, keeping the 28px field).",
+   "files": [
+    "src/components/styles/planning.css",
+    "src/components/styles/modules.css",
+    "src/components/styles/views.css",
+    "src/components/styles/archives.css"
+   ],
+   "expected": "flags.small at 375 empty for these controls on web_cycles, web_modules, web_views, web_cycle_*, web_module_*, web_archives_*",
+   "source": "Audit rule (d)",
+   "finding_ids": [
+    "planning-15"
+   ],
+   "verify": "planning/measure.mjs WIDTHS=375 SCHEMES=dark,light (flags.small)",
+   "status": "fixed: verify 1 FAIL (row label links 40px in 56-60px rows), fix 2 added tessera-row-hit (block-axis ::before under coarse/480), verify 2 PASS (probe 3px inside a 44px box hits the anchor)."
+  },
+  {
+   "id": "St1",
+   "lane": "settings",
+   "severity": "high",
+   "title": "Webhook detail action row overflows the panel at 375",
+   "instruction": "In WebhookScreen.tsx put the action cluster (Edit, Activate, Send test, Delete…) in a wrapping HStack (wrap) with `max-width: 100%`, or move it under the title on its own row below 768px (canWrap on the PanelBar). No horizontal scroll inside the layout content. With S1 the buttons are 44 high.",
+   "files": [
+    "src/components/webhooks/WebhookScreen.tsx"
+   ],
+   "expected": "At 375 Delete… right edge <= 366 (the content edge); layout-content scrollWidth = clientWidth",
+   "source": "Reference §14 (stacked below 768); cross-cutting rule 11",
+   "finding_ids": [
+    "settings-1"
+   ],
+   "verify": "settings/adhoc.mjs with q7.js on ws_webhook_detail at 375, dark and light (no OVER entries)",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "St3",
+   "lane": "settings",
+   "severity": "high",
+   "title": "Settings and dialog controls under 44 at 375",
+   "instruction": "After S1, extend the coarse/480 block in project-settings.css (and add one in estimates.css): row kebabs and '+' buttons at var(--spacing-11) square; New label, Edit values, New webhook, Back up now, Archive, Delete project…, Save changes, Rotate secret and Copy secret at min-block-size var(--spacing-11); switch hit areas at 44 via S1, and make all switches the same size (pick Astryx size sm everywhere; BackupsScreen and WorkspaceSettingsScreen use the 40x24 one, project settings 32x20); text inputs/selectors min-block-size var(--spacing-11); dialog Close, Cancel and Create/Save 44; Add value 44.",
+   "files": [
+    "src/components/styles/project-settings.css",
+    "src/components/styles/estimates.css",
+    "src/components/backups/BackupsScreen.tsx",
+    "src/components/workspace-settings/WorkspaceSettingsScreen.tsx",
+    "src/components/project-settings/FeaturesSettings.tsx"
+   ],
+   "expected": "audit.touch at 375 empty on ps_*, ws_* and dlg_*; one switch size across project and workspace settings",
+   "source": "Audit rule (d)",
+   "finding_ids": [
+    "settings-5",
+    "settings-6",
+    "settings-7"
+   ],
+   "verify": "settings/measure.mjs WIDTHS=375 SCHEMES=dark,light (audit.touch); adhoc q5.js, q8.js",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "St14",
+   "lane": "settings",
+   "severity": "high",
+   "title": "Profile header (your-work, agent profile) clips the title and tokens at 375",
+   "instruction": "In ProfileScreen.tsx adopt the shared header tab pattern from S7: the title (and avatar) and the tokens in the first row with the title at flex-shrink 0, the TabList on its own full-width row below 600px with 44px tabs. Give the Agent/Can write tokens flex-shrink 0 or let them wrap under the title. Remove the 'You' kind token on the user's own profile (it repeats the title 'You').",
+   "files": [
+    "src/components/profile/ProfileScreen.tsx",
+    "src/components/styles/profile.css"
+   ],
+   "expected": "At 375: 'You' and 'mcp:visual-fixture' unclipped (or wrapping), tokens fully readable, tabs on their own row at 44, no tab half hidden at rest",
+   "source": "inbox.css two-row header precedent; audit rule (c)",
+   "finding_ids": [
+    "workspace-2",
+    "workspace-20"
+   ],
+   "verify": "workspace/measure.mjs ONLY=your_work,agent_detail WIDTHS=375 SCHEMES=dark,light (no narrow-ellipsis entries)",
+   "status": "fixed: verify 1 FAIL (profile tab strip at 375 hid Subscribed under the scroll button), fix 2 fitted the five tabs (6px tab padding, strip to the panel edge), verify 2 PASS at 375 in both schemes. The strip scrolls again below about 360px (accepted)."
+  },
+  {
+   "id": "St15",
+   "lane": "settings",
+   "severity": "high",
+   "title": "Agents table has no column floors at 375",
+   "instruction": "In src/components/profile/AgentsScreen.tsx give the table columns the floors from src/components/analytics/table-widths.ts: NAME_COLUMN for the name, TEXT_COLUMN for Assigned/Last active, COUNT_COLUMN for counts, BAR_COLUMN or TEXT_COLUMN for 'Activity, 7 days'. The table's own scroll region takes the overflow.",
+   "files": [
+    "src/components/profile/AgentsScreen.tsx"
+   ],
+   "expected": "At 375 the name column >= 128px (no one-letter-per-line wrapping), headers untruncated, row height <= 60",
+   "source": "Run note on column floors; analytics/table-widths.ts",
+   "finding_ids": [
+    "workspace-3"
+   ],
+   "verify": "workspace/tables.mjs agents at 375 (cols >= floors); workspace/measure.mjs ONLY=agents WIDTHS=375 SCHEMES=dark,light",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "Pg5",
+   "lane": "pages",
+   "severity": "high",
+   "title": "Page tree chevron (16px), meta row and page header controls under 44 at 375",
+   "instruction": "In pages.css under `(pointer: coarse), (max-width: 480px)`: the tree expand chevron gets a var(--spacing-11) hit area, and must not sit under the grip: place the grip after the chevron, or shift the chevron so the two 44 boxes do not overlap. The non-draggable row's .tessera-page-grip-spacer gets the same 44 block size, so locked rows are 44 like their siblings. The Public toggle and the Labels combobox in PageMeta: interactive element min-block-size var(--spacing-11). Edit title, Outline/Lock/Page actions, banner buttons and Outline entries: 44 (via S1 plus Outline item min-block-size var(--spacing-11)).",
+   "files": [
+    "src/components/styles/pages.css",
+    "src/components/pages/PagesScreen.tsx",
+    "src/components/pages/PageMeta.tsx",
+    "src/components/pages/PageOutline.tsx"
+   ],
+   "expected": "audit.touch at 375 empty on wiki, wiki_page, page_locked and project_pages; every tree row 44 high; the chevron centre is not covered by the grip",
+   "source": "Audit rule (d); field guide RowGrip",
+   "finding_ids": [
+    "pages-5",
+    "pages-6",
+    "pages-10"
+   ],
+   "verify": "pages/measure.mjs WIDTHS=375 SCHEMES=dark,light (audit.touch, measure.rows[*].row.h = 44); pages/touch.mjs chevronHit",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "W1",
+   "lane": "workspace",
+   "severity": "high",
+   "title": "Inbox at 375: the 400px list overflows and the detail is unreachable",
+   "instruction": "In InboxScreen.tsx add a narrow branch: below 1024px (matchMedia or CSS) the list takes 100% width with no resize handle, and when ?item= is set the detail replaces the list as a full-width pane with a Back button that clears ?item= (reference §16: full-width slide-in below 1024). In inbox.css cap .tessera-inbox-list at max-width 100%.",
+   "files": [
+    "src/components/inbox/InboxScreen.tsx",
+    "src/components/styles/inbox.css"
+   ],
+   "expected": "At 375 the list fits 357px (no element past the panel edge); /inbox?item=<id> shows the item detail full width with a way back",
+   "source": "plane-visual-reference §16 Inbox layout; cross-cutting rule 11",
+   "finding_ids": [
+    "workspace-1"
+   ],
+   "verify": "workspace/measure.mjs ONLY=inbox,inbox_item WIDTHS=375 SCHEMES=dark,light (no offscreen boxes; screenshot shows the detail)",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  },
+  {
+   "id": "W6",
+   "lane": "workspace",
+   "severity": "high",
+   "title": "Home, inbox, analytics, stickies and Manage widgets controls under 44 at 375",
+   "instruction": "After S1, extend the coarse/480 blocks in home.css, inbox.css, analytics.css and stickies.css: quick link chip links and chip menus, recents filter items, Open Your work, New sticky, All stickies, Summarise, the Unread toggle, Inbox actions, row Actions, the inbox row main button, analytics 'open assigned' links, the range control and project picker, Data table triggers, sticky Actions/Source, the name input and the colour select at min-block-size var(--spacing-11) (icon buttons square). Manage widgets: Close, switch, Reorder menu, Cancel/Save at 44.",
+   "files": [
+    "src/components/styles/home.css",
+    "src/components/styles/inbox.css",
+    "src/components/styles/analytics.css",
+    "src/components/styles/stickies.css",
+    "src/components/home/ManageWidgetsDialog.tsx"
+   ],
+   "expected": "touchSmall at 375 empty on home, inbox, analytics and stickies, and in the Manage widgets dialog",
+   "source": "Audit rule (d); home.css and inbox.css 44px precedents",
+   "finding_ids": [
+    "workspace-11",
+    "workspace-12"
+   ],
+   "verify": "workspace/measure.mjs ONLY=home,inbox,analytics,stickies WIDTHS=375 SCHEMES=dark,light (touchSmall)",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  },
+  {
+   "id": "S2",
+   "lane": "shell",
+   "severity": "medium",
+   "title": "Collapsed rail keeps invisible section buttons as focus stops",
+   "instruction": "In Sidebar.tsx (Projects section endContent) and FavoritesSection.tsx (New folder), render the section endContent only while the sidebar is expanded, or give it `hidden` / inert when collapsed. The collapsed rail has no section titles, so the buttons have no place.",
+   "files": [
+    "src/components/shell/Sidebar.tsx",
+    "src/components/shell/FavoritesSection.tsx"
+   ],
+   "expected": "With the rail collapsed, the Tab walk Wiki -> Planning and Design notes -> Projects has no stop at x<0; no 28x28 overlap at (-1,-15)",
+   "source": "ui.md Theme (focus ring on every focusable) and Shell (collapsed icon-only rail)",
+   "finding_ids": [
+    "shell-1"
+   ],
+   "verify": "shell/measure.mjs ONLY=rail WIDTHS=1440 SCHEMES=dark,light (audit.overlaps empty, rail.links has no y<0)",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "S3",
+   "lane": "shell",
+   "severity": "medium",
+   "title": "Collapsed rail rows have no tooltip",
+   "instruction": "When collapsed, wrap each SideNavItem (nav rows, favourites, projects) in an Astryx Tooltip (placement end) with the row label, opened on hover and on keyboard focus, the same as the top-bar Help button. Use the sibling-mode anchorRef if the row is a drag source (field guide).",
+   "files": [
+    "src/components/shell/Sidebar.tsx",
+    "src/components/shell/FavoritesSection.tsx"
+   ],
+   "expected": "Hover or focus on a rail row opens a [role=tooltip] with the row name within ~1.5s",
+   "source": "ui.md Shell (icon button with tooltip when collapsed); reference §1",
+   "finding_ids": [
+    "shell-2"
+   ],
+   "verify": "shell/measure.mjs ONLY=rail WIDTHS=1440 SCHEMES=dark,light (rail tooltip list non-empty)",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "S4",
+   "lane": "shell",
+   "severity": "medium",
+   "title": "Command palette is vertically centred, so the input jumps as results change",
+   "instruction": "In CommandBar.tsx / shell.css anchor the palette dialog to the top: `align-self: flex-start; margin-block-start: calc(var(--spacing-12) + var(--spacing-8))` (80px), at 375 `margin-block-start: var(--spacing-8)`, with max-block-size `calc(100dvh - 2 * that offset)`, so the input centre stays fixed between the empty, query and Ask states.",
+   "files": [
+    "src/components/shell/CommandBar.tsx",
+    "src/components/styles/shell.css"
+   ],
+   "expected": "input.cy identical (+/-1px) in the empty, 'WEB-1' and Ask states, at 1440 and 375",
+   "source": "plane-visual-reference §3 Dialog (80px from the top)",
+   "finding_ids": [
+    "shell-3"
+   ],
+   "verify": "shell/measure.mjs ONLY=palette WIDTHS=1440,375 SCHEMES=dark,light (empty.input.cy = query.input.cy)",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "S5",
+   "lane": "shell",
+   "severity": "medium",
+   "title": "No product focus ring or accent on non-Astryx focusables (editor links, chips, checkboxes, <time>, role=button)",
+   "instruction": "In src/app/globals.css (or the catppuccin theme css) add a low-specificity fallback: `:where(a[href], button, input, select, textarea, summary, time[tabindex], [tabindex]:not([tabindex='-1']), [role='button'], [role='link'], [role='checkbox']):focus-visible { outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color); outline-offset: var(--focus-outline-offset); }` (all Astryx tokens), and `:root { accent-color: var(--color-accent); }` so native checkboxes are mauve in Frappé and Latte. Astryx components keep their own rules (the :where specificity is 0).",
+   "files": [
+    "src/app/globals.css",
+    "src/themes/catppuccin/catppuccin.css"
+   ],
+   "expected": "Editor links, entity chips, task checkboxes, Timestamp <time> and the gantt role=button show the 2px accent outline at 3px offset (#ca9ee6 Frappé, #8839ef Latte), never the UA 1px auto ring; checked task boxes are the accent colour",
+   "source": "plane-visual-reference 'Where Tessera deliberately differs' row Focus; ui.md Theme",
+   "finding_ids": [
+    "detail-10",
+    "pages-4",
+    "detail-9"
+   ],
+   "verify": "detail/measure.mjs ONLY=page WIDTHS=1440 SCHEMES=dark,light (tab[] outlines); pages/measure.mjs ONLY=wiki_page focusWalk",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "S6",
+   "lane": "shell",
+   "severity": "medium",
+   "title": "ListItem focus ring clipped on flush lists",
+   "instruction": "Theme-wide in src/themes/catppuccin: draw the Astryx ListItem's focus-within ring inset, `outline-offset: calc(-1 * var(--focus-outline-width))`, or as an inset box-shadow, so lists flush against a scroller (planning lists, inbox, your-work, agent activity) show all four sides. Check the Astryx ListItem root class in node_modules/@astryxdesign/core/src/List.",
+   "files": [
+    "src/themes/catppuccin/catppuccin.css",
+    "src/themes/catppuccin/catppuccinTheme.ts"
+   ],
+   "expected": "A keyboard-focused row shows a full 2px accent rectangle (left and right sides visible) on cycles, inbox and your-work activity",
+   "source": "ui.md Theme / deliberate-differences Focus row",
+   "finding_ids": [
+    "planning-13",
+    "workspace-9"
+   ],
+   "verify": "planning/focusshot.mjs web_cycles and workspace/rowfocus2.mjs, dark and light, 1440: crop shows four sides",
+   "status": "fixed: PASS on inbox, cycles, your-work activity, webhooks, wiki tree and the work-item list (both schemes); the detail lane had no flush list to check."
+  },
+  {
+   "id": "S7",
+   "lane": "shell",
+   "severity": "medium",
+   "title": "Shared header tab-strip pattern (dock on hairline, first tab on the 16px inset, two rows with 44px tabs below 600px)",
+   "instruction": "Generalise the rules now copied per screen (shell.css .tessera-project-tabs, archives.css .tessera-archives-tabs, inbox.css .tessera-inbox-bar) into shell.css, keyed on the Astryx class .astryx-tab-list inside .tessera-panel-bar: (1) `.tessera-panel-bar-start:has(> .astryx-tab-list) { align-self: stretch }` and `.tessera-panel-bar .astryx-tab-list { align-self: flex-end; min-width: 0 }`, so the indicator sits on the hairline; (2) when the tab list is the first child of the start group, `margin-inline-start: calc(-1 * var(--spacing-3))`, so the first tab's text is on the 16px inset; (3) an opt-in class `tessera-panel-bar--tabs-below` (a PanelBar prop `tabsBelow`) that, below 600px, becomes the inbox two-row grid (title + end on a 44px row, tabs full width on the hairline, title flex-shrink 0, tabs min-height calc(var(--size-element-md) + var(--spacing-3))). Lanes adopt it in their own items (St2, W2, Pg14, P6, St14).",
+   "files": [
+    "src/components/styles/shell.css",
+    "src/components/shell/PanelHeader.tsx"
+   ],
+   "expected": "Any header/sub-header tab strip: indicator bottom = hairline y (+/-1); first tab text x = panel title x (275 at 1440); with tabsBelow at 375 the tabs are 44 high on their own row",
+   "source": "Cross-cutting rules 1 and 7; ui.md Archives (12px pull-in); inbox.css two-row precedent",
+   "finding_ids": [
+    "settings-2",
+    "settings-3",
+    "workspace-5",
+    "planning-8",
+    "pages-15"
+   ],
+   "verify": "settings/adhoc.mjs q2.js on /settings/general vs project settings at 1440; workspace/measure.mjs ONLY=inbox,analytics WIDTHS=1440 (indicator vs header bottom), dark and light",
+   "status": "fixed: verify 1 FAIL (first tab off the 16px inset at 375 on the project frame and inbox), fix 2 pulled the phone strips in, verify 2 PASS. Left: inbox first-tab text 2px right of the title at 375 (44px min-width All tab, by design); the indicator sits within 1px of the hairline; inbox.css and archives.css keep their own strip copies (not migrated to the generic rules)."
+  },
+  {
+   "id": "L2",
+   "lane": "list",
+   "severity": "medium",
+   "title": "Display popover is 752px high and covers its trigger",
+   "instruction": "In DisplayMenu.tsx give the popover content `max-block-size: min(calc(var(--spacing-12) * 10), calc(100dvh - var(--spacing-12) * 2))` (480) with overflow-y auto, from 1024px tall viewports `calc(var(--spacing-12) * 12 + var(--spacing-6))` (600), and place it below the trigger with an offset of var(--spacing-1) (Astryx Popover placement bottom-end), so it never overlaps the trigger.",
+   "files": [
+    "src/components/work-items/DisplayMenu.tsx",
+    "src/components/styles/work-items.css"
+   ],
+   "expected": "Popover height <= 480 at 900px tall; popover top >= trigger bottom at 1440 and 375",
+   "source": "plane-visual-reference §9 (display popover cap)",
+   "finding_ids": [
+    "list-2"
+   ],
+   "verify": "list/measure.mjs ONLY=display-menu WIDTHS=1440,375 SCHEMES=dark,light",
+   "status": "fixed: verify PASS; evidence: browser measure (list/measure.mjs, 1440 and 375, both schemes, screenshots) + tests/ui/list-touch-css, list-visual-fixes"
+  },
+  {
+   "id": "L3",
+   "lane": "list",
+   "severity": "medium",
+   "title": "List gutter: group header dot/name and furniture rows off the row key column",
+   "instruction": "In ListLayout.tsx / work-items.css / bulk.css remove the reserved checkbox slot from the group header (the 44px empty gap after the chevron), or make the header's chevron and checkbox absolute gutter furniture, so the group dot sits at the row key text x (307 at 1440, 57 at 375) and the group name at the title x (375 at 1440). Align the first-icon column of chevron, row checkbox, header text, filter field and quick-add icon on one x, and the quick-add text on the key text x (307).",
+   "files": [
+    "src/components/work-items/ListLayout.tsx",
+    "src/components/work-items/QuickAdd.tsx",
+    "src/components/styles/work-items.css",
+    "src/components/styles/bulk.css"
+   ],
+   "expected": "group dot x = row key x; group name x = title x; quick-add text x = key x (+/-1px); one first-icon x for chevron, checkbox and quick-add icon",
+   "source": "plane-visual-reference §5; cross-cutting rules 1 and 2; ui.md list row start 12",
+   "finding_ids": [
+    "list-3",
+    "list-12"
+   ],
+   "verify": "list/measure.mjs ONLY=list-grouped,list-quickadd WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed (partial): chevron, row checkbox and quick-add icon share one x; group dot = key x; quick-add text = key x at 1440 and 375. Not done: the group name follows the dot (x 321) instead of the title column (x 375), which would leave a 60px gap; verify marked BLOCKED with the reason accepted."
+  },
+  {
+   "id": "L4",
+   "lane": "list",
+   "severity": "medium",
+   "title": "Overdue target dates render like future dates",
+   "instruction": "In properties/DateControl (the target date chip) add `data-overdue` when the target date < bundle.today and the state group is not completed or cancelled, and style it in work-items.css with `color: var(--color-text-error)` (or the theme's error text token; check that it exists in catppuccin.css) in both schemes. Use bundle.today, never new Date() in render (field guide).",
+   "files": [
+    "src/components/work-items/properties/DateControl.tsx",
+    "src/components/styles/work-items.css"
+   ],
+   "expected": "WEB-15 (Target Oct 17, Todo, today Oct 22) renders its date in the error text colour in Frappé and Latte, with >= 4.5:1 on the row",
+   "source": "plane-visual-reference §6 (date chips)",
+   "finding_ids": [
+    "list-4"
+   ],
+   "verify": "list/measure.mjs ONLY=list-grouped WIDTHS=1440 SCHEMES=dark,light (chips by kind date colour)",
+   "status": "fixed: verify PASS; evidence: browser measure (list/measure.mjs, 1440 and 375, both schemes, screenshots) + tests/ui/list-touch-css, list-visual-fixes"
+  },
+  {
+   "id": "L5",
+   "lane": "list",
+   "severity": "medium",
+   "title": "Create work item dialog property row misaligned; Target date under the footer at 375",
+   "instruction": "In CreateWorkItemDialog.tsx lay the property controls out as one wrapping HStack (gap var(--spacing-2), vAlign center) of same-style compact controls: date fields as compact DateControl chips the same 24/28 height as the selectors. The dialog body scrolls above the pinned footer (body overflow-y auto with padding-block-end), so at 375 nothing sits under the footer.",
+   "files": [
+    "src/components/work-items/CreateWorkItemDialog.tsx"
+   ],
+   "expected": "All property controls share a row centre (+/-1px) per wrapped line and one height; at 375 the Target date bottom < footer top or reachable by scrolling",
+   "source": "plane-visual-reference §9 create dialog; cross-cutting rule 1",
+   "finding_ids": [
+    "list-5"
+   ],
+   "verify": "list/measure.mjs ONLY=create-dialog WIDTHS=1440,375 SCHEMES=dark,light",
+   "status": "fixed: verify PASS; evidence: browser measure (list/measure.mjs, 1440 and 375, both schemes, screenshots) + tests/ui/list-touch-css, list-visual-fixes"
+  },
+  {
+   "id": "L6",
+   "lane": "list",
+   "severity": "medium",
+   "title": "Bulk bar is 225px high at 375",
+   "instruction": "In BulkBar.tsx / bulk.css below 480px show the count, the primary actions as icon buttons (44 square with S1) in one scrolling row (overflow-x auto) and put the rest in a More menu; target height <= calc(var(--spacing-11) * 2 + var(--spacing-2)).",
+   "files": [
+    "src/components/work-items/BulkBar.tsx",
+    "src/components/styles/bulk.css"
+   ],
+   "expected": "Bulk bar <= 96px high at 375 with two rows selected; at 1440 unchanged (81)",
+   "source": "ui.md bulk bar; plane-visual-reference §5",
+   "finding_ids": [
+    "list-6"
+   ],
+   "verify": "list/measure.mjs ONLY=list-grouped WIDTHS=375 SCHEMES=dark,light (bulkBar height)",
+   "status": "fixed: verify PASS; evidence: browser measure (list/measure.mjs, 1440 and 375, both schemes, screenshots) + tests/ui/list-touch-css, list-visual-fixes"
+  },
+  {
+   "id": "L8",
+   "lane": "list",
+   "severity": "medium",
+   "title": "Row selection checkbox invisible on touch",
+   "instruction": "In bulk.css add `@media (hover: none) { .tessera-wi-select { opacity: 1 } }` and, under (pointer: coarse), (max-width: 480px), a var(--spacing-11) hit area (padding plus negative margin) around the 20px box. Hover-reveal stays for fine pointers.",
+   "files": [
+    "src/components/styles/bulk.css"
+   ],
+   "expected": "With hasTouch and pointer coarse, checkbox opacity 1 and hit area >= 44x44",
+   "source": "field guide hover-revealed controls; audit rule (d)",
+   "finding_ids": [
+    "list-8"
+   ],
+   "verify": "list/measure.mjs ONLY=list-touch WIDTHS=375 SCHEMES=dark,light (checkbox.opacity '1')",
+   "status": "fixed: verify PASS; evidence: browser measure (list/measure.mjs, 1440 and 375, both schemes, screenshots) + tests/ui/list-touch-css, list-visual-fixes"
+  },
+  {
+   "id": "L12",
+   "lane": "list",
+   "severity": "medium",
+   "title": "Grouped list shows empty groups instead of NoResults when a filter matches nothing",
+   "instruction": "In ListLayout.tsx, when a filter/search/Advanced tree is active and every group's count is 0, render <NoResults> (same as the flat list) instead of the groups and their quick-add rows.",
+   "files": [
+    "src/components/work-items/ListLayout.tsx",
+    "src/components/work-items/NoResults.tsx"
+   ],
+   "expected": "filter-nomatch grouped: noResults.found true, 0 groups shown, a 'Clear filters' button present",
+   "source": "ui.md Work items 'No results' (an empty list, board or table shows NoResults)",
+   "finding_ids": [
+    "list-13"
+   ],
+   "verify": "list/measure.mjs ONLY=filter-nomatch WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (list/measure.mjs, 1440 and 375, both schemes, screenshots) + tests/ui/list-touch-css, list-visual-fixes"
+  },
+  {
+   "id": "B3",
+   "lane": "board-table",
+   "severity": "medium",
+   "title": "Table header row is not sticky vertically",
+   "instruction": "The th is sticky but its containing scroller is .astryx-table-scroll-wrapper (overflow-y hidden, full height), so it scrolls away. In table.css make the table wrapper the vertical scroller inside the layout (`.tessera-wi-table .astryx-table-scroll-wrapper { max-block-size: 100%; overflow: auto }` with the parent sized to the available height), or remove the wrapper's overflow so the th sticks to .tessera-wi-scroller with `inset-block-start: 0`. Keep the pinned key columns opaque.",
+   "files": [
+    "src/components/styles/table.css",
+    "src/components/work-items/TableLayout.tsx"
+   ],
+   "expected": "After scrolling the rows by 400px the header y stays at its initial y (199 at 1440); same in the workspace view",
+   "source": "plane-visual-reference §8 Header row (sticky)",
+   "finding_ids": [
+    "board-table-3"
+   ],
+   "verify": "board-table/extra3.mjs (thTop before = after) and extra.mjs tableHeaderSticky, 1440 dark and light",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "B4",
+   "lane": "board-table",
+   "severity": "medium",
+   "title": "Table Name column collapses to 120px",
+   "instruction": "In TableLayout.tsx buildColumns, give the name column `proportional(2, { minWidth: 240 })` (Plane first-column min 240; express it as a named constant like analytics/table-widths.ts). Optionally pin it with the key at >= 768 only (see B12).",
+   "files": [
+    "src/components/work-items/TableLayout.tsx"
+   ],
+   "expected": "Name column >= 240 at 1440; 'Redesign landing page' untruncated; truncatedCount much lower (titles over 240 still ellipsise)",
+   "source": "plane-visual-reference §8 First column (min 240)",
+   "finding_ids": [
+    "board-table-4",
+    "planning-16"
+   ],
+   "verify": "board-table/measure.mjs ONLY=table,wview_table WIDTHS=1440 SCHEMES=dark (probe.headers[2].w >= 240); planning/clip2.mjs workspace_view",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "B5",
+   "lane": "board-table",
+   "severity": "medium",
+   "title": "Table property headers 12px left of their cell content",
+   "instruction": "In table.css align the nine property columns: either set the header label padding-inline-start to var(--spacing-5) (20) for non-key columns, or pull the cell trigger in by its own 12px with margin-inline-start calc(-1 * var(--spacing-3)), as already done for the key column. Pick one and apply it to all property columns.",
+   "files": [
+    "src/components/styles/table.css"
+   ],
+   "expected": "probe.cells[].deltaLeft = 0 (+/-1) for State, Priority, Assignees, Labels, Cycle, Modules, Start, Target, Estimate",
+   "source": "Cross-cutting rule 1; ui.md Table",
+   "finding_ids": [
+    "board-table-5"
+   ],
+   "verify": "board-table/measure.mjs ONLY=table,wview_table WIDTHS=1440 SCHEMES=dark (deltaLeft)",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "B6",
+   "lane": "board-table",
+   "severity": "medium",
+   "title": "Table checkbox and group header start off the 16px inset; group label scrolls away sideways",
+   "instruction": "In table.css position the selection checkbox so its box starts at the panel inset (x=275 at 1440): adjust the first-cell padding or the 12px wrapper. In renderGroupHeader (TableLayout.tsx) start the chevron at the same gutter, put the label on the row key x, and make the header content `position: sticky; inset-inline-start: 0` inside its wide cell, so the state name and count stay visible during horizontal scroll.",
+   "files": [
+    "src/components/styles/table.css",
+    "src/components/work-items/TableLayout.tsx"
+   ],
+   "expected": "checkbox.box.x = 275; group chevron x = 275; group label x = key text x (311); after scrollLeft 500 the group label stays visible (x >= 259)",
+   "source": "ui.md Table (first column on the 16px inset); cross-cutting rule 1; ui.md sticky group band",
+   "finding_ids": [
+    "board-table-6",
+    "board-table-8"
+   ],
+   "verify": "board-table/measure.mjs ONLY=table,table_grouped WIDTHS=1440 SCHEMES=dark,light; extra.mjs groupedScroll",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "B7",
+   "lane": "board-table",
+   "severity": "medium",
+   "title": "Swimlane column heads and lane bars are not sticky",
+   "instruction": "In board.css make the top row of column heads (.tessera-board-lane-row for heads) `position: sticky; inset-block-start: 0; z-index: 2` with an opaque background, and the lane title bar sticky on both axes (`inset-inline-start: 0` plus `inset-block-start` = the head row height), so every lane keeps its column titles.",
+   "files": [
+    "src/components/styles/board.css",
+    "src/components/work-items/BoardLayout.tsx"
+   ],
+   "expected": "After strip scrollTop 600 the heads stay at their top (y = 215) and the lane bar of the current lane is visible",
+   "source": "plane-visual-reference §7 Swimlanes; cross-cutting rule 8",
+   "finding_ids": [
+    "board-table-7"
+   ],
+   "verify": "board-table/extra.mjs lanes.before/after at 1440, dark and light",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "B15",
+   "lane": "board-table",
+   "severity": "medium",
+   "title": "Board strip snap is proximity; it can rest between columns",
+   "instruction": "In board.css change the strip's `scroll-snap-type: x proximity` to `x mandatory` below 480px (keep the cards' snap-align start).",
+   "files": [
+    "src/components/styles/board.css"
+   ],
+   "expected": "After a 200px swipe left from the header, scrollLeft = 341 in both Frappé and Latte runs",
+   "source": "ui.md Board (snaps from column to column below 480px)",
+   "finding_ids": [
+    "board-table-18"
+   ],
+   "verify": "board-table/measure.mjs ONLY=board_state WIDTHS=375 SCHEMES=dark,light (.touch.headerSwipeLeft.stripScrollLeft = 341)",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "T3",
+   "lane": "timeline",
+   "severity": "medium",
+   "title": "Calendar quick add is invisible but tappable on touch, and opens a 2px-wide input",
+   "instruction": "In calendar.css under `@media (hover: none)` show .tessera-cal-add at opacity 1 (reference: quick add always shown below 768). In CalendarLayout.tsx / QuickAdd.tsx, when a cell is narrower than ~120px, open quick add in a Popover anchored to the cell (min-inline-size calc(var(--spacing-12) * 5)), not inline in the cell.",
+   "files": [
+    "src/components/styles/calendar.css",
+    "src/components/work-items/CalendarLayout.tsx",
+    "src/components/work-items/QuickAdd.tsx"
+   ],
+   "expected": "At 375 with touch the add button is visible (opacity 1), and tapping it opens an input >= 240px wide",
+   "source": "plane-visual-reference §10 Day overflow; field guide hover-revealed controls",
+   "finding_ids": [
+    "timeline-4"
+   ],
+   "verify": "timeline/touchadd.mjs at 375, dark and light (op 1, input width >= 240)",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "T4",
+   "lane": "timeline",
+   "severity": "medium",
+   "title": "Today-line centring on first load fails intermittently at 375",
+   "instruction": "In gantt-scroll.ts centerTodayLine, return false (and do not mark the key done) when the scroller's scrollWidth <= clientWidth or the body has no width yet. Retry with a ResizeObserver on the scroller until the centring succeeds once. Apply to ModulesTimeline.tsx through the same hook.",
+   "files": [
+    "src/components/work-items/gantt-scroll.ts",
+    "src/components/planning/ModulesTimeline.tsx"
+   ],
+   "expected": "6 of 6 repeat loads at 375 (touch and non-touch) show the line centred (offset ~103), the same as 1440",
+   "source": "docs/PLAN.md decision 90; gantt-scroll.ts header comment",
+   "finding_ids": [
+    "timeline-5"
+   ],
+   "verify": "timeline/today-repeat.mjs at 375 touch and non-touch, dark and light",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "T5",
+   "lane": "timeline",
+   "severity": "medium",
+   "title": "Gantt bars all use one fill regardless of state",
+   "instruction": "In GanttLayout.tsx set data-state-group on each bar and pass the state colour as a style custom property (--tessera-bar-color). In gantt.css set `background: color-mix(in srgb, var(--tessera-bar-color) 25%, var(--color-background-surface))` and `border-color: var(--tessera-bar-color)`. Do the same in ModulesTimeline.tsx with the module status colour. Check bar label contrast >= 4.5:1 in Frappé and Latte; fall back to a lower mix where it fails.",
+   "files": [
+    "src/components/work-items/GanttLayout.tsx",
+    "src/components/styles/gantt.css",
+    "src/components/planning/ModulesTimeline.tsx"
+   ],
+   "expected": "barColoursByState shows distinct fills per state group; bar label text >= 4.5:1 in both schemes",
+   "source": "plane-visual-reference §11 Bar",
+   "finding_ids": [
+    "timeline-6"
+   ],
+   "verify": "timeline/measure.mjs ONLY=gantt-month,modules-timeline WIDTHS=1440 SCHEMES=dark,light (gantt.barColoursByState, contrast)",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "T6",
+   "lane": "timeline",
+   "severity": "medium",
+   "title": "Gantt bar, row and handle have no hover/pressed states",
+   "instruction": "In gantt.css: .tessera-gantt-bar:hover gets the theme hover overlay (background-image linear-gradient of the 6% overlay token used elsewhere) plus a strong border; :active the 8-10% pressed overlay; .tessera-gantt-open:hover/:active the same row overlays; .tessera-gantt-handle shows a 4px x 50% bar (`::after`, background var(--color-border-emphasized), radius var(--radius-inner)) when the bar is hovered or focused, and is transparent otherwise.",
+   "files": [
+    "src/components/styles/gantt.css"
+   ],
+   "expected": "states.bar hover/active non-empty; states.open changes; states.handleWhenBarHover shows a visible grip, in Frappé and Latte",
+   "source": "Cross-cutting rule 10; plane-visual-reference §11 Resize handle",
+   "finding_ids": [
+    "timeline-7"
+   ],
+   "verify": "timeline/measure.mjs ONLY=gantt-month,modules-timeline WIDTHS=1440 SCHEMES=dark,light (states.*)",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "T7",
+   "lane": "timeline",
+   "severity": "medium",
+   "title": "Gantt open button uses the UA focus ring; calendar chips and bars use a 1px ring",
+   "instruction": "In gantt.css add .tessera-gantt-open:focus-visible and .tessera-gantt-handle:focus-visible, and change .tessera-gantt-bar:focus-visible (line 199) and calendar.css .tessera-cal-open:focus-visible (line 128) to `outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color); outline-offset: var(--focus-outline-offset)`. Where the cell clips the 3px offset, use a negative offset of the same width instead.",
+   "files": [
+    "src/components/styles/gantt.css",
+    "src/components/styles/calendar.css"
+   ],
+   "expected": "focusRings.open, bar and chip = 2px solid accent (#ca9ee6 / #8839ef), fully visible",
+   "source": "plane-visual-reference deliberate-differences Focus row",
+   "finding_ids": [
+    "timeline-8",
+    "timeline-9"
+   ],
+   "verify": "timeline/measure.mjs ONLY=gantt-month,cal-month-we WIDTHS=1440 SCHEMES=dark,light (states.focusRings, chipFocus)",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "T8",
+   "lane": "timeline",
+   "severity": "medium",
+   "title": "Gantt label column and tools row start 8px left of the 16px gutter",
+   "instruction": "In GanttLayout.tsx and ModulesTimeline.tsx change paddingInline={2} on .tessera-gantt-label and padding={2} on .tessera-gantt-tools to paddingInline={4} (16), keeping the label column width (256 / min(256px, 40vw)).",
+   "files": [
+    "src/components/work-items/GanttLayout.tsx",
+    "src/components/planning/ModulesTimeline.tsx",
+    "src/components/styles/gantt.css"
+   ],
+   "expected": "'Work item' text, the state dots and the Today button start at x=275 at 1440 and x=25 at 375; dates button right edge 16px inside the column",
+   "source": "Cross-cutting rule 1; field guide panel 16px inset",
+   "finding_ids": [
+    "timeline-10"
+   ],
+   "verify": "timeline/measure.mjs ONLY=gantt-month,modules-timeline WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "T9",
+   "lane": "timeline",
+   "severity": "medium",
+   "title": "Calendar toolbar, weekday row and grid use three insets",
+   "instruction": "In calendar.css set .tessera-cal padding-inline to var(--spacing-4) (16) at all widths, removing the 4px override below 480, so the grid, weekday row and toolbar start at the frame gutter. In CalendarLayout.tsx make the toolbar PanelBar not add its own 16px inside the padded container (padding 0, or move the PanelBar outside .tessera-cal), so Previous month starts at 275 and '15 unscheduled' ends at 1415.",
+   "files": [
+    "src/components/styles/calendar.css",
+    "src/components/work-items/CalendarLayout.tsx"
+   ],
+   "expected": "Toolbar first button x=275, weekday[0].x=275, cells[0].x=275 and the right edges at 1415 at 1440; 25/350 at 375",
+   "source": "Cross-cutting rule 1; reference inline gutter row",
+   "finding_ids": [
+    "timeline-11"
+   ],
+   "verify": "timeline/measure.mjs ONLY=cal-month-we,cal-week-we WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "T12",
+   "lane": "timeline",
+   "severity": "medium",
+   "title": "Gantt bar labels and top-band labels are not sticky",
+   "instruction": "In gantt.css make the bar label span `position: sticky; inset-inline-start: calc(var(--tessera-gantt-label) + var(--spacing-2))` inside an overflow-visible bar (the bar needs `overflow: clip` only on the inline-end side, or the label is clamped with max-width), and the top band labels (.tessera-gantt-month) `position: sticky; inset-inline-start: var(--tessera-gantt-label)`. Same for the modules timeline.",
+   "files": [
+    "src/components/styles/gantt.css",
+    "src/components/work-items/GanttLayout.tsx"
+   ],
+   "expected": "At 375 month zoom, bars starting off-screen show their label at the left edge of the track; at week zoom 1440 the visible month band shows 'Oct 2026' at the track start",
+   "source": "plane-visual-reference §11 Bar and Header bands (sticky labels)",
+   "finding_ids": [
+    "timeline-14"
+   ],
+   "verify": "timeline/measure.mjs ONLY=gantt-month,gantt-week,modules-timeline WIDTHS=1440,375 SCHEMES=dark,light (rows[].bar.text.x >= label edge; head.band1 visible)",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "D4",
+   "lane": "detail",
+   "severity": "medium",
+   "title": "Property rail: label/value midlines off by 4px, uneven pitch, five value start edges",
+   "instruction": "In PropertyRail.tsx / detail.css give every MetadataList row one structure: dt and dd both min-block-size var(--size-element-sm) (28), `align-items: center`, a constant row gap var(--spacing-2), so the pitch is constant. Pull the ghost Selector text back to the value column edge with margin-inline-start calc(-1 * var(--spacing-3)) on .tessera-detail-rail ghost controls (the dates and the plain text already sit on it), so the value texts share one start x; the state dot and priority icon sit in the 12px pulled-back slot.",
+   "files": [
+    "src/components/detail/PropertyRail.tsx",
+    "src/components/styles/detail.css"
+   ],
+   "expected": "railRows[].midDelta <= 1 for all 13 rows; railPitch constant (+/-1); valueTextLeft one value (+/-1) for text values",
+   "source": "plane-visual-reference §12 Property row; cross-cutting rules 1 and 4",
+   "finding_ids": [
+    "detail-4",
+    "detail-5",
+    "detail-6"
+   ],
+   "verify": "detail/measure.mjs ONLY=peek,page WIDTHS=1440,375 SCHEMES=dark (m.railRows, m.railPitch)",
+   "status": "fixed: verify PASS; evidence: browser measure (detail/measure.mjs and probes, 1440 and 375, both schemes, screenshots) + tests/ui detail tests"
+  },
+  {
+   "id": "D6",
+   "lane": "detail",
+   "severity": "medium",
+   "title": "Activity and comment timestamps are tab stops",
+   "instruction": "Per the field guide, a RelativeTime inside a row should not add a tab stop: in ActivityFeed.tsx and CommentItem.tsx pass hasTooltip={false} and put the absolute time in the element's title / dateTime attribute. Keep Created/Updated in PropertyRail focusable (they have Copy). S5 gives the remaining ones the accent ring.",
+   "files": [
+    "src/components/detail/ActivityFeed.tsx",
+    "src/components/detail/CommentItem.tsx",
+    "src/components/detail/RelativeTime.tsx"
+   ],
+   "expected": "Tab walk on the full page has no <time> stops in the activity/comments (14 fewer stops); Created/Updated show the accent ring",
+   "source": "field guide 'RelativeTime inside a tooltip trigger needs hasTooltip={false}'; Focus row",
+   "finding_ids": [
+    "detail-9"
+   ],
+   "verify": "detail/measure.mjs ONLY=page WIDTHS=1440 SCHEMES=dark,light (tab[] has no 'time' entries except rail)",
+   "status": "fixed: verify PASS; evidence: browser measure (detail/measure.mjs and probes, 1440 and 375, both schemes, screenshots) + tests/ui detail tests"
+  },
+  {
+   "id": "D12",
+   "lane": "detail",
+   "severity": "medium",
+   "title": "Assistant composer has no 3:1 boundary",
+   "instruction": "In ai-panel.css give the ChatComposer field (scoped class on AssistantPanel) `border: var(--border-width) solid var(--color-border-emphasized)` and radius var(--radius-element), accent border while focused; in both schemes the border must be >= 3:1 against the panel surface.",
+   "files": [
+    "src/components/styles/ai-panel.css",
+    "src/components/ai/AssistantPanel.tsx"
+   ],
+   "expected": "Composer border >= 3:1 against the panel in Frappé and Latte",
+   "source": "Deliberate differences Colours row (control outlines >= 3:1)",
+   "finding_ids": [
+    "detail-15"
+   ],
+   "verify": "detail/measure.mjs ONLY=assistant WIDTHS=1440,375 SCHEMES=dark,light (probe7 border width and contrast)",
+   "status": "fixed: verify PASS; evidence: browser measure (detail/measure.mjs and probes, 1440 and 375, both schemes, screenshots) + tests/ui detail tests"
+  },
+  {
+   "id": "D16",
+   "lane": "detail",
+   "severity": "medium",
+   "title": "DigestCard margins push it 16px inside the widget column on Home and Analytics",
+   "instruction": "Move the inbox-specific margin out of .tessera-ai-digest in ai-surfaces.css: add a variant prop to DigestCard.tsx (e.g. inset: 'list' | 'none') where 'list' adds the class tessera-ai-digest--inset with margin-inline var(--spacing-4) and margin-block var(--spacing-4) var(--spacing-2); default none. The inbox passes 'list'; Home and Analytics use none.",
+   "files": [
+    "src/components/ai/DigestCard.tsx",
+    "src/components/styles/ai-surfaces.css"
+   ],
+   "expected": "Home digest spans x=389-1301 (like the Since card); Analytics 283-1407; inbox unchanged (275)",
+   "source": "Cross-cutting rules 1 and 9",
+   "finding_ids": [
+    "workspace-4"
+   ],
+   "verify": "workspace/measure.mjs ONLY=home,analytics,inbox WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (detail/measure.mjs and probes, 1440 and 375, both schemes, screenshots) + tests/ui detail tests"
+  },
+  {
+   "id": "P2",
+   "lane": "planning",
+   "severity": "medium",
+   "title": "Module side panel Lead and Members rows taller and off-centre",
+   "instruction": "In ModuleSidePanel.tsx / LeadControl.tsx render Lead and Members with size sm (28) like the date inputs, and centre dt against dd (align-items center), so every property row has the same pitch.",
+   "files": [
+    "src/components/planning/ModuleSidePanel.tsx",
+    "src/components/planning/LeadControl.tsx"
+   ],
+   "expected": "Lead/Members controls 28 high; label vs control centre <= 1px; row pitch constant",
+   "source": "plane-visual-reference §13 Side panel properties; cross-cutting rule 4",
+   "finding_ids": [
+    "planning-3"
+   ],
+   "verify": "planning/probe-panel.mjs web_module_marketing at 1440, dark and light",
+   "status": "fixed: verify PASS; evidence: browser measure (planning/measure.mjs, focusshot, rows/dlg probes, 1440 and 375, both schemes) + tests/ui/planning-*"
+  },
+  {
+   "id": "P5",
+   "lane": "planning",
+   "severity": "medium",
+   "title": "Workspace views list: not built like the project views list (alignment, dividers, no drag)",
+   "instruction": "Render WorkspaceViewsScreen.tsx's list exactly as ViewsScreen.tsx does: the same List container classes (full-bleed dividers 259..1431, rows on the 16px gutter) and the same usePointerDrag + useOptimistic wiring, passing ViewRow's drag prop (decision 105 names Views). Turn the drag off while a search filters rows (field guide). Remove the workspace-views.css inset that adds the extra 8px.",
+   "files": [
+    "src/components/views/WorkspaceViewsScreen.tsx",
+    "src/components/views/ViewRow.tsx",
+    "src/components/styles/workspace-views.css"
+   ],
+   "expected": "Workspace views rows: icon x, text x, menu right edge and dividers equal to the project views list; a grip shows on hover and a drag reorders",
+   "source": "Run brief (row alignment with project views list); docs/PLAN.md decision 105; known leftover",
+   "finding_ids": [
+    "planning-6"
+   ],
+   "verify": "planning/measure.mjs ONLY=workspace_views,web_views WIDTHS=1440,375 SCHEMES=dark,light (rows li x/width equal)",
+   "status": "fixed: alignment PASS in the browser (rows, icon, menu, dividers equal to the project views list at 1440 and 375); the drag grip is wired (useViewReorder) and covered by tests/ui/views-menu-move.test.ts, but no drag was exercised in the browser."
+  },
+  {
+   "id": "P-opt",
+   "lane": "planning",
+   "severity": "medium",
+   "title": "Views menu Move up / Move down is not optimistic (known leftover)",
+   "instruction": "In ViewMenu.tsx the move() runs the action in startTransition without an optimistic update. Pass an onMove callback from ViewsScreen.tsx (and WorkspaceViewsScreen after P5) that calls the screen's existing applyMove(useOptimistic) inside startTransition before awaiting reorderViewAction; on failure revert (the optimistic state drops when the transition ends) and toast via fail().",
+   "files": [
+    "src/components/views/ViewMenu.tsx",
+    "src/components/views/ViewsScreen.tsx",
+    "src/components/views/WorkspaceViewsScreen.tsx"
+   ],
+   "expected": "Move up reorders the row immediately; a failed action restores the order and shows a toast",
+   "source": "docs/PLAN.md decision 13 (useOptimistic + startTransition, revert + Toast); known leftover",
+   "finding_ids": [],
+   "verify": "Manual on a scratch DB at 1440 dark: Move up on a view row, the row moves before the action returns (throttle the network); a vitest for the reducer path",
+   "status": "fixed: verify PASS; evidence: browser measure (planning/measure.mjs, focusshot, rows/dlg probes, 1440 and 375, both schemes) + tests/ui/planning-*"
+  },
+  {
+   "id": "St2",
+   "lane": "settings",
+   "severity": "medium",
+   "title": "Workspace settings tab strip: floats above the hairline, text off the inset, 28px at 375",
+   "instruction": "In WorkspaceSettingsChrome.tsx adopt S7: put the TabList so the shell rules dock it on the hairline and pull it in by var(--spacing-3); at 375 the tabs are 44 high (add the class the shell item defines, or reuse .tessera-settings-tabs from project-settings.css, which already has the 44px rule).",
+   "files": [
+    "src/components/workspace-settings/WorkspaceSettingsChrome.tsx",
+    "src/components/styles/project-settings.css"
+   ],
+   "expected": "Indicator on the header border (y 153-155 on 154); first tab text x=275; tabs 44 high at 375",
+   "source": "Cross-cutting rules 1 and 7; project-settings.css precedent",
+   "finding_ids": [
+    "settings-2",
+    "settings-3",
+    "settings-4"
+   ],
+   "verify": "settings/adhoc.mjs q2.js and q8.js on /settings/general at 1440 and 375, dark and light",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "St4",
+   "lane": "settings",
+   "severity": "medium",
+   "title": "General settings Icon/Colour selector pair misaligned and oversized",
+   "instruction": "In GeneralSettings.tsx change the HStack to vAlign start (labels on one line) and render PaletteColorSelector and the icon selector at the standard field height 32 (Astryx size md), so both labels share y and both controls share a centre.",
+   "files": [
+    "src/components/project-settings/GeneralSettings.tsx",
+    "src/components/project-settings/PaletteColorSelector.tsx"
+   ],
+   "expected": "Icon and Colour labels at the same y; both controls 32 high, centres equal",
+   "source": "Cross-cutting rule 4",
+   "finding_ids": [
+    "settings-8"
+   ],
+   "verify": "settings/adhoc.mjs q1.js on ps_general at 1440 and 375, dark",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "St6",
+   "lane": "settings",
+   "severity": "medium",
+   "title": "Actor rows and danger-zone rows do not stack at 375",
+   "instruction": "In AgentsSettings.tsx and GeneralSettings.tsx, below 768px wrap the row so the end cluster (Agent token, Access selector, kebab / Archive or Delete button) drops under the name and helper text (HStack wrap with the label slot min-width min(14rem, 100%), the work-items row pattern). The helper text wraps (no ellipsis); the Intake policy description wraps.",
+   "files": [
+    "src/components/project-settings/AgentsSettings.tsx",
+    "src/components/project-settings/GeneralSettings.tsx"
+   ],
+   "expected": "At 375 actor names untruncated, version line <= 2 lines; danger helper texts fully readable",
+   "source": "plane-visual-reference §14 (stacked below 768)",
+   "finding_ids": [
+    "settings-10",
+    "settings-11"
+   ],
+   "verify": "settings/measure.mjs ONLY=ps_agents,ps_general WIDTHS=375 SCHEMES=dark,light (no ellipsised text)",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "St-opt",
+   "lane": "settings",
+   "severity": "medium",
+   "title": "States and labels menu Move up / Move down not optimistic (known leftover)",
+   "instruction": "In StatesSettings.tsx and LabelsSettings.tsx the menu Move up/Down call run(..., reorderStateAction / reorderLabelAction) without the existing applyMove. Wrap them like the drag path: startTransition(async () => { applyMove({...}); const r = await action; if (!r.ok) toast }).",
+   "files": [
+    "src/components/project-settings/StatesSettings.tsx",
+    "src/components/project-settings/LabelsSettings.tsx"
+   ],
+   "expected": "Menu moves reorder immediately and revert with a toast on failure",
+   "source": "docs/PLAN.md decision 13; known leftover",
+   "finding_ids": [],
+   "verify": "Manual on a scratch DB at 1440 dark with a throttled action; vitest for the move reducers",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "Pg1",
+   "lane": "pages",
+   "severity": "medium",
+   "title": "Outline card touches the panel's right edge",
+   "instruction": "In pages.css .tessera-page-frame[data-outline='open'] add a trailing gutter: grid-template-columns `minmax(var(--spacing-4),1fr) 960px minmax(calc(160px + var(--spacing-4)), calc(240px + var(--spacing-4))) minmax(var(--spacing-4),1fr)`, or padding-inline-end var(--spacing-4) on the frame, and recheck that the 1136 breakpoint still holds (ui.md records the 1136 switch).",
+   "files": [
+    "src/components/styles/pages.css"
+   ],
+   "expected": "Outline right edge 16px inside the panel edge at 1172 and 1136 containers; side by side at >= 1136, stacked below",
+   "source": "Cross-cutting rule 1; ui.md 'Page screen: the outline'",
+   "finding_ids": [
+    "pages-1"
+   ],
+   "verify": "pages/measure.mjs ONLY=wiki_page WIDTHS=1440 SCHEMES=dark,light (outline.box right vs panel); outline breakpoint run at 1137/1136/1135",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg2",
+   "lane": "pages",
+   "severity": "medium",
+   "title": "Block drag handle straddles the editor frame border and sits 4px low",
+   "instruction": "In editor.css .tessera-editor-drag use a 20px box (calc(var(--spacing-5))) with a 14-16px glyph, placed fully inside the editor's left padding (increase the editor content padding-inline-start to var(--spacing-8) if needed) and vertically centred on the block's first line (top offset = (line-height - 20)/2). Fix the offset in MarkdownEditor.tsx / extensions.ts.",
+   "files": [
+    "src/components/styles/editor.css",
+    "src/components/editor/MarkdownEditor.tsx",
+    "src/components/editor/extensions.ts"
+   ],
+   "expected": "Handle box inside the frame (left >= frame x + 1); handle centre y = paragraph line centre (+/-1)",
+   "source": "plane-visual-reference §15 Block drag handle; cross-cutting rules 2 and 4",
+   "finding_ids": [
+    "pages-2"
+   ],
+   "verify": "pages/probe6 (handle vs p) at 1440, dark and light; slash-1440-light screenshot",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg3",
+   "lane": "pages",
+   "severity": "medium",
+   "title": "Task-list checkboxes are native blue 13px boxes",
+   "instruction": "In editor.css style `ul[data-type='taskList'] > li > label input` with `accent-color: var(--color-accent)` (S5 also sets it globally), size var(--spacing-4) (16), and a hit area of var(--spacing-6) on the label (var(--spacing-11) under coarse/480). The focus ring comes from S5.",
+   "files": [
+    "src/components/styles/editor.css"
+   ],
+   "expected": "Checked boxes mauve (#ca9ee6 Frappé, #8839ef Latte), 16px, accent focus ring",
+   "source": "ui.md Theme; deliberate-differences Focus row",
+   "finding_ids": [
+    "pages-3"
+   ],
+   "verify": "pages/measure.mjs ONLY=wiki_page WIDTHS=1440,375 SCHEMES=dark,light (measure.taskList, focusWalk)",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg-comment",
+   "lane": "pages",
+   "severity": "medium",
+   "title": "Compact (comment) editor has a 120px minimum height",
+   "instruction": "In editor.css let the compact read-only editor (the variant CommentItem renders) use min-height: auto and no toolbar row while read-only; keep 120px only for the editable composer. Coordinate with the detail lane only for the class name CommentItem passes (no detail file edit needed if the compact/readonly modifier classes already exist).",
+   "files": [
+    "src/components/styles/editor.css"
+   ],
+   "expected": "A 2-line comment card is about text height + 24 (padding 12 each side), not 158",
+   "source": "plane-visual-reference §12 Comment card",
+   "finding_ids": [
+    "detail-7"
+   ],
+   "verify": "detail/measure.mjs ONLY=peek,page WIDTHS=1440 SCHEMES=dark (m.activity.comments heights)",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg-opt",
+   "lane": "pages",
+   "severity": "medium",
+   "title": "Page tree menu Move up / Move down not optimistic (known leftover)",
+   "instruction": "PageRowMenu.tsx calls movePageAction directly. Pass the PagesScreen applyMove (useOptimistic) down as onMove, and call it inside startTransition before awaiting movePageAction; on failure toast and let the optimistic state drop.",
+   "files": [
+    "src/components/pages/PageRowMenu.tsx",
+    "src/components/pages/PagesScreen.tsx"
+   ],
+   "expected": "Menu Move up/down reorders the tree immediately; failure reverts with a toast",
+   "source": "docs/PLAN.md decision 13; known leftover",
+   "finding_ids": [],
+   "verify": "Manual on a scratch DB, /wiki at 1440 dark; existing tests/ui/pages-drag.test.ts still pass",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "W2",
+   "lane": "workspace",
+   "severity": "medium",
+   "title": "Analytics header at 375: tabs share the title row and are half hidden",
+   "instruction": "In AnalyticsScreen.tsx adopt S7's tabsBelow layout (title + project picker + range control on the first row, which wraps; tabs on their own full-width row at 44px), so no tab is half faded at rest.",
+   "files": [
+    "src/components/analytics/AnalyticsScreen.tsx",
+    "src/components/styles/analytics.css"
+   ],
+   "expected": "At 375 'Cycles' and 'Modules' are reachable with no tab half hidden at rest; tabs 44 high",
+   "source": "inbox.css two-row fix; run note on the 'I…' regression",
+   "finding_ids": [
+    "workspace-6"
+   ],
+   "verify": "workspace/measure.mjs ONLY=analytics WIDTHS=375 SCHEMES=dark,light (crops/analytics-375-top, overlaps)",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  },
+  {
+   "id": "W3",
+   "lane": "workspace",
+   "severity": "medium",
+   "title": "Series chart data tables have no column floors (known leftover)",
+   "instruction": "In charts/SeriesCharts.tsx build the Data table columns from analytics/table-widths.ts: label column NAME_COLUMN (or TEXT_COLUMN for dates), counts COUNT_COLUMN. The table scrolls inside its own region; check that a visible edge fade or the Astryx scroll affordance shows on the wide tables.",
+   "files": [
+    "src/components/charts/SeriesCharts.tsx",
+    "src/components/analytics/table-widths.ts"
+   ],
+   "expected": "At 375 'Completed' and 'Pending' headers untruncated (columns >= 88), 'Project' not cut mid-word",
+   "source": "Known leftover; analytics/table-widths.ts",
+   "finding_ids": [
+    "workspace-7"
+   ],
+   "verify": "workspace/tables.mjs analytics_cycles and analytics at 375 (needFull <= width)",
+   "status": "fixed: tables.mjs reports every SeriesCharts, analytics, cycles, modules and agents table ok at 375 and 1440 (no truncated header)."
+  },
+  {
+   "id": "W4",
+   "lane": "workspace",
+   "severity": "medium",
+   "title": "Inbox row time column staggers 16px between read and unread rows",
+   "instruction": "In NotificationRow.tsx always render the unread StatusDot slot and toggle its opacity (0 when read), or move the dot to the row start before the avatar (the reference position), so the time text has one x on every row.",
+   "files": [
+    "src/components/inbox/NotificationRow.tsx"
+   ],
+   "expected": "Time text x equal (+/-1) on read and unread rows",
+   "source": "Cross-cutting rule 3 (reserved slots, opacity not display)",
+   "finding_ids": [
+    "workspace-8"
+   ],
+   "verify": "workspace/measure.mjs ONLY=inbox WIDTHS=1440 SCHEMES=dark,light (dumps time x)",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  },
+  {
+   "id": "W5",
+   "lane": "workspace",
+   "severity": "medium",
+   "title": "Sticky cards stretch to the tallest card in their row",
+   "instruction": "In stickies.css set the grid `align-items: start` and cap each .tessera-sticky at `max-block-size: calc(var(--spacing-12) * 11 + var(--spacing-3))` (540) with the body scrolling or fading; use CSS columns (column-width calc(var(--spacing-12) * 5 + var(--spacing-4)) = 256, column-gap var(--spacing-4)) for masonry, or keep the grid with align-items start. Columns at ~1170px: 4 or 5 depending on the gap; the card min is 256.",
+   "files": [
+    "src/components/styles/stickies.css",
+    "src/components/stickies/StickiesScreen.tsx"
+   ],
+   "expected": "Short stickies are content-height (~220); no card taller than 540",
+   "source": "plane-visual-reference §16 Stickies grid",
+   "finding_ids": [
+    "workspace-10"
+   ],
+   "verify": "workspace/measure.mjs ONLY=stickies WIDTHS=1440,375 SCHEMES=dark,light (card heights)",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  },
+  {
+   "id": "S8",
+   "lane": "shell",
+   "severity": "low",
+   "title": "Sidebar 'New work item' button 4px right of every row edge",
+   "instruction": "In shell.css .tessera-sidebar-new set padding-inline-start so the icon lands at x=16 (button x=8 -> padding-inline-start var(--spacing-2)) and the label at x=40; same in the drawer.",
+   "files": [
+    "src/components/styles/shell.css"
+   ],
+   "expected": "newBtn.icon.x=16, label.x=40 at 1440; drawer icon x = row icon x",
+   "source": "shell.css comment (reads as a quiet row); cross-cutting rule 1",
+   "finding_ids": [
+    "shell-6"
+   ],
+   "verify": "shell/measure.mjs ONLY=home WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "S9",
+   "lane": "shell",
+   "severity": "low",
+   "title": "Sidebar row '…' buttons always visible",
+   "instruction": "In shell.css hide the Favorites/Projects row action buttons with opacity 0 (space kept) until the row is hovered or has focus-within; under `@media (hover: none)` keep opacity 1, so touch can still open the menu. Counts then share the badge right edge (226) at rest: show the count where the button sits, or align counts and badges on one right edge.",
+   "files": [
+    "src/components/styles/shell.css",
+    "src/components/shell/Sidebar.tsx",
+    "src/components/shell/FavoritesSection.tsx"
+   ],
+   "expected": "At rest the action buttons have opacity 0 at fine pointer; counts and badges end at one x",
+   "source": "plane-visual-reference §1 Project row; cross-cutting rule 3; field guide hover-reveal",
+   "finding_ids": [
+    "shell-7"
+   ],
+   "verify": "shell/measure.mjs ONLY=home WIDTHS=1440 SCHEMES=dark,light (sidebar.buttons opacity, endEls r)",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "S10",
+   "lane": "shell",
+   "severity": "low",
+   "title": "Untitled last sidebar group sits 8px under Projects",
+   "instruction": "In Sidebar.tsx / shell.css give the last (isHeaderHidden) SideNavSection margin-block-start var(--spacing-3) (12), so the sections are evenly separated.",
+   "files": [
+    "src/components/shell/Sidebar.tsx",
+    "src/components/styles/shell.css"
+   ],
+   "expected": "Gap Empty -> Workspace views >= 12 (matching the titled-section rhythm)",
+   "source": "plane-visual-reference §1 (sections 12 apart)",
+   "finding_ids": [
+    "shell-8"
+   ],
+   "verify": "shell/measure.mjs ONLY=home WIDTHS=1440 SCHEMES=dark (sidebarDerived.pitches)",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "S11",
+   "lane": "shell",
+   "severity": "low",
+   "title": "Selected sidebar row changes weight",
+   "instruction": "In catppuccinTheme.ts side-nav-item override keep the selected label weight at 400 (selection shown by colour and overlay only). Leave the tab weight as is (the settings auditor accepted it as a selected-vs-hover cue).",
+   "files": [
+    "src/themes/catppuccin/catppuccinTheme.ts"
+   ],
+   "expected": "Selected and rest sidebar rows both 14/20/400",
+   "source": "plane-visual-reference §1 Nav row (weight never changes)",
+   "finding_ids": [
+    "shell-9"
+   ],
+   "verify": "shell/measure.mjs ONLY=home WIDTHS=1440 SCHEMES=dark,light (items[].textFs)",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "S12",
+   "lane": "shell",
+   "severity": "low",
+   "title": "Palette: footer wraps at 375; no active row after typing",
+   "instruction": "In palette-parts.tsx hide the keyboard hints below 600px (no keyboard on a phone) and keep 'All projects' on one line (white-space nowrap). In CommandBar.tsx set the first result as the active descendant whenever the query changes, so the row Enter opens is highlighted with the 6% overlay.",
+   "files": [
+    "src/components/shell/palette-parts.tsx",
+    "src/components/shell/CommandBar.tsx",
+    "src/components/styles/shell.css"
+   ],
+   "expected": "Footer one row (<= 44 high) at 375; after typing 'WEB-1' item-0 has the 6% overlay and aria-activedescendant set",
+   "source": "plane-visual-reference §3 Footer and Item",
+   "finding_ids": [
+    "shell-4",
+    "shell-5"
+   ],
+   "verify": "shell/measure.mjs ONLY=palette WIDTHS=1440,375 SCHEMES=dark,light",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "S13",
+   "lane": "shell",
+   "severity": "low",
+   "title": "Project row menu has no group separators",
+   "instruction": "In ProjectMenu.tsx insert { type: 'divider' } between the groups: navigation; link / favourite / draft; archive; Move up / Move down.",
+   "files": [
+    "src/components/shell/ProjectMenu.tsx"
+   ],
+   "expected": "menu.seps has 3 separators; Archive is not adjacent to Move up",
+   "source": "plane-visual-reference §4 Menu separator",
+   "finding_ids": [
+    "shell-15"
+   ],
+   "verify": "shell/measure.mjs ONLY=projectmenu WIDTHS=1440 SCHEMES=dark,light",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "S14",
+   "lane": "shell",
+   "severity": "low",
+   "title": "Toast dismiss has no hover state",
+   "instruction": "In catppuccinTheme.ts onDark/onLight toast overrides give the dismiss IconButton the standard hover overlay (the 4-6% overlay token on the toast surface) in both schemes.",
+   "files": [
+    "src/themes/catppuccin/catppuccinTheme.ts"
+   ],
+   "expected": "Hover changes > 0 pixels in the dismiss box, in Frappé and Latte",
+   "source": "Cross-cutting rule 10",
+   "finding_ids": [
+    "shell-16"
+   ],
+   "verify": "shell/measure.mjs ONLY=toast WIDTHS=1440 SCHEMES=dark,light (closeState.pixels.changed > 0)",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "S15",
+   "lane": "shell",
+   "severity": "low",
+   "title": "Not-found page has no h1; description leaves an orphan word",
+   "instruction": "In NotFoundScreen.tsx render the heading with accessibilityLevel 1 (the visual size stays) and give the description `text-wrap: balance` through a className in shell.css.",
+   "files": [
+    "src/components/shell/NotFoundScreen.tsx",
+    "src/components/styles/shell.css"
+   ],
+   "expected": "One h1 'Page not found'; the description has no single-word last line",
+   "source": "ui.md Shell (PanelTitle/h1 per page)",
+   "finding_ids": [
+    "shell-17"
+   ],
+   "verify": "shell/measure.mjs ONLY=notfound WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (shell/measure.mjs and probes, 1440 and 375, Frappé and Latte) + tests/ui (touch-target-css, shell-visual-css, rail-parts, panel-header)"
+  },
+  {
+   "id": "L9",
+   "lane": "list",
+   "severity": "low",
+   "title": "Selected list row has no tint",
+   "instruction": "In work-items.css/bulk.css give a selected row (aria-selected / data-selected on .tessera-wi-row) `background-color: color-mix(in srgb, var(--color-accent) 8%, transparent)`, and on hover the hover overlay on top of it, so selection reads stronger than hover in both schemes (the table uses 20% dark / 8% light; match those).",
+   "files": [
+    "src/components/styles/work-items.css",
+    "src/components/styles/bulk.css"
+   ],
+   "expected": "states.selected differs from rest and hover in Frappé and Latte",
+   "source": "plane-visual-reference §5 row selected",
+   "finding_ids": [
+    "list-9"
+   ],
+   "verify": "list/measure.mjs ONLY=list-grouped WIDTHS=1440 SCHEMES=dark,light (states.selected)",
+   "status": "fixed: verify PASS; evidence: browser measure (list/measure.mjs, 1440 and 375, both schemes, screenshots) + tests/ui/list-touch-css, list-visual-fixes"
+  },
+  {
+   "id": "L10",
+   "lane": "list",
+   "severity": "low",
+   "title": "Group header gives no hover feedback",
+   "instruction": "In work-items.css `.tessera-wi-group .astryx-collapsible-trigger:hover` add the hover overlay as background-image (the band sets only background-color, per ui.md), so the pressed overlay still works.",
+   "files": [
+    "src/components/styles/work-items.css"
+   ],
+   "expected": "groupHover pixel delta > 0",
+   "source": "plane-visual-reference §5 group header",
+   "finding_ids": [
+    "list-10"
+   ],
+   "verify": "list/measure.mjs ONLY=list-grouped WIDTHS=1440 SCHEMES=dark,light (states.groupHover)",
+   "status": "fixed: verify PASS; evidence: browser measure (list/measure.mjs, 1440 and 375, both schemes, screenshots) + tests/ui/list-touch-css, list-visual-fixes"
+  },
+  {
+   "id": "L11",
+   "lane": "list",
+   "severity": "low",
+   "title": "Row chips mix 20 and 24px heights; label lists have no +N overflow (rows and rail)",
+   "instruction": "In ListLayout.tsx / work-items.css make the label, module and estimate tokens and the sub-items/links badges in .tessera-wi-props the same 24px chip as the controls (--radius-inner), and set the chip gap to var(--spacing-2). In LabelControl (properties/) show at most 2 labels then a '+N' chip (the full list in a tooltip); the detail rail uses the same control, so its labels stop ellipsising.",
+   "files": [
+    "src/components/work-items/ListLayout.tsx",
+    "src/components/styles/work-items.css",
+    "src/components/work-items/properties/LabelControl.tsx"
+   ],
+   "expected": "All chips in a row 24 high with an 8px gap; WEB-54 shows 2 labels + '+4'; rail Labels shows '+N' instead of an ellipsis",
+   "source": "plane-visual-reference §6; deliberate differences (24 chips); §12 property row",
+   "finding_ids": [
+    "list-11",
+    "detail-19"
+   ],
+   "verify": "list/measure.mjs ONLY=list-grouped WIDTHS=1440 SCHEMES=dark; detail/measure.mjs ONLY=page-labels,peek WIDTHS=1440",
+   "status": "fixed: verify PASS; evidence: browser measure (list/measure.mjs, 1440 and 375, both schemes, screenshots) + tests/ui/list-touch-css, list-visual-fixes"
+  },
+  {
+   "id": "L13",
+   "lane": "list",
+   "severity": "low",
+   "title": "Empty project description ends on an orphan word",
+   "instruction": "In ListLayout.tsx give the EmptyState description a className with `text-wrap: balance` (work-items.css).",
+   "files": [
+    "src/components/work-items/ListLayout.tsx",
+    "src/components/styles/work-items.css"
+   ],
+   "expected": "No single-word last line at 1440 or 375",
+   "source": "plane-visual-reference §9 empty state",
+   "finding_ids": [
+    "list-14"
+   ],
+   "verify": "list/measure.mjs ONLY=empty-project WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (list/measure.mjs, 1440 and 375, both schemes, screenshots) + tests/ui/list-touch-css, list-visual-fixes"
+  },
+  {
+   "id": "B8",
+   "lane": "board-table",
+   "severity": "low",
+   "title": "Peeked card/row not marked",
+   "instruction": "Pass the peek id from the URL to BoardLayout/TableLayout; set aria-current='true' on the peeked card and row; style with `border-color: var(--color-accent)` (card) and an inset 1px accent border on the row's first cell, in board.css and table.css.",
+   "files": [
+    "src/components/work-items/BoardLayout.tsx",
+    "src/components/work-items/TableLayout.tsx",
+    "src/components/styles/board.css",
+    "src/components/styles/table.css"
+   ],
+   "expected": "The peeked card border = accent; the peeked row first cell has a 1px accent edge, in both schemes",
+   "source": "plane-visual-reference §7 Card, §8 Row states",
+   "finding_ids": [
+    "board-table-9"
+   ],
+   "verify": "board-table/extra4.mjs dark and light (boardPeeked != boardBefore)",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "B9",
+   "lane": "board-table",
+   "severity": "low",
+   "title": "Drag overlay card 8px shorter than the card",
+   "instruction": "In BoardLayout.tsx pass the same menu node (or a same-size inert placeholder of var(--size-element-sm)) to the overlay's BoardCardBody instead of menu={null}, so the ghost matches the card (156).",
+   "files": [
+    "src/components/work-items/BoardLayout.tsx",
+    "src/components/work-items/BoardCards.tsx"
+   ],
+   "expected": "drag.mid120.overlay.h = placeholder h",
+   "source": "BoardCards.tsx comment (overlay identical)",
+   "finding_ids": [
+    "board-table-10"
+   ],
+   "verify": "board-table/measure.mjs ONLY=board_state WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "B10",
+   "lane": "board-table",
+   "severity": "low",
+   "title": "Table sort button under the resize handle; idle sort glyph at 1.6-1.8:1",
+   "instruction": "In table.css give sortable header cells padding-inline-end var(--spacing-2), so the sort button ends before the 8px resize handle; raise the idle sort glyph opacity from 0.35 to a value that reaches 3:1 (or use color var(--color-text-secondary) at full opacity) in Frappé and Latte.",
+   "files": [
+    "src/components/styles/table.css"
+   ],
+   "expected": "No sort/resize overlap; idle glyph >= 3:1 in both schemes",
+   "source": "Audit rules (c) and (e)",
+   "finding_ids": [
+    "board-table-11",
+    "board-table-12"
+   ],
+   "verify": "board-table/measure.mjs ONLY=table,wview_table WIDTHS=1440 SCHEMES=dark,light (content.overlaps, generic.lowContrastIcons)",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "B12",
+   "lane": "board-table",
+   "severity": "low",
+   "title": "Selection and key columns stay pinned at 375",
+   "instruction": "In TableLayout.tsx apply useTableStickyColumns startKeys only at >= 768px (matchMedia), so phones scroll the whole row.",
+   "files": [
+    "src/components/work-items/TableLayout.tsx"
+   ],
+   "expected": "At 375 no pinned columns; at 1440 unchanged",
+   "source": "plane-visual-reference §8 First column (sticky >= 768)",
+   "finding_ids": [
+    "board-table-15"
+   ],
+   "verify": "board-table/measure.mjs ONLY=table WIDTHS=375,1440 SCHEMES=dark (.sticky)",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "B13",
+   "lane": "board-table",
+   "severity": "low",
+   "title": "Board card rest shadow and column head proportions",
+   "instruction": "In board.css give .tessera-board-card a resting box-shadow var(--shadow-low) (hover keeps --shadow-med); set the column head to min-block-size var(--spacing-11) with a 16/500 title. Leave the 8px status dot.",
+   "files": [
+    "src/components/styles/board.css",
+    "src/components/work-items/BoardLayout.tsx"
+   ],
+   "expected": "cards[0] box-shadow = --shadow-low at rest; head 44 high; title weight 500",
+   "source": "plane-visual-reference §7 Card and §0 shadows",
+   "finding_ids": [
+    "board-table-16"
+   ],
+   "verify": "board-table/measure.mjs ONLY=board_state WIDTHS=1440 SCHEMES=dark,light",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "B14",
+   "lane": "board-table",
+   "severity": "low",
+   "title": "Card ⋯ menu always visible",
+   "instruction": "In BoardCards.tsx / board.css hide the card menu with opacity 0 until the card is hovered or has focus-within; under (hover: none) keep opacity 1 (always on mobile per the reference). Keyboard reachability is unchanged.",
+   "files": [
+    "src/components/work-items/BoardCards.tsx",
+    "src/components/styles/board.css"
+   ],
+   "expected": "At 1440 the menu has opacity 0 at rest and 1 on hover/focus; at 375 touch 1",
+   "source": "plane-visual-reference §7 Card key row",
+   "finding_ids": [
+    "board-table-17"
+   ],
+   "verify": "board-table/measure.mjs ONLY=board_state WIDTHS=1440,375 SCHEMES=dark (probe.cards[0].menu.opacity)",
+   "status": "fixed: verify PASS; evidence: browser measure (board-table measure.mjs with the real grip, touch emulation at 375, both schemes) + tests/ui/board-table-css, board-table-fixes"
+  },
+  {
+   "id": "T10",
+   "lane": "timeline",
+   "severity": "low",
+   "title": "Weekday labels centred while date numbers are left-aligned",
+   "instruction": "In calendar.css right-align both the weekday labels (.tessera-cal-head) and the day number (the day header HStack in DayCell), with the number inset var(--spacing-2); keep the hover add button aligned with the number's centre.",
+   "files": [
+    "src/components/styles/calendar.css",
+    "src/components/work-items/CalendarLayout.tsx"
+   ],
+   "expected": "Weekday label right edge = date number right edge (+/-1) per column",
+   "source": "plane-visual-reference §10 Weekday row and Day header",
+   "finding_ids": [
+    "timeline-12"
+   ],
+   "verify": "timeline/measure.mjs ONLY=cal-month-we WIDTHS=1440 SCHEMES=dark,light (cal.weekdayVsDate)",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "T11",
+   "lane": "timeline",
+   "severity": "low",
+   "title": "Calendar today marker, weekend tint and week-view height",
+   "instruction": "In calendar.css mark today with a 20px filled accent circle (var(--spacing-5), radius 50%, background var(--color-accent), text on-accent) behind the date number instead of the whole-cell outline; tint weekend columns (data-weekend) with var(--color-background-muted), matching the gantt; in week view let the cells stretch to the available height (grid-auto-rows 1fr, min-block-size).",
+   "files": [
+    "src/components/styles/calendar.css",
+    "src/components/work-items/CalendarLayout.tsx"
+   ],
+   "expected": "Today pill 20x20 accent with >= 4.5:1 number; Sat/Sun bg differs from weekdays in both schemes; week cells fill the panel",
+   "source": "plane-visual-reference §10 Day header and Weekends",
+   "finding_ids": [
+    "timeline-13"
+   ],
+   "verify": "timeline/measure.mjs ONLY=cal-month-we,cal-week-we WIDTHS=1440 SCHEMES=dark,light",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "T13",
+   "lane": "timeline",
+   "severity": "low",
+   "title": "Bar label touches the bar edge; short bars draw clipped glyphs",
+   "instruction": "In gantt.css give .tessera-gantt-bar padding-inline var(--spacing-2); hide the label (visibility hidden; the row label already names the item) when the bar is narrower than calc(var(--spacing-12) + var(--spacing-4)) (64), via a data-narrow attribute computed from the day span x day width in GanttLayout.tsx.",
+   "files": [
+    "src/components/styles/gantt.css",
+    "src/components/work-items/GanttLayout.tsx"
+   ],
+   "expected": "text.padLeft >= 8; barLabelClippedCount 0 (labels hidden on narrow bars); no clipped glyph on quarter zoom",
+   "source": "plane-visual-reference §11 Bar",
+   "finding_ids": [
+    "timeline-15"
+   ],
+   "verify": "timeline/measure.mjs ONLY=gantt-month,gantt-quarter WIDTHS=1440,375 SCHEMES=dark,light",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "T14",
+   "lane": "timeline",
+   "severity": "low",
+   "title": "Modules timeline month header differs from the work-item gantt month zoom",
+   "instruction": "In ModulesTimeline.tsx build the header with the same gantt-scale helpers and data-zoom attributes as GanttLayout month zoom (week band, day row hidden via data-zoom-days), so the two month views share the 21px header.",
+   "files": [
+    "src/components/planning/ModulesTimeline.tsx"
+   ],
+   "expected": "modules-timeline head.rect.h = gantt-month head.rect.h; band texts are week labels",
+   "source": "docs/PLAN.md decision 108 (same gantt chart)",
+   "finding_ids": [
+    "timeline-18"
+   ],
+   "verify": "timeline/measure.mjs ONLY=modules-timeline,gantt-month WIDTHS=1440 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (timeline measure.mjs, conn2.mjs, today-repeat, 1440/768/375, both schemes) + tests/ui/gantt-*, calendar-css, date-span"
+  },
+  {
+   "id": "D8",
+   "lane": "detail",
+   "severity": "low",
+   "title": "Detail title pencil 4px low and far from the title",
+   "instruction": "In detail.css remove margin-block-start var(--spacing-1) from .tessera-detail-title-edit and centre it on the first line ((line-height 28 - 28)/2 = 0); in WorkItemDetail.tsx place the pencil right after the title text (inline-flex, gap var(--spacing-2)) rather than at the row's end.",
+   "files": [
+    "src/components/styles/detail.css",
+    "src/components/detail/WorkItemDetail.tsx"
+   ],
+   "expected": "Pencil centre y = title first-line centre (+/-1); pencil x = title text end + 8",
+   "source": "Cross-cutting rule 4",
+   "finding_ids": [
+    "detail-11"
+   ],
+   "verify": "detail/measure.mjs ONLY=page WIDTHS=1440 SCHEMES=dark (m.rects.title vs titleRow)",
+   "status": "fixed: verify PASS; evidence: browser measure (detail/measure.mjs and probes, 1440 and 375, both schemes, screenshots) + tests/ui detail tests"
+  },
+  {
+   "id": "D9",
+   "lane": "detail",
+   "severity": "low",
+   "title": "Property rail scrolls away on the full page",
+   "instruction": "In detail.css make .tessera-detail-rail `position: sticky; inset-block-start: 0; align-self: start; max-block-size: 100%; overflow-y: auto` inside the page grid (from 768px up).",
+   "files": [
+    "src/components/styles/detail.css"
+   ],
+   "expected": "After scrolling 600px the rail is still visible at 1440",
+   "source": "plane-visual-reference §12 page sidebar",
+   "finding_ids": [
+    "detail-12"
+   ],
+   "verify": "detail/measure.mjs ONLY=page WIDTHS=1440 SCHEMES=light (-s3 screenshot shows the rail)",
+   "status": "fixed: verify PASS; evidence: browser measure (detail/measure.mjs and probes, 1440 and 375, both schemes, screenshots) + tests/ui detail tests"
+  },
+  {
+   "id": "D11",
+   "lane": "detail",
+   "severity": "low",
+   "title": "Comment avatar off the activity rail by 2px",
+   "instruction": "In CommentItem.tsx / collaboration.css centre the 24px avatar in a 28px slot (margin-inline var(--spacing-0-5) or a 28px wrapper) so its centre is on the rail x (986).",
+   "files": [
+    "src/components/detail/CommentItem.tsx",
+    "src/components/styles/collaboration.css"
+   ],
+   "expected": "comments[0].avatar.cx = activity lineX (+/-0.5)",
+   "source": "plane-visual-reference §12 Comment card; cross-cutting rule 6",
+   "finding_ids": [
+    "detail-14"
+   ],
+   "verify": "detail/measure.mjs ONLY=peek WIDTHS=1440 SCHEMES=dark (m.activity)",
+   "status": "fixed: verify PASS; evidence: browser measure (detail/measure.mjs and probes, 1440 and 375, both schemes, screenshots) + tests/ui detail tests"
+  },
+  {
+   "id": "D13",
+   "lane": "detail",
+   "severity": "low",
+   "title": "Peek resize grip visible when the peek is full width",
+   "instruction": "In PeekHost.tsx / detail.css hide the resize handle when the panel is capped at 100% (below the min-width breakpoint, or when its computed width = the container width).",
+   "files": [
+    "src/components/detail/PeekHost.tsx",
+    "src/components/styles/detail.css"
+   ],
+   "expected": "No resize grip at 375",
+   "source": "detail.css comment ('Capped, it covers the list instead')",
+   "finding_ids": [
+    "detail-17"
+   ],
+   "verify": "detail/measure.mjs ONLY=peek WIDTHS=375 SCHEMES=dark (screenshot)",
+   "status": "fixed: verify PASS; evidence: browser measure (detail/measure.mjs and probes, 1440 and 375, both schemes, screenshots) + tests/ui detail tests"
+  },
+  {
+   "id": "D14",
+   "lane": "detail",
+   "severity": "low",
+   "title": "History 'Restore this version' sits at the end of the diff",
+   "instruction": "In VersionHistoryDialog.tsx move 'Restore this version' into the dialog footer (pinned), disabled with a reason when the selected version is the current one.",
+   "files": [
+    "src/components/history/VersionHistoryDialog.tsx",
+    "src/components/styles/history.css"
+   ],
+   "expected": "The restore button is visible without scrolling at 1440 and 375; disabled for the current version",
+   "source": "Cross-cutting rule 2",
+   "finding_ids": [
+    "detail-18"
+   ],
+   "verify": "detail/measure.mjs ONLY=history WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (detail/measure.mjs and probes, 1440 and 375, both schemes, screenshots) + tests/ui detail tests"
+  },
+  {
+   "id": "P3",
+   "lane": "planning",
+   "severity": "low",
+   "title": "Cycle/module side panel lists and breakdown tabs off the panel inset",
+   "instruction": "In ProgressPanel.tsx, BreakdownTabs.tsx and ModuleLinks.tsx / planning.css pull the ListItem rows out by their own 8px (margin-inline calc(-1 * var(--spacing-2))), so the dots and text sit on the panel's 16px inset, and pull the breakdown TabList in by var(--spacing-3) (as archives.css does).",
+   "files": [
+    "src/components/planning/ProgressPanel.tsx",
+    "src/components/planning/BreakdownTabs.tsx",
+    "src/components/planning/ModuleLinks.tsx",
+    "src/components/styles/planning.css"
+   ],
+   "expected": "Row dot/text x = the Progress title x (17 panel-relative); right edges = the bars' right edge; 'Assignees' tab text x = 17",
+   "source": "Cross-cutting rule 1; field guide 16px inset",
+   "finding_ids": [
+    "planning-4"
+   ],
+   "verify": "planning/probe-panel.mjs web_module_marketing at 1440, dark and light",
+   "status": "fixed: verify PASS; evidence: browser measure (planning/measure.mjs, focusshot, rows/dlg probes, 1440 and 375, both schemes) + tests/ui/planning-*"
+  },
+  {
+   "id": "P4",
+   "lane": "planning",
+   "severity": "low",
+   "title": "Active cycles content 8px inside the gutter",
+   "instruction": "In ActiveCyclesScreen.tsx remove the extra 8px padding so the project chip and the cycle card start at x=275 (25 at 375) and end at 1415, matching the cycles summary card.",
+   "files": [
+    "src/components/planning/ActiveCyclesScreen.tsx"
+   ],
+   "expected": "card boxLeft = h4 x = 275",
+   "source": "Cross-cutting rule 1",
+   "finding_ids": [
+    "planning-5"
+   ],
+   "verify": "planning/measure.mjs ONLY=active_cycles WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (planning/measure.mjs, focusshot, rows/dlg probes, 1440 and 375, both schemes) + tests/ui/planning-*"
+  },
+  {
+   "id": "P6",
+   "lane": "planning",
+   "severity": "low",
+   "title": "Drafts and intake rows and tabs off the 16px gutter",
+   "instruction": "In DraftsScreen.tsx and IntakeScreen.tsx inset the list rows so the leading icon starts at x=275 and the menu ends at 1415 (ListItem padding-inline var(--spacing-4), or a list margin-inline var(--spacing-2)); move the intake Open/Snoozed/Closed tabs onto the S7 pattern (first tab text at 275, docked).",
+   "files": [
+    "src/components/drafts/DraftsScreen.tsx",
+    "src/components/intake/IntakeScreen.tsx",
+    "src/components/styles/intake.css",
+    "src/components/styles/drafts.css"
+   ],
+   "expected": "Drafts icon x=275, menu right 1415; intake priority icon x=275, 'Open' tab text x=275",
+   "source": "Cross-cutting rule 1; ui.md Archives tabs",
+   "finding_ids": [
+    "planning-7",
+    "planning-8"
+   ],
+   "verify": "planning/measure.mjs ONLY=drafts,web_intake WIDTHS=1440 SCHEMES=dark,light",
+   "status": "fixed: verify PASS; evidence: browser measure (planning/measure.mjs, focusshot, rows/dlg probes, 1440 and 375, both schemes) + tests/ui/planning-*"
+  },
+  {
+   "id": "P7",
+   "lane": "planning",
+   "severity": "low",
+   "title": "Cycle row text squeezed at 375",
+   "instruction": "In CycleRow.tsx / planning.css below 480px drop the 96px bar (keep '0/13') or wrap the end group under the text, with a var(--spacing-3) gap between the text and the progress block.",
+   "files": [
+    "src/components/planning/CycleRow.tsx",
+    "src/components/styles/planning.css"
+   ],
+   "expected": "'Oct 16 – Oct 29 · 7 days left' fully visible at 375",
+   "source": "ui.md CycleRow; audit rule (c)",
+   "finding_ids": [
+    "planning-9"
+   ],
+   "verify": "planning/clip2.mjs web_cycles at 375, dark",
+   "status": "fixed: verify PASS; evidence: browser measure (planning/measure.mjs, focusshot, rows/dlg probes, 1440 and 375, both schemes) + tests/ui/planning-*"
+  },
+  {
+   "id": "P8",
+   "lane": "planning",
+   "severity": "low",
+   "title": "Module row avatar cluster ragged at both widths",
+   "instruction": "In ModuleRow.tsx / modules.css give the avatar cluster a fixed reserved width (e.g. calc(var(--spacing-6) * 3)) aligned start, so the lead avatar x is equal across rows; when the row wraps at 375 start the second line on the title inset (x=41).",
+   "files": [
+    "src/components/planning/ModuleRow.tsx",
+    "src/components/styles/modules.css"
+   ],
+   "expected": "Lead avatar x equal across rows at 1440; the wrapped line starts at the title x at 375",
+   "source": "Cross-cutting rules 1 and 3",
+   "finding_ids": [
+    "planning-10"
+   ],
+   "verify": "planning/measure.mjs ONLY=web_modules WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (planning/measure.mjs, focusshot, rows/dlg probes, 1440 and 375, both schemes) + tests/ui/planning-*"
+  },
+  {
+   "id": "P9",
+   "lane": "planning",
+   "severity": "low",
+   "title": "Project identifier tokens differ in width, titles ragged by 1-2px",
+   "instruction": "In the /projects row (projects list component under src/components/projects) give the identifier token a fixed min-inline-size (computed from the longest identifier, or calc(var(--spacing-12) + var(--spacing-4))) with tabular figures, so the titles start at one x.",
+   "files": [
+    "src/components/projects/ProjectsScreen.tsx"
+   ],
+   "expected": "Row title x equal (+/-0.5) on WEB/MOB/EMP",
+   "source": "Cross-cutting rule 3",
+   "finding_ids": [
+    "planning-11"
+   ],
+   "verify": "planning/measure.mjs ONLY=projects WIDTHS=1440 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (planning/measure.mjs, focusshot, rows/dlg probes, 1440 and 375, both schemes) + tests/ui/planning-*"
+  },
+  {
+   "id": "P10",
+   "lane": "planning",
+   "severity": "low",
+   "title": "Cycle menu icon sizes differ (16 vs 14)",
+   "instruction": "In CycleMenu.tsx use the same icon size for every item (16 for all, matching the favourite icon), so the label x is equal.",
+   "files": [
+    "src/components/planning/CycleMenu.tsx"
+   ],
+   "expected": "All menu items textL equal",
+   "source": "plane-visual-reference §4/§0 icon box 16",
+   "finding_ids": [
+    "planning-12"
+   ],
+   "verify": "planning/extra.mjs cycles-menu at 1440, dark",
+   "status": "fixed: verify PASS; evidence: browser measure (planning/measure.mjs, focusshot, rows/dlg probes, 1440 and 375, both schemes) + tests/ui/planning-*"
+  },
+  {
+   "id": "P11",
+   "lane": "planning",
+   "severity": "low",
+   "title": "Intake action bar: Snooze… has no icon",
+   "instruction": "In IntakeDetail.tsx give Snooze… a clock icon from icons.tsx, like the other actions.",
+   "files": [
+    "src/components/intake/IntakeDetail.tsx"
+   ],
+   "expected": "All four intake actions carry an icon",
+   "source": "Cross-cutting rule 4",
+   "finding_ids": [
+    "planning-14"
+   ],
+   "verify": "planning/measure.mjs ONLY=web_intake_item WIDTHS=1440 SCHEMES=dark (crop-intake-bar)",
+   "status": "fixed: verify PASS; evidence: browser measure (planning/measure.mjs, focusshot, rows/dlg probes, 1440 and 375, both schemes) + tests/ui/planning-*"
+  },
+  {
+   "id": "P14",
+   "lane": "planning",
+   "severity": "low",
+   "title": "Create project dialog: KEY token 4px low; footer gap 12",
+   "instruction": "In CreateProjectDialog.tsx line ~153 change the Icon/Colour row HStack vAlign='end' so the KEY preview token centres on the selects (wrap the selects+token in a vAlign center HStack below the labels); line ~179 footer HStack gap={3} -> gap={2} (8px).",
+   "files": [
+    "src/components/projects/CreateProjectDialog.tsx"
+   ],
+   "expected": "Token cy = select cy (+/-1); Cancel to Create gap 8",
+   "source": "Cross-cutting rule 4; plane-visual-reference §4 Dialog footer 8px gap",
+   "finding_ids": [
+    "shell-13",
+    "shell-14"
+   ],
+   "verify": "shell/measure.mjs ONLY=createproject WIDTHS=1440 SCHEMES=dark,light",
+   "status": "fixed: verify PASS; evidence: browser measure (planning/measure.mjs, focusshot, rows/dlg probes, 1440 and 375, both schemes) + tests/ui/planning-*"
+  },
+  {
+   "id": "St5",
+   "lane": "settings",
+   "severity": "low",
+   "title": "Sub-label indent is 16 instead of 24",
+   "instruction": "In project-settings.css .tessera-settings-child use padding-inline-start calc(var(--spacing-2) + var(--spacing-6)) (the 8px base plus 24), not var(--spacing-6) alone.",
+   "files": [
+    "src/components/styles/project-settings.css"
+   ],
+   "expected": "Child grip x = parent grip x + 24",
+   "source": "plane-visual-reference §14 Label row (children indent 24)",
+   "finding_ids": [
+    "settings-9"
+   ],
+   "verify": "settings/measure.mjs ONLY=ps_labels WIDTHS=1440 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "St7",
+   "lane": "settings",
+   "severity": "low",
+   "title": "Automation status chips differ in size, fill and gap",
+   "instruction": "In AutomationsSettings.tsx render all three status chips with the same Token size and colour, in one HStack with gap={2}.",
+   "files": [
+    "src/components/project-settings/AutomationsSettings.tsx"
+   ],
+   "expected": "Three chips the same height and fill, 8px apart",
+   "source": "Cross-cutting rule 4",
+   "finding_ids": [
+    "settings-12"
+   ],
+   "verify": "settings/adhoc.mjs q4.js on ps_automations at 1440",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "St8",
+   "lane": "settings",
+   "severity": "low",
+   "title": "State, label and actor rows give no hover feedback",
+   "instruction": "In project-settings.css add a row hover overlay (the 4-6% overlay token as background-image) on state, label and actor rows; the draggable rows also show the grip on hover (opacity 0 -> 1, keep 1 under hover: none).",
+   "files": [
+    "src/components/styles/project-settings.css",
+    "src/components/project-settings/StatesSettings.tsx",
+    "src/components/project-settings/LabelsSettings.tsx"
+   ],
+   "expected": "states.mjs hover=true for ps_states, ps_labels and ps_agents rows in both schemes",
+   "source": "Cross-cutting rule 10",
+   "finding_ids": [
+    "settings-13"
+   ],
+   "verify": "settings/states.mjs at 1440, dark and light",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "St9",
+   "lane": "settings",
+   "severity": "low",
+   "title": "Settings row titles at weight 400",
+   "instruction": "Render row titles (features, states, labels, danger rows, actors, webhook names) as Text weight='medium' (500).",
+   "files": [
+    "src/components/project-settings/FeaturesSettings.tsx",
+    "src/components/project-settings/StatesSettings.tsx",
+    "src/components/project-settings/LabelsSettings.tsx",
+    "src/components/project-settings/GeneralSettings.tsx",
+    "src/components/webhooks/WebhooksScreen.tsx"
+   ],
+   "expected": "Row titles 14/20/500",
+   "source": "plane-visual-reference §14 (title 14/500)",
+   "finding_ids": [
+    "settings-14"
+   ],
+   "verify": "settings/measure.mjs ONLY=ps_features,ps_states,ps_labels,ws_webhooks WIDTHS=1440 SCHEMES=dark (texts)",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "St10",
+   "lane": "settings",
+   "severity": "low",
+   "title": "Settings and profile insets: section heading vs row content, workspace vs project column, profile rows",
+   "instruction": "Pull settings list rows out by their own 8px (margin-inline calc(-1 * var(--spacing-2))) so the row titles sit at the heading x (381) in GeneralSettings and AgentsSettings; give WorkspaceSettingsScreen the same VStack padding as project settings (padding 4, so the fields run 381-1309); in ProfileScreen (your-work rows, agent activity) apply the same -8 pull so the row text meets the section heading x.",
+   "files": [
+    "src/components/project-settings/GeneralSettings.tsx",
+    "src/components/project-settings/AgentsSettings.tsx",
+    "src/components/workspace-settings/WorkspaceSettingsScreen.tsx",
+    "src/components/profile/ProfileScreen.tsx",
+    "src/components/styles/profile.css"
+   ],
+   "expected": "Row title x = heading x (381); workspace fields x=381 w=928; your-work row text x = heading x",
+   "source": "Cross-cutting rules 1 and 9",
+   "finding_ids": [
+    "settings-15",
+    "settings-16",
+    "workspace-14"
+   ],
+   "verify": "settings/measure.mjs ONLY=ps_general,ps_agents,ws_general WIDTHS=1440 SCHEMES=dark; workspace/measure.mjs ONLY=your_work WIDTHS=1440",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "St11",
+   "lane": "settings",
+   "severity": "low",
+   "title": "Actor avatars are tab stops",
+   "instruction": "In AgentsSettings.tsx render the Avatars without a focusable tooltip trigger (no tabIndex; the name is already in the row).",
+   "files": [
+    "src/components/project-settings/AgentsSettings.tsx"
+   ],
+   "expected": "focuswalk on ps_agents has no div[img] stops",
+   "source": "field guide tab-stop notes",
+   "finding_ids": [
+    "settings-17"
+   ],
+   "verify": "settings/focuswalk.mjs ps_agents at 1440, dark",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "St12",
+   "lane": "settings",
+   "severity": "low",
+   "title": "Backups helper text on a 17px line",
+   "instruction": "In BackupsScreen.tsx render the Daily backups helper as Text type='supporting' (12/20) instead of the current text style.",
+   "files": [
+    "src/components/backups/BackupsScreen.tsx"
+   ],
+   "expected": "Helper text fs 12, lh 20",
+   "source": "ui.md Density (supporting 12 on a 20 line)",
+   "finding_ids": [
+    "settings-18"
+   ],
+   "verify": "settings/measure.mjs ONLY=ws_backups WIDTHS=1440 SCHEMES=dark (texts)",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "St13",
+   "lane": "settings",
+   "severity": "low",
+   "title": "Estimate dialog value rows and the webhook secret field too narrow",
+   "instruction": "In EstimateDialog.tsx / estimates.css let the Value and Description inputs grow (flex 1 1 0, min-width 0) to fill the 528px body, with 'Add value' aligned start like the rows; in WebhookScreen.tsx give the signing secret input full column width (or show it truncated with an ellipsis, plus the Copy button).",
+   "files": [
+    "src/components/estimates/EstimateDialog.tsx",
+    "src/components/styles/estimates.css",
+    "src/components/webhooks/WebhookScreen.tsx"
+   ],
+   "expected": "Estimate rows span the dialog body; the secret field no longer clips a glyph (ellipsis or full width)",
+   "source": "Cross-cutting rules 1 and 3",
+   "finding_ids": [
+    "settings-20"
+   ],
+   "verify": "settings/measure.mjs ONLY=dlg_estimate_edit,ws_webhook_detail WIDTHS=1440 SCHEMES=dark; adhoc q9.js",
+   "status": "fixed: verify PASS; evidence: browser measure (settings measure/q-probes, focuswalk, 1440 and 375, both schemes) + tests/ui settings tests"
+  },
+  {
+   "id": "Pg6",
+   "lane": "pages",
+   "severity": "low",
+   "title": "Page title pencil 4px low",
+   "instruction": "In pages.css remove margin-block-start from .tessera-page-title-edit so it centres on the 28px title line.",
+   "files": [
+    "src/components/styles/pages.css"
+   ],
+   "expected": "titleEdit centre y = title centre y (+/-1) on wiki and nested pages",
+   "source": "Cross-cutting rule 4",
+   "finding_ids": [
+    "pages-7"
+   ],
+   "verify": "pages/measure.mjs ONLY=wiki_page,project_page_nested WIDTHS=1440 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg7",
+   "lane": "pages",
+   "severity": "low",
+   "title": "Outline card top 4px above the column's first element",
+   "instruction": "In pages.css set the outline's sticky inset-block-start / margin-block-start to the column's padding-block-start (var(--spacing-5), 20), so both tops share a line.",
+   "files": [
+    "src/components/styles/pages.css"
+   ],
+   "expected": "outline.box.y = title (or banner) y",
+   "source": "Cross-cutting rules 1 and 8",
+   "finding_ids": [
+    "pages-8"
+   ],
+   "verify": "pages/measure.mjs ONLY=wiki_page,page_locked WIDTHS=1440 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg8",
+   "lane": "pages",
+   "severity": "low",
+   "title": "Tree grip does not show on keyboard focus of the row",
+   "instruction": "In pages.css extend the reveal selector to the focused li: `.tessera-page-row--draggable:focus-within .tessera-row-grip, li:focus-visible > .tessera-page-row--draggable .tessera-row-grip { opacity: 1 }` (match the real DOM; the li carries focus).",
+   "files": [
+    "src/components/styles/pages.css"
+   ],
+   "expected": "gripOpacity '1' when the row li is keyboard-focused",
+   "source": "pages.css comment (grip on hover or keyboard focus); decision 105",
+   "finding_ids": [
+    "pages-9"
+   ],
+   "verify": "pages/tree-focus.mjs at 1440, dark and light",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg10",
+   "lane": "pages",
+   "severity": "low",
+   "title": "Read-only editor mixes primary and secondary text per block",
+   "instruction": "In editor.css .tessera-editor--readonly .tessera-editor-content set one body colour for all blocks (primary): drop the secondary on lists, table cells, task items and code, or set it on p and headings as well.",
+   "files": [
+    "src/components/styles/editor.css"
+   ],
+   "expected": "p, h, ul, table and taskList colours equal in read-only mode, in both schemes",
+   "source": "ui.md Theme",
+   "finding_ids": [
+    "pages-11"
+   ],
+   "verify": "pages/measure.mjs ONLY=wiki_page,page_locked WIDTHS=1440 SCHEMES=dark,light (measure.blocks)",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg11",
+   "lane": "pages",
+   "severity": "low",
+   "title": "Editor h3 the same size as body; body h1 equals the page title",
+   "instruction": "In editor.css step the headings with the theme scale (ratio 1.2 from 14): h3 17/24 600, h2 20/28 600, h1 24/32 600, and keep the page title larger (pages.css .tessera-page-title 28/36). The first heading in the content gets margin-block-start 0.",
+   "files": [
+    "src/components/styles/editor.css",
+    "src/components/styles/pages.css"
+   ],
+   "expected": "h3 > body size; h1 < page title; the first heading has no top margin",
+   "source": "plane-visual-reference §15 Body type; ui.md Density scale",
+   "finding_ids": [
+    "pages-12"
+   ],
+   "verify": "pages/measure.mjs ONLY=wiki_page WIDTHS=1440 SCHEMES=dark (measure.headings)",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg13",
+   "lane": "pages",
+   "severity": "low",
+   "title": "Pages search field has no placeholder",
+   "instruction": "In PagesScreen.tsx give the TextInput placeholder 'Search pages'.",
+   "files": [
+    "src/components/pages/PagesScreen.tsx"
+   ],
+   "expected": "input.placeholder = 'Search pages'",
+   "source": "plane-visual-reference §15 Pages list",
+   "finding_ids": [
+    "pages-14"
+   ],
+   "verify": "pages/measure.mjs ONLY=wiki WIDTHS=1440 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg14",
+   "lane": "pages",
+   "severity": "low",
+   "title": "Wiki tabs off the inset; wiki tree centred while project pages are full width",
+   "instruction": "Adopt S7 for the Wiki TabList (first tab text at 275); make the /wiki and project Pages trees use the same PanelPage width (pick 'full' for both, or 'reading' for both).",
+   "files": [
+    "src/components/pages/PagesScreen.tsx"
+   ],
+   "expected": "'Public' text x = title x (275 at 1440, 25 at 375); both trees start at the same x",
+   "source": "Cross-cutting rule 1",
+   "finding_ids": [
+    "pages-15"
+   ],
+   "verify": "pages/measure.mjs ONLY=wiki,project_pages WIDTHS=1440,375 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg15",
+   "lane": "pages",
+   "severity": "low",
+   "title": "Locked state is bare text, not a pill",
+   "instruction": "In LockControl.tsx / lock-control.css render the locked state as a pill: block-size var(--spacing-6), padding-inline var(--spacing-2), radius var(--radius-inner), background color-mix(in srgb, var(--color-accent) 20%, transparent), 12/500 label, text >= 4.5:1 in both schemes.",
+   "files": [
+    "src/components/shared/LockControl.tsx",
+    "src/components/styles/lock-control.css"
+   ],
+   "expected": "Locked pill 24 high with accent tint, readable in Frappé and Latte",
+   "source": "plane-visual-reference §15 Lock control",
+   "finding_ids": [
+    "pages-16"
+   ],
+   "verify": "pages/measure.mjs ONLY=page_locked WIDTHS=1440 SCHEMES=dark,light (measure.lockText)",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg16",
+   "lane": "pages",
+   "severity": "low",
+   "title": "Outline h1 and h2 share an indent; pressed Outline toggle has no hover step",
+   "instruction": "In PageOutline.tsx / pages.css indent outline entries by level (h1 var(--spacing-1), h2 var(--spacing-2), h3 var(--spacing-4)); on the pressed toggle add the hover overlay on top of the pressed fill.",
+   "files": [
+    "src/components/pages/PageOutline.tsx",
+    "src/components/styles/pages.css"
+   ],
+   "expected": "h1, h2 and h3 entries start at three different x; toggle hover bg differs from pressed rest",
+   "source": "plane-visual-reference §15 Outline; cross-cutting rule 10",
+   "finding_ids": [
+    "pages-17"
+   ],
+   "verify": "pages/measure.mjs ONLY=wiki_page WIDTHS=1440 SCHEMES=dark (outline.items textLeft, hover.outlineToggle)",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg17",
+   "lane": "pages",
+   "severity": "low",
+   "title": "Slash menu rows have no icons; the Table row is taller",
+   "instruction": "In editor/mentions.tsx give each slash command a 16px icon from icons.tsx in a 20px box, and move Table's description into a tooltip (or give every row a description), so the rows share one height.",
+   "files": [
+    "src/components/editor/mentions.tsx"
+   ],
+   "expected": "All slash rows the same height with an icon",
+   "source": "plane-visual-reference §15 Slash menu",
+   "finding_ids": [
+    "pages-18"
+   ],
+   "verify": "pages/slash2.mjs at 1440, dark and light",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "Pg-bubble",
+   "lane": "pages",
+   "severity": "low",
+   "title": "Bubble menu root is a tab stop with a UA ring",
+   "instruction": "In MarkdownEditor.tsx remove tabindex=0 from the bubble menu root (its buttons are the stops); the chip-link ring comes from S5.",
+   "files": [
+    "src/components/editor/MarkdownEditor.tsx"
+   ],
+   "expected": "No focus stop on the bubble container",
+   "source": "Deliberate-differences Focus row",
+   "finding_ids": [
+    "pages-4"
+   ],
+   "verify": "pages/measure.mjs interaction bubbleFocus at 1440, dark and light",
+   "status": "fixed: verify PASS; evidence: browser measure (pages measure.mjs, probes, tree-focus, 1440 and 375, both schemes) + tests/ui/pages-*"
+  },
+  {
+   "id": "W7",
+   "lane": "workspace",
+   "severity": "low",
+   "title": "Recent widget filter sits above the 'Recent' title",
+   "instruction": "In RecentsWidget.tsx render the widget title first and the All/Work items/Pages/Projects control under it (or in the title row's end), with a var(--spacing-4) gap to the list. Do not edit shell/RecentsList.tsx; if the title lives there, pass a prop or render the title in the widget.",
+   "files": [
+    "src/components/home/RecentsWidget.tsx",
+    "src/components/styles/home.css"
+   ],
+   "expected": "'Recent' heading y < filter y; 16px gap to the list",
+   "source": "plane-visual-reference §16 Home column",
+   "finding_ids": [
+    "workspace-13"
+   ],
+   "verify": "workspace/measure.mjs ONLY=home WIDTHS=1440 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  },
+  {
+   "id": "W8",
+   "lane": "workspace",
+   "severity": "low",
+   "title": "Home recents rows 8px right of the widget title",
+   "instruction": "In home.css scope a rule to the Home recents list that pulls the rows out by their own 8px (margin-inline calc(-1 * var(--spacing-2))), so the row text meets the heading x (389).",
+   "files": [
+    "src/components/styles/home.css"
+   ],
+   "expected": "Recents row icon x = heading x (389)",
+   "source": "Cross-cutting rule 9",
+   "finding_ids": [
+    "workspace-14"
+   ],
+   "verify": "workspace/recents.mjs at 1440, dark",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  },
+  {
+   "id": "W9",
+   "lane": "workspace",
+   "severity": "low",
+   "title": "Inbox rows inset 8 instead of 16; detail empty state anchored at top",
+   "instruction": "In NotificationRow.tsx give the ListItem paddingInline 4 (16), so the avatar starts at 275 and the Actions button ends 16px before the divider; centre the detail pane's empty state vertically.",
+   "files": [
+    "src/components/inbox/NotificationRow.tsx",
+    "src/components/styles/inbox.css"
+   ],
+   "expected": "Avatar x=275; Actions right edge = divider - 16",
+   "source": "Field guide 16px inset; cross-cutting rule 1",
+   "finding_ids": [
+    "workspace-15"
+   ],
+   "verify": "workspace/measure.mjs ONLY=inbox WIDTHS=1440 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  },
+  {
+   "id": "W10",
+   "lane": "workspace",
+   "severity": "low",
+   "title": "Stickies and analytics content 8px inside the header inset",
+   "instruction": "In StickiesScreen.tsx and AnalyticsScreen.tsx change VStack padding={6} to padding={4} (16), so the content starts at x=275 like the header title.",
+   "files": [
+    "src/components/stickies/StickiesScreen.tsx",
+    "src/components/analytics/AnalyticsScreen.tsx"
+   ],
+   "expected": "Grid / KPI x = h4 x = 275",
+   "source": "Cross-cutting rule 1; deliberate-differences gutter 16",
+   "finding_ids": [
+    "workspace-16"
+   ],
+   "verify": "workspace/measure.mjs ONLY=stickies,analytics WIDTHS=1440 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  },
+  {
+   "id": "W11",
+   "lane": "workspace",
+   "severity": "low",
+   "title": "Text on tinted sticky cards under 4.5:1",
+   "instruction": "In stickies.css raise the text contrast on tinted cards: lower the tint mix for the failing colours (yellow and green in Frappé; pink, purple and blue in Latte), or set the label and preview to the primary text colour, so the 'Colour' label and the Home preview text reach >= 4.5:1 in both schemes. Inbox avatar initials (9.6px) also need >= 4.5:1: use the on-colour text token for the avatar.",
+   "files": [
+    "src/components/styles/stickies.css",
+    "src/components/styles/home.css",
+    "src/components/styles/inbox.css"
+   ],
+   "expected": "All sticky label/preview pairs >= 4.5:1 in Frappé and Latte; avatar initials >= 4.5:1",
+   "source": "Audit rule (e); ui.md Theme text 4.5:1",
+   "finding_ids": [
+    "workspace-17"
+   ],
+   "verify": "workspace/measure.mjs ONLY=stickies,home,inbox_item WIDTHS=1440 SCHEMES=dark,light (contrast)",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  },
+  {
+   "id": "W12",
+   "lane": "workspace",
+   "severity": "low",
+   "title": "Analytics 'Data table' trigger has no hover",
+   "instruction": "In TableHeading.tsx / analytics.css give the collapsible trigger a hover overlay (background-image of the hover token) and a 16px chevron.",
+   "files": [
+    "src/components/analytics/TableHeading.tsx",
+    "src/components/styles/analytics.css"
+   ],
+   "expected": "Hover crop differs from rest in both schemes",
+   "source": "Cross-cutting rule 10",
+   "finding_ids": [
+    "workspace-18"
+   ],
+   "verify": "workspace/states.mjs analytics data_table_trigger, dark and light",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  },
+  {
+   "id": "W13",
+   "lane": "workspace",
+   "severity": "low",
+   "title": "Quick links are plain chips with an always-visible menu",
+   "instruction": "In QuickLinksWidget.tsx / home.css render each quick link as a card row: a 32px icon tile (var(--spacing-8), radius var(--radius-element), muted fill), title 14/500 in primary text (not accent), a 12px supporting line (host or relative time); the '…' menu revealed on hover/focus-within (opacity, kept visible under hover: none). Keep the 8px gap.",
+   "files": [
+    "src/components/home/QuickLinksWidget.tsx",
+    "src/components/styles/home.css"
+   ],
+   "expected": "Quick link tile ~56 high with a 32 icon tile; menu opacity 0 at rest on a fine pointer",
+   "source": "plane-visual-reference §16 Quick link card",
+   "finding_ids": [
+    "workspace-19"
+   ],
+   "verify": "workspace/measure.mjs ONLY=home WIDTHS=1440 SCHEMES=dark,light",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  },
+  {
+   "id": "W14",
+   "lane": "workspace",
+   "severity": "low",
+   "title": "Inbox title repeats the first tab ('Inbox' / 'Inbox')",
+   "instruction": "In InboxScreen.tsx TAB_LABELS rename the first tab to 'All' (keep the route value).",
+   "files": [
+    "src/components/inbox/InboxScreen.tsx"
+   ],
+   "expected": "Header reads 'Inbox' with tabs 'All', ...",
+   "source": "ui.md Shell (PanelTitle names the page; tabs name its parts)",
+   "finding_ids": [
+    "workspace-20"
+   ],
+   "verify": "workspace/measure.mjs ONLY=inbox WIDTHS=1440 SCHEMES=dark",
+   "status": "fixed: verify PASS; evidence: browser measure (workspace/measure.mjs, recents, tables, hit-area.mjs, 1440 and 375, both schemes) + tests/ui/workspace-*, analytics-touch-css"
+  }
+ ],
+ "rejected": [
+  {
+   "finding_id": "detail-16",
+   "reason": "Intended behaviour: ui.md line 42 records that the project tab strip scrolls inside its row (the scroll arrow and fade over the last visible tab are the scroller). The toolbar wrapping when both the peek and the assistant narrow the list to ~290px is the documented PanelBar canWrap behaviour (ui.md 'Panel headers')."
+  },
+  {
+   "finding_id": "board-table-14",
+   "reason": "The desktop part conflicts with ui.md Density ('sm controls (28px) in headers and rows') and Tessera's compact Table density; the group band already matches the recorded 40px decision. The coarse-pointer 44px rows are covered in item B11."
+  },
+  {
+   "finding_id": "pages-13",
+   "reason": "Plane's 52px page-list row conflicts with ui.md Density (sm controls in rows, compact TreeList like the 32px sidebar rows); the 44px touch rows are covered by Pg5."
+  },
+  {
+   "finding_id": "timeline-16",
+   "reason": "The 32px desktop rows and 24px bars follow ui.md Density and match the 32px calendar chips; 44px rows on coarse pointers are already built (as-built operations.md) and extended to max-width 480 in T2. The 21 vs 41px header difference is a duplicate of timeline-18 (item T14)."
+  },
+  {
+   "finding_id": "detail-13",
+   "reason": "Not a visual fix: the relations, reactions and attachments UI was never built (docs/as-built/pages-collaboration.md:108,115). Moved to needs_decision."
+  },
+  {
+   "finding_id": "planning-17",
+   "reason": "Moved to needs_decision (Latte icon contrast for the yellow/peach/pink/green palette, shared with settings-19); contrast checks are pragmatic per the user's standing guidance."
+  },
+  {
+   "finding_id": "settings-19",
+   "reason": "Moved to needs_decision together with planning-17 (same palette root cause in Latte)."
+  }
+ ],
+ "needs_decision": [
+  {
+   "question": "How should 44px touch targets at 375 be applied: one theme-wide rule or per lane?",
+   "why": "Every auditor found tens of controls under 44 at 375 (the brief rates that high). Only grips, a few tabs and some analytics/settings buttons have a 44px rule. A theme rule fixes the chrome at once but changes Astryx control sizes everywhere at <=480px. Dense in-row chips and table cells need a hit-area expansion, not a visual size change.",
+   "options": [
+    "A: theme-wide coarse/480 rule on Astryx Button, IconButton, Tab, Switch, MenuItem and Segmented (shell lane, S1), plus per-lane hit-area expansion for dense rows (items L7, B11, T2, D3, P12, St3, Pg5, W6)",
+    "B: per-lane rules only, as home.css and analytics.css do today (~9 lanes repeat the same media block)",
+    "C: record a trade-off: 44 only for primary actions, grips and tabs; dense in-row controls stay 20-28 on phones"
+   ],
+   "recommendation": "A. One theme rule, plus hit-area expansion (padding with an equal negative margin) for chips and cells, so the 1440 density and the 375 row look stay as they are. The items are written for A; under B, S1 shrinks to the shell's own screens."
+  },
+  {
+   "question": "Should the work item detail get its relations, reactions (and attachments) UI now?",
+   "why": "The engine, tools and actions exist (relations 55, reactions 57), but no component renders them (as-built pages-collaboration.md:108,115). The detail auditor flagged them as missing next to Plane's §12. Building them is feature work, not visual polish, and Tessera has no attachment storage.",
+   "options": [
+    "Build Relations (a list plus Add relation) and a ReactionBar on the description and on comments in a separate detail task; skip attachments",
+    "Build relations only",
+    "Leave as is and record the gap in ui.md"
+   ],
+   "recommendation": "Build Relations and reactions as a separate detail-lane task after this fix round (the engine is done and the gantt already uses relations). Record 'no attachments' as a deliberate difference."
+  },
+  {
+   "question": "Should the Latte icon colours yellow, peach, pink and green be darkened for icons, or the shortfall recorded as a trade-off?",
+   "why": "In Latte, the view logos and the state and label icons measure 2.31-2.96:1 on the base (planning-17, settings-19). The name is always next to the icon, so the meaning is not lost; ui.md already avoids peach and green for chart strokes.",
+   "options": [
+    "Record it as an accepted trade-off in ui.md 'Accepted trade-offs'",
+    "Add darker Latte icon variants for these four hues in palette.ts (theme-wide, shell lane), used only for icons",
+    "Keep the hues but add a 1px darker outline on small icons in Latte"
+   ],
+   "recommendation": "Record the trade-off. This follows the standing guidance that contrast checks are pragmatic: fix the default placements and record exceptions. Icons that carry a user-picked colour are not default text."
+  }
+ ],
+ "coverage_gaps": [
+  "Tablet widths 768-1023 (Plane's 768 and 1024 pivots) on every area; only 375 and 1440 were measured (board with side peek at ~1100 included)",
+  "Reference §2 breadcrumbs: no auditor compared Tessera's PanelTitle headers against §2 beyond the frame header",
+  "Planning dialogs (New cycle, New module, Add existing, Transfer, Duplicate, Draft dialog) and the Modules/Views row menus",
+  "Locked view state and the ViewBar Modified state at 375 (blocked by list-1/planning-2)",
+  "Show more / GroupFooter and the calendar has_more Banner (fixture below the 50/200/1000 caps)",
+  "Drag-in-progress visuals for list reorder, states/labels, quick links, stickies and widgets, and committing any drop (only cancelled board and page-tree drags ran)",
+  "Assistant transcript, proposal rows and the Apply dialog (§ AI surfaces); Home digest in its populated state",
+  "Detail quick-edit states: title input, sub-item add, link dialog, composer with text, ParentPicker and selector popovers; modal peek mode and resize drag",
+  "Gantt per-row 'Set dates' popover and the calendar 'Move to date' DateInput popover; empty gantt state; calendar with Sunday week start; read-only/archived project timelines",
+  "Settings: exports table, backups list and webhook deliveries with data; the estimates empty state; archived-project disabled settings; actor, webhook edit, delete-state/label and export dialogs; focus inside dialogs and menus",
+  "Pages: version history and navigation pane (§15) not located; Private/Archived wiki tabs; title rename input, label combobox popover and bubble link input",
+  "Inbox detail pane content and the Snooze dialog; inbox row Actions menu items; quick link Add link dialog; sticky create/delete",
+  "Recharts SVG tick-label contrast and chart tooltips (analytics and cycle charts)",
+  "Palette opened by clicking the top-bar search, and focus return to it; Ask answer flow; create-project validation states; toast stacking"
+ ],
+ "decisions_taken": [
+  "touch targets: option A (theme-wide coarse/480 rule plus hit-area expansion for dense rows)",
+  "relations and reactions UI: build both on the work item detail after the visual items; no attachments (excluded scope)",
+  "Latte icon contrast for yellow/peach/pink/green: record as an accepted trade-off in ui.md"
+ ],
+ "round_result": "Reconciled 2026-10-23 on HEAD 5f0cc7c plus the round: 129 of 130 items fixed and verified PASS (S7, P12 and St14 after fix 2), L3 partial by choice. Relations and reactions UI built on the work item detail. Follow-ups are in docs/improvements.md Open."
+}

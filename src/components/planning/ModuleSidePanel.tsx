@@ -58,7 +58,7 @@ export function ModuleSidePanel({ module, writer, readOnly: projectReadOnly = fa
             <LeadControl compact readOnly={readOnly} value={module.lead_actor_id} onChange={(lead_actor_id) => writer.update({ lead_actor_id })} />
           </MetadataListItem>
           <MetadataListItem label="Members" icon={<UsersIcon />}>
-            <AssigneeControl label="Members" readOnly={readOnly} value={module.member_ids} onChange={writer.setMembers} />
+            <AssigneeControl compact label="Members" readOnly={readOnly} value={module.member_ids} onChange={writer.setMembers} />
           </MetadataListItem>
           <MetadataListItem label="Start date" icon={<CalendarIcon />}>
             <DateInput

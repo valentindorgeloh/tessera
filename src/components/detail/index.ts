@@ -10,6 +10,10 @@ export { PropertyRail, PropertyRailFields, type PropertyName, type PropertyRailF
 export { ParentPicker, type ParentPickerProps } from "./ParentPicker";
 export { SubItems, type SubItemsProps } from "./SubItems";
 export { LinksList, type LinksListProps } from "./LinksList";
+export { RelationsList, type RelationsListProps } from "./RelationsList";
+export { ReactionBar, type ReactionBarProps } from "./ReactionBar";
+export { RELATION_CHOICES, RELATION_LABELS, groupRelations, type RelationRowView } from "./relation-model";
+export { REACTION_CHOICES, reactionChipLabel, toggleReaction, type ReactionSummary } from "./reaction-model";
 export { ActivityFeed, ACTIVITY_PREVIEW_COUNT, type ActivityFeedProps } from "./ActivityFeed";
 export { describeActivity, formatIsoDate, linkDisplayLabel, linkHost, newestFirst } from "./activity-text";
 export { matchWorkItemRef, parentTriggerLabel, toCandidates, type WorkItemCandidate } from "./search-hits";

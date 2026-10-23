@@ -87,7 +87,10 @@ export function NotificationRow({
             </Text>
           ) : null}
           <RelativeTime value={note.sort_at || note.created_at} type="supporting" color="secondary" hasTooltip={false} />
-          {unread ? <StatusDot variant="accent" label="Unread" /> : null}
+          {/* The dot's slot stays on a read row, so the time text has one x on every row. */}
+          <HStack hAlign="center" vAlign="center" className="tessera-inbox-dot">
+            {unread ? <StatusDot variant="accent" label="Unread" /> : null}
+          </HStack>
           <MoreMenu label={`Actions for ${actor}`} size="sm" items={items} />
         </HStack>
       }

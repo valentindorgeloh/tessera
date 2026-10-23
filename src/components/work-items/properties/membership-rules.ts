@@ -72,3 +72,17 @@ export function mergeModuleChange(next: readonly string[], kept: readonly string
 export function archivedModulesLabel(count: number): string {
   return `${count} archived module${count === 1 ? "" : "s"}`;
 }
+
+/** How many label names a row or a rail value shows before it turns into "+N". */
+export const MAX_SHOWN_LABELS = 2;
+
+/** The names a chip shows (the first `max`) and how many more there are, for the "+N" chip. */
+export function splitShownNames<T>(names: readonly T[], max: number = MAX_SHOWN_LABELS): { shown: T[]; hidden: number } {
+  return { shown: names.slice(0, max), hidden: Math.max(0, names.length - max) };
+}
+
+/** "Frontend, Backend +4": the first `max` names joined, then the count of the rest. */
+export function summarizeNames(names: readonly string[], max: number = MAX_SHOWN_LABELS): string {
+  const { shown, hidden } = splitShownNames(names, max);
+  return hidden > 0 ? `${shown.join(", ")} +${hidden}` : shown.join(", ");
+}

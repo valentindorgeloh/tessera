@@ -6,7 +6,7 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from "@astryxdesign/core/SideNav";
+import { SideNav, SideNavHeading, SideNavSection } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { usePointerDrag } from "@/components/dnd/use-pointer-drag";
@@ -16,6 +16,7 @@ import type { Project } from "@/lib/tessera/types";
 import { AgentIcon, BellIcon, BurndownIcon, CycleIcon, DraftIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, TableIcon, UserIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { FavoritesSection } from "./FavoritesSection";
 import { ProjectMenu, projectMove } from "./ProjectMenu";
+import { ExpandedOnly, RailItem, RowActions } from "./RailParts";
 import { projectIdFromPath } from "./recents";
 import { formatKeys, SHORTCUT_BY_ID } from "./shortcuts";
 import { useShell } from "./TesseraShell";
@@ -224,69 +225,73 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
       }
     >
       <SideNavSection title="Workspace" isHeaderHidden>
-        <SideNavItem label="Home" icon={HouseIcon} href="/" isSelected={pathname === "/"} />
-        <SideNavItem
+        <RailItem label="Home" icon={HouseIcon} href="/" isSelected={pathname === "/"} />
+        <RailItem
           label="Inbox"
           icon={BellIcon}
           href="/inbox"
           isSelected={pathname === "/inbox"}
           endContent={unreadCount > 0 ? <Badge label={String(unreadCount)} /> : undefined}
         />
-        <SideNavItem label="Your work" icon={UserIcon} href="/your-work" isSelected={pathname === "/your-work" || pathname.startsWith("/your-work/")} />
-        <SideNavItem
+        <RailItem label="Your work" icon={UserIcon} href="/your-work" isSelected={pathname === "/your-work" || pathname.startsWith("/your-work/")} />
+        <RailItem
           label="Drafts"
           icon={DraftIcon}
           href="/drafts"
           isSelected={pathname === "/drafts"}
           endContent={draftCount > 0 ? <Badge label={String(draftCount)} /> : undefined}
         />
-        <SideNavItem label="Wiki" icon={PageIcon} href="/wiki" isSelected={pathname === "/wiki" || pathname.startsWith("/pages/")} />
+        <RailItem label="Wiki" icon={PageIcon} href="/wiki" isSelected={pathname === "/wiki" || pathname.startsWith("/pages/")} />
       </SideNavSection>
       <FavoritesSection tree={favorites} />
       <SideNavSection
         ref={registerContainer("projects")}
         title="Projects"
-        endContent={<IconButton label="Create project" variant="ghost" size="sm" icon={<Icon icon={PlusIcon} />} tooltip="Create project" onClick={openCreateProject} />}
+        endContent={
+          <ExpandedOnly>
+            <IconButton label="Create project" variant="ghost" size="sm" icon={<Icon icon={PlusIcon} />} tooltip="Create project" onClick={openCreateProject} />
+          </ExpandedOnly>
+        }
       >
-        <SideNavItem label="Projects" icon={FolderIcon} href="/projects" isSelected={isProjectsPage(pathname)} />
+        <RailItem label="Projects" icon={FolderIcon} href="/projects" isSelected={isProjectsPage(pathname)} />
         {ordered.length === 0 ? (
           <Text type="supporting" color="secondary" as="p">
             No projects yet.
           </Text>
         ) : (
           ordered.map((project, index) => (
-            <SideNavItem
+            <RailItem
               key={project.id}
               ref={registerItem(project.id)}
               {...itemHandlers(project.id, "projects")}
               className="tessera-project-row"
               label={project.name}
+              // The count sits in the actions slot, outside the link, so the link's
+              // name carries it: "Website 48" (the visible label stays inside the name).
+              aria-label={`${project.name} ${project.counts.total}`}
               icon={resolveLogoIcon(project.logo?.icon)}
               href={`/projects/${project.id}/work-items`}
               isSelected={project.id === activeProjectId}
-              endContent={
-                <Text type="supporting" color="secondary" hasTabularNumbers>
-                  {project.counts.total}
-                </Text>
-              }
               actions={
-                <ProjectMenu
-                  project={project}
-                  isFavorite={isFavoriteInTree(favorites, "project", project.id)}
-                  canMoveUp={index > 0}
-                  canMoveDown={index < ordered.length - 1}
-                  onMove={(direction) => moveProject(project.id, direction)}
-                />
+                <RowActions count={project.counts.total}>
+                  <ProjectMenu
+                    project={project}
+                    isFavorite={isFavoriteInTree(favorites, "project", project.id)}
+                    canMoveUp={index > 0}
+                    canMoveDown={index < ordered.length - 1}
+                    onMove={(direction) => moveProject(project.id, direction)}
+                  />
+                </RowActions>
               }
             />
           ))
         )}
       </SideNavSection>
-      <SideNavSection title="Workspace" isHeaderHidden>
-        <SideNavItem label="Workspace views" icon={TableIcon} href="/workspace-views" isSelected={pathname === "/workspace-views" || pathname.startsWith("/workspace-views/")} />
-        <SideNavItem label="Active cycles" icon={CycleIcon} href="/active-cycles" isSelected={pathname === "/active-cycles" || pathname.startsWith("/active-cycles/")} />
-        <SideNavItem label="Analytics" icon={BurndownIcon} href="/analytics" isSelected={pathname === "/analytics" || pathname.startsWith("/analytics/")} />
-        <SideNavItem label="Agents" icon={AgentIcon} href="/agents" isSelected={pathname === "/agents" || pathname.startsWith("/agents/")} />
+      <SideNavSection title="Workspace" isHeaderHidden className="tessera-sidebar-last">
+        <RailItem label="Workspace views" icon={TableIcon} href="/workspace-views" isSelected={pathname === "/workspace-views" || pathname.startsWith("/workspace-views/")} />
+        <RailItem label="Active cycles" icon={CycleIcon} href="/active-cycles" isSelected={pathname === "/active-cycles" || pathname.startsWith("/active-cycles/")} />
+        <RailItem label="Analytics" icon={BurndownIcon} href="/analytics" isSelected={pathname === "/analytics" || pathname.startsWith("/analytics/")} />
+        <RailItem label="Agents" icon={AgentIcon} href="/agents" isSelected={pathname === "/agents" || pathname.startsWith("/agents/")} />
       </SideNavSection>
     </SideNav>
   );

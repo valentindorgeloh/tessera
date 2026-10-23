@@ -1,6 +1,6 @@
 # As-built map: views and settings (P4)
 
-State described: the working tree after the fix-all round, 2026-10-21 (HEAD `e04b840` plus uncommitted lane work, including the drag reorder of views, states and labels). Line counts are tree counts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Contract: docs/contracts/ui.md "Views" and "Project settings".
+State described: the working tree after the fix-all round (2026-10-21) and the visual alignment round (2026-10-22, on HEAD 5f0cc7c: workspace views reorder, optimistic Move up/Move down, settings touch targets and tab strips). Line counts are tree counts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Contract: docs/contracts/ui.md "Views" and "Project settings".
 
 ## 1. Purpose and boundaries
 
@@ -19,13 +19,13 @@ Lives elsewhere (this area only calls it):
 | File | Responsibility | Key exports |
 |---|---|---|
 | `views.ts` (417) | Saved views CRUD. Name unique per scope (`name_key`; workspace names checked in code because SQLite treats NULL `project_id` as distinct). Workspace views accept only `layout: "table"`. Locked views refuse every change but `unlockView`. | `listViews`, `getView`, `createView`, `updateView`, `reorderView`, `duplicateView` ("Copy of …"), `lockView`, `unlockView`, `deleteView`, `WORKSPACE_VIEW_LAYOUT` |
-| `view-settings.ts` (270) | One `view_settings` row per (scope_type, scope_id); saves merge keys over stored ones; `DisplayPatchSchema` has no defaults so an omitted key never resets. | `getViewSettings`, `saveViewSettings`, `resetViewSettings`, `DisplayPatchSchema`, `mergeDisplay`, `mergeFilters`, `defaultViewSettings`, `WORKSPACE_SCOPE_ID` |
-| `saved-filters.ts` (72) | Strips a deleted state, label, cycle or module id from every saved view (locked included) and every `view_settings` row. | `stripIdsFromSavedFilters` |
-| `static-views.ts` (31) | The four virtual workspace views and their `view_settings` ids (`workspace`, `static:<key>`). | `staticViewScope`, `staticViewSettingsId` |
-| `counts.ts` (384) | `getCounts(scope)`: workspace, project, cycle, module, view and profile scopes; counts the population `listWorkItems` shows (non-deleted, non-archived, outside triage). View scope applies the view's filters and rich tree through `buildWhere` and `buildRichWhere`. | `getCounts`, `getTaxonomyUsage`, `countsPopulation`, `CountsScopeSchema` |
+| `view-settings.ts` (269) | One `view_settings` row per (scope_type, scope_id); saves merge keys over stored ones; `DisplayPatchSchema` has no defaults so an omitted key never resets. | `getViewSettings`, `saveViewSettings`, `resetViewSettings`, `DisplayPatchSchema`, `mergeDisplay`, `mergeFilters`, `defaultViewSettings`, `WORKSPACE_SCOPE_ID` |
+| `saved-filters.ts` (71) | Strips a deleted state, label, cycle or module id from every saved view (locked included) and every `view_settings` row. | `stripIdsFromSavedFilters` |
+| `static-views.ts` (30) | The four virtual workspace views and their `view_settings` ids (`workspace`, `static:<key>`). | `staticViewScope`, `staticViewSettingsId` |
+| `counts.ts` (383) | `getCounts(scope)`: workspace, project, cycle, module, view and profile scopes; counts the population `listWorkItems` shows (non-deleted, non-archived, outside triage). View scope applies the view's filters and rich tree through `buildWhere` and `buildRichWhere`. | `getCounts`, `getTaxonomyUsage`, `countsPopulation`, `CountsScopeSchema` |
 | `states.ts` (436) | States per project; fractional `sort_order`; one default; hidden `triage` state owned by Intake. | `createState`, `updateState`, `reorderState`, `setDefaultState`, `deleteState`, `DEFAULT_STATES`, `ensureTriageState` |
 | `labels.ts` (312) | Labels, one level deep. `reorderLabel` also reparents (`parent_id`) in one transaction and scopes neighbours to the target container. | `createLabel`, `updateLabel`, `reorderLabel`, `deleteLabel` |
-| `projects.ts` (601), `projects-order.ts` (55) | Project CRUD, identifier rules, feature toggles (`updateProjectFeatures`), archive and restore, retired identifiers. | `updateProjectFeatures`, `assertFeatureEnabled`, `resolveRetiredIdentifier`, `reorderProject` |
+| `projects.ts` (601), `projects-order.ts` (54) | Project CRUD, identifier rules, feature toggles (`updateProjectFeatures`), archive and restore, retired identifiers. | `updateProjectFeatures`, `assertFeatureEnabled`, `resolveRetiredIdentifier`, `reorderProject` |
 
 Registry tools: `views.ts` (list/get/create/update/duplicate/lock/unlock/reorder/delete view, get/save/reset view settings), `states.ts`, `labels.ts`, `projects.ts` under `tools/registry/`. Server Action wrappers: `actions/{views,states-labels,settings,projects}.ts`.
 
@@ -43,19 +43,20 @@ Registry tools: `views.ts` (list/get/create/update/duplicate/lock/unlock/reorder
 
 | Path | Responsibility | Key exports |
 |---|---|---|
-| `views/ViewsScreen.tsx` (212) | Views list: search, New view, Describe a view (when the assistant is available), `?create=1` and `?describe=1` consumed once. Rows drag by pointer (decision 105) with optimistic order, toast and snap-back; drag off while search has text or the project is archived. | `ViewsScreen` |
-| `views/ViewRow.tsx` (88), `ViewMenu.tsx` (128) | Row links through ListItem's invisible anchor; menu: Edit, Duplicate, Lock/Unlock, Move up/down (row only), Delete. | `ViewRow`, `ViewLockIndicator`, `ViewMenu` |
-| `views/ViewBar.tsx` (105) | "Modified" dot with Reset, Save as new view and Update view. A locked view disables Update with its reason; an archived project shows only Reset. Registers the view name for recents. | `ViewBar` |
-| `views/ViewDialog.tsx` (176), `SaveViewButton.tsx` (33) | New, edit, "Save view" (from the project list) and "Save as new view" modes; logo through the shared picker (decision 85). | `ViewDialog`, `SaveViewButton` |
-| `views/view-state.ts` (76, pure), `view-reorder.ts` (35, pure) | What counts as modified (`isViewModified`, stable JSON of normalised filters, display, rich tree), quick-add defaults a view implies, row summary ("List · 4 filters"); drop maths. | `isViewModified`, `normalizeFilters`, `viewScopeDefaults`, `viewSummary`, `moveView`, `viewDropInput` |
-| `views/WorkspaceViewsScreen.tsx` (164) | Four static views, then saved workspace views; `?create=1`. | `WorkspaceViewsScreen` |
-| `project-settings/SettingsTabs.tsx`, `settings-tabs.ts` (pure) | Seven tabs; the palette builds its entries from `SETTINGS_TABS`. | `SETTINGS_TABS`, `activeSettingsTab` |
+| `views/ViewsScreen.tsx` (191) | Views list: search, New view, Describe a view (when the assistant is available), `?create=1` and `?describe=1` consumed once. Rows drag by pointer (decision 105) with optimistic order, toast and snap-back; drag off while search has text or the project is archived. The reorder wiring is `use-view-reorder.ts`, shared with the workspace list. | `ViewsScreen` |
+| `views/ViewRow.tsx` (89), `ViewMenu.tsx` (129), `use-view-reorder.ts` (56) | Row links through ListItem's invisible anchor (`tessera-row-hit` gives a touch hit area); menu: Edit, Duplicate, Lock/Unlock, Move up/down (row only, optimistic through `onMove`), Delete. `useViewReorder` is the one reorder hook of both views lists: `useOptimistic` manual order (decision 13), `usePointerDrag` (decision 105) and the menu path; a refused move toasts the view's name and the reason. | `ViewRow`, `ViewLockIndicator`, `ViewMenu` |
+| `views/ViewBar.tsx` (110) | "Modified" dot with Reset, Save as new view and Update view. A locked view disables Update with its reason; an archived project shows only Reset. Registers the view name for recents. | `ViewBar` |
+| `views/ViewDialog.tsx` (175), `SaveViewButton.tsx` (32) | New, edit, "Save view" (from the project list) and "Save as new view" modes; logo through the shared picker (decision 85). | `ViewDialog`, `SaveViewButton` |
+| `views/view-state.ts` (75, pure), `view-reorder.ts` (57, pure) | What counts as modified (`isViewModified`, stable JSON of normalised filters, display, rich tree), quick-add defaults a view implies, row summary ("List · 4 filters"); drop maths. | `isViewModified`, `normalizeFilters`, `viewScopeDefaults`, `viewSummary`, `moveView`, `viewDropInput` |
+| `views/WorkspaceViewsScreen.tsx` (189) | Four static views, then saved workspace views; `?create=1`. The saved list has the project views list's structure and drag reorder (decisions 13 and 105). | `WorkspaceViewsScreen` |
+| `project-settings/SettingsTabs.tsx`, `settings-tabs.ts` (pure) | Seven tabs; the palette builds its entries from `SETTINGS_TABS`. |
+| `project-settings/SettingsRow.tsx` (30) | `SettingsTitle` (14/20/500) and `SettingsHelp` (supporting 12/20, secondary) for every settings row. | `SettingsTitle`, `SettingsHelp` | `SETTINGS_TABS`, `activeSettingsTab` |
 | `project-settings/{General,Features,Agents}Settings.tsx` | General: name, identifier (old keys keep working, decision 29), description, logo, danger zone. Features: six switches (cycles, modules, views, pages, intake, estimates) through `updateProjectFeaturesAction`. Agents: intake policy switch, default assignee, actor list with `ActorDialog`. All disabled in an archived project. | `GeneralSettings`, `FeaturesSettings`, `AgentsSettings` |
-| `project-settings/StatesSettings.tsx` (205), `StateDialog.tsx`, `DeleteStateDialog.tsx` | One list per group (triage never shown). Delete of a non-empty state asks where its items move. Drag stays inside one group; the call carries one neighbour (the flat sort order interleaves groups). | `StatesSettings`, `stateDrop`, `moveStateInGroup` |
-| `project-settings/LabelsSettings.tsx` (253), `LabelDialog.tsx`, `reorder-drop.ts` (129, pure) | Top-level labels each followed by sub-labels; containers are the top level and each parent's children; an empty parent shows a "Drop to nest" zone; a label with children refuses nesting. Menu keeps Move to / up / down. | `LabelsSettings`, `labelDrop`, `labelDropRefusal`, `moveLabel` |
-| `project-settings/sibling-moves.ts` (25), `palette-labels.ts`, `identifier.ts` | Menu moves name exactly one neighbour; palette names; identifier sanitising. | `siblingMove`, `sanitizeIdentifier` |
-| `shared/RowDrag.tsx` (58) | Grip, lifted clone and dashed slot shared by every row-reorder surface. | `RowGrip`, `RowDragOverlay`, `RowSlot` |
-| `projects/CreateProjectDialog.tsx` (199) | New project: name, suggested identifier, logo. | `CreateProjectDialog`, `NewProjectButton` |
+| `project-settings/StatesSettings.tsx` (217), `StateDialog.tsx`, `DeleteStateDialog.tsx` | One list per group (triage never shown). Delete of a non-empty state asks where its items move. Drag stays inside one group; the call carries one neighbour (the flat sort order interleaves groups). | `StatesSettings`, `stateDrop`, `moveStateInGroup` |
+| `project-settings/LabelsSettings.tsx` (265), `LabelDialog.tsx`, `reorder-drop.ts` (128, pure) | Top-level labels each followed by sub-labels; containers are the top level and each parent's children; an empty parent shows a "Drop to nest" zone; a label with children refuses nesting. Menu keeps Move to / up / down. | `LabelsSettings`, `labelDrop`, `labelDropRefusal`, `moveLabel` |
+| `project-settings/sibling-moves.ts` (36), `palette-labels.ts`, `identifier.ts` | Menu moves name exactly one neighbour; palette names; identifier sanitising. | `siblingMove`, `sanitizeIdentifier` |
+| `shared/RowDrag.tsx` (57) | Grip, lifted clone and dashed slot shared by every row-reorder surface. | `RowGrip`, `RowDragOverlay`, `RowSlot` |
+| `projects/CreateProjectDialog.tsx` (206) | New project: name, suggested identifier, logo. | `CreateProjectDialog`, `NewProjectButton` |
 
 ## 3. Data and control flow
 
@@ -94,7 +95,7 @@ Registry tools: `views.ts` (list/get/create/update/duplicate/lock/unlock/reorder
 ## 5. Tests that guard this area
 
 - Engine: `tests/{views,view-settings,static-views,states,labels,projects,projects-reorder,counts}.test.ts`, `tests/analytics/counts-parity.test.ts`.
-- UI (pure maths and render): `tests/ui/{view-state,view-reorder,reorder-drop,settings-tabs,sibling-moves,project-identifier,project-tabs,url-state,filter-state}.test.ts`.
+- UI (pure maths and render): `tests/ui/{view-state,view-reorder,views-menu-move,reorder-drop,settings-tabs,settings-css,sibling-moves,project-identifier,project-tabs,url-state,filter-state}.test.ts` (`settings-css` reads the settings, estimates and profile stylesheets; `views-menu-move` covers Move up/Move down on both views lists).
 - Playwright: `tests/e2e/views-settings.spec.ts` (save a list as a view, lock it, a state and a label added in settings reach the work items screen), `tests/e2e/drag-surfaces.spec.ts` (menu paths and pointer drags of views, states, labels).
 - No Vitest: `ViewDialog`, `ViewMenu`, `GeneralSettings`, `FeaturesSettings`, `AgentsSettings`, `ActorDialog`, `WorkspaceViewsScreen`.
 
@@ -107,8 +108,8 @@ Registry tools: `views.ts` (list/get/create/update/duplicate/lock/unlock/reorder
 
 ## 7. Known debt and quirks
 
-- The workspace views list (`WorkspaceViewsScreen`) has no drag reorder; `ViewRow` takes the same optional `drag` prop.
-- Move up/down in the views, states and labels menus are not optimistic; only drags are.
+- Touch (decision 14): settings and dialog fields (text inputs, selectors, switch labels, dialog item rows) are visible 44 px boxes under `(pointer: coarse), (max-width: 480px)` through `.tessera-settings-body` and `.tessera-settings-fields` in `project-settings.css`; the 1440 field height (32 px) stays. All Switches in settings and dialogs are Astryx size `sm` (32x20).
+- Move up/down in the views, states and labels menus are optimistic like the drags (decision 13).
 - A drop the surface refuses (another state group, a label that would nest two levels) snaps back with no toast.
 - `reorder_state` is not scoped by group in the engine, which is why the UI sends one neighbour.
 - A label drag hides its children with it while held.

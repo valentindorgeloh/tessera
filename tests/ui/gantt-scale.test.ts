@@ -3,6 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  barColorToken,
   conflictItemIds,
   conflictNotes,
   connectorAnchors,
@@ -110,6 +111,64 @@ describe("connectorPaths", () => {
     const paths = connectorPaths(edges, rowIndex, byId, "2026-10-01", 14);
     expect(paths[0]?.conflict).toBe(true);
     expect([...conflictItemIds(paths)].sort()).toEqual(["a", "b"]);
+  });
+});
+
+describe("connectorPaths in CSS pixels", () => {
+  const rowIndex = new Map([
+    ["a", 0],
+    ["b", 1],
+  ]);
+  const scale = { day: 32, row: 44, inset: 4 };
+  const numbers = (d: string) => (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
+
+  it("ends a blocked_by path on the bars' inset edges, at the row centres", () => {
+    // B (row 1) ends after day 3, A (row 0) starts on day index 9: the blocker's end edge to the blocked bar's start edge.
+    const byId = new Map([
+      ["a", { start_date: "2026-10-10", target_date: "2026-10-12" }],
+      ["b", { start_date: "2026-10-01", target_date: "2026-10-03" }],
+    ]);
+    const paths = connectorPaths(ganttEdges([{ from_id: "a", to_id: "b", type: "blocked_by" }]), rowIndex, byId, "2026-10-01", 14, scale);
+    const n = numbers(paths[0]?.d ?? "");
+    expect([n[0], n[1]]).toEqual([3 * 32 - 4, 1.5 * 44]);
+    expect([n[n.length - 2], n[n.length - 1]]).toEqual([9 * 32 + 4, 0.5 * 44]);
+  });
+
+  it("arrives from the left at a start anchor and from the right at an end anchor, so an arrowhead points into the bar", () => {
+    const byId = new Map([
+      ["a", { start_date: "2026-10-01", target_date: "2026-10-05" }],
+      ["b", { start_date: "2026-10-08", target_date: "2026-10-12" }],
+    ]);
+    const start = numbers(connectorPaths(ganttEdges([{ from_id: "a", to_id: "b", type: "start_before" }]), rowIndex, byId, "2026-10-01", 30, scale)[0]?.d ?? "");
+    // M x1 y1 C c1x y1, c2x y2, x2 y2: the second control point is left of the target's start edge.
+    expect(start[4]).toBeLessThan(start[6] ?? 0);
+    const finish = numbers(connectorPaths(ganttEdges([{ from_id: "a", to_id: "b", type: "finish_before" }]), rowIndex, byId, "2026-10-01", 30, scale)[0]?.d ?? "");
+    expect(finish[4]).toBeGreaterThan(finish[6] ?? 0);
+  });
+
+  it("keeps the unit space without a scale (days by rows)", () => {
+    const byId = new Map([
+      ["a", { start_date: "2026-10-10", target_date: "2026-10-12" }],
+      ["b", { start_date: "2026-10-01", target_date: "2026-10-03" }],
+    ]);
+    const unit = connectorPaths(ganttEdges([{ from_id: "a", to_id: "b", type: "blocked_by" }]), rowIndex, byId, "2026-10-01", 14);
+    expect(unit[0]?.d).toContain("M 3 1.5");
+  });
+});
+
+describe("barColorToken", () => {
+  it("maps a StatusDot variant to its colour token, and anything else to neutral", () => {
+    expect(barColorToken("accent")).toBe("var(--color-accent)");
+    expect(barColorToken("success")).toBe("var(--color-success)");
+    expect(barColorToken("error")).toBe("var(--color-error)");
+    expect(barColorToken("warning")).toBe("var(--color-warning)");
+    expect(barColorToken("neutral")).toBe(barColorToken(undefined));
+    expect(barColorToken("something-else")).toBe(barColorToken("neutral"));
+  });
+
+  it("gives the five variants five different colours", () => {
+    const tokens = new Set(["accent", "success", "error", "warning", "neutral"].map(barColorToken));
+    expect(tokens.size).toBe(5);
   });
 });
 

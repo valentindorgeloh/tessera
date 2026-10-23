@@ -132,7 +132,7 @@ export function StickyCard({ sticky, registerItem, handlers, isDragged, canMoveE
   const title = stickyTitle(sticky.name);
   return (
     <Card ref={registerItem} id={sticky.id} padding={3} className={`${stickyColorClass(sticky.color)}${isDragged ? " tessera-sticky--dragging" : ""}`}>
-      <VStack gap={3}>
+      <VStack gap={3} className="tessera-sticky-content">
         <HStack gap={2} vAlign="center" hAlign="between">
           <IconButton
             label={`Reorder ${title}`}
@@ -169,13 +169,16 @@ export function StickyCard({ sticky, registerItem, handlers, isDragged, canMoveE
             ]}
           />
         </HStack>
-        <MarkdownEditor
-          value={sticky.description_md}
-          compact
-          placeholder="Write a note."
-          onChange={(markdown) => queueBody(markdown, SAVE_DELAY_MS)}
-          onFlush={() => queueBody(bodyRef.current, 0)}
-        />
+        {/* A long note scrolls inside the card, which is capped at 540px (stickies.css). */}
+        <VStack className="tessera-sticky-body">
+          <MarkdownEditor
+            value={sticky.description_md}
+            compact
+            placeholder="Write a note."
+            onChange={(markdown) => queueBody(markdown, SAVE_DELAY_MS)}
+            onFlush={() => queueBody(bodyRef.current, 0)}
+          />
+        </VStack>
         <PaletteColorSelector
           label="Colour"
           size="sm"

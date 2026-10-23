@@ -44,8 +44,10 @@ export function ProposalRow({
   const failed = proposalPhase(proposal) === "failed" ? proposal.error : null;
   return (
     <VStack gap={2} className="tessera-ai-proposal">
-      <HStack gap={2} vAlign="center">
-        <Text weight="medium">{proposal.preview.title || proposal.title}</Text>
+      <HStack gap={2} vAlign="center" className="tessera-ai-proposal-head">
+        <Text weight="medium" className="tessera-ai-proposal-title">
+          {proposal.preview.title || proposal.title}
+        </Text>
         <StatusChip proposal={proposal} />
       </HStack>
       {proposal.preview.fields.length > 0 ? (

@@ -8,3 +8,10 @@
 .tessera-drafts-fields {
   min-width: 0;
 }
+
+/* Touch: the footer buttons wrap on a phone; a 12px row gap makes the two lines 44px apart, so their hit areas tile (decision 14). */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-drafts-footer {
+    row-gap: var(--spacing-3);
+  }
+}

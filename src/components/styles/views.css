@@ -7,3 +7,18 @@
 .tessera-views-search {
   width: min(calc(var(--spacing-12) * 4), 40vw);
 }
+
+/*
+ * The locked view's reason beside the disabled "Update view": a fine pointer reads it in the button's tooltip, so
+ * the line stays out of the 1440 row; where nothing hovers (a phone) it is written out, on a line of its own.
+ */
+.tessera-view-bar-reason {
+  display: none;
+}
+
+@media (hover: none) {
+  .tessera-view-bar-reason {
+    display: block;
+    flex-basis: 100%;
+  }
+}

@@ -84,3 +84,8 @@ export function deliveryStatusVariant(status: WebhookDeliveryStatus): "accent" |
   if (status === "failed") return "error";
   return "accent";
 }
+
+/** An event name split after each dot, so a narrow cell breaks at a dot and never inside "updated". */
+export function eventSegments(event: string): string[] {
+  return event.split(/(?<=\.)/);
+}

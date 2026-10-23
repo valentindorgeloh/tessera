@@ -8,7 +8,7 @@
  * dialog and the confirmation so the list row and the detail header render
  * the same control. Failures show an error Toast with the engine's message.
  */
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition } from "react";
 import { AlertDialog } from "@/components/shell/dialogs";
 import type { DropdownMenuItemData } from "@astryxdesign/core/DropdownMenu";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
@@ -30,11 +30,16 @@ export type ModuleMenuProps = {
   onDeleted?: () => void;
 };
 
-const ICONS: Record<ModuleActionId, ReactNode> = {
-  edit: <PencilIcon />,
-  archive: <ArchiveIcon />,
-  restore: <RestoreIcon />,
-  delete: <TrashIcon />,
+/**
+ * Component references, not elements: Astryx sizes a component icon to the
+ * menu's 16px icon box, where a rendered `<PencilIcon />` keeps the font-size
+ * 14px and would sit beside the 16px favourite star.
+ */
+const ICONS: Record<ModuleActionId, typeof PencilIcon> = {
+  edit: PencilIcon,
+  archive: ArchiveIcon,
+  restore: RestoreIcon,
+  delete: TrashIcon,
 };
 
 type Outcome = { ok: true } | { ok: false; message: string };

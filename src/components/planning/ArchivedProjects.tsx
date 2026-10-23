@@ -60,6 +60,7 @@ function ArchivedProjectRow({ project, onDelete }: { project: Project; onDelete:
   const { restore, isRestoring } = useRestoreProject(project);
   return (
     <ListItem
+      className="tessera-row-hit"
       href={`/projects/${project.id}/work-items`}
       label={project.name}
       description={
@@ -70,7 +71,7 @@ function ArchivedProjectRow({ project, onDelete }: { project: Project; onDelete:
           </>
         )
       }
-      startContent={<ProjectToken project={{ identifier: project.identifier, logo: project.logo }} />}
+      startContent={<ProjectToken project={{ identifier: project.identifier, logo: project.logo }} className="tessera-project-row-token" />}
       endContent={
         <HStack gap={1} vAlign="center">
           <Button variant="secondary" size="sm" label="Restore" icon={<RestoreIcon />} isLoading={isRestoring} onClick={restore} />
@@ -89,7 +90,7 @@ function ArchivedProjectRow({ project, onDelete }: { project: Project; onDelete:
 /** "Archived projects" link with the archive glyph, next to "New project" on `/projects`. */
 export function ArchivedProjectsLink() {
   return (
-    <Link href="/projects/archives" isStandalone>
+    <Link href="/projects/archives" isStandalone className="tessera-planning-link">
       <HStack as="span" gap={1} vAlign="center">
         <Icon icon={ArchiveIcon} size="sm" />
         Archived projects

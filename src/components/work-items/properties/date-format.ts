@@ -14,3 +14,12 @@ export function formatShortDate(value: string, today: string): string {
   const sameYear = year === Number(today.slice(0, 4));
   return date.toLocaleDateString("en-US", sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" });
 }
+
+/**
+ * A target date is overdue when it is before `today` (the server's local date, decision 6) and the item is not done:
+ * a completed or cancelled state ends the clock. No clock is read here, the caller passes the bundle's today.
+ */
+export function isOverdue(targetDate: string | null, today: string, stateGroup: string | undefined): boolean {
+  if (!targetDate || stateGroup === "completed" || stateGroup === "cancelled") return false;
+  return targetDate < today;
+}

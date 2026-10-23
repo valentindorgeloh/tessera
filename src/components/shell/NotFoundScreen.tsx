@@ -13,15 +13,17 @@ import { useMissingRoute } from "./recents-store";
  * itself is unknown, centred in whatever area hosts it. A client component
  * because the Phosphor glyphs in src/themes/catppuccin/icons.tsx create a React
  * context at module load, which React Server Components cannot evaluate.
- * The address leaves the recents (`useMissingRoute`).
+ * The address leaves the recents (`useMissingRoute`). The title is the page's
+ * h1 (`headingLevel`; the visual size does not change).
  */
 export function NotFoundScreen() {
   useMissingRoute();
   return (
-    <VStack padding={8} minHeight="100%" hAlign="center" vAlign="center">
+    <VStack padding={8} minHeight="100%" hAlign="center" vAlign="center" className="tessera-not-found">
       <EmptyState
         icon={<Icon icon={CompassIcon} size="lg" color="secondary" />}
         title="Page not found"
+        headingLevel={1}
         description="Nothing lives at this address. It may have been moved or deleted."
         actions={<Button label="Go home" variant="primary" href="/" />}
       />

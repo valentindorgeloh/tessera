@@ -18,6 +18,7 @@ import { failureText } from "@/components/planning/archive-rules";
 import { useOptionalProject } from "@/components/work-items/project-provider";
 import type { Project } from "@/lib/tessera/types";
 import { CycleIcon, IntakeIcon, ModuleIcon, PageIcon, SlidersIcon, ViewIcon } from "@/themes/catppuccin/icons";
+import { SettingsHelp, SettingsTitle } from "./SettingsRow";
 
 type FeatureKey = "cycles_enabled" | "modules_enabled" | "views_enabled" | "pages_enabled" | "intake_enabled" | "estimates_enabled";
 
@@ -62,8 +63,8 @@ function FeatureListItem({ feature, project }: { feature: FeatureRow; project: P
   };
   return (
     <ListItem
-      label={feature.label}
-      description={feature.description}
+      label={<SettingsTitle>{feature.label}</SettingsTitle>}
+      description={<SettingsHelp>{feature.description}</SettingsHelp>}
       startContent={<Icon icon={feature.icon} size="sm" color="secondary" />}
       interactiveRef={rowRef}
       endContent={

@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Heading } from "@astryxdesign/core/Heading";
+import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
@@ -21,7 +22,7 @@ import { failureText } from "@/components/planning/archive-rules";
 import { formatEstimateValue } from "@/components/estimates/estimate-format";
 import { useOptionalProject } from "@/components/work-items/project-provider";
 import type { EstimateType, EstimateView } from "@/lib/tessera/types";
-import { EstimateIcon, TrashIcon } from "@/themes/catppuccin/icons";
+import { HashIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { EstimateDialog } from "./EstimateDialog";
 
 const TYPE_LABEL: Record<EstimateType, string> = { points: "Points", categories: "Categories", time: "Time" };
@@ -52,7 +53,7 @@ export function EstimatesSettings({ estimates }: { estimates: EstimateView[] }) 
     <VStack gap={6}>
       {active === null ? (
         <EmptyState
-          icon={<EstimateIcon />}
+          icon={<Icon icon={HashIcon} size="lg" color="secondary" />}
           title="No estimate system"
           description="Points, categories or time on work items."
           actions={<Button variant="primary" size="sm" label="Create estimate system" onClick={() => setDialog("create")} isDisabled={isArchived} />}

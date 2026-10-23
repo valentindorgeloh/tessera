@@ -15,6 +15,22 @@
 }
 
 /*
+ * On a phone the end group (count, bar, 44px menu) took the room the dates
+ * need: "Oct 16 – Oct 29 · 7 days left" was cut to "Oct 16 – Oct 29 · 7 da…".
+ * The bar goes (the "0/13" beside it carries the value) and the group keeps a
+ * 12px gap from the text.
+ */
+@media (max-width: 480px) {
+  .tessera-planning-cycle-bar {
+    display: none;
+  }
+
+  .tessera-planning-row-end {
+    margin-inline-start: var(--spacing-3);
+  }
+}
+
+/*
  * Cycle and module detail headers: one wrapping sub-header row (PanelBar
  * canWrap). Its start (name, status, dates) wraps too, so on a phone the
  * dates drop under the name instead of overflowing; the name truncates.
@@ -42,6 +58,22 @@
 .tessera-planning-row-bar {
   inline-size: 64px;
   flex: none;
+}
+
+/*
+ * Lists in the side panel (state groups, the breakdown rows, the module links):
+ * a compact row brings its own 8px inset, which put the dots and names 8px
+ * right of the "Progress" title and the bars. The list is pulled out by that
+ * 8px, so the dots, the text and the right-hand figures sit on the panel's
+ * 16px inset. The breakdown tab strip is pulled in by a tab's 12px padding, so
+ * "Assignees" starts on the inset too (as the archives tabs do).
+ */
+.tessera-planning-panel-list {
+  margin-inline: calc(-1 * var(--spacing-2));
+}
+
+.tessera-planning-breakdown-tabs {
+  margin-inline-start: calc(-1 * var(--spacing-3));
 }
 
 /* Inactive tab panels carry `hidden`; the stack's own display rule would otherwise win. */
@@ -86,4 +118,97 @@
 .tessera-planning-data-table {
   --container-padding-block-start: var(--spacing-0);
   --container-padding-block-end: var(--spacing-0);
+}
+
+/*
+ * Touch targets (P12, decision 14). The theme gives Astryx buttons, tabs and
+ * segments a 44px hit area (a pseudo-element, no layout change) under
+ * (pointer: coarse) or at 480px and narrower; shell.css gives the same to a
+ * Selector's trigger button and a DateInput's calendar toggle. They keep their
+ * drawn size (touch rework): the 28px side-panel fields and the row pitch stay.
+ * What none of them reach are the links that stand alone, below. The desktop
+ * sizes are untouched.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  /* The links that stand alone in a card or a header (Open cycle, the project name) are 20px lines. */
+  .tessera-planning-link {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--spacing-11);
+    margin-block: calc((var(--spacing-5) - var(--spacing-11)) / 2);
+  }
+}
+
+/*
+ * Row hit area (P12, decision 14). A ListItem's label link or button is only as
+ * high as its text (40px for a title over a subline), inside a row that pads it
+ * 8px (balanced) or 4px (compact) above and below. A tap on that padding hit
+ * the bare row and did nothing. Under a coarse pointer or on a phone the
+ * link/button gets a pseudo-element that reaches the row's padding, so the whole
+ * row height takes the tap (48 to 56px), and no size changes: the row keeps its
+ * look. The rows opt in with `tessera-row-hit` (cycles, modules, views,
+ * workspace views, intake, drafts, projects, the archive lists). The block axis
+ * only: the link keeps its width, so the end controls beside it keep theirs.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-row-hit {
+    --tessera-row-pad: var(--spacing-2);
+  }
+
+  .tessera-row-hit[data-density="compact"] {
+    --tessera-row-pad: var(--spacing-1);
+  }
+
+  .tessera-row-hit > a,
+  .tessera-row-hit > button {
+    position: relative;
+  }
+
+  .tessera-row-hit > a::before,
+  .tessera-row-hit > button::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block: calc(-1 * var(--tessera-row-pad));
+  }
+}
+
+/*
+ * The cycle dialog's date range (P12). Its trigger (the "Select date range"
+ * text) is a 20px button inside a 32px field that clips its own overflow, so a
+ * ::before hit area would be cut off. Under touch the trigger takes the 44px
+ * box and gives the height back with a negative margin, so the field stays 32px;
+ * the calendar icon at the start gets the same area as a DateInput's (shell.css:
+ * 20px to the start, 8px to the end).
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-cycle-dates > button {
+    min-block-size: var(--spacing-11);
+    margin-block: calc((var(--size-element-md) - var(--spacing-11)) / 2);
+  }
+
+  .tessera-cycle-dates > button[aria-label="Open calendar"] {
+    position: relative;
+    min-block-size: 0;
+    margin-block: 0;
+  }
+
+  .tessera-cycle-dates > button[aria-label="Open calendar"]::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: calc(-1 * var(--spacing-5)) calc(-1 * var(--spacing-2));
+  }
+}
+
+/*
+ * The dialogs' content scrolls (overflow auto: the cycle, view and project forms, `tessera-dialog-form`), which clips anything that
+ * reaches past its box: the last field sat flush with the footer, so the lower
+ * 6px of its 44px date trigger were cut off. Under touch the form keeps 8px
+ * below its last field for the hit area.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-dialog-form {
+    padding-block-end: var(--spacing-2);
+  }
 }

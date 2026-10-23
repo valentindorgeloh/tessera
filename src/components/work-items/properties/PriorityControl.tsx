@@ -13,6 +13,8 @@ export type PriorityControlProps = {
   compact?: boolean;
   readOnly?: boolean;
   label?: string;
+  /** A compact control shows the glyph alone in a row; a form keeps the name beside it. */
+  hasLabel?: boolean;
 };
 
 export type PriorityOption = { value: Priority; label: string; icon: IconType };
@@ -50,11 +52,11 @@ export function PriorityLabel({ value }: { value: string }) {
 }
 
 /** Ghost selector over the five priorities with their Phosphor glyphs. */
-export function PriorityControl({ value, onChange, compact = false, readOnly = false, label = "Priority" }: PriorityControlProps) {
+export function PriorityControl({ value, onChange, compact = false, readOnly = false, label = "Priority", hasLabel = false }: PriorityControlProps) {
   const options: SelectorOptionData[] = PRIORITY_OPTIONS.map((option) => ({ value: option.value, label: option.label }));
   const render = (option: SelectorOptionData) => <PriorityLabel value={option.value} />;
   // Rows show the glyph alone; the option list and the full control keep the label.
-  const renderValue = compact
+  const renderValue = compact && !hasLabel
     ? (option: SelectorOptionData) => {
         const current = priorityOption(option.value);
         return <Icon icon={current.icon} size="sm" color={current.value === "none" ? "secondary" : "primary"} label={current.label} />;
@@ -66,6 +68,8 @@ export function PriorityControl({ value, onChange, compact = false, readOnly = f
       isLabelHidden
       variant="ghost"
       size={compact ? "sm" : "md"}
+      // The glyph-only chip is narrower than a finger; work-items.css widens its hit area on touch.
+      className={compact && !hasLabel ? "tessera-wi-chip--icon" : undefined}
       options={options}
       value={value}
       onChange={(next) => {

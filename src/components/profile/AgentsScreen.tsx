@@ -9,6 +9,7 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Table, type TablePlugin } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { Link } from "@astryxdesign/core/Link";
+import { BAR_COLUMN, COUNT_COLUMN, NAME_COLUMN, TEXT_COLUMN } from "@/components/analytics/table-widths";
 import { RelativeTime } from "@/components/detail/RelativeTime";
 import { ACCESS_LABEL, KIND_LABEL } from "@/components/profile/profile-format";
 import { PanelBar, PanelHeader, PanelPage, PanelTitle } from "@/components/shell/PanelHeader";
@@ -74,10 +75,11 @@ export function AgentsScreen({ rows }: AgentsScreenProps) {
               {
                 key: "name",
                 header: "Name",
+                width: NAME_COLUMN,
                 renderCell: (row) => (
                   <HStack gap={2} vAlign="center">
                     <Avatar name={row.name} size="sm" tooltip={false} />
-                    <Link href={`/agents/${row.id}/summary`} onClick={(event) => event.stopPropagation()}>
+                    <Link href={`/agents/${row.id}/summary`} className="tessera-profile-link" onClick={(event) => event.stopPropagation()}>
                       {row.name}
                     </Link>
                   </HStack>
@@ -86,22 +88,26 @@ export function AgentsScreen({ rows }: AgentsScreenProps) {
               {
                 key: "kind",
                 header: "Kind",
+                width: TEXT_COLUMN,
                 renderCell: (row) => <Text>{row.kind}</Text>,
               },
               {
                 key: "access",
                 header: "Access",
+                width: TEXT_COLUMN,
                 renderCell: (row) => <Text>{row.access}</Text>,
               },
               {
                 key: "assigned",
                 header: "Assigned open",
+                width: COUNT_COLUMN,
                 align: "end",
                 renderCell: (row) => <Text hasTabularNumbers>{row.assignedOpen}</Text>,
               },
               {
                 key: "last",
                 header: "Last activity",
+                width: TEXT_COLUMN,
                 renderCell: (row) =>
                   row.lastActivityAt ? (
                     <RelativeTime value={row.lastActivityAt} type="supporting" color="secondary" hasTooltip={false} />
@@ -114,6 +120,7 @@ export function AgentsScreen({ rows }: AgentsScreenProps) {
               {
                 key: "week",
                 header: "Activity, 7 days",
+                width: BAR_COLUMN,
                 align: "end",
                 renderCell: (row) => <Text hasTabularNumbers>{row.activity7d}</Text>,
               },

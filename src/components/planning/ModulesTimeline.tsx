@@ -19,7 +19,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { updateModuleAction } from "@/app/actions/modules";
 import { useTimelineDrag } from "@/components/dnd/use-timeline-drag";
-import { isWeekend, monthLabel, weekendShift } from "@/components/work-items/calendar-math";
+import { isWeekend, weekBandLabel, weekendShift } from "@/components/work-items/calendar-math";
 import {
   applyDayDelta,
   barPlacement,
@@ -31,9 +31,10 @@ import {
   type BarDragMode,
   type DateEnds,
 } from "@/components/work-items/date-span";
-import { monthSpans } from "@/components/work-items/gantt-scale";
+import { barColorToken, weekSpans } from "@/components/work-items/gantt-scale";
 import { useTodayScroll } from "@/components/work-items/gantt-scroll";
 import { DateControl } from "@/components/work-items/properties/DateControl";
+import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import { daysBetween } from "@/lib/tessera/core/time";
 import type { Module } from "@/lib/tessera/types";
 import { CalendarDotsIcon, CalendarIcon, ModuleIcon } from "@/themes/catppuccin/icons";
@@ -56,6 +57,7 @@ export type ModulesTimelineProps = {
 export function ModulesTimeline({ projectId, modules, today, readOnly = false }: ModulesTimelineProps) {
   const router = useRouter();
   const toast = useToast();
+  const weekStartsOn = useWeekStart();
   const [local, setLocal] = useState<Record<string, DateEnds>>({});
   const range = timelineRange(
     modules.flatMap((module) => {
@@ -129,7 +131,8 @@ export function ModulesTimeline({ projectId, modules, today, readOnly = false }:
     );
   }
 
-  const topSpans = monthSpans(days, monthLabel);
+  // The same header as the work item gantt in month zoom (decision 108): week bands over a hidden day row.
+  const topSpans = weekSpans(days, weekStartsOn, weekBandLabel);
 
   return (
     <VStack
@@ -143,22 +146,24 @@ export function ModulesTimeline({ projectId, modules, today, readOnly = false }:
         "--tessera-gantt-weekend-shift": weekendShift(range.start),
       })}
     >
-      <HStack gap={2} vAlign="center" padding={2} className="tessera-gantt-tools">
+      <HStack gap={2} vAlign="center" padding={4} className="tessera-gantt-tools">
         <Button label="Today" size="sm" variant="ghost" icon={<CalendarDotsIcon />} onClick={scrollToday} />
       </HStack>
       <HStack gap={0} vAlign="end" className="tessera-gantt-head">
-        <HStack className="tessera-gantt-label" vAlign="center" paddingInline={2}>
+        <HStack className="tessera-gantt-label" vAlign="center" paddingInline={4}>
           <Text type="supporting">Module</Text>
         </HStack>
         <VStack gap={0} className="tessera-gantt-scale">
           <HStack gap={0}>
             {topSpans.map((span) => (
-              <Text key={span.key} type="supporting" maxLines={1} className="tessera-gantt-month" style={cssVars({ width: `calc(${span.span} * var(--tessera-gantt-day))` })}>
-                {span.label}
-              </Text>
+              <HStack key={span.key} className="tessera-gantt-month" style={cssVars({ width: `calc(${span.span} * var(--tessera-gantt-day))` })}>
+                <Text type="supporting" maxLines={1} className="tessera-gantt-month-label">
+                  {span.label}
+                </Text>
+              </HStack>
             ))}
           </HStack>
-          <HStack gap={0}>
+          <HStack gap={0} className="tessera-gantt-days" data-zoom-days="month">
             {days.map((day, index) => (
               <Text
                 key={day}
@@ -171,8 +176,9 @@ export function ModulesTimeline({ projectId, modules, today, readOnly = false }:
                 className="tessera-gantt-head-day"
                 data-weekend={isWeekend(day) ? "" : undefined}
                 data-today={day === today ? "" : undefined}
+                aria-hidden
               >
-                {Number(day.slice(8, 10))}
+                {"\u00a0"}
               </Text>
             ))}
           </HStack>
@@ -232,7 +238,7 @@ function ModuleTimelineRow({
 
   return (
     <HStack gap={0} vAlign="stretch" className="tessera-gantt-row">
-      <HStack gap={1} vAlign="center" paddingInline={2} className="tessera-gantt-label">
+      <HStack gap={1} vAlign="center" paddingInline={4} className="tessera-gantt-label">
         <StatusDot variant={moduleStatusVariant(module.status)} label={statusLabel} />
         <HStack
           gap={1}
@@ -265,7 +271,12 @@ function ModuleTimelineRow({
             data-open-start={placement.openStart ? "" : undefined}
             data-open-end={placement.openEnd ? "" : undefined}
             data-readonly={readOnly ? "" : undefined}
-            style={cssVars({ "--tessera-gantt-offset": placement.offset, "--tessera-gantt-span": placement.span })}
+            data-status={module.status}
+            style={cssVars({
+              "--tessera-gantt-offset": placement.offset,
+              "--tessera-gantt-span": placement.span,
+              "--tessera-bar-color": barColorToken(moduleStatusVariant(module.status)),
+            })}
             onClick={(event) => {
               event.stopPropagation();
               onOpen();
@@ -279,7 +290,7 @@ function ModuleTimelineRow({
             }}
             onPointerDown={readOnly ? undefined : (event) => onPointerDown(module.id, "move", event)}
           >
-            <Text type="supporting" maxLines={1}>
+            <Text type="supporting" maxLines={1} className="tessera-gantt-bar-label">
               {module.name}
             </Text>
             {readOnly ? null : (

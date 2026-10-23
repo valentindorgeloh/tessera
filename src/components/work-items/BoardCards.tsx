@@ -6,10 +6,11 @@
  * BoardLayout.tsx; pure functions of their props.
  */
 
-import type { ReactNode } from "react";
+import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { Avatar } from "@astryxdesign/core/Avatar";
 import { AvatarGroup } from "@astryxdesign/core/AvatarGroup";
 import { ClickableCard } from "@astryxdesign/core/ClickableCard";
+import { Icon } from "@astryxdesign/core/Icon";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
@@ -17,8 +18,30 @@ import { Token } from "@astryxdesign/core/Token";
 import { formatEstimateValue } from "@/components/estimates/estimate-format";
 import type { ItemDragHandlers } from "@/components/dnd/use-pointer-drag";
 import type { DisplayProperties, WorkItem } from "@/lib/tessera/types";
+import { DragHandleIcon } from "@/themes/catppuccin/icons";
 import { PriorityLabel, StateLabel, paletteTokenColor } from "./properties";
 import type { ProjectBundle } from "./types";
+
+/** The press target that starts a touch or pen drag (board.css `.tessera-board-card-grip`). */
+const GRIP_SELECTOR = ".tessera-board-card-grip";
+
+/**
+ * The grip a draggable card carries in its key row (field guide "Drag and touch"). It is the only place with
+ * `touch-action: none` (`.tessera-row-grip`), so a finger anywhere else on the card or the column scrolls. Hidden on a
+ * fine pointer wide screen, where the whole card is the handle (board.css).
+ */
+export function BoardCardGrip() {
+  return <Icon icon={DragHandleIcon} size="sm" color="secondary" className="tessera-row-grip tessera-board-card-grip" />;
+}
+
+/** The card's menu slot: sized like the menu so the drag overlay's inert copy keeps the card's height (board.css). */
+export function BoardCardMenuSlot({ children }: { children?: ReactNode }) {
+  return (
+    <HStack vAlign="center" className="tessera-board-card-menu" aria-hidden={children === undefined ? true : undefined}>
+      {children}
+    </HStack>
+  );
+}
 
 export function BoardCard({
   item,
@@ -28,6 +51,7 @@ export function BoardCard({
   currentColumn,
   cardRef,
   handlers,
+  isPeeked = false,
   onOpen,
   onMoveTo,
 }: {
@@ -40,53 +64,69 @@ export function BoardCard({
   /** Absent when the board is read-only: the card is not a drag source. */
   cardRef?: (el: HTMLDivElement | null) => void;
   handlers?: ItemDragHandlers;
+  /** The side peek shows this item: the card is marked `aria-current` and takes the accent border (board.css). */
+  isPeeked?: boolean;
   onOpen: (id: string) => void;
   onMoveTo: (itemId: string, fromColumn: string, toColumn: string) => void;
 }) {
   const targets = columns.filter((column) => column.id !== currentColumn);
   const menu = (
-    <MoreMenu
-      label={`Actions for ${item.key}`}
-      size="sm"
-      alignment="end"
-      items={[
-        { id: "open", label: "Open", onClick: () => onOpen(item.id) },
-        ...(targets.length > 0
-          ? [
-              { type: "divider" as const },
-              {
-                id: "move",
-                label: "Move to",
-                items: targets.map((column) => ({ id: column.id, label: column.name, onClick: () => onMoveTo(item.id, currentColumn, column.id) })),
-              },
-            ]
-          : []),
-      ]}
-    />
+    <BoardCardMenuSlot>
+      <MoreMenu
+        label={`Actions for ${item.key}`}
+        size="sm"
+        alignment="end"
+        items={[
+          { id: "open", label: "Open", onClick: () => onOpen(item.id) },
+          ...(targets.length > 0
+            ? [
+                { type: "divider" as const },
+                {
+                  id: "move",
+                  label: "Move to",
+                  items: targets.map((column) => ({ id: column.id, label: column.name, onClick: () => onMoveTo(item.id, currentColumn, column.id) })),
+                },
+              ]
+            : []),
+        ]}
+      />
+    </BoardCardMenuSlot>
   );
+  // A mouse or pen drags from anywhere on the card; a finger only from the grip, so the rest of the card scrolls.
+  const dragHandlers = handlers && {
+    ...handlers,
+    onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
+      if (event.pointerType === "touch" && !(event.target as Element | null)?.closest(GRIP_SELECTOR)) return;
+      handlers.onPointerDown(event);
+    },
+  };
   return (
     <ClickableCard
       ref={cardRef}
       label={`${item.key} ${item.name}`}
       padding={3}
+      aria-current={isPeeked ? "true" : undefined}
       className={handlers ? "tessera-board-card" : "tessera-board-card tessera-board-card-readonly"}
       onClick={() => onOpen(item.id)}
-      onPointerDown={handlers?.onPointerDown}
+      onPointerDown={dragHandlers?.onPointerDown}
       onClickCapture={handlers?.onClickCapture}
     >
-      <BoardCardBody item={item} bundle={bundle} properties={properties} menu={menu} />
+      <BoardCardBody item={item} bundle={bundle} properties={properties} menu={menu} grip={handlers ? <BoardCardGrip /> : null} />
     </ClickableCard>
   );
 }
 
 /** Card contents, shared by the column card and the drag overlay clone so both stay identical. */
-export function BoardCardBody({ item, bundle, properties, menu }: { item: WorkItem; bundle: ProjectBundle; properties: DisplayProperties; menu: ReactNode }) {
+export function BoardCardBody({ item, bundle, properties, menu, grip = null }: { item: WorkItem; bundle: ProjectBundle; properties: DisplayProperties; menu: ReactNode; grip?: ReactNode }) {
   return (
     <VStack gap={2}>
       <HStack hAlign="between" vAlign="center" gap={2}>
-        <Text type="supporting" color="secondary" hasTabularNumbers>
-          {properties.key ? item.key : ""}
-        </Text>
+        <HStack vAlign="center" gap={2}>
+          {grip}
+          <Text type="supporting" color="secondary" hasTabularNumbers>
+            {properties.key ? item.key : ""}
+          </Text>
+        </HStack>
         {menu}
       </HStack>
       <Text weight="medium" maxLines={3}>

@@ -96,7 +96,7 @@ function WebhookForm({ webhook, title, onOpenChange }: { webhook: WebhookView | 
       header={<DialogHeader title={title} onOpenChange={() => !isPending && onOpenChange(false)} hasDivider />}
       content={
         <LayoutContent>
-          <VStack gap={4}>
+          <VStack gap={4} className="tessera-settings-fields">
             <FormLayout>
               <TextInput
                 label="Name"

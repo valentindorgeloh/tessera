@@ -47,7 +47,9 @@ export function YourWorkWidget({ numbers }: YourWorkWidgetProps) {
           </HStack>
         ))}
       </HStack>
-      <Link href="/your-work/summary">Open Your work</Link>
+      <Link href="/your-work/summary" className="tessera-home-open">
+        Open Your work
+      </Link>
     </VStack>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Skeleton } from "@astryxdesign/core/Skeleton";
@@ -42,6 +43,12 @@ export type RecentsListProps = {
   filter?: RecentsFilter;
   /** Omitted means the first 8, which is what Home showed before. */
   limit?: number;
+  /**
+   * Rendered under the "Recent" heading, above the rows (Home puts its kind
+   * filter there, so the heading comes first). Added by the visual-audit
+   * workspace lane (W7); omitting it keeps the old markup.
+   */
+  controls?: ReactNode;
 };
 
 /**
@@ -51,17 +58,25 @@ export type RecentsListProps = {
  * client render show placeholder rows. Omitting `filter` and `limit` keeps
  * that list: every icon, eight rows.
  */
-export function RecentsList({ filter = "all", limit = HOME_RECENTS }: RecentsListProps = {}) {
+export function RecentsList({ filter = "all", limit = HOME_RECENTS, controls }: RecentsListProps = {}) {
   const { recents, isLoaded } = useRecents();
-  const header = (
+  const heading = (
     <Heading level={4} accessibilityLevel={2}>
       Recent
     </Heading>
   );
+  // With controls, the heading and the controls sit above the list and the list carries its own label, so the controls stay out of its accessible name.
+  const lead =
+    controls === undefined ? null : (
+      <VStack gap={2}>
+        {heading}
+        {controls}
+      </VStack>
+    );
   if (!isLoaded) {
     return (
       <VStack gap={2} aria-busy="true" aria-label="Loading recent pages">
-        {header}
+        {lead ?? heading}
         {SKELETON_ROWS.map((row) => (
           <Skeleton key={row} index={row} height="var(--size-element-md)" />
         ))}
@@ -71,8 +86,8 @@ export function RecentsList({ filter = "all", limit = HOME_RECENTS }: RecentsLis
   const shown = filterRecents(recents, filter, limit);
   const emptyLabel = recents.length === 0 ? "Nothing here yet" : "Nothing in this filter";
   const emptyDescription = recents.length === 0 ? "The pages and work items you open show up here." : "Try another kind of page.";
-  return (
-    <List header={header} hasDividers edgeCompensation="inline">
+  const list = (
+    <List header={lead === null ? heading : undefined} aria-label={lead === null ? undefined : "Recent"} hasDividers edgeCompensation="inline">
       {shown.length === 0 ? (
         <ListItem label={emptyLabel} description={emptyDescription} />
       ) : (
@@ -81,5 +96,13 @@ export function RecentsList({ filter = "all", limit = HOME_RECENTS }: RecentsLis
         ))
       )}
     </List>
+  );
+  return lead === null ? (
+    list
+  ) : (
+    <VStack gap={4} className="tessera-recents">
+      {lead}
+      {list}
+    </VStack>
   );
 }

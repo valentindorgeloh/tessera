@@ -128,6 +128,25 @@ export function quickLinkLabel(link: { title: string; url: string }): string {
   return linkDisplayLabel({ title: link.title.trim(), url: link.url.trim() });
 }
 
+/**
+ * The line under a quick link's title: the host of an absolute URL, the path of
+ * an internal one. A link without a title already shows that text as its title,
+ * so the line then names where it points (the address without its scheme, or
+ * "In Tessera").
+ */
+export function quickLinkSupporting(link: { title: string; url: string }): string {
+  const url = link.url.trim();
+  const hasTitle = link.title.trim() !== "";
+  if (!isExternalQuickLink(url)) return hasTitle ? url : "In Tessera";
+  const address = url.replace(/^https?:\/\//i, "");
+  if (!hasTitle) return address;
+  try {
+    return new URL(url).host;
+  } catch {
+    return address;
+  }
+}
+
 /** Id of a tool result, when the engine returned an entity. */
 export function entityId(data: unknown): string | null {
   if (typeof data !== "object" || data === null || !("id" in data)) return null;

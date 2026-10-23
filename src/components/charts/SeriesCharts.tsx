@@ -8,6 +8,7 @@
  */
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Tooltip, XAxis, YAxis } from "recharts";
 import { Table } from "@astryxdesign/core/Table";
+import { COUNT_COLUMN, NAME_COLUMN, TEXT_COLUMN } from "@/components/analytics/table-widths";
 import type { AnalyticsBucket, AnalyticsMeasure, AnalyticsSegmentKey, TrendPoint } from "@/components/analytics/types";
 import { formatShortDate } from "@/components/work-items/properties/date-format";
 import { formatCount } from "./analytics-format";
@@ -84,13 +85,13 @@ export function BarSeriesChart({ title, summary, buckets, segments, layout = "ho
     : buckets.map((bucket, index) => ({ key: bucket.key, label: bucket.label, color: paint(seriesToken(index, bucket.color)) }));
   const columns = segmented
     ? [
-        { key: "label", header: "Bucket" },
-        ...segments.map((segment) => ({ key: segment.key, header: segment.label, align: "end" as const })),
-        { key: "total", header: "Total", align: "end" as const },
+        { key: "label", header: "Bucket", width: NAME_COLUMN },
+        ...segments.map((segment) => ({ key: segment.key, header: segment.label, align: "end" as const, width: COUNT_COLUMN })),
+        { key: "total", header: "Total", align: "end" as const, width: COUNT_COLUMN },
       ]
     : [
-        { key: "label", header: "Bucket" },
-        { key: "total", header: measure === "points" ? "Points" : "Count", align: "end" as const },
+        { key: "label", header: "Bucket", width: NAME_COLUMN },
+        { key: "total", header: measure === "points" ? "Points" : "Count", align: "end" as const, width: COUNT_COLUMN },
       ];
   const rows: TableRow[] = shown.map((bucket) => {
     const row: TableRow = { key: bucket.key, label: bucket.label, total: formatCount(bucket.total) };
@@ -222,9 +223,9 @@ export function TrendChart({ title = "Created vs completed", summary, points, to
           idKey="key"
           data={rows}
           columns={[
-            { key: "date", header: "Date" },
-            { key: "created", header: "Created", align: "end" },
-            { key: "completed", header: "Completed", align: "end" },
+            { key: "date", header: "Date", width: TEXT_COLUMN },
+            { key: "created", header: "Created", align: "end", width: COUNT_COLUMN },
+            { key: "completed", header: "Completed", align: "end", width: COUNT_COLUMN },
           ]}
         />
       }

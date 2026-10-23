@@ -66,7 +66,8 @@ export function AnalyticsScreen({ tab, result, projects, filters, digest, today 
       header={
         <PanelHeader label="Analytics">
           <PanelBar
-            canWrap
+            tabsBelow
+            className="tessera-analytics-header"
             start={
               <>
                 <PanelTitle className="tessera-analytics-title">Analytics</PanelTitle>
@@ -110,7 +111,7 @@ export function AnalyticsScreen({ tab, result, projects, filters, digest, today 
         </PanelHeader>
       }
     >
-      <VStack gap={6} padding={6}>
+      <VStack gap={6} padding={4}>
         <NarrativeCard tab={tab} filters={filters} digest={digest} />
         <AnalyticsBody tab={tab} result={result} filters={filters} pointsOk={pointsOk} today={today} onChange={write} />
       </VStack>

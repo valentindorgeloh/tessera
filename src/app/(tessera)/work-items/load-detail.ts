@@ -11,6 +11,7 @@ import {
   countOpenIntake,
   getActiveEstimate,
   getProject,
+  getState,
   getWorkItem,
   isTrackerError,
   latestSeq,
@@ -23,12 +24,14 @@ import {
   listModules,
   listPageBacklinks,
   listProjects,
+  listRelations,
   listStates,
+  reactionsFor,
   USER_ACTOR_ID,
   type TesseraContext,
   type WorkItem,
 } from "@/lib/tessera/server";
-import type { WorkItemDetailData } from "@/components/detail";
+import type { RelationRowView, WorkItemDetailData } from "@/components/detail";
 
 /** One bundle per project id. A missing project is skipped; other failures propagate. */
 export function loadProjectBundles(ctx: TesseraContext, projectIds: readonly string[]): Record<string, ProjectBundle> {
@@ -76,6 +79,38 @@ function loadParent(ctx: TesseraContext, parentId: string | null): Pick<WorkItem
   }
 }
 
+/**
+ * The relations of an item with the other side resolved (key, name, project,
+ * state): the Relations section lists them without a second read, across
+ * projects. A relation whose other item is gone is left out. Rows sort by key,
+ * so a group lists WEB-2 before WEB-10.
+ */
+function loadRelations(ctx: TesseraContext, id: string): RelationRowView[] {
+  const rows: RelationRowView[] = [];
+  for (const relation of listRelations(ctx, id)) {
+    try {
+      const other = getWorkItem(ctx, relation.related_work_item_id);
+      const state = getState(ctx, other.state_id);
+      rows.push({
+        id: relation.id,
+        relation_type: relation.relation_type,
+        item: {
+          id: other.id,
+          key: other.key,
+          name: other.name,
+          project_id: other.project_id,
+          archived: other.archived_at !== null,
+          state: { name: state.name, state_group: state.state_group },
+        },
+      });
+    } catch (err) {
+      if (isTrackerError(err) && err.code === "NOT_FOUND") continue;
+      throw err;
+    }
+  }
+  return rows.sort((a, b) => a.item.key.localeCompare(b.item.key, undefined, { numeric: true }));
+}
+
 /** The detail view model of one item; NOT_FOUND propagates for a missing or deleted item. */
 export function loadWorkItemDetail(ctx: TesseraContext, id: string): WorkItemDetailData {
   const item = getWorkItem(ctx, id);
@@ -88,6 +123,9 @@ export function loadWorkItemDetail(ctx: TesseraContext, id: string): WorkItemDet
     // Threads for the timeline (decision 56) and the pages that embed the item for "Mentioned in" (decision 44).
     comments: listComments(ctx, id),
     backlinks: listPageBacklinks(ctx, { entity_type: "work_item", entity_id: id }),
+    // Relations (decision 55) and the reactions under the description (decision 57).
+    relations: loadRelations(ctx, id),
+    reactions: reactionsFor(ctx, "work_item", [id]).get(id) ?? [],
     currentActorId: USER_ACTOR_ID,
     cursor: latestSeq(ctx),
   };

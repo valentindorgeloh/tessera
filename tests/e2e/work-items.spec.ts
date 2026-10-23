@@ -24,7 +24,8 @@ test("a new project shows in the sidebar with its counts, and a created item get
   const first = page.getByRole("listitem").filter({ hasText: `${project.identifier}-1` });
   await expect(first).toBeVisible();
   await expect(first.getByRole("combobox", { name: "State" })).toContainText("Backlog");
-  await expect(projectLink).toContainText("1");
+  // The count sits beside the link (S9); the link's accessible name ends with it.
+  await expect(projectLink).toHaveAccessibleName(/\s1$/);
 
   // Quick-add appends below the first item, still in Backlog.
   await page.getByRole("button", { name: "New work item" }).last().click();
@@ -35,7 +36,7 @@ test("a new project shows in the sidebar with its counts, and a created item get
   const rows = page.getByRole("listitem").filter({ has: page.getByRole("checkbox") });
   await expect(rows.nth(1)).toContainText(`${project.identifier}-2`);
   await expect(second.getByRole("combobox", { name: "State" })).toContainText("Backlog");
-  await expect(projectLink).toContainText("2");
+  await expect(projectLink).toHaveAccessibleName(/\s2$/);
 });
 
 test("dragging a board card to In Progress updates the counts and survives a reload", async ({ page }) => {

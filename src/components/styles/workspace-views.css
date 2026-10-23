@@ -5,3 +5,22 @@
 .tessera-workspace-views {
   min-inline-size: 0;
 }
+
+/* The page body carries the list's 8px inset (as the project views list does), so a section title adds the other 8px to sit on the 16px gutter. */
+.tessera-workspace-views-heading {
+  padding-inline: var(--spacing-2);
+}
+
+/*
+ * Touch (P12, decision 14): the header row wraps, so on a phone the search, the
+ * sort selector and "New view" stack. Each control keeps its drawn size and gets a
+ * 44px hit area (the theme and shell.css); a 4px row gap let the sort selector's
+ * area run over the top of the "New view" button's visible box. 12px keeps the
+ * areas from covering a neighbour's box. The sort selector's own 44px grow rule
+ * is gone: the shell's `button[role="combobox"]` area replaced it.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-workspace-views-bar.tessera-panel-bar--wraps > .tessera-panel-bar-end {
+    row-gap: var(--spacing-3);
+  }
+}

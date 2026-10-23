@@ -10,7 +10,7 @@
  * it (the detail page opens it from the chart's "Add dates" as well).
  * Failures show an error Toast with the engine's message.
  */
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition } from "react";
 import { AlertDialog } from "@/components/shell/dialogs";
 import type { ButtonSize } from "@astryxdesign/core/Button";
 import type { DropdownMenuItemData } from "@astryxdesign/core/DropdownMenu";
@@ -38,12 +38,17 @@ export type CycleMenuProps = {
   onEditOpenChange?: (open: boolean) => void;
 };
 
-const ICONS: Record<CycleActionId, ReactNode> = {
-  edit: <PencilIcon />,
-  transfer: <TransferIcon />,
-  archive: <ArchiveIcon />,
-  restore: <RestoreIcon />,
-  delete: <TrashIcon />,
+/**
+ * Component references, not elements: Astryx sizes a component icon to the
+ * menu's 16px icon box, where a rendered `<PencilIcon />` keeps the font-size
+ * 14px and would sit beside the 16px favourite star.
+ */
+const ICONS: Record<CycleActionId, typeof PencilIcon> = {
+  edit: PencilIcon,
+  transfer: TransferIcon,
+  archive: ArchiveIcon,
+  restore: RestoreIcon,
+  delete: TrashIcon,
 };
 
 /** "Could not restore Sprint 1. The dates overlap cycle "Sprint 3"." */

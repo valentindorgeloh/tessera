@@ -20,9 +20,11 @@ export type QuickAddProps = {
   placeholder?: string;
   /** Start in the editing state (board columns open it from a header button). */
   defaultIsActive?: boolean;
+  /** Called when the input is cancelled (Escape) or left empty, so a host that opened it (a popover) can close. */
+  onCancel?: () => void;
 };
 
-export function QuickAdd({ onSubmit, label = "New work item", placeholder = "Work item name, then Enter", defaultIsActive = false }: QuickAddProps) {
+export function QuickAdd({ onSubmit, label = "New work item", placeholder = "Work item name, then Enter", defaultIsActive = false, onCancel }: QuickAddProps) {
   const [isActive, setActive] = useState(defaultIsActive);
   const [name, setName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -54,6 +56,7 @@ export function QuickAdd({ onSubmit, label = "New work item", placeholder = "Wor
   const cancel = () => {
     setName("");
     setActive(false);
+    onCancel?.();
   };
 
   return (
@@ -80,7 +83,10 @@ export function QuickAdd({ onSubmit, label = "New work item", placeholder = "Wor
           // The field's own value rather than the `name` closure: a blur that lands between a
           // submit and its re-render would otherwise still see the name just submitted and leave
           // the row open with nothing focused.
-          if ((inputRef.current?.value ?? "").trim() === "") setActive(false);
+          if ((inputRef.current?.value ?? "").trim() === "") {
+            setActive(false);
+            onCancel?.();
+          }
         }}
       />
     </HStack>

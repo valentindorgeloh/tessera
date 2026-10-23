@@ -11,11 +11,13 @@
  */
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
+import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { ToggleButton } from "@astryxdesign/core/ToggleButton";
 import { useToast } from "@astryxdesign/core/Toast";
@@ -30,13 +32,13 @@ import {
 import { DigestCard } from "@/components/ai/DigestCard";
 import { PanelBar, PanelHeader, PanelTitle } from "@/components/shell/PanelHeader";
 import type { DigestView } from "@/lib/tessera/types";
-import { CheckIcon } from "@/themes/catppuccin/icons";
+import { CaretLeftIcon, CheckIcon } from "@/themes/catppuccin/icons";
 import { inboxHref, INBOX_TABS, matchesInboxTab, sortInbox, type InboxNote, type InboxQuery, type InboxTab } from "./inbox-format";
 import { NotificationRow } from "./NotificationRow";
 import { SnoozeDialog } from "./SnoozeDialog";
 
 const TAB_LABELS: Readonly<Record<InboxTab, string>> = {
-  inbox: "Inbox",
+  inbox: "All",
   mentions: "Mentions",
   snoozed: "Snoozed",
   archived: "Archived",
@@ -86,7 +88,7 @@ export function InboxScreen({ query, notifications, digest, actorId, children }:
     <>
     <Layout
       height="fill"
-      className="tessera-inbox"
+      className={query.item === null ? "tessera-inbox" : "tessera-inbox tessera-inbox--item"}
       header={
         <PanelHeader label="Inbox">
           <PanelBar
@@ -161,7 +163,25 @@ export function InboxScreen({ query, notifications, digest, actorId, children }:
       }
       content={
         <LayoutContent padding={0} isScrollable className="tessera-inbox-detail">
-          {query.item === null ? <EmptyState title="Select a notification" description="The work item opens here." headingLevel={2} /> : children}
+          {query.item === null ? (
+            <VStack hAlign="center" vAlign="center" className="tessera-inbox-empty">
+              <EmptyState title="Select a notification" description="The work item opens here." headingLevel={2} />
+            </VStack>
+          ) : (
+            <>
+              {/* Below 1024px the detail replaces the list, so the way back is a button (inbox.css hides it from 1024px up). */}
+              <HStack paddingInline={4} paddingBlock={2} className="tessera-inbox-back">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  label="Back to notifications"
+                  icon={<CaretLeftIcon />}
+                  onClick={() => router.push(inboxHref(query.tab, query.unread, null))}
+                />
+              </HStack>
+              {children}
+            </>
+          )}
         </LayoutContent>
       }
     />

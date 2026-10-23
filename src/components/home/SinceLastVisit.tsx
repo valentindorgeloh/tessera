@@ -100,7 +100,7 @@ export function SinceLastVisit({ since, digest, digestEnabled }: SinceLastVisitP
   return (
     <VStack gap={4}>
       <Card>
-        <VStack gap={4}>
+        <VStack gap={4} className="tessera-home-since">
           <HStack gap={2} vAlign="center" wrap="wrap">
             <Heading level={4} accessibilityLevel={2}>
               Since you were last here
@@ -135,7 +135,7 @@ export function SinceLastVisit({ since, digest, digestEnabled }: SinceLastVisitP
           ) : null}
         </VStack>
       </Card>
-      {showDigest ? <DigestCard kind="home" id="workspace" digest={digest} /> : null}
+      {showDigest ? <DigestCard kind="home" id="workspace" digest={digest} inset="none" /> : null}
     </VStack>
   );
 }

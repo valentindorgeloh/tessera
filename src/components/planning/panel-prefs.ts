@@ -10,6 +10,13 @@
  * `loadPanelPrefs` has run in an effect. Shared by cycles and modules
  * (modules use `open` only). The unit in use is `effectiveUnit` from
  * ./burndown.ts: a stored "points" waits for a cycle that has points.
+ *
+ * Phones (`max-width: 480px`): the 360px panel is capped at 100% of the
+ * content, so an open panel leaves the work item list 0px wide (the audit's
+ * P12 finding: the list was invisible on cycle and module detail). On a phone
+ * the panel therefore starts closed and the header toggle opens it for this
+ * visit only: the stored `open` is the wide-screen preference and a phone
+ * never writes it (the chart and unit choices still persist).
  */
 import { useEffect, useSyncExternalStore } from "react";
 import type { ProgressMode } from "@/lib/tessera/types";
@@ -36,8 +43,15 @@ export function parsePanelPrefs(raw: unknown): PanelPrefs {
 }
 
 let snapshot: PanelPrefs = DEFAULT_PANEL_PREFS;
+/** The wide-screen `open` preference: what is written to storage, whatever a phone toggled this visit. */
+let storedOpen = DEFAULT_PANEL_PREFS.open;
 let loaded = false;
 const listeners = new Set<() => void>();
+
+/** True on a phone, where the open panel would cover the whole list (see the header). Guarded for tests and SSR without matchMedia. */
+function isPhone(): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(max-width: 480px)").matches;
+}
 
 function emit() {
   for (const listener of listeners) listener();
@@ -54,6 +68,9 @@ function getSnapshot(): PanelPrefs {
   return snapshot;
 }
 
+/** The preferences in effect now (tests; components use usePanelPrefs). */
+export const currentPanelPrefs = getSnapshot;
+
 function getServerSnapshot(): PanelPrefs {
   return DEFAULT_PANEL_PREFS;
 }
@@ -68,15 +85,18 @@ export function loadPanelPrefs(): void {
   } catch {
     // Unreadable or blocked storage: keep the defaults.
   }
+  storedOpen = snapshot.open;
+  if (isPhone()) snapshot = { ...snapshot, open: false };
   emit();
 }
 
 /** Merges `patch` into the preferences and writes them; client-only (event handlers and effects). */
 export function savePanelPrefs(patch: Partial<PanelPrefs>): void {
   loadPanelPrefs();
+  if (patch.open !== undefined && !isPhone()) storedOpen = patch.open;
   snapshot = { ...snapshot, ...patch };
   try {
-    window.localStorage.setItem(PANEL_STORAGE_KEY, JSON.stringify(snapshot));
+    window.localStorage.setItem(PANEL_STORAGE_KEY, JSON.stringify({ ...snapshot, open: storedOpen }));
   } catch {
     // Private mode or quota: the preference lives for this page only.
   }

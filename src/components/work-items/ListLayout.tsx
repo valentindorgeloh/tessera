@@ -24,6 +24,7 @@ import { List, ListItem } from "@astryxdesign/core/List";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
+import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { formatEstimateValue } from "@/components/estimates/estimate-format";
 import { groupLimitKey } from "@/lib/tessera/core/group";
 import type { Display, Group, StateGroup, WorkItem } from "@/lib/tessera/types";
@@ -31,6 +32,8 @@ import { isOptimisticId } from "./optimistic";
 import { useProject } from "./project-provider";
 import { RowProject } from "./row-project";
 import { ActorLabel, CycleControl, DateControl, PriorityControl, PriorityLabel, StateControl, StateLabel, paletteTokenColor } from "./properties";
+import { isOverdue } from "./properties/date-format";
+import { splitShownNames } from "./properties/membership-rules";
 import { GroupFooter, GroupPoints } from "./GroupFooter";
 import { UNGROUPED_KEY, loadedOfTotal } from "./paging";
 import { NoResults } from "./NoResults";
@@ -90,9 +93,10 @@ function GroupHeader({ group, display, selection, ids }: { group: Group; display
   const value = !selection || selectedCount === 0 ? false : selectedCount === ids.length ? true : "indeterminate";
   return (
     <HStack gap={2} vAlign="center" className="tessera-wi-group-header">
+      {/* Gutter furniture (work-items.css): positioned over the gutter, so it takes no slot and the group marker starts at the row key's x. */}
       {selection && ids.length > 0 ? (
         <CheckboxInput
-          className="tessera-wi-select"
+          className="tessera-wi-select tessera-wi-group-select"
           size="sm"
           isLabelHidden
           label={group.has_more ? `Select ${group.name} (${loadedOfTotal(ids.length, group.count)})` : `Select ${group.name}`}
@@ -127,7 +131,7 @@ type RowProps = {
 };
 
 function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowProps, "onOpen"> & { readOnly?: boolean }) {
-  const { bundle, labelsById, actorsById, modulesById } = useProject();
+  const { bundle, labelsById, actorsById, modulesById, statesById } = useProject();
   const props = display.properties;
   const nodes: ReactNode[] = [];
   if (props.state) {
@@ -137,12 +141,22 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowPr
     nodes.push(<PriorityControl key="priority" compact readOnly={readOnly} value={item.priority} onChange={(priority) => onUpdate(item.id, { priority })} />);
   }
   if (props.labels && item.label_ids.length > 0) {
+    const labels = item.label_ids.flatMap((id) => {
+      const label = labelsById.get(id);
+      return label ? [label] : [];
+    });
+    // Two labels, then "+N" with every name in a tooltip (docs/drafts/plane-visual-reference.md section 6).
+    const { shown, hidden } = splitShownNames(labels);
     nodes.push(
-      <HStack key="labels" gap={1} vAlign="center" wrap="wrap">
-        {item.label_ids.map((id) => {
-          const label = labelsById.get(id);
-          return label ? <Token key={id} label={label.name} size="sm" color={paletteTokenColor(label.color)} /> : null;
-        })}
+      <HStack key="labels" gap={2} vAlign="center" wrap="wrap">
+        {shown.map((label) => (
+          <Token key={label.id} label={label.name} size="sm" color={paletteTokenColor(label.color)} />
+        ))}
+        {hidden > 0 ? (
+          <Tooltip key="labels-more" content={labels.map((label) => label.name).join(", ")}>
+            <Token label={`+${hidden}`} size="sm" description={`${hidden} more labels`} />
+          </Tooltip>
+        ) : null}
       </HStack>,
     );
   }
@@ -151,7 +165,7 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowPr
   }
   if (props.modules && bundle.project.modules_enabled && item.module_ids.length > 0) {
     nodes.push(
-      <HStack key="modules" gap={1} vAlign="center" wrap="wrap">
+      <HStack key="modules" gap={2} vAlign="center" wrap="wrap">
         {item.module_ids.map((id) => {
           const mod = modulesById.get(id);
           return mod ? <Token key={id} label={mod.name} size="sm" /> : null;
@@ -161,7 +175,7 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowPr
   }
   if (props.assignees && item.assignee_ids.length > 0) {
     nodes.push(
-      <HStack key="assignees" gap={0.5} vAlign="center">
+      <HStack key="assignees" gap={0.5} vAlign="center" className="tessera-wi-assignees">
         {item.assignee_ids.map((id) => {
           const actor = actorsById.get(id);
           return actor ? <Avatar key={id} name={actor.name} size="xsm" /> : null;
@@ -191,15 +205,16 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowPr
         label="Target date"
         value={item.target_date}
         min={item.start_date}
+        isOverdue={isOverdue(item.target_date, bundle.today, statesById.get(item.state_id)?.state_group)}
         onChange={(target_date) => onUpdate(item.id, { target_date })}
       />,
     );
   }
   if (props.sub_items_count && item.sub_items_count > 0) {
-    nodes.push(<Badge key="sub" label={`${item.sub_items_count} sub-items`} />);
+    nodes.push(<Badge key="sub" label={`${item.sub_items_count} sub-items`} className="tessera-wi-count" />);
   }
   if (props.links && item.links_count > 0) {
-    nodes.push(<Badge key="links" label={`${item.links_count} links`} />);
+    nodes.push(<Badge key="links" label={`${item.links_count} links`} className="tessera-wi-count" />);
   }
   if (props.estimate && item.estimate_point_id && bundle.estimate) {
     const point = bundle.estimate.points.find((entry) => entry.id === item.estimate_point_id);
@@ -220,7 +235,7 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowPr
     );
   }
   return (
-    <HStack gap={1} vAlign="center" hAlign="end" wrap="wrap" className="tessera-wi-props">
+    <HStack gap={2} vAlign="center" hAlign="end" wrap="wrap" className="tessera-wi-props">
       {nodes}
     </HStack>
   );
@@ -265,6 +280,7 @@ function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, select
     <ListItem
       label={<RowTitle name={item.name} />}
       className="tessera-wi-row"
+      data-selected={selection?.selected.has(item.id) ? "" : undefined}
       interactiveRef={openRef}
       startContent={
         <HStack gap={1} vAlign="center">
@@ -344,7 +360,7 @@ function GroupSection({
           ))}
         </List>
       ) : null}
-      {more ? <GroupFooter display={display} loaded={more.loaded} total={more.total} isLoading={more.isLoading} onLoadMore={more.onLoadMore} /> : null}
+      {more ? <GroupFooter variant="list" display={display} loaded={more.loaded} total={more.total} isLoading={more.isLoading} onLoadMore={more.onLoadMore} /> : null}
       {showQuickAdd ? <QuickAdd onSubmit={(name) => onQuickAdd(quickAddGroup, name)} /> : null}
     </VStack>
   );
@@ -402,7 +418,11 @@ export function ListLayout({
     });
   };
 
-  const isEmpty = result.items.length === 0 && (groups === null || groups.length === 0);
+  const hasNoItems = result.items.length === 0;
+  const isEmpty = hasNoItems && (groups === null || groups.length === 0);
+  // While a filter applies and nothing matches, every group is empty too ("show empty groups" lists them with a quick-add
+  // row each): the list shows the same no-results state as the flat list instead.
+  const hasNoMatches = hasNoItems && onClearFilters !== undefined && (groups === null || groups.every((group) => group.count === 0));
 
   return (
     <VStack
@@ -414,16 +434,17 @@ export function ListLayout({
       paddingBlock={2}
       data-list-ready=""
     >
-      {isEmpty && onClearFilters ? <NoResults onClear={onClearFilters} /> : null}
+      {hasNoMatches && onClearFilters ? <NoResults onClear={onClearFilters} /> : null}
       {isEmpty && !onClearFilters ? (
         <EmptyState
           isCompact
+          className="tessera-wi-empty"
           title="No work items yet"
           description={onQuickAdd && !readOnly ? "Create the first one with the button above, press c, or use the quick-add row." : "New work items cannot be added to this list."}
         />
       ) : null}
       {groups ? (
-        groups.map((group) => (
+        (hasNoMatches ? [] : groups).map((group) => (
           <GroupSection
             key={`${group.field}:${group.id}`}
             group={group}

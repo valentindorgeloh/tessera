@@ -41,6 +41,23 @@ export function weekSpans(days: readonly string[], weekStartsOn: WeekStart, week
   return spans;
 }
 
+const BAR_COLOR: Record<string, string> = {
+  accent: "var(--color-accent)",
+  success: "var(--color-success)",
+  warning: "var(--color-warning)",
+  error: "var(--color-error)",
+  neutral: "var(--color-border-emphasized)",
+};
+
+/**
+ * The colour token a bar takes from a StatusDot variant (the state group's, or
+ * a module status's): the stylesheet mixes it into the fill and uses it as the
+ * border (`--tessera-bar-color`). An unknown variant reads as neutral.
+ */
+export function barColorToken(variant: string | undefined): string {
+  return BAR_COLOR[variant ?? "neutral"] ?? BAR_COLOR.neutral;
+}
+
 export function isGanttEdgeType(type: RelationType): type is GanttEdgeType {
   return (GANTT_EDGE_TYPES as readonly string[]).includes(type);
 }
@@ -95,8 +112,21 @@ export type ConnectorGeom = {
 };
 
 /**
- * SVG paths in a viewBox of `days` columns by `rows` rows. Column 0 is the
- * first day; row centres sit at `index + 0.5`.
+ * Pixel scale of the connector layer: one day column, one row and the inset
+ * between a bar and its day boundary. The default (1, 1, 0) keeps the unit
+ * space (`days` by `rows`) the pure tests read.
+ */
+export type ConnectorScale = { day: number; row: number; inset: number };
+
+const UNIT_SCALE: ConnectorScale = { day: 1, row: 1, inset: 0 };
+
+/**
+ * SVG paths for the connector layer. With a measured `scale` they are in CSS
+ * pixels, so the layer needs no scaled viewBox and an arrowhead keeps its
+ * shape (decision 92). Row centres sit at `(index + 0.5) * row`. A path ends
+ * on the bar's own edge: the day boundary pulled in by `inset` (bars are inset
+ * from their day), and it leaves and arrives on the side the anchor faces, so
+ * an arrowhead at the end points into the bar it blocks.
  */
 export function connectorPaths(
   edges: readonly GanttEdge[],
@@ -104,6 +134,7 @@ export function connectorPaths(
   byId: ReadonlyMap<string, DateEnds>,
   rangeStart: string,
   dayCount: number,
+  scale: ConnectorScale = UNIT_SCALE,
 ): ConnectorGeom[] {
   const paths: ConnectorGeom[] = [];
   for (const edge of edges) {
@@ -117,13 +148,17 @@ export function connectorPaths(
     const sourcePlace = barPlacement(sourceItem, rangeStart);
     const targetPlace = barPlacement(targetItem, rangeStart);
     if (!sourcePlace || !targetPlace) continue;
-    const x1 = anchors.source === "start" ? sourcePlace.offset : sourcePlace.offset + sourcePlace.span;
-    const x2 = anchors.target === "start" ? targetPlace.offset : targetPlace.offset + targetPlace.span;
-    if (x1 < 0 || x2 < 0 || x1 > dayCount || x2 > dayCount) continue;
-    const y1 = sourceRow + 0.5;
-    const y2 = targetRow + 0.5;
-    const dx = Math.max(0.75, Math.abs(x2 - x1) / 2);
-    const d = `M ${x1} ${y1} C ${x1 + (x2 >= x1 ? dx : -dx)} ${y1}, ${x2 + (x2 >= x1 ? -dx : dx)} ${y2}, ${x2} ${y2}`;
+    const c1 = anchors.source === "start" ? sourcePlace.offset : sourcePlace.offset + sourcePlace.span;
+    const c2 = anchors.target === "start" ? targetPlace.offset : targetPlace.offset + targetPlace.span;
+    if (c1 < 0 || c2 < 0 || c1 > dayCount || c2 > dayCount) continue;
+    const x1 = c1 * scale.day + (anchors.source === "start" ? scale.inset : -scale.inset);
+    const x2 = c2 * scale.day + (anchors.target === "start" ? scale.inset : -scale.inset);
+    const y1 = (sourceRow + 0.5) * scale.row;
+    const y2 = (targetRow + 0.5) * scale.row;
+    const dx = Math.max(0.75 * scale.day, Math.abs(x2 - x1) / 2);
+    const leave = anchors.source === "end" ? dx : -dx;
+    const arrive = anchors.target === "start" ? -dx : dx;
+    const d = `M ${x1} ${y1} C ${x1 + leave} ${y1}, ${x2 + arrive} ${y2}, ${x2} ${y2}`;
     paths.push({
       key: `${edge.from_id}:${edge.type}:${edge.to_id}`,
       d,

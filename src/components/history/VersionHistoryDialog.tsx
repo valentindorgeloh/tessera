@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
-import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
@@ -101,6 +101,10 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
   const after = mode === "full" ? (selected?.description_md ?? "") : (selected?.description_md ?? "");
   const lines = selected ? (mode === "full" ? [{ kind: "same" as const, text: after }] : diffLines(before, after)) : [];
 
+  // The selected body is the one the item has now: nothing to restore (a page also has to carry the same name).
+  const isCurrent = selected !== null && selected.description_md === currentText && (entity.type !== "page" || selected.name === entity.title);
+  const canRestore = !entity.readOnly && history !== null && view === "versions" && selected !== null;
+
   const restore = () => {
     if (!selected) return;
     startTransition(async () => {
@@ -150,19 +154,22 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
             {history && view === "activity" && activity !== undefined ? <PageActivity rows={activity} actorNames={actorNames} /> : null}
             {history && view === "versions" && history.versions.length === 0 ? <Text>No versions yet. They are kept when the description changes.</Text> : null}
             {history && view === "versions" && selected ? (
-              <HStack gap={4} vAlign="stretch">
-                <VStack gap={2} className="tessera-history-pane">
+              <HStack gap={4} vAlign="stretch" className="tessera-history-split">
+                <VStack gap={2} className="tessera-history-pane tessera-history-list">
                   {history.versions.map((row) => (
-                    <VStack key={row.id} gap={0}>
-                      <Button variant={row.id === selectedId ? "secondary" : "ghost"} size="sm" label={`Version ${row.version}`} onClick={() => setSelectedId(row.id)} />
-                      <Text type="supporting" color="secondary">
-                        {actorNames.size === 0 ? " " : (actorNames.get(row.actor_id) ?? UNKNOWN_ACTOR)}
-                      </Text>
+                    // The author and the time sit inside the row, under the label, so the highlight holds all three (pages lane, visual audit).
+                    <VStack key={row.id} gap={0} className="tessera-history-row" data-selected={row.id === selectedId ? "" : undefined}>
+                      <Button variant="ghost" size="sm" label={`Version ${row.version}`} onClick={() => setSelectedId(row.id)} className="tessera-history-row-button" />
+                      <HStack gap={1} vAlign="center" className="tessera-history-row-meta">
+                        <Text type="supporting" color="secondary">
+                          {actorNames.size === 0 ? " " : (actorNames.get(row.actor_id) ?? UNKNOWN_ACTOR)}
+                        </Text>
+                        <Timestamp value={row.created_at} />
+                      </HStack>
                     </VStack>
                   ))}
-                  {selected ? <Timestamp value={selected.created_at} /> : null}
                 </VStack>
-                <VStack gap={3} className="tessera-history-pane">
+                <VStack gap={3} className="tessera-history-pane tessera-history-diff">
                   <SegmentedControl label="Diff" size="sm" value={mode} onChange={(value) => setMode(value === "current" || value === "full" ? value : "changes")}>
                     <SegmentedControlItem value="changes" label="Changes" />
                     <SegmentedControlItem value="current" label="Compare with current" />
@@ -181,9 +188,6 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
                       </Text>
                     ))}
                   </VStack>
-                  {entity.readOnly ? null : (
-                    <Button variant="primary" size="sm" label="Restore this version" onClick={() => setConfirm(true)} isLoading={isPending} />
-                  )}
                 </VStack>
               </HStack>
             ) : null}
@@ -196,6 +200,20 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
               onAction={restore}
             />
           </LayoutContent>
+        }
+        footer={
+          canRestore ? (
+            <LayoutFooter hasDivider>
+              <HStack gap={3} vAlign="center" hAlign="end" className="tessera-history-footer">
+                {isCurrent ? (
+                  <Text type="supporting" color="secondary">
+                    This is the current version.
+                  </Text>
+                ) : null}
+                <Button variant="primary" size="sm" label="Restore this version" isDisabled={isCurrent} onClick={() => setConfirm(true)} isLoading={isPending} />
+              </HStack>
+            </LayoutFooter>
+          ) : undefined
         }
       />
     </Dialog>

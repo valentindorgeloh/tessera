@@ -76,6 +76,13 @@ describe("PanelBar", () => {
     expect(element.classList.contains("tessera-detail-header")).toBe(true);
   });
 
+  it("adds the two-row phone class only for tabsBelow (S7)", () => {
+    expect(bar(render(createElement(PanelBar, { start: "Title" }))).classList.contains("tessera-panel-bar--tabs-below")).toBe(false);
+    const element = bar(render(createElement(PanelBar, { start: "Title", tabsBelow: true })));
+    expect(element.classList.contains("tessera-panel-bar--tabs-below")).toBe(true);
+    expect(element.classList.contains("tessera-panel-bar--header")).toBe(true);
+  });
+
   it("puts start and end in their own groups and leaves out an empty end", () => {
     const withEnd = bar(render(createElement(PanelBar, { start: "Title", end: "Actions" })));
     expect(withEnd.querySelector(".tessera-panel-bar-start")?.textContent).toBe("Title");

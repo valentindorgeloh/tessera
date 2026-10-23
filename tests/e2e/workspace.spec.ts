@@ -48,7 +48,8 @@ test("the analytics work item total equals the sum of the sidebar project counts
   await expect(links.first()).toBeVisible();
   await expect
     .poll(async () => {
-      const names = await links.allTextContents();
+      // The count is part of each link's accessible name (aria-label), not its text.
+      const names = await links.evaluateAll((elements) => elements.map((element) => element.getAttribute("aria-label") ?? ""));
       return names.reduce((sum, text) => sum + Number(text.match(/(\d+)\s*$/)?.[1] ?? 0), 0);
     })
     .toBe(analyticsTotal);

@@ -43,6 +43,15 @@ export type PanelBarProps = {
    * filter field narrows).
    */
   canWrap?: boolean;
+  /**
+   * For a bar whose `start` is a title followed by a `TabList`: below 600px the
+   * bar becomes two rows, the title and `end` on a 44px row and the tabs on
+   * their own full-width row docked on the hairline, with 44px tabs
+   * (shell.css `tessera-panel-bar--tabs-below`). `start` must hold the title as
+   * one element (wrap a token and a name together) and the TabList last. From
+   * 600px up it changes nothing. Do not combine it with `canWrap`.
+   */
+  tabsBelow?: boolean;
 };
 
 /**
@@ -50,8 +59,14 @@ export type PanelBarProps = {
  * shrink, `end` (actions) keeps its size unless the row wraps (`canWrap`). A
  * row after the first one draws a hairline above itself (`hasDivider`).
  */
-export function PanelBar({ size = "header", start, end, hasDivider = false, className, canWrap = false }: PanelBarProps) {
-  const classes = [BAR_CLASS[size], hasDivider ? "tessera-panel-bar--divided" : null, canWrap ? "tessera-panel-bar--wraps" : null, className ?? null]
+export function PanelBar({ size = "header", start, end, hasDivider = false, className, canWrap = false, tabsBelow = false }: PanelBarProps) {
+  const classes = [
+    BAR_CLASS[size],
+    hasDivider ? "tessera-panel-bar--divided" : null,
+    canWrap ? "tessera-panel-bar--wraps" : null,
+    tabsBelow ? "tessera-panel-bar--tabs-below" : null,
+    className ?? null,
+  ]
     .filter(Boolean)
     .join(" ");
   const wrap = canWrap ? "wrap" : "nowrap";

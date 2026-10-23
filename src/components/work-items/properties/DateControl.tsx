@@ -26,6 +26,10 @@ export type DateControlProps = {
   min?: string | null;
   /** Upper bound for a start date (the item's target date). */
   max?: string | null;
+  /** The compact chip shows an overdue date in the error text colour (`data-overdue`, work-items.css); see isOverdue. */
+  isOverdue?: boolean;
+  /** The compact chip keeps its label while empty ("Start date") instead of a bare calendar icon, for forms. */
+  hasEmptyLabel?: boolean;
 };
 
 type IsoDate = Parameters<typeof DateInput>[0]["value"];
@@ -39,7 +43,7 @@ function asIsoDate(value: string | null | undefined): IsoDate {
 }
 
 /** Date picker for start or target dates; clearing sends null so the field is unset. */
-export function DateControl({ value, onChange, compact = false, readOnly = false, label = "Date", min, max }: DateControlProps) {
+export function DateControl({ value, onChange, compact = false, readOnly = false, label = "Date", min, max, isOverdue = false, hasEmptyLabel = false }: DateControlProps) {
   const [isOpen, setOpen] = useState(false);
   const { bundle } = useProject();
   const weekStartsOn = useWeekStart(bundle.week_start);
@@ -71,9 +75,10 @@ export function DateControl({ value, onChange, compact = false, readOnly = false
         variant="ghost"
         size="sm"
         className="tessera-wi-chip"
+        data-overdue={isOverdue && value ? "" : undefined}
         icon={<CalendarIcon />}
         label={value ? `${short} ${formatShortDate(value, bundle.today)}` : label}
-        isIconOnly={!value}
+        isIconOnly={!value && !hasEmptyLabel}
         tooltip={value ? `${label}: ${value}` : `Set ${label.toLowerCase()}`}
         isDisabled={readOnly}
       />

@@ -1,6 +1,6 @@
 # As-built map: work items UI
 
-State described: git HEAD `257798c` (P3), with the stale deferred lines refreshed against the working tree after the fix-all round, 2026-10-21. Line counts are HEAD counts. P4 to P11 additions to this screen (calendar, gantt, bulk bar, paging, rich filters) are mapped in views-settings.md, planning-extras.md, operations.md and hardening.md; sections 5 to 7 below are corrected where they said otherwise. Read this before the contracts; open the contract only for the section named in section 8.
+State described: git HEAD `257798c` (P3), with the stale deferred lines refreshed against the working tree after the fix-all round (2026-10-21) and the visual alignment round (2026-10-22, on HEAD 5f0cc7c). Line counts are tree counts. P4 to P11 additions to this screen (calendar, gantt, bulk bar, paging, rich filters) are mapped in views-settings.md, planning-extras.md, operations.md and hardening.md; sections 5 to 7 below are corrected where they said otherwise. Read this before the contracts; open the contract only for the section named in section 8.
 
 ## 1. Purpose and boundaries
 
@@ -21,47 +21,48 @@ Routes (`src/app/(tessera)/projects/`):
 | Path | Responsibility | Key exports |
 |---|---|---|
 | `page.tsx` (84) | Projects index: one `ListItem` per project with counts text, links to `/projects/<id>/work-items`; header has `ArchivedProjectsLink` + `NewProjectButton`. Reads under Suspense + `io()` | `default ProjectsPage` |
-| `[projectId]/layout.tsx` (74) | Loads the `ProjectBundle` once per navigation (`readTessera`); renders `ProjectProvider` + `ProjectFrame`; on NOT_FOUND/VALIDATION returns `children` bare (never throws). `instant = false` | `instant`, `default ProjectLayout` |
+| `[projectId]/layout.tsx` (81) | Loads the `ProjectBundle` once per navigation (`readTessera`); renders `ProjectProvider` + `ProjectFrame`; on NOT_FOUND/VALIDATION returns `children` bare (never throws). `instant = false` | `instant`, `default ProjectLayout` |
 | `[projectId]/page.tsx` (47) | Index route: redirects to `work-items`; calls `notFound()` for an unknown project so Tessera's 404 shows | `default ProjectIndexPage` |
 | `[projectId]/not-found.tsx` (31) | Not-found boundary; framed when the project context exists, bare otherwise (`useOptionalProject`) | `default ProjectNotFound` |
 | `[projectId]/work-items/page.tsx` (34) | Awaits params/searchParams, mounts `ScopedWorkItems` with the project scope | `default WorkItemsPage` |
-| `[projectId]/work-items/scoped-list.tsx` (149) | Async Server Component: decode `q`, read `view_settings`, merge display/filters, `listWorkItems`, mount `PeekHost` + `WorkItemsScreen`. Used by project, cycle and module pages | `ScopedWorkItems`, `loadPeek`, `ListSkeleton`, types `WorkItemsScope`, `ScopedWorkItemsProps` |
+| `[projectId]/work-items/scoped-list.tsx` (165) | Async Server Component: decode `q`, read `view_settings`, merge display/filters, `listWorkItems`, mount `PeekHost` + `WorkItemsScreen`. Used by project, cycle and module pages | `ScopedWorkItems`, `loadPeek`, `ListSkeleton`, types `WorkItemsScope`, `ScopedWorkItemsProps` |
 | `[projectId]/work-items/[workItemId]/page.tsx` (49) | Full detail page inside the frame; 404 if the item is in another project | `default WorkItemPage` |
 
 `src/components/work-items/` (all client unless noted "pure"):
 
 | Path | Responsibility | Key exports |
 |---|---|---|
-| `WorkItemsScreen.tsx` (297) | The screen: sub-header (title, purple count Badge, `LayoutSwitch`, `DisplayMenu`, "New work item"), filter row, layout switch; owns `useOptimistic`, the update/move/quick-add handlers, `?create=1`, hotkey `c`, `onOpen` (peek href) | `WorkItemsScreen`, `WorkItemsScreenProps` |
-| `ListLayout.tsx` (365) | Groups as collapsible `List`s, rows with compact property chips, roving arrow-key focus, per-group quick-add | `ListLayout` |
-| `BoardLayout.tsx` (544) | Columns per group, swimlanes for `sub_group_by`, pointer DnD via `usePointerDrag`, "Move to" menu per card, quick-add per column; closed columns accept no drops | `BoardLayout` |
-| `TableLayout.tsx` (375) | Astryx `Table`: pinned key column, one column per enabled property, client-side sort, grouped sections, resizable columns, inline-edit cells | `TableLayout` |
-| `DisplayMenu.tsx` (253) | `LayoutSwitch` and `DisplayMenu`; `useDisplayWriter` writes the URL (`q`) and `saveViewSettingsAction`/`resetViewSettingsAction` | `LayoutSwitch`, `DisplayMenu` |
-| `FilterBar.tsx` (261) | `PowerSearch` tokens <-> `Filters`; writes only `q` (via `withSearchParam`) | `FilterBar` |
-| `CreateWorkItemDialog.tsx` (209) | Dialog (shell `dialogs`) with name, description, common properties, "Create more", discard confirm; calls `createWorkItemAction` | `CreateWorkItemDialog`, `CreatedWorkItem` |
-| `QuickAdd.tsx` (88) | Inline "add here" row: Enter creates and stays open, Escape cancels | `QuickAdd` |
-| `ProjectFrame.tsx` (87) | 52px project header: `ProjectToken`, title, `TabList` from `projectTabs`, `ProjectMenu`; archived Banner outside the scroller; `LayoutContent` is the page scroller | `ProjectFrame`, `ProjectToken` |
-| `project-provider.tsx` (77) | Context over the bundle: lookup maps, `firstStateByGroup`; writes `tessera.lastProject.v1` after mount | `ProjectProvider`, `useProject`, `useOptionalProject`, `buildProjectContext`, `LAST_PROJECT_STORAGE_KEY`, `ProjectContextValue` |
+| `WorkItemsScreen.tsx` (430) | The screen: sub-header (title, purple count Badge, `LayoutSwitch`, `DisplayMenu`, "New work item"), filter row, layout switch; owns `useOptimistic`, the update/move/quick-add handlers, `?create=1`, hotkey `c`, `onOpen` (peek href) | `WorkItemsScreen`, `WorkItemsScreenProps` |
+| `ListLayout.tsx` (493) | Groups as collapsible `List`s, rows with compact property chips (24 px chips with a 44 px touch hit area), roving arrow-key focus, per-group quick-add; below 481 px or under a coarse pointer the group marker and quick-add text sit 8 px right to stay on the key's x | `ListLayout` |
+| `BoardLayout.tsx` (448) | Columns per group, swimlanes for `sub_group_by`, pointer DnD via `usePointerDrag`, "Move to" menu per card, quick-add per column; closed columns accept no drops; a touch drag starts only from the card grip (`.tessera-board-card-grip`), a mouse or pen from anywhere on the card; the peeked card is `aria-current` | `BoardLayout` |
+| `TableLayout.tsx` (496) | Astryx `Table`: key and selection columns pinned from 768 px up, sticky header against `.tessera-wi-scroller`, Name column with a 240 px floor, one column per enabled property, client-side sort, grouped sections, resizable columns, inline-edit cells; the peeked row is `aria-current` | `TableLayout` |
+| `DisplayMenu.tsx` (269) | `LayoutSwitch` and `DisplayMenu`; `useDisplayWriter` writes the URL (`q`) and `saveViewSettingsAction`/`resetViewSettingsAction` | `LayoutSwitch`, `DisplayMenu` |
+| `FilterBar.tsx` (294) | `PowerSearch` tokens <-> `Filters`; writes only `q` (via `withSearchParam`); under touch each token and suggestion option is a 44 px target (theme and `work-items.css`) | `FilterBar` |
+| `CreateWorkItemDialog.tsx` (264) | Dialog (shell `dialogs`) with name, description, common properties, "Create more", discard confirm; calls `createWorkItemAction` | `CreateWorkItemDialog`, `CreatedWorkItem` |
+| `QuickAdd.tsx` (94) | Inline "add here" row: Enter creates and stays open, Escape cancels; `onCancel` tells a popover host (the calendar's narrow day cells) to close | `QuickAdd` |
+| `peeked.ts` (15) | The id the side peek shows (`?peek=`), so the board and the table can mark their card or row | `usePeekedId` |
+| `ProjectFrame.tsx` (132) | 52px project header: `ProjectToken`, title, `TabList` from `projectTabs`, `ProjectMenu`; archived Banner outside the scroller; `LayoutContent` is the page scroller | `ProjectFrame`, `ProjectToken` |
+| `project-provider.tsx` (86) | Context over the bundle: lookup maps, `firstStateByGroup`; writes `tessera.lastProject.v1` after mount | `ProjectProvider`, `useProject`, `useOptionalProject`, `buildProjectContext`, `LAST_PROJECT_STORAGE_KEY`, `ProjectContextValue` |
 | `types.ts` (84, pure) | Shared types | `ProjectBundle`, `LayoutProps`, `MoveInput`, `UpdateWorkItemPatch`, `QuickAddGroup`, `SettingsScope`, `ScopeDefaults`, `UrlState` |
-| `url-state.ts` (173, pure) | `q` param codec and layering helpers | `encodeUrlState`, `decodeUrlState`, `mergeDisplay`, `mergeFilters`, `UrlDisplayPatchSchema` |
+| `url-state.ts` (187, pure) | `q` param codec and layering helpers | `encodeUrlState`, `decodeUrlState`, `mergeDisplay`, `mergeFilters`, `UrlDisplayPatchSchema` |
 | `filter-state.ts` (42, pure) | Which filter keys the bar manages; explicit-empty clears | `LIST_FIELDS`, `DATE_FIELDS`, `isListField`, `isDateField`, `withExplicitClears` |
-| `moves.ts` (45, pure) | Layout move -> engine `move_work_item` vocabulary | `isMovableGroup`, `toEngineMove` |
+| `moves.ts` (99, pure) | Layout move -> engine `move_work_item` vocabulary | `isMovableGroup`, `toEngineMove` |
 | `optimistic.ts` (16, pure) | Placeholder id prefix `optimistic-` | `OPTIMISTIC_ID_PREFIX`, `optimisticId`, `isOptimisticId` |
-| `optimistic-list.ts` (193, pure) | Reducer for `useOptimistic`: update, move, create over `WorkItemListResult` incl. regrouping | `reduceOptimisticList`, `realNeighbour`, `OptimisticAction`, `StateGroupOf` |
-| `quick-add.ts` (166, pure) | Which groups allow quick-add or a board drop; builds the create input; scope defaults | `openMemberships`, `isOpenGroupValue`, `acceptsGroupMove`, `quickAddAllowed`, `quickAddInput`, `withScopeDefaults` |
-| `project-tabs.ts` (36, pure) | Tab list by feature toggles; tab for a pathname | `projectTabs`, `activeProjectTab`, `ProjectTabDef`, `ProjectTabKey` |
-| `properties/index.ts` (13) | Barrel of the controls below | re-exports |
+| `optimistic-list.ts` (216, pure) | Reducer for `useOptimistic`: update, move, create over `WorkItemListResult` incl. regrouping | `reduceOptimisticList`, `realNeighbour`, `OptimisticAction`, `StateGroupOf` |
+| `quick-add.ts` (192, pure) | Which groups allow quick-add or a board drop; builds the create input; scope defaults | `openMemberships`, `isOpenGroupValue`, `acceptsGroupMove`, `quickAddAllowed`, `quickAddInput`, `withScopeDefaults` |
+| `project-tabs.ts` (44, pure) | Tab list by feature toggles; tab for a pathname | `projectTabs`, `activeProjectTab`, `ProjectTabDef`, `ProjectTabKey` |
+| `properties/index.ts` (14) | Barrel of the controls below | re-exports |
 | `properties/{State,Priority,Assignee,Label,Date,Cycle,Module}Control.tsx` (53–83 each) | Ghost selectors / date input. Props `{ value, onChange, compact?, readOnly?, label? }`; options from `useProject()` | `StateControl/StateLabel/stateGroupVariant/stateGroupLabel`, `PriorityControl/PriorityLabel/PRIORITY_OPTIONS/isPriority/priorityOption`, `AssigneeControl/ActorLabel`, `LabelControl/paletteTokenColor`, `DateControl`, `CycleControl`, `ModuleControl` |
-| `properties/membership-rules.ts` (66, pure) | Cycle read-only reasons; archived module ids kept out of the editable value | `cycleControlModel`, `splitModuleValue`, `mergeModuleChange`, `archivedModulesLabel`, `CYCLE_STATUS_LABEL` |
-| `properties/date-format.ts` (13, pure) | `formatShortDate` ("Nov 10"), also used by planning | `formatShortDate` |
+| `properties/membership-rules.ts` (88, pure) | Cycle read-only reasons; archived module ids kept out of the editable value | `cycleControlModel`, `splitModuleValue`, `mergeModuleChange`, `archivedModulesLabel`, `CYCLE_STATUS_LABEL` |
+| `properties/date-format.ts` (25, pure) | `formatShortDate` ("Nov 10"), also used by planning | `formatShortDate` |
 
 Other:
 
 | Path | Responsibility | Key exports |
 |---|---|---|
-| `src/components/dnd/drag-math.ts` (164, pure) | Geometry and list maths ported from the Astryx kanban template | `containerAt`, `dropIndexFor`, `neighboursAt`, `isNoopDrop`, `applyMove`, `reorderIds`, `withoutId`, `exceedsThreshold`, `autoScrollFor`, types `DropTarget`, `MoveSpec`, `MoveAdapter` |
-| `src/components/dnd/use-pointer-drag.ts` (386) | Pointer DnD hook: threshold, rect hit-testing, overlay through CSS vars, auto-scroll, Esc cancel | `usePointerDrag`, `DragState`, `DragDropEvent`, `ItemDragHandlers`, `UsePointerDragOptions` |
-| `src/components/projects/CreateProjectDialog.tsx` (198) | "New project": name, identifier suggestion, logo icon and colour; `createProjectAction`, then pushes to the new project's work items | `CreateProjectDialog`, `NewProjectButton`, `suggestIdentifier` |
+| `src/components/dnd/drag-math.ts` (206, pure) | Geometry and list maths ported from the Astryx kanban template | `containerAt`, `dropIndexFor`, `neighboursAt`, `isNoopDrop`, `applyMove`, `reorderIds`, `withoutId`, `exceedsThreshold`, `autoScrollFor`, types `DropTarget`, `MoveSpec`, `MoveAdapter` |
+| `src/components/dnd/use-pointer-drag.ts` (394) | Pointer DnD hook: threshold, rect hit-testing, overlay through CSS vars, auto-scroll, Esc cancel | `usePointerDrag`, `DragState`, `DragDropEvent`, `ItemDragHandlers`, `UsePointerDragOptions` |
+| `src/components/projects/CreateProjectDialog.tsx` (206) | "New project": name, identifier suggestion, logo icon and colour; `createProjectAction`, then pushes to the new project's work items | `CreateProjectDialog`, `NewProjectButton`, `suggestIdentifier` |
 
 ## 3. Data and control flow
 
@@ -103,6 +104,7 @@ Open item: `onOpen` builds `peekHref(pathname, searchParams, id)` and `notePeekP
 | Engine cannot move between `state_group`, `created_by`, `created_at`, `project`; `state_group` becomes the first state of that group | none (engine `RULE group_not_movable`; membership is decision 9) | `isMovableGroup`, `toEngineMove`, `firstStateByGroup` | `moves.test.ts` |
 | Closed scopes: no quick-add or board drop into/out of an archived module or a completed/archived cycle; closed items cannot join a cycle | 16 | `acceptsGroupMove`, `quickAddAllowed`, `isOpenGroupValue`, `openMemberships` | `quick-add.test.ts` |
 | Completed/archived cycle value is read-only; archived module ids are never dropped by `set_modules` | 16, 9 | `cycleControlModel`, `splitModuleValue`, `mergeModuleChange` | `property-controls.test.ts` |
+| Touch drag starts only from a grip (`touch-action: none` on the grip, never on a card or row); a finger scrolls over the rest; the keyboard path stays the "Move to" menu | 14 | `.tessera-board-card-grip`, `.tessera-row-grip`; `tests/ui/board-table-css.test.ts` | `board-table-css.test.ts` |
 | Colours are palette keys rendered as `Token`; state groups map to `StatusDot` variants | 22 | `paletteTokenColor`, `stateGroupVariant`, `ProjectToken` | none direct |
 | "Today" is the server local date, carried in the bundle | 6 | `bundle.today`, `formatShortDate` | none direct |
 | Placeholders (`optimistic-` ids) are inert: no open, move, update | 13 | `isOptimisticId` guards in `WorkItemsScreen`, `ListLayout`, `TableLayout` | `optimistic.test.ts` (ids only) |
@@ -127,6 +129,8 @@ Rules without a decision number (code conventions): layouts import engine code o
 | `tests/ui/drag-math.test.ts` | Pure drag maths |
 | `tests/ui/property-controls.test.ts` | `cycleControlModel`, `splitModuleValue`/`mergeModuleChange` |
 | `tests/ui/dialog-names.test.ts`, `planning-a11y.test.ts`, `detail-smoke.test.ts` | Reference some of these components (grep matched `CreateWorkItemDialog`, `ProjectProvider`, `ScopedWorkItems`); not read in detail |
+| `tests/ui/list-touch-css.test.ts`, `list-visual-fixes.test.ts`, `list-audit-round2.test.ts` | Work-items stylesheet rules of the visual audit (touch hit areas, group gutter, filter field) and the list fixes under jsdom |
+| `tests/ui/board-table-css.test.ts`, `board-table-fixes.test.ts`, `quick-add-cancel.test.ts` | Board and table stylesheet rules (column head, grip, sticky header, pinned columns) and behaviour (peeked marks, `QuickAdd` `onCancel`) |
 | `tests/ui/peek-url.test.ts`, `peek-prefs.test.ts` | `withSearchParam`, `peekHref` used by the screen, filter bar and display menu |
 | `tests/work-items.test.ts`, `tests/filters.test.ts`, `tests/projects.test.ts` | Engine behind the area (moves, filters, projects) |
 
@@ -142,12 +146,13 @@ Not covered: `reduceOptimisticList`, `ListLayout`/`BoardLayout`/`TableLayout` re
 - Filters: add keys to `LIST_FIELDS`/`DATE_FIELDS` (`filter-state.ts`) and the matching `PowerSearch` field in `FilterBar.tsx`. The P10 rich filter tree (the Advanced dialog) sits beside the token map; see operations.md.
 - Display options: extend `Display` in `src/lib/tessera/schemas`, mirror it in `UrlDisplayPatchSchema` (a parity test checks it against `DisplaySchema.shape`) and add the control to `DisplayMenu`.
 - Optimistic actions: add a member to `OptimisticAction` and a case in `reduceOptimisticList`.
+- Touch: a control in a dense row takes `tessera-hit` classes or relies on the theme's hit area (ui.md "Touch targets"); a new draggable surface gets a grip, never `touch-action: none` on the whole card or row.
 - Bulk actions (P8): `LayoutProps.selection` and the `BulkBar` exist; see planning-extras.md.
 - Create flow: `CreateWorkItemDialog` `defaults` prop (`Partial<Omit<CreateWorkItemInputType, "project_id">>`) and `onCreated`; P8 wired drafts into it through `SaveDraftDialog` (see planning-extras.md).
 
 ## 7. Known debt and quirks
 
-File budget (`scripts/file-budget.json` at HEAD): only `cycles.ts` 925, `db/schema.ts` 857, `modules.ts` 735. Nothing in this area is listed; the biggest file here is `BoardLayout.tsx` (544 of 600). The field guide still names `work-items.ts`, `tools/registry.ts` and `CommandBar.tsx` as budgeted; HEAD's json no longer does. Cursor's working tree edits the json, so recheck it.
+File budget (`scripts/file-budget.json` at HEAD): only `cycles.ts` 925, `db/schema.ts` 857, `modules.ts` 735. Nothing in this area is listed; the biggest files here are `TableLayout.tsx` (496 of 600) and `ListLayout.tsx` (493). The field guide still names `work-items.ts`, `tools/registry.ts` and `CommandBar.tsx` as budgeted; HEAD's json no longer does. Cursor's working tree edits the json, so recheck it.
 
 Deferred, from the contracts:
 - Calendar and Gantt, the modules timeline, `EstimateControl`, the intake badge and drafts in the create dialog were deferred when this file was written and have since shipped (P8 to P10); see planning-extras.md and operations.md.
@@ -158,7 +163,7 @@ Deferred, from the contracts:
 - `LayoutProps.readOnly` is declared ("archived project: no create, no drag") but `WorkItemsScreen` never sets it and Board/List ignore it; an archived project's list is only marked by the banner.
 - Paging (P11) replaced the fixed `LIMIT = 2000`: first pages of 200 rows or 50/30 per group, then "Show more" (hardening.md). A table header sort now writes `display.order_by` through `table-sort.ts`, so the server re-sorts the whole filtered list.
 - `date-format.ts` calls `new Date()` for the current-year check in render paths; the field guide warns against argless `new Date()` in render (the bundle's `today` exists for this).
-- The side peek narrows the list/board instead of overlaying it; at 1440 px the board's fourth column is cut while it is open.
+- The side peek narrows the list/board instead of overlaying it; at 1440 px the board's fourth column is cut while it is open. Below a 640 px container (360 px panel plus 280 px for the list) it covers the list instead (`detail/peek-cover.ts`).
 - The poll runs every 4 s (fixed rate), not 5 s as `docs/PLAN.md` and `ui.md` "External writes" still say.
 
 Quirks that cost agents time:

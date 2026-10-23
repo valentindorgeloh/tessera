@@ -30,7 +30,7 @@ export function ActiveCyclesScreen({ sections }: { sections: readonly ActiveCycl
       }
     >
       {sections.length === 0 ? (
-        <VStack padding={6}>
+        <VStack padding={4}>
           <EmptyState
             title="No active cycles"
             description="Cycles whose dates include today show up here."
@@ -39,12 +39,12 @@ export function ActiveCyclesScreen({ sections }: { sections: readonly ActiveCycl
           />
         </VStack>
       ) : (
-        <VStack gap={6} padding={6}>
+        <VStack gap={6} padding={4}>
           {sections.map((section) => (
             <VStack key={section.data.cycle.id} gap={3}>
               <HStack gap={2} vAlign="center">
                 <ProjectToken project={section.project} size="sm" />
-                <Link href={`/projects/${section.project.id}/work-items`} isStandalone>
+                <Link href={`/projects/${section.project.id}/work-items`} isStandalone className="tessera-planning-link">
                   {section.project.name}
                 </Link>
               </HStack>

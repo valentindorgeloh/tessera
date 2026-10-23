@@ -66,6 +66,28 @@ function displayFrom(sideId: string, storedA: string, storedType: RelationType):
   return forward ? "implemented_by" : "implements";
 }
 
+type RelationSide = { id: string; key: string; project_id: string | null };
+
+/**
+ * Logs one `added` or `removed` row on each item of a pair, with `field` the
+ * display type from that item's side (decision 55). The stored row carries the
+ * canonical direction, so each side reads its own type off `displayFrom`.
+ */
+function logRelationPair(ctx: TesseraContext, verb: "added" | "removed", left: RelationSide, right: RelationSide, storedA: string, storedType: RelationType): void {
+  const log = (self: RelationSide, other: RelationSide) =>
+    logActivity(ctx, {
+      project_id: self.project_id,
+      entity_type: "work_item",
+      entity_id: self.id,
+      work_item_id: self.id,
+      verb,
+      field: displayFrom(self.id, storedA, storedType),
+      ...(verb === "added" ? { new_value: other.id, new_identifier: other.key } : { old_value: other.id, old_identifier: other.key }),
+    });
+  log(left, right);
+  log(right, left);
+}
+
 export function listRelations(ctx: TesseraContext, workItemId: string): RelationView[] {
   getWorkItem(ctx, workItemId);
   const rows = ctx.db
@@ -110,6 +132,8 @@ export function addRelation(ctx: TesseraContext, input: z.input<typeof AddRelati
       .get();
     if (existing) {
       ctx.db.update(work_item_relation).set({ deleted_at: ctx.now() }).where(eq(work_item_relation.id, existing.id)).run();
+      // A pair has one live row, so a new type replaces the old one: logged as removed + added (decision 55).
+      logRelationPair(ctx, "removed", left, right, existing.work_item_id, existing.relation_type);
     }
     const id = newId();
     ctx.db
@@ -125,8 +149,7 @@ export function addRelation(ctx: TesseraContext, input: z.input<typeof AddRelati
         updated_by: ctx.actor.id,
       })
       .run();
-    logActivity(ctx, { project_id: left.project_id, entity_type: "work_item", entity_id: left.id, work_item_id: left.id, verb: "added", field: data.relation_type, new_value: right.id, new_identifier: right.key });
-    logActivity(ctx, { project_id: right.project_id, entity_type: "work_item", entity_id: right.id, work_item_id: right.id, verb: "added", field: displayFrom(right.id, a, canonical), new_value: left.id, new_identifier: left.key });
+    logRelationPair(ctx, "added", left, right, a, canonical);
     return { id, relation_type: data.relation_type, work_item_id: data.work_item_id, related_work_item_id: data.related_work_item_id };
   });
 }
@@ -148,6 +171,7 @@ export function removeRelation(ctx: TesseraContext, workItemId: string, relatedI
       .get();
     if (!row) throw notFound("relation", relatedId);
     ctx.db.update(work_item_relation).set({ deleted_at: ctx.now() }).where(eq(work_item_relation.id, row.id)).run();
-    logActivity(ctx, { entity_type: "work_item", entity_id: workItemId, work_item_id: workItemId, verb: "removed", field: "relation", new_value: relatedId });
+    // Both items log the removal with the display type from their side, like the add (decision 55).
+    logRelationPair(ctx, "removed", getWorkItem(ctx, workItemId), getWorkItem(ctx, relatedId), row.work_item_id, row.relation_type);
   });
 }

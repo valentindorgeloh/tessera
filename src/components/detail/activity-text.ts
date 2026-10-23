@@ -7,6 +7,7 @@
  * In progress", "added label Bug", "edited the description 3 times".
  */
 import type { ActivityLogEntry } from "@/lib/tessera/types";
+import { RELATION_LABELS, type RelationDisplayType } from "./relation-model";
 
 export type ActivityWords = Pick<
   ActivityLogEntry,
@@ -111,6 +112,8 @@ export function describeActivity(entry: ActivityWords, actorName?: string): stri
       const self = what !== "" && what === actorName;
       if (entry.field === "assignees") return what ? `assigned ${self ? reflexive(what) : what}` : "added an assignee";
       if (entry.field === "subscribers") return self ? "subscribed" : what ? `subscribed ${what}` : "added a subscriber";
+      // A relation logs its display type from this item's side as the field (decision 55): "added relation blocked by WEB-3".
+      if (entry.field !== null && Object.hasOwn(RELATION_LABELS, entry.field)) return `added relation ${RELATION_LABELS[entry.field as RelationDisplayType].toLowerCase()}${what ? ` ${what}` : ""}`;
       return `added ${fieldLabel(entry.field) || "an entry"}${what ? ` ${what}` : ""}`;
     }
     case "removed": {
@@ -118,6 +121,10 @@ export function describeActivity(entry: ActivityWords, actorName?: string): stri
       const self = what !== "" && what === actorName;
       if (entry.field === "assignees") return what ? `unassigned ${self ? reflexive(what) : what}` : "removed an assignee";
       if (entry.field === "subscribers") return self ? "unsubscribed" : what ? `unsubscribed ${what}` : "removed a subscriber";
+      // Same wording as the add, with the type from this item's side (decision 55): "removed relation blocked by WEB-3".
+      if (entry.field !== null && Object.hasOwn(RELATION_LABELS, entry.field)) return `removed relation ${RELATION_LABELS[entry.field as RelationDisplayType].toLowerCase()}${what ? ` ${what}` : ""}`;
+      // Rows logged before the type was recorded carry the generic field.
+      if (entry.field === "relation") return "removed a relation";
       return `removed ${fieldLabel(entry.field) || "an entry"}${what ? ` ${what}` : ""}`;
     }
     case "archived":

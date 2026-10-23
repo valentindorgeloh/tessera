@@ -79,7 +79,7 @@ function StateForm({ title, onOpenChange, projectId, group, state }: Omit<StateD
       header={<DialogHeader title={title} onOpenChange={() => !isPending && onOpenChange(false)} hasDivider />}
       content={
         <LayoutContent>
-          <VStack gap={4}>
+          <VStack gap={4} className="tessera-settings-fields">
             <FormLayout>
               <TextInput
                 label="Name"

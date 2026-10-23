@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import type { DropdownMenuOption } from "@astryxdesign/core/DropdownMenu";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { useToast } from "@astryxdesign/core/Toast";
-import { deleteViewAction, duplicateViewAction, lockViewAction, reorderViewAction, unlockViewAction } from "@/app/actions/views";
+import { deleteViewAction, duplicateViewAction, lockViewAction, unlockViewAction } from "@/app/actions/views";
 import { AlertDialog } from "@/components/shell/dialogs";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
 import { useOptionalProject } from "@/components/work-items/project-provider";
@@ -32,9 +32,16 @@ export type ViewMenuProps = {
   nextId?: string;
   /** Row placement: Move up and Move down show (false while the list is searched). */
   canReorder?: boolean;
+  /**
+   * Row placement: what Move up and Move down do. The list owns the order, so
+   * it applies the move optimistically and runs `reorder_view` in one
+   * transition (decision 13: the row moves at once, a refusal snaps it back
+   * with a toast). Without it the Move items do not show.
+   */
+  onMove?: (direction: "up" | "down") => void;
 };
 
-export function ViewMenu({ projectId, view, placement, previousId, nextId, canReorder = false }: ViewMenuProps) {
+export function ViewMenu({ projectId, view, placement, previousId, nextId, canReorder = false, onMove }: ViewMenuProps) {
   const router = useRouter();
   const toast = useToast();
   const project = useOptionalProject();
@@ -63,12 +70,6 @@ export function ViewMenu({ projectId, view, placement, previousId, nextId, canRe
   const setLocked = (lock: boolean) =>
     setViewLocked(lock, () => (lock ? lockViewAction({ view_id: view.id }) : unlockViewAction({ view_id: view.id })));
 
-  const move = (verb: string, input: { after_id: string } | { before_id: string }) =>
-    startTransition(async () => {
-      const result = await reorderViewAction({ view_id: view.id, ...input });
-      if (!result.ok) fail(verb, result.message);
-    });
-
   const confirmDelete = () =>
     startDelete(async () => {
       const result = await deleteViewAction({ view_id: view.id });
@@ -82,17 +83,18 @@ export function ViewMenu({ projectId, view, placement, previousId, nextId, canRe
       if (placement === "header") router.push(listHref);
     });
 
+  // Icons go in as components (not elements): the menu sizes them to its 16px icon box, as the cycle and module menus do (visual audit P10).
   const items: DropdownMenuOption[] = [
-    { id: "edit", label: "Edit…", icon: <PencilIcon />, isDisabled: isLocked, description: isLocked ? "Unlock the view to edit it" : undefined, onClick: () => setEditOpen(true) },
-    { id: "duplicate", label: "Duplicate", icon: <CopyIcon />, onClick: duplicate },
+    { id: "edit", label: "Edit…", icon: PencilIcon, isDisabled: isLocked, description: isLocked ? "Unlock the view to edit it" : undefined, onClick: () => setEditOpen(true) },
+    { id: "duplicate", label: "Duplicate", icon: CopyIcon, onClick: duplicate },
     isLocked
-      ? { id: "unlock", label: "Unlock view", icon: <UnlockIcon />, onClick: () => setLocked(false) }
-      : { id: "lock", label: "Lock view", icon: <LockIcon />, onClick: () => setLocked(true) },
+      ? { id: "unlock", label: "Unlock view", icon: UnlockIcon, onClick: () => setLocked(false) }
+      : { id: "lock", label: "Lock view", icon: LockIcon, onClick: () => setLocked(true) },
   ];
-  if (placement === "row" && canReorder) {
+  if (placement === "row" && canReorder && onMove) {
     items.push(
-      { id: "move-up", label: "Move up", icon: <MoveUpIcon />, isDisabled: previousId === undefined, onClick: () => previousId !== undefined && move("move", { after_id: previousId }) },
-      { id: "move-down", label: "Move down", icon: <MoveDownIcon />, isDisabled: nextId === undefined, onClick: () => nextId !== undefined && move("move", { before_id: nextId }) },
+      { id: "move-up", label: "Move up", icon: MoveUpIcon, isDisabled: previousId === undefined, onClick: () => onMove("up") },
+      { id: "move-down", label: "Move down", icon: MoveDownIcon, isDisabled: nextId === undefined, onClick: () => onMove("down") },
     );
   }
   items.push(
@@ -100,7 +102,7 @@ export function ViewMenu({ projectId, view, placement, previousId, nextId, canRe
     {
       id: "delete",
       label: "Delete…",
-      icon: <TrashIcon />,
+      icon: TrashIcon,
       variant: "destructive",
       isDisabled: isLocked,
       description: isLocked ? "Unlock the view to delete it" : undefined,

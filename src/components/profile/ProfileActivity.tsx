@@ -46,12 +46,13 @@ export function ActivityList({ entries, emptyTitle }: ActivityListProps) {
       {days.map((group) => (
         <VStack key={group.day} gap={2}>
           <Heading level={3}>{group.day}</Heading>
-          <List hasDividers>
+          <List hasDividers className="tessera-profile-list">
             {group.rows.map((entry) => (
               <ListItem
                 key={entry.uid}
                 href={activityHref(entry)}
-                label={`${entry.actor_name} ${describeActivity(entry)}`}
+                // A node label is not truncated (a string label is one clipped line): "mcp:visual-fixture changed the state from ..." wraps on a phone row.
+                label={<Text>{`${entry.actor_name} ${describeActivity(entry)}`}</Text>}
                 description={activityDetail(entry)}
                 endContent={<RelativeTime value={entry.created_at} type="supporting" color="secondary" hasTooltip={false} />}
               />
@@ -76,8 +77,8 @@ export function ProfileActivity({ entries, olderHref, newerHref }: ProfileActivi
       <ActivityList entries={entries} emptyTitle="No activity yet" />
       {olderHref || newerHref ? (
         <HStack gap={4}>
-          {newerHref ? <Link href={newerHref}>Newer</Link> : null}
-          {olderHref ? <Link href={olderHref}>Load more</Link> : null}
+          {newerHref ? <Link href={newerHref} className="tessera-profile-link">Newer</Link> : null}
+          {olderHref ? <Link href={olderHref} className="tessera-profile-link">Load more</Link> : null}
         </HStack>
       ) : null}
     </VStack>

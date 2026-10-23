@@ -12,8 +12,28 @@ import {
   PEEK_MIN_WIDTH,
   PEEK_STORAGE_KEY,
   clampPeekWidth,
+  hasNoResizeRange,
   parsePeekPrefs,
 } from "@/components/detail/peek-prefs";
+
+describe("hasNoResizeRange", () => {
+  it("hides the handle only on a container that cannot hold the minimum plus a range (a phone)", () => {
+    expect(hasNoResizeRange(343)).toBe(true);
+    expect(hasNoResizeRange(PEEK_MIN_WIDTH)).toBe(true);
+    expect(hasNoResizeRange(PEEK_MIN_WIDTH + 47)).toBe(true);
+  });
+
+  it("keeps the handle when the panel fills a tablet container, so a drag to the maximum can be undone", () => {
+    // D13 regression: at 900px the container is 632px wide; a panel dragged to 632 or beyond lost its handle for good.
+    expect(hasNoResizeRange(632)).toBe(false);
+    expect(hasNoResizeRange(PEEK_MIN_WIDTH + 48)).toBe(false);
+    expect(hasNoResizeRange(1200)).toBe(false);
+  });
+
+  it("treats an unmeasured container as resizable", () => {
+    expect(hasNoResizeRange(0)).toBe(false);
+  });
+});
 
 describe("clampPeekWidth", () => {
   it("keeps widths inside the range and rounds them", () => {

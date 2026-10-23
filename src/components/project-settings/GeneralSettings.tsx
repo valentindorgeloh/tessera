@@ -15,7 +15,7 @@ import { FormLayout } from "@astryxdesign/core/FormLayout";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Selector, type SelectorOptionData } from "@astryxdesign/core/Selector";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
-import { Heading } from "@astryxdesign/core/Text";
+import { Heading, Text } from "@astryxdesign/core/Text";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Token } from "@astryxdesign/core/Token";
@@ -125,15 +125,23 @@ function GeneralForm({ project }: { project: Project }) {
           <Banner status="info" container="section" title={`Keys become ${identifier}-12`} description={`Old ${project.identifier}- links and /browse addresses keep working.`} />
         ) : null}
         <TextArea label="Description" value={description} onChange={setDescription} rows={4} isOptional isDisabled={isArchived} />
-        <HStack gap={3} vAlign="end" wrap="wrap">
+        {/* Labels share one line and both controls are the standard 32px field (size md), so their centres line up. */}
+        <HStack gap={3} vAlign="start" wrap="wrap">
           <Selector
             label="Icon"
+            size="md"
             options={ICON_OPTIONS}
             value={icon}
             isDisabled={isArchived}
             onChange={setIcon}
             renderOption={(option) => <Token label={option.label ?? option.value} size="sm" icon={<Icon icon={resolveLogoIcon(option.value)} />} />}
-            renderValue={(option) => <Token label={option.label ?? option.value} size="sm" icon={<Icon icon={resolveLogoIcon(option.value)} />} />}
+            // The trigger shows the icon and its name in plain text: a Token with an icon is 26px tall and made this field taller than its neighbour.
+            renderValue={(option) => (
+              <HStack gap={2} vAlign="center">
+                <Icon icon={resolveLogoIcon(option.value)} size="sm" />
+                <Text>{option.label ?? option.value}</Text>
+              </HStack>
+            )}
           />
           <PaletteColorSelector label="Colour" value={color} onChange={setColor} isDisabled={isArchived} />
         </HStack>
@@ -141,7 +149,7 @@ function GeneralForm({ project }: { project: Project }) {
       <HStack justify="end">
         <Button variant="primary" label="Save changes" isDisabled={!canSave} isLoading={isPending} onClick={save} />
       </HStack>
-      <VStack gap={3}>
+      <VStack gap={3} className="tessera-settings-danger">
         <Heading level={5}>Danger zone</Heading>
         <ProjectDangerZone project={project} />
       </VStack>

@@ -152,7 +152,7 @@ export function ModuleLinks({ moduleId, links, readOnly }: ModuleLinksProps) {
           No links yet
         </Text>
       ) : (
-        <List density="compact" aria-label="Module links">
+        <List density="compact" aria-label="Module links" className="tessera-planning-panel-list">
           {links.map((link) => (
             <ListItem
               key={link.id}
@@ -168,8 +168,8 @@ export function ModuleLinks({ moduleId, links, readOnly }: ModuleLinksProps) {
                     size="sm"
                     alignment="end"
                     items={[
-                      { id: "edit", label: "Edit…", icon: <PencilIcon />, onClick: () => setEditing(link) },
-                      { id: "remove", label: "Remove", icon: <TrashIcon />, variant: "destructive", onClick: () => remove(link) },
+                      { id: "edit", label: "Edit…", icon: PencilIcon, onClick: () => setEditing(link) },
+                      { id: "remove", label: "Remove", icon: TrashIcon, variant: "destructive", onClick: () => remove(link) },
                     ]}
                   />
                 )

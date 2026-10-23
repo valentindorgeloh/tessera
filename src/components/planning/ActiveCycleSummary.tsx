@@ -65,7 +65,7 @@ export function ActiveCycleSummary({ projectId, data }: ActiveCycleSummaryProps)
           ))}
         </HStack>
         <BurndownChart cycle={cycle} progress={progress} kind={prefs.chart} today={today} height={160} hasDataTable={false} />
-        <Link href={`/projects/${projectId}/cycles/${cycle.id}`} isStandalone>
+        <Link href={`/projects/${projectId}/cycles/${cycle.id}`} isStandalone className="tessera-planning-link">
           Open cycle
         </Link>
       </VStack>

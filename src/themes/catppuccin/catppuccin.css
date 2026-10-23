@@ -487,8 +487,16 @@
     border-radius: var(--radius-element);
   }
 
+  .astryx-list-item {
+    outline-offset: calc(-1 * var(--focus-outline-width));
+  }
+
   .astryx-calendar-day {
     border-radius: var(--radius-element);
+  }
+
+  .astryx-side-nav-item[data-selected="selected"] {
+    font-weight: var(--font-weight-normal);
   }
 
   .astryx-text[data-color="primary"] { color: var(--color-text-primary); }
@@ -544,6 +552,246 @@
 }
 
 @layer astryx-theme {
+@media (pointer: coarse) {
+  @scope ([data-astryx-theme="catppuccin"]) to ([data-astryx-theme]) {
+    .astryx-button::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-tab::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-tab-scroll-button::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: 0;
+  }
+
+    .astryx-segmented-control-item::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: 0;
+  }
+
+    .astryx-top-nav-heading {
+    position: relative;
+  }
+
+    .astryx-top-nav-heading::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-side-nav-heading {
+    position: relative;
+  }
+
+    .astryx-side-nav-heading::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: 0;
+  }
+
+    .astryx-dropdown-menu-item {
+    min-block-size: var(--spacing-11);
+  }
+
+    .astryx-selector-option-row {
+    min-block-size: var(--spacing-11);
+  }
+
+    .astryx-command-palette-item {
+    min-block-size: var(--spacing-11);
+  }
+
+    .astryx-side-nav-item {
+    min-block-size: var(--spacing-11);
+  }
+
+    .astryx-text-input::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-tokenizer::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-number-input::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-date-input::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-time-input::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-toggle-button::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-input-clear-button::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+  }
+}
+
+@media (width < 481px) {
+  @scope ([data-astryx-theme="catppuccin"]) to ([data-astryx-theme]) {
+    .astryx-button::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-tab::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-tab-scroll-button::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: 0;
+  }
+
+    .astryx-segmented-control-item::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: 0;
+  }
+
+    .astryx-top-nav-heading {
+    position: relative;
+  }
+
+    .astryx-top-nav-heading::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-side-nav-heading {
+    position: relative;
+  }
+
+    .astryx-side-nav-heading::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: 0;
+  }
+
+    .astryx-dropdown-menu-item {
+    min-block-size: var(--spacing-11);
+  }
+
+    .astryx-selector-option-row {
+    min-block-size: var(--spacing-11);
+  }
+
+    .astryx-command-palette-item {
+    min-block-size: var(--spacing-11);
+  }
+
+    .astryx-side-nav-item {
+    min-block-size: var(--spacing-11);
+  }
+
+    .astryx-text-input::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-tokenizer::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-number-input::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-date-input::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-time-input::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-toggle-button::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+    .astryx-input-clear-button::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+  }
+}
+}
+
+@layer astryx-theme {
 @scope ([data-astryx-theme="catppuccin"]) to ([data-astryx-theme]) {
   [data-astryx-media="dark"] {
     color-scheme: dark;
@@ -551,6 +799,8 @@
     --color-icon-primary: var(--color-on-dark);
     --color-accent: var(--color-on-dark);
     --focus-outline-color: var(--color-on-dark);
+    --color-overlay-hover: color-mix(in srgb, var(--color-on-dark) 10%, transparent);
+    --color-overlay-pressed: color-mix(in srgb, var(--color-on-dark) 14%, transparent);
   }
 
   [data-astryx-media="light"] {
@@ -559,6 +809,8 @@
     --color-icon-primary: var(--color-on-light);
     --color-accent: var(--color-on-light);
     --focus-outline-color: var(--color-on-light);
+    --color-overlay-hover: color-mix(in srgb, var(--color-on-light) 8%, transparent);
+    --color-overlay-pressed: color-mix(in srgb, var(--color-on-light) 12%, transparent);
   }
 }
 }

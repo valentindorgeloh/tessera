@@ -22,7 +22,14 @@ import {
  * 502 `{ kind, message }` (`toAiError`). Never cached.
  */
 
-const BodySchema = z.object({ kind: DigestKindSchema, id: IdSchema }).strict();
+/**
+ * Cycle, module and inbox digests are keyed by a uuid. The home digest is keyed "workspace" and the analytics digest
+ * "<tab>:<project ids or all>:<range>" (decisions 73 and 81), so those two accept any short string and the engine validates it.
+ */
+const BodySchema = z
+  .object({ kind: DigestKindSchema, id: z.string().min(1).max(2000) })
+  .strict()
+  .refine(({ kind, id }) => kind === "home" || kind === "analytics" || IdSchema.safeParse(id).success, { message: "id must be a uuid", path: ["id"] });
 
 const NO_STORE = { "Cache-Control": "no-store" } as const;
 

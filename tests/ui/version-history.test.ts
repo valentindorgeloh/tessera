@@ -38,7 +38,9 @@ const workItemHistory: HistoryResponse = { versions: [version], description_vers
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-async function open(type: "page" | "work_item", history: HistoryResponse) {
+type EntityOverrides = Partial<{ currentText: string; title: string; readOnly: boolean }>;
+
+async function open(type: "page" | "work_item", history: HistoryResponse, overrides: EntityOverrides = {}) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => ({ ok: true, json: async () => history })),
@@ -51,7 +53,7 @@ async function open(type: "page" | "work_item", history: HistoryResponse) {
       createElement(VersionHistoryDialog, {
         isOpen: true,
         onOpenChange: () => {},
-        entity: { type, id: "e1", title: "Handbook", descriptionVersion: 1, currentText: "Hello" },
+        entity: { type, id: "e1", title: "Handbook", descriptionVersion: 1, currentText: "Hello", ...overrides },
       }),
     );
   });
@@ -140,5 +142,46 @@ describe("describePageActivity", () => {
     expect(describePageActivity({ verb: "updated", field: "sort_key" })).toBe("changed sort key");
     expect(describePageActivity({ verb: "archived", field: null })).toBe("archived the page");
     expect(describePageActivity({ verb: "pinned", field: null })).toBe("pinned");
+  });
+});
+
+describe("VersionHistoryDialog restore footer", () => {
+  const restoreButton = () => [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("Restore this version")) ?? null;
+  const isDisabled = (button: HTMLButtonElement | null) => button?.disabled === true || button?.getAttribute("aria-disabled") === "true";
+
+  it("pins Restore this version in the footer, outside the scrolling panes", async () => {
+    await open("work_item", { ...workItemHistory, description_md: "Newer text" }, { currentText: "Newer text" });
+    const button = restoreButton();
+    expect(button).not.toBeNull();
+    expect(button?.closest(".tessera-history-pane")).toBeNull();
+    expect(button?.closest(".tessera-history-split")).toBeNull();
+    expect(isDisabled(button)).toBe(false);
+    expect(document.body.textContent).not.toContain("This is the current version");
+  });
+
+  it("disables it with the reason while the selected version is the current text", async () => {
+    await open("work_item", workItemHistory);
+    expect(isDisabled(restoreButton())).toBe(true);
+    expect(document.body.textContent).toContain("This is the current version.");
+  });
+
+  it("needs the name to match as well on a page", async () => {
+    const renamed: HistoryResponse = { ...pageHistory, versions: [{ ...version, name: "Old handbook" }] };
+    await open("page", renamed);
+    expect(isDisabled(restoreButton())).toBe(false);
+  });
+
+  it("has no restore control on a read-only entity or on the Activity tab", async () => {
+    await open("work_item", { ...workItemHistory, description_md: "Newer text" }, { currentText: "Newer text", readOnly: true });
+    expect(restoreButton()).toBeNull();
+  });
+
+  it("hides the footer button on a page's Activity tab", async () => {
+    await open("page", { ...pageHistory, description_md: "Newer text" }, { currentText: "Newer text" });
+    expect(restoreButton()).not.toBeNull();
+    await act(async () => {
+      document.querySelector<HTMLElement>('[data-tab-value="activity"]')?.click();
+    });
+    expect(restoreButton()).toBeNull();
   });
 });

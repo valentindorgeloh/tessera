@@ -1,27 +1,72 @@
 /*
- * Gantt layout (src/components/work-items/GanttLayout.tsx).
- * One day is `--tessera-gantt-day`. Bars place themselves with
- * `--tessera-gantt-offset` and `--tessera-gantt-span`. The weekend band is a
- * repeating gradient aligned by `--tessera-gantt-weekend-shift`.
+ * Gantt layout (src/components/work-items/GanttLayout.tsx, also the modules
+ * timeline). One day is `--tessera-gantt-day`. Bars place themselves with
+ * `--tessera-gantt-offset` and `--tessera-gantt-span` and take their colour
+ * from `--tessera-bar-color` (the state group's or module status's token). The
+ * weekend band is a repeating gradient aligned by `--tessera-gantt-weekend-shift`.
+ * The connector layer is drawn in CSS pixels from measured metrics
+ * (gantt-metrics.ts), so `--tessera-gantt-rows` (set by the component) times
+ * the row height is its height.
  */
 
 .tessera-gantt {
   --tessera-gantt-day: var(--spacing-8);
   /*
-   * Label column: 256px, but at most 40% of the screen so a phone keeps at least
-   * 200px of bar area (357px at 375px wide). `vw` because the gantt itself is as
-   * wide as its days, so a percentage would resolve against the whole timeline.
+   * Label column: 256px on a desktop. The gantt itself is as wide as its days, so a percentage would resolve
+   * against the whole timeline; `vw` stands in for the panel. On a tablet the sidebar leaves a panel of about
+   * 500px at 768px, so the column is a quarter of the screen (192px) and the bars keep the larger share; it
+   * never drops below 160px. A phone (480px and narrower) takes 40% (150px at 375px) so the bar area stays wide.
    */
-  --tessera-gantt-label: min(calc(var(--spacing-8) * 8), 40vw);
+  --tessera-gantt-label: clamp(calc(var(--spacing-8) * 5), 25vw, calc(var(--spacing-8) * 8));
   --tessera-gantt-row: var(--size-element-md);
+  /* A bar sits this far inside its day columns; the connector paths end on that edge (read by gantt-metrics.ts). */
+  --tessera-gantt-inset: var(--spacing-1);
   min-width: max-content;
   padding-block-end: var(--spacing-4);
 }
 
-/* A touch screen gets 44px rows, so a row's open target and its bar are easy to hit. */
-@media (pointer: coarse) {
+@media (max-width: 480px) {
   .tessera-gantt {
-    --tessera-gantt-row: calc(var(--spacing-10) + var(--spacing-1));
+    --tessera-gantt-label: min(calc(var(--spacing-8) * 8), 40vw);
+  }
+}
+
+/*
+ * A touch screen, or a phone-width window, gets 44px rows, so a row's open
+ * target, the dates button and the bar are easy to hit (decision 14). The bar
+ * keeps the same inset above and below; the resize handles are 16px wide and
+ * their hit area reaches 44px out from the bar's edge (see the handle rules).
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-gantt {
+    --tessera-gantt-row: var(--spacing-11);
+  }
+
+  .tessera-gantt-open {
+    min-block-size: var(--spacing-11);
+  }
+
+  .tessera-gantt-bar {
+    block-size: calc(var(--spacing-11) - var(--spacing-2));
+  }
+
+  .tessera-gantt-handle {
+    inline-size: var(--spacing-4);
+  }
+
+  .tessera-gantt-handle::before {
+    content: "";
+    position: absolute;
+    inset-block: calc(-1 * var(--spacing-2));
+    inline-size: var(--spacing-11);
+  }
+
+  .tessera-gantt-handle[data-edge="start"]::before {
+    inset-inline-end: 0;
+  }
+
+  .tessera-gantt-handle[data-edge="end"]::before {
+    inset-inline-start: 0;
   }
 }
 
@@ -78,9 +123,22 @@
   width: calc(var(--tessera-gantt-days) * var(--tessera-gantt-day));
 }
 
+/*
+ * A header band is a fixed-width slot (`overflow: clip` keeps the label in it
+ * without making the band a scroll container, which would stop the label's
+ * sticky positioning). Its label sticks at the left edge of the track while
+ * the timeline scrolls, until the band's end pushes it out.
+ */
 .tessera-gantt-month {
   flex: none;
-  overflow: hidden;
+  overflow: clip;
+}
+
+.tessera-gantt-month-label {
+  position: sticky;
+  inset-inline-start: var(--tessera-gantt-label);
+  min-width: 0;
+  max-width: 100%;
   padding-inline: var(--spacing-1);
 }
 
@@ -110,13 +168,18 @@
   border-block-end: var(--border-width) solid var(--color-border);
 }
 
+/*
+ * Explicit width and height: an svg with only top and bottom would take its
+ * height from its aspect ratio. It sits over the tracks (their weekend tint
+ * would cover a path) and, being earlier in the tree, under the bars.
+ */
 .tessera-gantt-connectors {
   position: absolute;
-  z-index: 0;
+  z-index: 1;
   top: 0;
-  bottom: 0;
   left: var(--tessera-gantt-label);
   width: calc(var(--tessera-gantt-days) * var(--tessera-gantt-day));
+  height: calc(var(--tessera-gantt-rows) * var(--tessera-gantt-row));
   pointer-events: none;
   overflow: visible;
 }
@@ -125,17 +188,41 @@
   fill: none;
   stroke: var(--color-border-emphasized);
   stroke-width: var(--border-width);
-  vector-effect: non-scaling-stroke;
 }
 
 .tessera-gantt-edge[data-conflict] {
   stroke: var(--color-error);
 }
 
+/* The arrowhead is drawn in currentColor, set here on its marker. */
+.tessera-gantt-arrow {
+  color: var(--color-border-emphasized);
+}
+
+.tessera-gantt-arrow[data-conflict] {
+  color: var(--color-error);
+}
+
 .tessera-gantt-open {
   min-width: 0;
   flex: 1;
+  border-radius: var(--radius-inner);
   cursor: pointer;
+}
+
+.tessera-gantt-open:focus-visible {
+  outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+}
+
+@media (hover: hover) {
+  .tessera-gantt-open:hover {
+    background-image: linear-gradient(var(--color-overlay-hover), var(--color-overlay-hover));
+  }
+}
+
+.tessera-gantt-open:active {
+  background-image: linear-gradient(var(--color-overlay-pressed), var(--color-overlay-pressed));
 }
 
 .tessera-gantt-name {
@@ -164,19 +251,52 @@
   background-repeat: repeat-x;
 }
 
+/*
+ * A bar: the state's (or the module status's) colour at 25% over the surface,
+ * edged in that colour. It is a size container so its label can step aside when
+ * the bar is too short to show it (the row's label already names the item). It
+ * does not clip: the label sticks to the left edge of the track while the bar
+ * is partly off-screen, and the resize handles' hit areas reach past its edge.
+ */
 .tessera-gantt-bar {
+  --tessera-bar-edge: var(--tessera-bar-color, var(--color-border-emphasized));
   position: absolute;
   z-index: 1;
-  top: var(--spacing-1);
-  height: calc(100% - var(--spacing-2));
-  left: calc(var(--tessera-gantt-offset) * var(--tessera-gantt-day) + var(--spacing-1));
-  width: calc(var(--tessera-gantt-span) * var(--tessera-gantt-day) - var(--spacing-2));
-  border: var(--border-width) solid var(--color-border-emphasized);
+  top: var(--tessera-gantt-inset);
+  height: calc(100% - 2 * var(--tessera-gantt-inset));
+  left: calc(var(--tessera-gantt-offset) * var(--tessera-gantt-day) + var(--tessera-gantt-inset));
+  width: calc(var(--tessera-gantt-span) * var(--tessera-gantt-day) - 2 * var(--tessera-gantt-inset));
+  padding-inline: var(--spacing-2);
+  border: var(--border-width) solid var(--tessera-bar-edge);
   border-radius: var(--radius-inner);
-  background: var(--color-accent-muted);
-  overflow: hidden;
-  touch-action: none;
+  background-color: color-mix(in srgb, var(--tessera-bar-edge) 25%, var(--color-background-surface));
+  container: tessera-bar / inline-size;
   cursor: grab;
+}
+
+/*
+ * A mouse or pen drags the whole bar, so only a fine pointer gets `touch-action: none`. The bar fills most of a 44px
+ * touch row, so with it a finger on a bar could no longer scroll the panel (field guide "Drag and touch": a grip only).
+ * A finger scrolls over the bar and resizes from the handles, which are grips; it moves a bar through the dates
+ * popover beside the row's label (decision 14).
+ */
+@media (pointer: fine) {
+  .tessera-gantt-bar {
+    touch-action: none;
+  }
+}
+
+@media (hover: hover) {
+  .tessera-gantt-bar:hover {
+    --tessera-bar-edge: color-mix(in srgb, var(--tessera-bar-color, var(--color-border-emphasized)) 70%, var(--color-text-primary));
+    background-image: linear-gradient(var(--color-overlay-hover), var(--color-overlay-hover));
+  }
+}
+
+.tessera-gantt-bar:active {
+  --tessera-bar-edge: color-mix(in srgb, var(--tessera-bar-color, var(--color-border-emphasized)) 70%, var(--color-text-primary));
+  background-image: linear-gradient(var(--color-overlay-pressed), var(--color-overlay-pressed));
+  cursor: grabbing;
 }
 
 .tessera-gantt-bar[data-open-start] {
@@ -197,7 +317,29 @@
 }
 
 .tessera-gantt-bar:focus-visible {
-  outline: var(--border-width) solid var(--color-accent);
+  outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+}
+
+/* The label stays at the left edge of the track while the bar's start is scrolled away; the bar's own end stops it. */
+.tessera-gantt-bar-label {
+  position: sticky;
+  inset-inline-start: calc(var(--tessera-gantt-label) + var(--spacing-2));
+  min-width: 0;
+  /* Primary text: the secondary colour drops under 4.5:1 on the tinted fills in both schemes. */
+  color: var(--color-text-primary);
+}
+
+/*
+ * A bar under 64px (2.875rem of content: the 64px less its padding and border)
+ * drops its label instead of drawing clipped glyphs; the row's label and the
+ * bar's aria-label still name the item. A container query cannot read tokens,
+ * hence the rem.
+ */
+@container tessera-bar (width < 2.875rem) {
+  .tessera-gantt-bar-label {
+    display: none;
+  }
 }
 
 .tessera-gantt-handle {
@@ -207,6 +349,34 @@
   width: var(--spacing-2);
   touch-action: none;
   cursor: ew-resize;
+}
+
+/* The grip: a 4px-wide mark over half the bar's height, shown while the bar is hovered or focused (always where there is no hover). */
+.tessera-gantt-handle::after {
+  content: "";
+  position: absolute;
+  inset-block: 25%;
+  inset-inline-start: calc(50% - var(--spacing-0-5));
+  inline-size: var(--spacing-1);
+  border-radius: var(--radius-inner);
+  background: transparent;
+}
+
+.tessera-gantt-bar:hover .tessera-gantt-handle::after,
+.tessera-gantt-bar:focus-visible .tessera-gantt-handle::after,
+.tessera-gantt-handle:focus-visible::after {
+  background: var(--color-border-emphasized);
+}
+
+@media (hover: none) {
+  .tessera-gantt-handle::after {
+    background: var(--color-border-emphasized);
+  }
+}
+
+.tessera-gantt-handle:focus-visible {
+  outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
 }
 
 .tessera-gantt-handle[data-edge="start"] {

@@ -22,3 +22,15 @@ export function siblingMove(siblingIds: readonly string[], id: string, direction
   const next = siblingIds[index + 1];
   return next === undefined ? null : { before_id: next };
 }
+
+/**
+ * The insertion index of the same move for the optimistic reorder (decision
+ * 13): the index among the siblings that stay once the row is lifted out, which
+ * is what the drag reducers (`moveStateInGroup`, `moveLabel`) take. Up lands one
+ * place earlier, down one place later; null at an edge or for an unknown id.
+ */
+export function siblingMoveIndex(siblingIds: readonly string[], id: string, direction: "up" | "down"): number | null {
+  if (siblingMove(siblingIds, id, direction) === null) return null;
+  const index = siblingIds.indexOf(id);
+  return direction === "up" ? index - 1 : index + 1;
+}

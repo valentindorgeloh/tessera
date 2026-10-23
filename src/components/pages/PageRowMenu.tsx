@@ -16,7 +16,6 @@ import {
   createPageAction,
   duplicatePageAction,
   lockPageAction,
-  movePageAction,
   unarchivePageAction,
   unlockPageAction,
   updatePageAction,
@@ -45,6 +44,7 @@ import {
 } from "@/themes/catppuccin/icons";
 import { DeletePageDialog } from "./DeletePageDialog";
 import { MovePageDialog } from "./MovePageDialog";
+import type { PageMove } from "./page-move";
 import { pageMenuEntries, type PageMenuAction } from "./page-menu-items";
 import { pageHref, type PageSpaceOption } from "./page-tree";
 
@@ -57,6 +57,11 @@ export type PageRowMenuProps = {
   includeOpen?: boolean;
   previousId?: string;
   nextId?: string;
+  /**
+   * Move up / Move down go through the tree's optimistic move (PagesScreen.move: it shows the new order at
+   * once and toasts a failure, decision 13). Without it the rows are not shown, so a menu outside a tree moves nothing.
+   */
+  onMove?: (move: PageMove) => void;
   /** An archived project takes no page actions. */
   isDisabled?: boolean;
 };
@@ -83,7 +88,7 @@ function failure(verb: string, name: string, message: string): string {
   return `Could not ${verb} ${name}. ${message}`;
 }
 
-export function PageRowMenu({ page, spaces, spaceName, includeOpen = true, previousId, nextId, isDisabled = false }: PageRowMenuProps) {
+export function PageRowMenu({ page, spaces, spaceName, includeOpen = true, previousId, nextId, onMove, isDisabled = false }: PageRowMenuProps) {
   const router = useRouter();
   const toast = useToast();
   const clipboard = useClipboard({ announce: "Copied" });
@@ -127,18 +132,12 @@ export function PageRowMenu({ page, spaces, spaceName, includeOpen = true, previ
         toast({ type: "info", body: `Duplicated as ${result.data.name}` });
         router.push(pageHref(result.data));
       }),
-    "move-up": () =>
-      startTransition(async () => {
-        if (previousId === undefined) return;
-        const result = await movePageAction({ page_id: page.id, before_id: previousId });
-        if (!result.ok) fail("move", result.message);
-      }),
-    "move-down": () =>
-      startTransition(async () => {
-        if (nextId === undefined) return;
-        const result = await movePageAction({ page_id: page.id, after_id: nextId });
-        if (!result.ok) fail("move", result.message);
-      }),
+    "move-up": () => {
+      if (previousId !== undefined) onMove?.({ page_id: page.id, parent_id: page.parent_id, before_id: previousId });
+    },
+    "move-down": () => {
+      if (nextId !== undefined) onMove?.({ page_id: page.id, parent_id: page.parent_id, after_id: nextId });
+    },
     move: () => setMoveOpen(true),
     lock: () => setLocked(true, () => lockPageAction({ page_id: page.id })),
     unlock: () => setLocked(false, () => unlockPageAction({ page_id: page.id })),
@@ -181,7 +180,7 @@ export function PageRowMenu({ page, spaces, spaceName, includeOpen = true, previ
   const items: DropdownMenuOption[] = [
     { id: "favorite", label: favorite.label, icon: resolveLogoIcon("Star"), onClick: favorite.toggle },
   ];
-  for (const row of pageMenuEntries({ page: pageWithLock, includeOpen, canMoveUp: previousId !== undefined, canMoveDown: nextId !== undefined })) {
+  for (const row of pageMenuEntries({ page: pageWithLock, includeOpen, canMoveUp: onMove !== undefined && previousId !== undefined, canMoveDown: onMove !== undefined && nextId !== undefined })) {
     if (row.dividerBefore) items.push({ type: "divider" });
     const Icon = ICONS[row.id];
     items.push({

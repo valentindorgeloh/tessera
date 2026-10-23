@@ -38,9 +38,59 @@
   cursor: pointer;
 }
 
-/* The sidebar's "New work item" reads as a quiet row: label and icon at the start, like the items below it. */
+/*
+ * The sidebar's "New work item" reads as a quiet row: label and icon at the
+ * start, like the items below it. The button sits 8px in from the sidebar edge
+ * and a row's icon 16px (8px in plus its 8px padding), so the button's own
+ * padding is 8px on the start side (S8), in the sidebar and in the drawer.
+ */
 .tessera-sidebar-new {
   justify-content: flex-start;
+  padding-inline-start: var(--spacing-2);
+}
+
+/* The last, untitled sidebar group sits 12px under Projects, like the titled groups (S10). */
+.tessera-sidebar-last {
+  margin-block-start: var(--spacing-3);
+}
+
+/*
+ * Sidebar rows with a menu (S9, RailParts.tsx RowActions): the trailing slot
+ * holds the row's `...` button and, for projects, the count. With a fine
+ * pointer on a wide screen the button is invisible (opacity 0, space kept)
+ * until the row is hovered, holds focus or has its menu open, and the count
+ * sits in the button's place, ending 8px short of the slot's edge like the
+ * Inbox and Drafts badges. Touch and phone widths have no hover: the count and
+ * the button show side by side.
+ */
+@media (hover: hover) and (min-width: 481px) {
+  .tessera-row-actions {
+    display: grid;
+    align-items: center;
+    justify-items: end;
+  }
+
+  .tessera-row-actions > * {
+    grid-area: 1 / 1;
+  }
+
+  .tessera-row-count {
+    margin-inline-end: var(--spacing-2);
+  }
+
+  .tessera-row-menu {
+    opacity: 0;
+  }
+
+  .astryx-side-nav-item:is(:hover, :focus-within) .tessera-row-menu,
+  .tessera-row-menu:has([aria-expanded="true"]) {
+    opacity: 1;
+  }
+
+  .astryx-side-nav-item:is(:hover, :focus-within) .tessera-row-count,
+  .tessera-row-actions:has([aria-expanded="true"]) .tessera-row-count {
+    opacity: 0;
+  }
 }
 
 /*
@@ -94,6 +144,89 @@
   row-gap: var(--spacing-1);
 }
 
+/*
+ * Header tab strips (S7): any Astryx TabList placed in a PanelBar's start group
+ * docks on the bar's bottom hairline, whichever screen it belongs to (project
+ * tabs, archives, inbox, analytics, settings, pages). The start group fills the
+ * row's height and the strip sits at its bottom edge, so the selected tab's
+ * indicator lands on the hairline. When the strip is the first thing in the
+ * group (a sub-header with no title before it), a tab's own 12px padding is
+ * pulled in, so the first tab's text sits on the panel's 16px inset like the
+ * titles above and below. A screen needs no class of its own for this.
+ */
+.tessera-panel-bar-start:has(> .astryx-tab-list) {
+  align-self: stretch;
+}
+
+.tessera-panel-bar .astryx-tab-list {
+  align-self: flex-end;
+  min-width: 0;
+}
+
+.tessera-panel-bar-start > .astryx-tab-list:first-child {
+  margin-inline-start: calc(-1 * var(--spacing-3));
+}
+
+/* A wrapping bar's block padding would lift the docked strip off the hairline. */
+.tessera-panel-bar--wraps:has(> .tessera-panel-bar-start > .astryx-tab-list) {
+  padding-block: 0;
+}
+
+/*
+ * PanelBar `tabsBelow`: the same two-row phone header the project and inbox
+ * bars use. Below 600px the title and the actions share a 44px first row and
+ * the tab strip takes a full-width row under them, docked on the hairline, so
+ * the strip's fade sits at the row's right edge and no tab hides under the
+ * actions. The start group dissolves (display: contents) so its children take
+ * grid areas next to the end group. The start group holds the title element
+ * first and the TabList last; wrap a title made of several parts (a token and
+ * a name) in one element. From 600px up it is the ordinary single row.
+ */
+@media (max-width: 599px) {
+  .tessera-panel-bar.tessera-panel-bar--tabs-below {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: calc(var(--size-element-md) + var(--spacing-3)) auto;
+    grid-template-areas:
+      "title end"
+      "tabs tabs";
+    column-gap: var(--spacing-3);
+    row-gap: 0;
+    min-height: 0;
+    padding-block: 0;
+    align-items: center;
+  }
+
+  .tessera-panel-bar--tabs-below > .tessera-panel-bar-start {
+    display: contents;
+  }
+
+  .tessera-panel-bar--tabs-below > .tessera-panel-bar-start > :not(.astryx-tab-list) {
+    grid-area: title;
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  .tessera-panel-bar--tabs-below > .tessera-panel-bar-end {
+    grid-area: end;
+    flex-shrink: 0;
+  }
+
+  /* The strip pulls its first tab onto the 16px inset (as above) and runs to the bar's right edge. */
+  .tessera-panel-bar--tabs-below > .tessera-panel-bar-start > .astryx-tab-list {
+    grid-area: tabs;
+    align-self: end;
+    width: calc(100% + var(--spacing-3));
+    min-width: 0;
+    margin-inline-start: calc(-1 * var(--spacing-3));
+  }
+
+  /* A touch target is 44px (the first row's height); the indicator still sits on the hairline. */
+  .tessera-panel-bar--tabs-below .astryx-tab {
+    min-height: calc(var(--size-element-md) + var(--spacing-3));
+  }
+}
+
 /* A short vertical hairline between groups in a row (the project name and its tabs). */
 .tessera-panel-bar-divider {
   align-self: center;
@@ -109,8 +242,8 @@
   align-self: stretch;
 }
 
+/* The tab strip's docking, first-tab inset and min-width are the generic header tab-strip rules below; this class only places the strip in the phone grid. */
 .tessera-project-tabs {
-  align-self: flex-end;
   min-width: 0;
 }
 
@@ -158,11 +291,13 @@
     grid-area: end;
   }
 
+  /* The strip pulls its first tab's 12px padding onto the 16px inset (S7), like the generic tabs-below strip, and runs to the bar's right edge. */
   .tessera-project-bar .tessera-project-tabs {
     grid-area: tabs;
     align-self: end;
-    width: 100%;
+    width: calc(100% + var(--spacing-3));
     min-width: 0;
+    margin-inline-start: calc(-1 * var(--spacing-3));
   }
 
   /* A touch target is 44px (the same height as the first row); the indicator still sits on the hairline. */
@@ -215,4 +350,229 @@
 
 .tessera-cmd-tabs {
   padding-inline: var(--spacing-2);
+}
+
+/*
+ * The palette sits 80px from the top of the window (32px on a phone) instead of
+ * centred, so the input stays where it is while the result list grows and
+ * shrinks (S4). The dialog is fixed with inset 0, so a start margin and an auto
+ * end margin pin it to the top; its height caps at 480px, or the window less
+ * both margins when that is shorter.
+ */
+.astryx-dialog:has(.astryx-command-palette-input) {
+  --tessera-cmd-top: calc(var(--spacing-12) + var(--spacing-8));
+  margin-block: var(--tessera-cmd-top) auto;
+  max-block-size: min(calc(var(--spacing-12) * 10), calc(100dvh - 2 * var(--tessera-cmd-top)));
+}
+
+@media (max-width: 599px) {
+  .astryx-dialog:has(.astryx-command-palette-input) {
+    --tessera-cmd-top: var(--spacing-8);
+  }
+
+  /* No keyboard on a phone: the footer keeps its one control, the "All projects" switch, on one row (S12). */
+  .tessera-cmd-hints {
+    display: none;
+  }
+}
+
+.astryx-command-palette-footer .astryx-switch-field {
+  margin-inline-start: auto;
+  white-space: nowrap;
+}
+
+/* The not-found description breaks into balanced lines, no orphan word (S15). */
+.tessera-not-found .astryx-empty-state-description {
+  text-wrap: balance;
+}
+
+/*
+ * Touch targets (S1, decision 14). Under (pointer: coarse) or at 480px and
+ * narrower every control keeps its drawn size and gets a 44px HIT area: an
+ * absolutely positioned `::before` centred on it, painting nothing, moving
+ * nothing. The Astryx controls (Button, Tab, SegmentedControl item, TextInput,
+ * the top bar heading) get theirs through the theme's adaptations
+ * (src/themes/catppuccin/catppuccinTheme.ts); the rules here cover what a theme
+ * key cannot reach. Nothing below applies to a fine pointer on a wide screen, so
+ * the 1440 density (sm 28px controls, 32px rows) is unchanged. A hit area is
+ * `inset: min(0px, (100% - 44px) / 2)` on each axis: negative (the box grows to
+ * 44px) when the control is smaller, zero when it is already 44px or wider, so a
+ * wide control only grows on its short axis. Neighbours that touch share the
+ * overlap and the later sibling in the DOM takes it; a control that sits flush
+ * against another uses a block-axis-only area (`tessera-hit--y`).
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  /*
+   * Switch and Checkbox keep their look. Each draws an invisible native input
+   * centred on the control; that input is the hit area, so it grows to 44px
+   * (Astryx raises it to 24px by itself) without moving anything.
+   */
+  .astryx-switch-field input[role="switch"],
+  .astryx-checkbox-input input[type="checkbox"] {
+    min-inline-size: var(--spacing-11);
+    min-block-size: var(--spacing-11);
+  }
+
+  /*
+   * A Selector's trigger is a button inside the field box (a bare <input>
+   * cannot carry a pseudo-element, and a tap on the box outside the button does
+   * nothing for a Selector). The hit area sits on the button, on the block axis
+   * when the field is wide and on both when a short value ("Blue", "Folder")
+   * leaves the button under 44px wide.
+   */
+  .astryx-selector [role="combobox"],
+  .astryx-multi-selector [role="combobox"],
+  button[role="combobox"],
+  .astryx-complex-selector > button {
+    position: relative;
+  }
+
+  .astryx-selector [role="combobox"]::before,
+  .astryx-multi-selector [role="combobox"]::before,
+  button[role="combobox"]::before,
+  .astryx-complex-selector > button::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+  /*
+   * A DateInput's calendar toggle is a 16px icon button at the start of the
+   * field. Its area reaches 20px to the start (the field's edge) and 8px to
+   * the end (the text starts 8px after the icon), so it never covers the input.
+   */
+  .astryx-date-input > button[aria-label="Open calendar"] {
+    position: relative;
+  }
+
+  .astryx-date-input > button[aria-label="Open calendar"]::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: calc(-1 * var(--spacing-5)) calc(-1 * var(--spacing-2));
+  }
+
+  /*
+   * A filter token's label and remove cross are plain buttons inside the token
+   * (20px and 16px). Each keeps its size; the cross's area reaches outward only
+   * (the cross is the later sibling and would otherwise take the label's end).
+   */
+  .astryx-token > button {
+    position: relative;
+  }
+
+  .astryx-token > button::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+  /* Only a token with a label AND a cross: the cross is the later button; a token with a label alone keeps both sides. */
+  .astryx-token > button:last-of-type:not(:only-of-type)::before {
+    inset-inline-start: 0;
+  }
+
+  /*
+   * Astryx clips a token and its label button (overflow hidden, to cut a long
+   * label), which also clips the hit area. `overflow: clip` with a 16px clip
+   * margin (a calc() is not valid there; the cross needs 14px) keeps the cut
+   * within 16px of the box and lets the 44px area through.
+   * !important, because Astryx's atomic rule outranks a class selector.
+   * Wrapped token lines get an 8px gap, so a line's area takes at most 2px of
+   * its neighbour's visible box.
+   */
+  .astryx-token,
+  .astryx-token > button {
+    overflow: clip !important;
+    overflow-clip-margin: var(--spacing-4) !important;
+  }
+
+  .astryx-tokenizer {
+    row-gap: var(--spacing-2) !important;
+  }
+
+  /*
+   * Menu rows are 44px (theme: dropdown-menu-item) and Astryx caps a menu at
+   * 300px, which holds six of them: the project menu's Move up and Move down,
+   * the reorder path for a touch user, sat below the fold. A phone menu may take
+   * 480px or 70% of the window, whichever is less; Astryx sets the cap on the
+   * menu and on the layer box around its popover, so both are lifted.
+   */
+  .astryx-dropdown-menu,
+  div:has(> .astryx-popover > .astryx-dropdown-menu) {
+    max-height: min(calc(var(--spacing-12) * 10), 70dvh);
+    max-block-size: min(calc(var(--spacing-12) * 10), 70dvh);
+  }
+
+  /*
+   * Escape hatches for a control the generic area would overlap with a
+   * neighbour. `tessera-hit--y` keeps the 44px block axis and the control's own
+   * width (a segment, a chip flush against the next); `tessera-hit--none` drops
+   * the extra area (the control is already 44px or sits inside a 44px row).
+   */
+  .tessera-hit--y::before {
+    inset-inline: 0;
+  }
+
+  .tessera-hit--none::before {
+    content: none;
+  }
+
+  /*
+   * A tab strip scrolls (overflow-x auto makes overflow-y hidden), which clips
+   * the tabs' 44px hit area to the strip. The strip pads 8px above and below
+   * and takes the same back with a negative margin, so the tabs (28px) have
+   * room for their area and the bar keeps its height. The S7 tabs-below rows
+   * (44px boxes) are unaffected: their area is already inside the box.
+   */
+  .astryx-tab-strip {
+    padding-block: var(--spacing-2);
+    margin-block: calc(-1 * var(--spacing-2));
+  }
+
+  /* A SegmentedControl's outermost segments reach 8px past the group's edge; the segments between tile exactly. */
+  .astryx-segmented-control-item:first-of-type::before {
+    inset-inline-start: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+  .astryx-segmented-control-item:last-of-type::before {
+    inset-inline-end: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+  /*
+   * Dense rows (list chips, table cells, the property rail) whose control is
+   * not an Astryx button. `tessera-hit` keeps 44px for the finger and pulls the
+   * same amount back with a negative block margin, so the row keeps its height;
+   * `tessera-hit-x` does the same on the inline axis for a square icon-only
+   * control. `--tessera-hit-base` is the control's resting size (sm 28px);
+   * `tessera-hit--xs` is 24px (chips) and `tessera-hit--line` 20px (a text
+   * link). The control must be a flex or inline-flex box (an inline element
+   * ignores block sizes).
+   */
+  .tessera-hit,
+  .tessera-hit-x {
+    --tessera-hit-base: var(--size-element-sm);
+  }
+
+  .tessera-hit--xs {
+    --tessera-hit-base: var(--spacing-6);
+  }
+
+  .tessera-hit--line {
+    --tessera-hit-base: var(--spacing-5);
+  }
+
+  .tessera-hit {
+    position: relative;
+    min-block-size: var(--spacing-11);
+    margin-block: calc((var(--tessera-hit-base) - var(--spacing-11)) / 2);
+  }
+
+  .tessera-hit-x {
+    position: relative;
+    min-inline-size: var(--spacing-11);
+    margin-inline: calc((var(--tessera-hit-base) - var(--spacing-11)) / 2);
+  }
 }

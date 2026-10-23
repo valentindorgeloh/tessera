@@ -19,6 +19,7 @@ import { AlertDialog } from "@/components/shell/dialogs";
 import { WorkspaceSettingsChrome } from "@/components/workspace-settings/WorkspaceSettingsChrome";
 import type { WebhookView } from "@/lib/tessera/types";
 import { PencilIcon, PlusIcon, TrashIcon, WebhookIcon } from "@/themes/catppuccin/icons";
+import { SettingsTitle } from "@/components/project-settings/SettingsRow";
 import { WebhookDialog } from "./WebhookDialog";
 import { eventsSummary } from "./webhook-format";
 
@@ -34,7 +35,7 @@ export function WebhooksScreen({ webhooks }: WebhooksScreenProps) {
       tab="webhooks"
       end={<Button variant="primary" size="sm" label="New webhook" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />}
     >
-      <VStack gap={4} padding={6}>
+      <VStack gap={4} paddingInline={4} className="tessera-settings-body">
         {webhooks.length === 0 ? (
           <EmptyState
             icon={<Icon icon={WebhookIcon} size="lg" color="secondary" />}
@@ -67,7 +68,7 @@ function WebhookRow({ webhook, onEdit, onDelete }: { webhook: WebhookView; onEdi
 
   return (
     <ListItem
-      label={webhook.name}
+      label={<SettingsTitle maxLines={1}>{webhook.name}</SettingsTitle>}
       description={
         <VStack gap={1}>
           <Text type="code" maxLines={1}>

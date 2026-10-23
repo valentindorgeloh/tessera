@@ -13,6 +13,23 @@
   padding-block: var(--spacing-2);
 }
 
+/*
+ * Under the rows of a list group: the ghost button sits on the key column (12px row inset plus the 24px checkbox
+ * slot, as the quick-add text does) so its label starts at the key text. The checkbox's 44px hit area on a phone
+ * pushes the key 8px right, so the button follows.
+ */
+.tessera-paging-footer[data-variant="list"] {
+  padding-inline-start: calc(var(--spacing-3) + var(--spacing-6));
+  padding-inline-end: var(--spacing-4);
+  padding-block: var(--spacing-2);
+}
+
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-paging-footer[data-variant="list"] {
+    padding-inline-start: calc(var(--spacing-3) + var(--spacing-6) + var(--spacing-2));
+  }
+}
+
 /* In a board column or lane cell the card's own padding already insets it. */
 .tessera-paging-footer[data-variant="card"] {
   padding-block: var(--spacing-1);

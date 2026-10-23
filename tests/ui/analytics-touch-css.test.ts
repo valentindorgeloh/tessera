@@ -26,8 +26,9 @@ function touchRule(source: string, selector: string): string {
 describe("analytics on a phone", () => {
   const analytics = css("analytics.css");
 
-  it("lifts the Download CSV button to a 44px target", () => {
-    expect(touchRule(analytics, ".tessera-analytics-csv")).toMatch(/min-block-size:\s*var\(--spacing-11\)/);
+  it("keeps the Download CSV button, the project picker and the breakdown selectors at their drawn size (their 44px hit area is the theme's and shell.css's)", () => {
+    expect(analytics).not.toMatch(/\.tessera-analytics-csv\s*\{[^}]*min-block-size/);
+    expect(analytics).not.toMatch(/\.tessera-analytics-(projects|axis)[^{]*\{[^}]*min-block-size/);
   });
 
   it("keeps the title from shrinking so it never truncates to 'Anal…'", () => {

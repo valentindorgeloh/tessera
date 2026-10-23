@@ -4,6 +4,35 @@
   min-width: 0;
 }
 
+/*
+ * The Stickies page grid (reference "Stickies grid"): a card is as tall as its
+ * own content, not as the tallest card of its row, and no card is taller than
+ * 540px: a long note scrolls inside its card. The grid keeps rows and columns
+ * (not CSS columns), because the pointer drag and the keyboard order follow the
+ * DOM order (decision 105).
+ */
+.tessera-stickies-board {
+  align-items: start;
+}
+
+.tessera-stickies-board .tessera-sticky {
+  max-block-size: calc(var(--spacing-12) * 11 + var(--spacing-3));
+}
+
+.tessera-sticky-content {
+  max-block-size: calc(var(--spacing-12) * 11 + var(--spacing-3) - var(--spacing-6) - var(--border-width) * 2);
+}
+
+.tessera-sticky-content > * {
+  flex-shrink: 0;
+}
+
+.tessera-sticky-content > .tessera-sticky-body {
+  flex: 0 1 auto;
+  min-block-size: 0;
+  overflow-y: auto;
+}
+
 .tessera-sticky {
   min-width: 0;
   scroll-margin-block-start: var(--spacing-6);
@@ -49,5 +78,36 @@
     box-sizing: content-box;
     padding: var(--spacing-2);
     margin: calc(-1 * var(--spacing-2));
+  }
+}
+
+/*
+ * Text on a tinted card: the secondary text colour and the field labels
+ * (Colour, the hidden name label) fall under 4.5:1 on the yellow and green
+ * tints in Frappe and on the pink, purple and blue ones in Latte. The primary
+ * text colour clears 4.5:1 on all ten tints in both schemes. The Home widget's
+ * preview cards share the class.
+ */
+.tessera-sticky .astryx-text,
+.tessera-sticky .astryx-field-label {
+  color: var(--color-text-primary);
+}
+
+/*
+ * Touch targets (decision 14): the name field and the colour select inside a
+ * card are 44px, the field and the control inside it, so the whole row is the
+ * target. The Astryx buttons (grip, Actions, New sticky) and the search field
+ * in the page header keep their size and get a 44px hit area from the theme.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-sticky-content .astryx-text-input,
+  .tessera-sticky-content .astryx-selector {
+    min-block-size: var(--spacing-11);
+    padding-block: 0;
+  }
+
+  .tessera-sticky-content .astryx-text-input input,
+  .tessera-sticky-content .astryx-selector button {
+    min-block-size: var(--spacing-11);
   }
 }

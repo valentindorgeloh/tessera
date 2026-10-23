@@ -198,7 +198,8 @@ function DraftForm({ draft, projects, onOpenChange }: Omit<DraftDialogProps, "is
         }
         footer={
           <LayoutFooter>
-            <HStack gap={2} hAlign="end">
+            {/* Wraps: on a phone the three labels ("Delete draft", "Save draft", "Create work item") do not fit one row and were cut to "Delete dr…". */}
+            <HStack gap={2} hAlign="end" wrap="wrap" className="tessera-drafts-footer">
               <Button variant="ghost" label="Delete draft" onClick={() => (draft ? setConfirmDelete(true) : onOpenChange(false))} />
               <Button variant="secondary" label="Save draft" isLoading={isPending} onClick={save} />
               <Button variant="primary" label="Create work item" isDisabled={!draft || !projectId || name.trim() === ""} isLoading={isPending} onClick={createItem} />

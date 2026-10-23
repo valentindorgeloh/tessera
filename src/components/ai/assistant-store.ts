@@ -120,6 +120,18 @@ function mapProposals(state: Conversation, update: (proposal: ProposalView) => P
   return changed ? { ...state, turns } : state;
 }
 
+/** A blank line between two text blocks of one turn, so "Looking up X." and the next block do not join. */
+function separateBlocks(content: string): string {
+  if (content === "" || /\n\n$/.test(content)) return content;
+  return content.endsWith("\n") ? `${content}\n` : `${content}\n\n`;
+}
+
+/** Marks the matching calls that are still running as complete (a finished turn leaves no spinner behind). */
+function finishCalls(calls: ToolCallView[], matches: (call: ToolCallView) => boolean, status: "complete" | "error" = "complete"): ToolCallView[] {
+  if (!calls.some((call) => call.status === "running" && matches(call))) return calls;
+  return calls.map((call) => (call.status === "running" && matches(call) ? { ...call, status } : call));
+}
+
 function applyEvent(state: Conversation, event: AssistantEvent): Conversation {
   return withLastAssistant(state, (turn) => {
     switch (event.type) {
@@ -130,7 +142,8 @@ function applyEvent(state: Conversation, event: AssistantEvent): Conversation {
         const calls = existing
           ? turn.calls.map((call) => (call.id === event.id ? { ...call, name: event.name, status: "running" as const } : call))
           : [...turn.calls, { id: event.id, name: event.name, status: "running" as const, summary: "" }];
-        return { ...turn, calls, streaming: true };
+        // The model's next text block follows its tool calls; a paragraph break keeps the blocks from running together.
+        return { ...turn, calls, content: separateBlocks(turn.content), streaming: true };
       }
       case "tool_result": {
         const existing = turn.calls.some((call) => call.id === event.id);
@@ -145,7 +158,8 @@ function applyEvent(state: Conversation, event: AssistantEvent): Conversation {
         const proposals = known
           ? turn.proposals.map((proposal) => (proposal.id === event.proposal.id ? event.proposal : proposal))
           : [...turn.proposals, event.proposal];
-        return { ...turn, proposals };
+        // A propose_ tool answers with a proposal event, never a tool_result: the call is done once its proposal exists.
+        return { ...turn, proposals, calls: finishCalls(turn.calls, (call) => call.name.startsWith("propose_")) };
       }
       case "notice":
         return turn.notices.includes(event.text) ? turn : { ...turn, notices: [...turn.notices, event.text] };
@@ -153,11 +167,12 @@ function applyEvent(state: Conversation, event: AssistantEvent): Conversation {
         return {
           ...turn,
           streaming: false,
+          calls: finishCalls(turn.calls, () => true, "error"),
           notices: turn.notices.includes(event.message) ? turn.notices : [...turn.notices, event.message],
         };
       case "done": {
         const notices = event.stop_reason === "aborted" && !turn.notices.includes(STOPPED) ? [...turn.notices, STOPPED] : turn.notices;
-        return { ...turn, streaming: false, canContinue: event.continue === true, notices };
+        return { ...turn, streaming: false, calls: finishCalls(turn.calls, () => true), canContinue: event.continue === true, notices };
       }
       default:
         return turn;

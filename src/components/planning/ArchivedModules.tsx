@@ -95,6 +95,7 @@ function ArchivedModuleRow({ projectId, module: item, onDelete }: RowProps) {
 
   return (
     <ListItem
+      className="tessera-row-hit"
       href={`/projects/${projectId}/modules/${item.id}`}
       label={item.name}
       description={

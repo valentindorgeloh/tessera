@@ -6,7 +6,7 @@
  * date, shifts the start by the same number of days in one update.
  * The shown period is `?cal=YYYY-MM-DD` (any day inside it).
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
@@ -29,7 +29,9 @@ import { useWeekStart } from "@/components/workspace-settings/workspace-settings
 import {
   calendarWeeks,
   isOutsideMonth,
+  isWeekend,
   itemsByDay,
+  opensQuickAddInPopover,
   periodLabel,
   shiftPeriod,
   weekdayLabels,
@@ -98,7 +100,7 @@ export function CalendarLayout({ result, display, onUpdate, onOpen, onQuickAdd, 
   const period = view === "month" ? "month" : "week";
 
   return (
-    <VStack gap={2} className="tessera-cal">
+    <VStack gap={2} className="tessera-cal" data-view={view}>
       {result.has_more ? (
         <Banner
           status="info"
@@ -108,6 +110,7 @@ export function CalendarLayout({ result, display, onUpdate, onOpen, onQuickAdd, 
       ) : null}
       <PanelBar
         size="filters"
+        className="tessera-cal-bar"
         canWrap
         start={
           <>
@@ -138,7 +141,7 @@ export function CalendarLayout({ result, display, onUpdate, onOpen, onQuickAdd, 
           ) : null
         }
       />
-      <Grid columns={columns} gap={1}>
+      <Grid columns={columns} gap={1} className="tessera-cal-weekdays">
         {labels.map((label) => (
           <Text key={label} type="supporting" className="tessera-cal-head">
             {label}
@@ -146,7 +149,7 @@ export function CalendarLayout({ result, display, onUpdate, onOpen, onQuickAdd, 
         ))}
       </Grid>
       {weeks.map((week) => (
-        <Grid key={week[0]} columns={columns} gap={1}>
+        <Grid key={week[0]} columns={columns} gap={1} className="tessera-cal-week">
           {week.map((day) => (
             <DayCell
               key={day}
@@ -208,22 +211,49 @@ function DayCell({
   onStartAdd: () => void;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const cellRef = useRef<HTMLElement | null>(null);
   const shown = items.slice(0, MAX_IN_CELL);
   const hidden = items.length - shown.length;
   return (
     <VStack
-      ref={registerContainer}
+      ref={(element) => {
+        cellRef.current = element;
+        registerContainer(element);
+      }}
       gap={1}
       className="tessera-cal-day"
       data-today={day === today ? "" : undefined}
+      data-weekend={isWeekend(day) ? "" : undefined}
       data-outside={isOutsideMonth(day, anchor) ? "" : undefined}
       data-drop={isDrop ? "" : undefined}
     >
-      <HStack hAlign="between" vAlign="center">
-        <Text type="supporting" weight={day === today ? "medium" : "normal"} hasTabularNumbers>
+      <HStack vAlign="center" className="tessera-cal-day-head">
+        {onQuickAdd ? (
+          // Wide cells open the inline input; a narrow one (phone, peek) opens it in a popover, which has the room (decision 14: a touch path to every add).
+          <Popover
+            isOpen={quickAddOpen}
+            onOpenChange={(next) => {
+              if (!next) setQuickAddOpen(false);
+              else if (opensQuickAddInPopover(cellRef.current?.getBoundingClientRect().width)) setQuickAddOpen(true);
+              else onStartAdd();
+            }}
+            label={`Add on ${day}`}
+            placement="below"
+            alignment="start"
+            padding={0}
+            content={
+              <VStack padding={3} className="tessera-cal-quickadd">
+                <QuickAdd defaultIsActive label={`Add on ${day}`} onSubmit={onQuickAdd} onCancel={() => setQuickAddOpen(false)} />
+              </VStack>
+            }
+          >
+            <IconButton className="tessera-cal-add tessera-hit tessera-hit-x" label={`Add on ${day}`} size="sm" variant="ghost" icon={<PlusIcon />} />
+          </Popover>
+        ) : null}
+        <Text type="supporting" weight={day === today ? "medium" : "normal"} hasTabularNumbers className="tessera-cal-num" data-today={day === today ? "" : undefined}>
           {dayNumber(day)}
         </Text>
-        {onQuickAdd ? <IconButton className="tessera-cal-add" label={`Add on ${day}`} size="sm" variant="ghost" icon={<PlusIcon />} onClick={onStartAdd} /> : null}
       </HStack>
       {shown.map((item) => (
         <CalendarItem
@@ -236,6 +266,7 @@ function DayCell({
           onUpdate={onUpdate}
         />
       ))}
+      {/* The label ("+4 more") is the accessible name; a 44px phone column has room for "+4" only, so the word drops out there (calendar.css). */}
       {hidden > 0 ? (
         <Popover
           isOpen={moreOpen}
@@ -250,7 +281,12 @@ function DayCell({
             </VStack>
           }
         >
-          <Button variant="ghost" size="sm" label={`+${hidden} more`} />
+          <Button className="tessera-cal-overflow" variant="ghost" size="sm" label={`+${hidden} more`}>
+            +{hidden}
+            <Text type="inherit" color="inherit" className="tessera-cal-overflow-word">
+              {" more"}
+            </Text>
+          </Button>
         </Popover>
       ) : null}
       {isAdding && onQuickAdd ? <QuickAdd defaultIsActive label={`Add on ${day}`} onSubmit={onQuickAdd} /> : null}
@@ -288,6 +324,7 @@ function CalendarItem({
         gap={1}
         vAlign="center"
         className="tessera-cal-open"
+        data-draggable={handlers ? "" : undefined}
         role="button"
         tabIndex={0}
         aria-label={`${item.key} ${item.name}`}

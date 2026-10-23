@@ -41,6 +41,8 @@ export type SuggestionRow = {
   /** Work item key, shown as a Token before the label. */
   token?: string;
   description?: string;
+  /** Block commands: a one-line hint shown as the row's tooltip, so the row stays one line tall. */
+  hint?: string;
   /** Block commands: what to run after the typed range is deleted. */
   run?: (editor: Editor) => void;
 };

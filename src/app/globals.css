@@ -1,3 +1,4 @@
+@import "../components/styles/base.css";
 @import "@astryxdesign/core/reset.css";
 @import "@astryxdesign/core/astryx.css";
 @import "../components/styles/shell.css";

@@ -1,4 +1,83 @@
-/* Collaboration (P7). Relations and reactions sit above this marker when they land. */
+/* Collaboration (P7): relations, reactions and comments. */
+
+/* relations (decision 55) */
+
+/* Rows reuse .tessera-detail-row (detail.css): state dot, key column, name, remove button. */
+.tessera-detail-relations {
+  min-width: 0;
+}
+
+/* reactions (decision 57) */
+
+.tessera-reactions {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+/*
+ * A chip is a fully round pill with a 1px border and 6px inline padding (the
+ * Astryx sm button is 28px high); a reaction of the user's own gets an accent
+ * border and a 10% accent fill. The pill is drawn by ::before, centred on the
+ * button, so under touch the button can grow to the 44px hit box (.tessera-hit,
+ * shell.css) while the visible pill stays 28px high, as on the desktop.
+ */
+.tessera-reaction {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--radius-full);
+  padding-inline: var(--spacing-1-5);
+}
+
+.tessera-reaction::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: 0;
+  inset-block-start: 50%;
+  block-size: var(--size-element-sm);
+  transform: translateY(-50%);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  pointer-events: none;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+/* The toggle's own pressed fill would show under the pill; the pill carries the state instead. */
+.tessera-reaction[aria-pressed="true"] {
+  background-color: transparent;
+}
+
+.tessera-reaction[aria-pressed="true"]::before {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+/* A chip is 38px wide; under touch it reaches the 44px target on both axes (decision 14). */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-reaction {
+    min-inline-size: var(--spacing-11);
+  }
+}
+
+.tessera-reaction-picker {
+  padding: var(--spacing-1);
+}
+
+/*
+ * Eight emoji buttons in one row run past the edge of a 375px screen (the last
+ * one was cut off). Under touch the picker is capped at four columns, so the
+ * eight wrap into two rows, and the gap is 8px so the 44px hit areas of
+ * neighbours (32px buttons, 40px pitch) overlap only inside the gap.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-reaction-picker {
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+    max-inline-size: calc(var(--size-element-md) * 4 + var(--spacing-2) * 5);
+  }
+}
 
 /* comments */
 
@@ -9,6 +88,11 @@
 .tessera-comment {
   min-width: 0;
   padding-block: var(--spacing-2);
+}
+
+/* The 24px avatar sits centred on the activity hairline, which runs through the 28px tile centres (14px in): 2px in, 2px back so the text stays. */
+.tessera-comment-avatar {
+  margin-inline: var(--spacing-0-5) calc(-1 * var(--spacing-0-5));
 }
 
 .tessera-comment-body {

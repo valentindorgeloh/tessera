@@ -4,14 +4,69 @@
   min-width: 0;
 }
 
+/*
+ * A quick link is a card row (reference "Quick link card", 230 x 56): a 32px icon
+ * tile, the title in primary text and a supporting line under it, and the "..."
+ * menu at the end. The menu is quiet until the card is hovered or holds focus,
+ * or while its menu is open; a touch screen has no hover, so it stays visible.
+ */
 .tessera-quick-link {
+  position: relative;
   min-width: 0;
-  max-width: 100%;
+  inline-size: calc(var(--spacing-12) * 5);
+  max-inline-size: 100%;
+  min-block-size: calc(var(--spacing-12) + var(--spacing-2));
   padding-block: var(--spacing-1);
-  padding-inline: var(--spacing-2);
+  padding-inline: var(--spacing-3);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-inner);
   background: var(--color-background-muted);
+}
+
+.tessera-quick-link-tile {
+  inline-size: var(--spacing-8);
+  block-size: var(--spacing-8);
+  flex: none;
+  border-radius: var(--radius-element);
+  background: var(--color-background-body);
+}
+
+.tessera-quick-link-text {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.tessera-quick-link-menu {
+  flex: none;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.tessera-quick-link:hover .tessera-quick-link-menu,
+.tessera-quick-link:focus-within .tessera-quick-link-menu,
+.tessera-quick-link-menu:has([aria-expanded="true"]) {
+  opacity: 1;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .tessera-quick-link-menu {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .tessera-quick-link {
+    inline-size: 100%;
+  }
+}
+
+/*
+ * Recents rows keep their own 8px inset, so a row's icon sat 8px right of the
+ * "Recent" heading. The list reaches out by that inset, which puts the icon on
+ * the heading's x (the hover and divider extend 8px either side).
+ */
+.tessera-recents > .astryx-list {
+  margin-inline: calc(-1 * var(--spacing-2));
 }
 
 .tessera-home-groups {
@@ -86,4 +141,44 @@
 
 .tessera-widget-row--after {
   box-shadow: inset 0 calc(var(--border-width) * -2) 0 var(--color-border-emphasized);
+}
+
+/*
+ * Touch targets (decision 14): a finger needs 44px under a coarse pointer or on
+ * a phone-width screen. The Astryx buttons, tabs and segments get it from the
+ * theme; the rules below cover the links and invisible row anchors Astryx does
+ * not size. A link inside a dense card takes the room back with an equal
+ * negative margin, so the card keeps its height (the hit-area expansion).
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  /*
+   * The row anchors are column flex boxes (title over subline): centring the
+   * 44px box on the block axis is justify-content. An align-items: center here
+   * centred the nowrap title on the inline axis and clipped it (touch rework).
+   */
+  .tessera-home-since li.astryx-item a,
+  .tessera-recents li.astryx-item a {
+    min-block-size: var(--spacing-11);
+    justify-content: center;
+  }
+
+  .tessera-home-open {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--spacing-11);
+  }
+
+  /* The link is the row's 44px: the row drops its own block padding, so the list stays 44 per row, not 61. */
+  .tessera-recents li.astryx-item {
+    padding-block: 0;
+  }
+
+  .tessera-quick-link-title {
+    display: inline-flex;
+    align-items: center;
+    /* Positioned, so its 44px box paints above the host line under it (a later, unpositioned sibling would take the overlap). */
+    position: relative;
+    min-block-size: var(--spacing-11);
+    margin-block: calc((var(--spacing-5) - var(--spacing-11)) / 2);
+  }
 }

@@ -238,7 +238,7 @@ function ModuleForm({ projectId, onOpenChange, module }: Omit<ModuleDialogProps,
                 placeholder="What this module delivers"
               />
             </FormLayout>
-            <MetadataList columns="single" label={{ position: "start", width: 104 }} className="tessera-modules-props">
+            <MetadataList columns="single" label={{ position: "start", width: 104 }} className="tessera-modules-props tessera-modules-props--dialog">
               <MetadataListItem label="Status">
                 <ModuleStatusControl value={values.status} onChange={(status) => patch({ status })} />
               </MetadataListItem>

@@ -86,7 +86,7 @@ function LabelForm({ title, onOpenChange, projectId, label, parentId }: Omit<Lab
       header={<DialogHeader title={title} onOpenChange={() => !isPending && onOpenChange(false)} hasDivider />}
       content={
         <LayoutContent>
-          <VStack gap={4}>
+          <VStack gap={4} className="tessera-settings-fields">
             <FormLayout>
               <TextInput
                 label="Name"

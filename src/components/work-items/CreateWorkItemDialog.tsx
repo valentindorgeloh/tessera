@@ -228,21 +228,22 @@ function CreateWorkItemForm({ projectId, mode = "work_item", onOpenChange, defau
     <Layout
       header={<DialogHeader title={mode === "intake" ? "New intake item" : "New work item"} subtitle={bundle.project.name} onOpenChange={requestClose} hasDivider />}
       content={
-        <LayoutContent>
+        <LayoutContent isScrollable>
           <VStack gap={4}>
             <FormLayout>
-              <TextInput label="Name" value={draft.name} onChange={(name) => patch({ name })} hasAutoFocus isRequired placeholder="What needs to be done?" onEnter={submit} />
+              <TextInput label="Name" className="tessera-wi-field" value={draft.name} onChange={(name) => patch({ name })} hasAutoFocus isRequired placeholder="What needs to be done?" onEnter={submit} />
               <TextArea label="Description" value={draft.description} onChange={(description) => patch({ description })} rows={4} isOptional placeholder="Add context, links or acceptance criteria" />
-              <HStack gap={4} wrap="wrap">
-                {mode === "work_item" ? <StateControl value={draft.state_id} onChange={(state_id) => patch({ state_id })} /> : null}
-                <PriorityControl value={draft.priority} onChange={(priority) => patch({ priority })} />
-                <AssigneeControl value={draft.assignee_ids} onChange={(assignee_ids) => patch({ assignee_ids })} />
-                <LabelControl value={draft.label_ids} onChange={(label_ids) => patch({ label_ids })} />
-                {mode === "work_item" && bundle.project.cycles_enabled ? <CycleControl value={draft.cycle_id} onChange={(cycle_id) => patch({ cycle_id })} /> : null}
-                {mode === "work_item" && bundle.project.modules_enabled ? <ModuleControl value={draft.module_ids} onChange={(module_ids) => patch({ module_ids })} /> : null}
-                {mode === "work_item" ? <EstimateControl value={draft.estimate_point_id} onChange={(estimate_point_id) => patch({ estimate_point_id })} /> : null}
-                <DateControl label="Start date" value={draft.start_date} max={draft.target_date} onChange={(start_date) => patch({ start_date })} />
-                <DateControl label="Target date" value={draft.target_date} min={draft.start_date} onChange={(target_date) => patch({ target_date })} />
+              {/* One wrapping row of the same compact chips the list rows use (class tessera-wi-props), dates included, so every control shares a height and a row centre. */}
+              <HStack gap={2} vAlign="center" wrap="wrap" className="tessera-wi-props tessera-wi-form-props">
+                {mode === "work_item" ? <StateControl compact value={draft.state_id} onChange={(state_id) => patch({ state_id })} /> : null}
+                <PriorityControl compact hasLabel value={draft.priority} onChange={(priority) => patch({ priority })} />
+                <AssigneeControl compact value={draft.assignee_ids} onChange={(assignee_ids) => patch({ assignee_ids })} />
+                <LabelControl compact value={draft.label_ids} onChange={(label_ids) => patch({ label_ids })} />
+                {mode === "work_item" && bundle.project.cycles_enabled ? <CycleControl compact value={draft.cycle_id} onChange={(cycle_id) => patch({ cycle_id })} /> : null}
+                {mode === "work_item" && bundle.project.modules_enabled ? <ModuleControl compact value={draft.module_ids} onChange={(module_ids) => patch({ module_ids })} /> : null}
+                {mode === "work_item" ? <EstimateControl size="sm" value={draft.estimate_point_id} onChange={(estimate_point_id) => patch({ estimate_point_id })} /> : null}
+                <DateControl compact hasEmptyLabel label="Start date" value={draft.start_date} max={draft.target_date} onChange={(start_date) => patch({ start_date })} />
+                <DateControl compact hasEmptyLabel label="Target date" value={draft.target_date} min={draft.start_date} onChange={(target_date) => patch({ target_date })} />
               </HStack>
             </FormLayout>
             {error ? <FieldStatus type="error" message={error} /> : null}

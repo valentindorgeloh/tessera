@@ -152,6 +152,7 @@ export function PageScreen({ page, labels, actors, spaces, space }: PageScreenPr
                   isIconOnly
                   isPressed={outlineOpen}
                   onPressedChange={setOutlineOpen}
+                  className="tessera-page-outline-toggle"
                 />
                 <FavoriteButton entityType="page" entityId={page.id} />
                 <LockControl

@@ -389,6 +389,26 @@ export function liveHighlight(index: number, rows: readonly { disabled?: boolean
   return rows[index]?.disabled ? -1 : index;
 }
 
+/**
+ * The index of the first enabled row of `rows`, or -1 when there is none: the
+ * row that is highlighted once a query's results land, so the row Enter opens
+ * carries the highlight overlay and the input's aria-activedescendant.
+ */
+export function firstEnabledRow(rows: readonly { disabled?: boolean }[]): number {
+  return rows.findIndex((row) => !row.disabled);
+}
+
+/**
+ * The row to highlight once the results of `query` have landed, or -1 for
+ * none. Only a typed query gets one: the empty-query list opens without a
+ * highlight, as Astryx does, so ArrowDown goes to row 0. Never while a search
+ * is in flight (the list on screen still belongs to the previous query).
+ */
+export function autoHighlightRow(query: string, isBusy: boolean, rows: readonly { disabled?: boolean }[]): number {
+  if (isBusy || query.trim() === "") return -1;
+  return firstEnabledRow(rows);
+}
+
 /** The request URL for a query, with the project scope when one applies. */
 export function searchUrl(query: string, scope: string | null, limit: number = SEARCH_LIMIT): string {
   const params = new URLSearchParams({ q: query, limit: String(limit) });

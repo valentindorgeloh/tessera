@@ -38,6 +38,15 @@ vi.mock("@/app/actions/detail", () => ({
   updateLinkAction: action(),
   removeLinkAction: action(),
 }));
+vi.mock("@/app/actions/relations-comments", () => ({
+  addRelationAction: action(),
+  removeRelationAction: action(),
+  addReactionAction: action(),
+  removeReactionAction: action(),
+  createCommentAction: action(),
+  updateCommentAction: action(),
+  deleteCommentAction: action(),
+}));
 vi.mock("@/app/actions/shell", () => ({ refreshAction: vi.fn(async () => undefined) }));
 
 type SaveResult = import("@/components/editor").UseDescriptionSaveResult;
@@ -225,7 +234,11 @@ const comment = {
   replies: [],
 } as unknown as import("@/components/detail/CommentItem").CommentView;
 const backlinks = [{ id: PAGE, name: "Launch notes", project_id: PROJECT, archived_at: null }];
-const data = { item, parent: { id: PARENT, key: "WEB-0", name: "Launch" }, children: [child], activity, comments: [comment], backlinks, currentActorId: USER, cursor: 42 };
+const relations = [
+  { id: "88888888-8888-7888-8888-888888888801", relation_type: "blocked_by" as const, item: { id: CHILD, key: "WEB-7", name: "Order the domain", project_id: PROJECT, archived: false, state: { name: "In progress", state_group: "started" as const } } },
+];
+const reactions = [{ reaction: "👍", count: 1, actor_ids: [USER] }];
+const data = { item, parent: { id: PARENT, key: "WEB-0", name: "Launch" }, children: [child], activity, comments: [comment], backlinks, relations, reactions, currentActorId: USER, cursor: 42 };
 
 /** Reads the stores the detail registers into, so the test can assert on them without hooks. */
 function Probe() {
@@ -307,6 +320,12 @@ describe("WorkItemDetail", () => {
     // The loader's comments reach the timeline (collaboration.spec) and the embedding pages list under "Mentioned in" (decision 44).
     expect(text).toContain("A comment from the loader");
     expect(text).toContain("Mentioned in (1)");
+    // Relations (decision 55) after the sub-items and reactions (decision 57) under the description, on every host.
+    expect(el.querySelector('ul[aria-label="Blocked by"]')?.textContent).toContain("Order the domain");
+    expect(text).toContain("Relations (1)");
+    expect(Array.from(el.querySelectorAll("button")).some((button) => button.textContent?.trim() === "Add relation")).toBe(true);
+    expect(el.querySelector('button[aria-label="thumbs up reaction, 1"]')?.getAttribute("aria-pressed")).toBe("true");
+    expect(el.querySelector('[role="group"][aria-label="Reactions to the description"] button[aria-label="Add reaction"]')).not.toBeNull();
     expect(el.querySelector(`a[href="/projects/${PROJECT}/pages/${PAGE}"]`)?.textContent).toBe("Launch notes");
     expect(text).toContain("docs.example.com");
     expect(text).toContain("changed the state from Backlog to In progress");
@@ -450,7 +469,10 @@ describe("WorkItemDetail", () => {
     const text = el.textContent ?? "";
     expect(text).toContain("WEB-2");
     expect(text).toContain("docs.example.com");
-    for (const label of ["Add sub-item", "Add link", "Options for WEB-2", "Edit title"]) {
+    // Relations and reactions stay readable on an archived item, without a way to change them.
+    expect(el.querySelector('ul[aria-label="Blocked by"]')?.textContent).toContain("Order the domain");
+    expect(el.querySelector('button[aria-label="thumbs up reaction, 1"]')?.hasAttribute("disabled")).toBe(true);
+    for (const label of ["Add sub-item", "Add link", "Add relation", "Add reaction", "Remove relation to WEB-7", "Options for WEB-2", "Edit title"]) {
       expect(el.querySelector(`button[aria-label="${label}"]`), label).toBeNull();
       expect(Array.from(el.querySelectorAll("button")).some((button) => button.textContent?.trim() === label), label).toBe(false);
     }

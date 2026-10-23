@@ -224,19 +224,17 @@ export function AutomationsSettings() {
                 <Text color="secondary">Never</Text>
               )}
             </HStack>
-            <HStack gap={2} vAlign="center">
+            {/* The three status chips are one cluster: same size and fill, 8px apart. */}
+            <HStack gap={2} vAlign="center" wrap="wrap">
               <Text color="secondary">Due now:</Text>
-              <Token
-                label={dueTotal > 0 ? `${dueTotal} items due` : "0 items due"}
-                color={dueTotal > 0 ? "yellow" : "gray"}
-              />
+              <Token label={dueTotal > 0 ? `${dueTotal} items due` : "0 items due"} size="sm" />
+              {projectStatus ? (
+                <>
+                  <Token label={`${projectStatus.due_close} to close`} size="sm" />
+                  <Token label={`${projectStatus.due_archive} to archive`} size="sm" />
+                </>
+              ) : null}
             </HStack>
-            {projectStatus ? (
-              <HStack gap={2} vAlign="center">
-                <Token label={`${projectStatus.due_close} to close`} size="sm" />
-                <Token label={`${projectStatus.due_archive} to archive`} size="sm" />
-              </HStack>
-            ) : null}
           </HStack>
           <HStack gap={2}>
             <Button

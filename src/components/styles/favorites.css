@@ -1,9 +1,15 @@
 /*
  * Favourites and project rows in the sidebar (U2). The drag overlay reuses
  * .tessera-drag-overlay from board.css. Tokens only.
+ *
+ * The rows carry no `touch-action: none` (field guide, "Drag and touch": only a
+ * grip may), so a finger that starts on a row scrolls the sidebar. The pointer
+ * drag is for a mouse or pen; a touch user reorders with the row menu (Move up,
+ * Move down), the keyboard path of decision 14.
  */
 
 .tessera-favorites-row,
 .tessera-project-row {
-  touch-action: none;
+  /* Scroll stays with the browser; see the note above. */
+  touch-action: auto;
 }

@@ -76,7 +76,7 @@ export function ProfileSummary({ summary }: ProfileSummaryProps) {
         {summary.projects.length === 0 ? (
           <Text color="secondary">No open assigned work.</Text>
         ) : (
-          <List hasDividers>
+          <List hasDividers className="tessera-profile-list">
             {summary.projects.map((project) => (
               <ListItem
                 key={project.project_id}

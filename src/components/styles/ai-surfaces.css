@@ -1,6 +1,11 @@
 /* AI surfaces outside the panel (P5, lane U3): Ask items, view from prompt, digest card. */
 
 .tessera-ai-digest {
+  min-width: 0;
+}
+
+/* A digest above a list (inbox, cycle, module) sits inset from the list's edges; in a widget column (Home, Analytics) it fills the column. */
+.tessera-ai-digest--inset {
   margin-inline: var(--spacing-4);
   margin-block: var(--spacing-4) var(--spacing-2);
 }

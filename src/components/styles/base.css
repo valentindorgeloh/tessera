@@ -1,0 +1,28 @@
+/*
+ * Product base layer (S5). First import of src/app/globals.css, so the layer
+ * order below is the first `@layer` statement the browser sees: the fallbacks
+ * sit under Astryx's own layers (a bundler hoists @imports above any statement
+ * written in globals.css itself, which put this layer on top of the theme's).
+ * An Astryx component keeps its own focus ring (the destructive button's red
+ * one, an inset row) and a field keeps its ring on the wrapper; only elements
+ * Astryx does not style fall back to the product ring.
+ */
+@layer tessera-fallback, reset, astryx-base, astryx-theme;
+
+/*
+ * Focus and accent fallbacks: focusables Astryx does not render (editor links,
+ * entity chips, native task checkboxes, a Timestamp's <time>, the gantt bars)
+ * show the product's 2px accent ring at the Astryx offset instead of the
+ * browser's 1px auto ring, and native checkboxes and radios take the theme
+ * accent (mauve in Frappe and Latte). Zero specificity (:where).
+ */
+@layer tessera-fallback {
+  :root {
+    accent-color: var(--color-accent);
+  }
+
+  :where(a[href], button, input, select, textarea, summary, time[tabindex], [tabindex]:not([tabindex="-1"]), [role="button"], [role="link"], [role="checkbox"]):focus-visible {
+    outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color);
+    outline-offset: var(--focus-outline-offset);
+  }
+}

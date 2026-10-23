@@ -13,6 +13,7 @@ import type { Editor, Range } from "@tiptap/core";
 import type { EditorState } from "@tiptap/pm/state";
 import { exitSuggestion, type SuggestionOptions, type SuggestionProps } from "@tiptap/suggestion";
 import type { MentionNodeAttrs } from "@tiptap/extension-mention";
+import { Icon, type IconProps } from "@astryxdesign/core/Icon";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
@@ -28,9 +29,35 @@ import {
   type SuggestionRow,
   type SuggestionTrigger,
 } from "./extensions";
+import {
+  CheckIcon,
+  CodeBlockIcon,
+  DividerIcon,
+  ListBulletsIcon,
+  ListNumbersIcon,
+  QuoteIcon,
+  TableIcon,
+  TextH1Icon,
+  TextH2Icon,
+  TextH3Icon,
+} from "@/themes/catppuccin/icons";
 import { entityHref } from "./links";
 
 const MAX_ROWS = 8;
+
+/** One 16px glyph per `/` block command, in a 20px box (editor.css `tessera-editor-option-icon`). */
+export const BLOCK_ICONS: Readonly<Record<string, IconProps["icon"]>> = {
+  "heading-1": TextH1Icon,
+  "heading-2": TextH2Icon,
+  "heading-3": TextH3Icon,
+  "bullet-list": ListBulletsIcon,
+  "ordered-list": ListNumbersIcon,
+  "task-list": CheckIcon,
+  table: TableIcon,
+  "code-block": CodeBlockIcon,
+  quote: QuoteIcon,
+  divider: DividerIcon,
+};
 
 type PopoverHandle = { onKeyDown: (event: KeyboardEvent) => boolean };
 
@@ -138,7 +165,16 @@ function SuggestionPopover({ items, loading, emptyText, listLabel, editorDom, on
               onMouseDown={(event) => event.preventDefault()}
               onMouseEnter={() => setIndex(i)}
               onClick={() => onSelect(row)}
+              // HStack takes no `title`; the hint is the row's native tooltip.
+              ref={(el: HTMLElement | null) => {
+                if (el !== null && row.hint !== undefined) el.title = row.hint;
+              }}
             >
+              {row.run !== undefined && BLOCK_ICONS[row.id] !== undefined ? (
+                <HStack hAlign="center" vAlign="center" className="tessera-editor-option-icon">
+                  <Icon icon={BLOCK_ICONS[row.id]} size="sm" color="secondary" />
+                </HStack>
+              ) : null}
               {row.token ? <Token label={row.token} size="sm" /> : null}
               <VStack gap={0} className="tessera-editor-option-text">
                 <Text type="body" maxLines={1} hasTruncateTooltip={false}>
@@ -259,7 +295,8 @@ const BLOCKS: readonly SuggestionRow[] = [
   {
     id: "table",
     label: "Table",
-    description: "3 by 3 with a header row",
+    // A hint (the row's tooltip), not a description line: every block row keeps one height.
+    hint: "3 by 3 with a header row",
     run: (editor) => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
   },
   { id: "code-block", label: "Code block", run: (editor) => editor.chain().focus().toggleCodeBlock().run() },

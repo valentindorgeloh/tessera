@@ -10,7 +10,7 @@ import { proportional } from "@astryxdesign/core/Table";
 export const NAME_COLUMN = proportional(2, { minWidth: 128 });
 /** A project, status or date cell. */
 export const TEXT_COLUMN = proportional(1, { minWidth: 96 });
-/** A count under a header such as "Completed". */
-export const COUNT_COLUMN = proportional(1, { minWidth: 88 });
+/** A count under a header such as "Completed" (98px with its padding at the table's text size). */
+export const COUNT_COLUMN = proportional(1, { minWidth: 100 });
 /** The completion bar and its "8 of 40" label. */
 export const BAR_COLUMN = proportional(1, { minWidth: 136 });

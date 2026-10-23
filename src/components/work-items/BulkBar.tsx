@@ -76,56 +76,62 @@ export function BulkBar({ items, selected, onClear, variant = "active", loaded, 
   return (
     <>
       <HStack gap={2} vAlign="center" wrap="wrap" className="tessera-bulk-bar" role="region" aria-label="Bulk actions">
-        <Text weight="medium">{count} selected</Text>
-        {loaded !== undefined && total !== undefined && hasUnloaded(loaded, total) ? (
-          <Text type="supporting" color="secondary">
-            Loaded rows only ({loadedOfTotal(loaded, total)})
-          </Text>
-        ) : null}
-        <Button variant="ghost" size="sm" label="Clear" onClick={onClear} />
-        {variant === "archived" ? (
-          <Button
-            variant="secondary"
-            size="sm"
-            label="Restore"
-            icon={<RestoreIcon />}
-            isLoading={isPending}
-            onClick={() => {
-              startTransition(async () => {
-                finish(await bulkUnarchiveWorkItemsAction({ ids }), `Restored ${count} work items`);
-              });
-            }}
-          />
-        ) : (
-          <>
-            <StateControl value={chosen[0]?.state_id ?? ""} onChange={(state_id) => patch({ state_id })} compact />
-            <PriorityControl value={chosen[0]?.priority ?? "none"} onChange={(priority) => patch({ priority })} compact />
-            {bundle.project.cycles_enabled ? <CycleControl value={chosen[0]?.cycle_id ?? null} onChange={(cycle_id) => patch({ cycle_id })} compact /> : null}
-            <DateControl label="Start date" compact value={chosen[0]?.start_date ?? null} onChange={(start_date) => patch({ start_date })} />
-            <DateControl label="Target date" compact value={chosen[0]?.target_date ?? null} onChange={(target_date) => patch({ target_date })} />
-            <EstimateControl value={chosen[0]?.estimate_point_id ?? null} onChange={(estimate_point_id) => patch({ estimate_point_id })} size="sm" />
-            <MembershipMenu label="Labels" rows={bundle.labels} checked={(id) => everyHas("label_ids", id)} onToggle={(id, on) => membership(id, on, "add_label_ids", "remove_label_ids")} />
-            <MembershipMenu label="Assignees" rows={bundle.actors.filter((actor) => actor.kind !== "system")} checked={(id) => everyHas("assignee_ids", id)} onToggle={(id, on) => membership(id, on, "add_assignee_ids", "remove_assignee_ids")} />
-            {bundle.project.modules_enabled ? (
-              <MembershipMenu label="Modules" rows={bundle.modules} checked={(id) => everyHas("module_ids", id)} onToggle={(id, on) => membership(id, on, "add_module_ids", "remove_module_ids")} />
-            ) : null}
-            <Button variant="secondary" size="sm" label="Copy to project…" icon={<CopyIcon />} onClick={() => setTransfer("copy")} />
-            <Button variant="secondary" size="sm" label="Move to project…" icon={<MoveToProjectIcon />} onClick={() => setTransfer("move")} />
+        {/* The count, its note and Clear: part of the bar's own row on wide screens (display: contents), the first row of a phone's two (bulk.css). */}
+        <HStack gap={2} vAlign="center" className="tessera-bulk-summary">
+          <Text weight="medium">{count} selected</Text>
+          {loaded !== undefined && total !== undefined && hasUnloaded(loaded, total) ? (
+            <Text type="supporting" color="secondary">
+              Loaded rows only ({loadedOfTotal(loaded, total)})
+            </Text>
+          ) : null}
+          <Button variant="ghost" size="sm" label="Clear" onClick={onClear} />
+        </HStack>
+        {/* Wide: the actions flow in the bar (display: contents). A phone: one scrolling row under the count (bulk.css). */}
+        <HStack gap={2} vAlign="center" className="tessera-bulk-actions">
+          {variant === "archived" ? (
             <Button
               variant="secondary"
               size="sm"
-              label="Archive"
-              icon={<ArchiveIcon />}
+              label="Restore"
+              icon={<RestoreIcon />}
               isLoading={isPending}
               onClick={() => {
                 startTransition(async () => {
-                  finish(await bulkArchiveWorkItemsAction({ ids }), `Archived ${count} work items`);
+                  finish(await bulkUnarchiveWorkItemsAction({ ids }), `Restored ${count} work items`);
                 });
               }}
             />
-          </>
-        )}
-        <Button variant="ghost" size="sm" label="Delete" icon={<TrashIcon />} onClick={() => setConfirmDelete(true)} />
+          ) : (
+            <>
+              <StateControl value={chosen[0]?.state_id ?? ""} onChange={(state_id) => patch({ state_id })} compact />
+              <PriorityControl value={chosen[0]?.priority ?? "none"} onChange={(priority) => patch({ priority })} compact />
+              {bundle.project.cycles_enabled ? <CycleControl value={chosen[0]?.cycle_id ?? null} onChange={(cycle_id) => patch({ cycle_id })} compact /> : null}
+              <DateControl label="Start date" compact value={chosen[0]?.start_date ?? null} onChange={(start_date) => patch({ start_date })} />
+              <DateControl label="Target date" compact value={chosen[0]?.target_date ?? null} onChange={(target_date) => patch({ target_date })} />
+              <EstimateControl value={chosen[0]?.estimate_point_id ?? null} onChange={(estimate_point_id) => patch({ estimate_point_id })} size="sm" />
+              <MembershipMenu label="Labels" rows={bundle.labels} checked={(id) => everyHas("label_ids", id)} onToggle={(id, on) => membership(id, on, "add_label_ids", "remove_label_ids")} />
+              <MembershipMenu label="Assignees" rows={bundle.actors.filter((actor) => actor.kind !== "system")} checked={(id) => everyHas("assignee_ids", id)} onToggle={(id, on) => membership(id, on, "add_assignee_ids", "remove_assignee_ids")} />
+              {bundle.project.modules_enabled ? (
+                <MembershipMenu label="Modules" rows={bundle.modules} checked={(id) => everyHas("module_ids", id)} onToggle={(id, on) => membership(id, on, "add_module_ids", "remove_module_ids")} />
+              ) : null}
+              <Button variant="secondary" size="sm" label="Copy to project…" icon={<CopyIcon />} onClick={() => setTransfer("copy")} />
+              <Button variant="secondary" size="sm" label="Move to project…" icon={<MoveToProjectIcon />} onClick={() => setTransfer("move")} />
+              <Button
+                variant="secondary"
+                size="sm"
+                label="Archive"
+                icon={<ArchiveIcon />}
+                isLoading={isPending}
+                onClick={() => {
+                  startTransition(async () => {
+                    finish(await bulkArchiveWorkItemsAction({ ids }), `Archived ${count} work items`);
+                  });
+                }}
+              />
+            </>
+          )}
+          <Button variant="ghost" size="sm" label="Delete" icon={<TrashIcon />} onClick={() => setConfirmDelete(true)} />
+        </HStack>
       </HStack>
       {transfer !== null ? (
         <BulkTransferDialog

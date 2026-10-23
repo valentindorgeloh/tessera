@@ -30,6 +30,16 @@ function renderColor(option: SelectorOptionData) {
   return <Token label={PALETTE_COLOR_LABELS[color]} color={color} size="sm" />;
 }
 
+/**
+ * The trigger's value: the same Token, aligned to the top of its line
+ * (`tessera-palette-value`, project-settings.css). On the baseline the line was
+ * 21px and the field 33px tall beside a 32px neighbour (the logo icon selector in General).
+ */
+function renderColorValue(option: SelectorOptionData) {
+  const color = isPaletteColor(option.value) ? option.value : "gray";
+  return <Token label={PALETTE_COLOR_LABELS[color]} color={color} size="sm" className="tessera-palette-value" />;
+}
+
 export function PaletteColorSelector({ label, value, onChange, isDisabled = false, size = "md" }: PaletteColorSelectorProps) {
   return (
     <Selector
@@ -40,7 +50,7 @@ export function PaletteColorSelector({ label, value, onChange, isDisabled = fals
       isDisabled={isDisabled}
       onChange={(next) => isPaletteColor(next) && onChange(next)}
       renderOption={renderColor}
-      renderValue={renderColor}
+      renderValue={renderColorValue}
     />
   );
 }

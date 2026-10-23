@@ -2,7 +2,7 @@
 
 Read this before reworking an area. It says what exists, where it lives and what guards it; the contracts in docs/contracts/ hold the full detail.
 
-Snapshot: working tree after the fix-all round, 2026-10-21 (HEAD e04b840 plus uncommitted lane work). It covers P1–P11, the rework and the assistant. P12 is not in it; refresh the affected files when it lands.
+Snapshot: working tree after the visual alignment round, 2026-10-22 (HEAD 5f0cc7c plus uncommitted lane work). It covers P1–P11, the rework, the assistant and the visual alignment changes (touch hit areas, relations and reactions UI, tab strips, layout values); shell-detail, work-items, planning, views-settings, pages-collaboration, workspace and operations are refreshed for it, the other files still describe the 2026-10-21 tree. P12 is not in it; refresh the affected files when it lands.
 
 | Area | File | Covers |
 |---|---|---|

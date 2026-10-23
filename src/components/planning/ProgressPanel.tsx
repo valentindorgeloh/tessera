@@ -59,7 +59,7 @@ export function CompletedBar({ counts }: { counts: ProgressCounts }) {
 /** One row per state group with its count. */
 export function StateGroupRows({ counts }: { counts: ProgressCounts }) {
   return (
-    <List density="compact">
+    <List density="compact" className="tessera-planning-panel-list">
       {GROUPS.map((group) => (
         <ListItem
           key={group}

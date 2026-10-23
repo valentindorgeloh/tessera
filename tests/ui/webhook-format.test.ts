@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   customWebhookEvents,
+  eventSegments,
   eventsSummary,
   parseCustomEvents,
   webhookEventError,
@@ -42,5 +43,14 @@ describe("webhook validation", () => {
     expect(parseCustomEvents("not-a-pattern").error).toMatch(/not a valid event pattern/);
     expect(webhookEventError("work_item.updated")).toBeNull();
     expect(webhookEventError("Nope")).toMatch(/Use \*/);
+  });
+});
+
+describe("eventSegments", () => {
+  it("splits after each dot so a narrow cell breaks at a dot, never inside a word", () => {
+    expect(eventSegments("work_item.updated")).toEqual(["work_item.", "updated"]);
+    expect(eventSegments("a.b.c")).toEqual(["a.", "b.", "c"]);
+    expect(eventSegments("*")).toEqual(["*"]);
+    expect(eventSegments("work_item.updated").join("")).toBe("work_item.updated");
   });
 });

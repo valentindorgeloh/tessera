@@ -1,6 +1,6 @@
 # As-built map: workspace surfaces (P9)
 
-State described: the working tree after the fix-all round, 2026-10-21 (HEAD `e04b840` plus uncommitted lane work: stickies, quick link and widget drag, analytics table CSV, week-start store). Line counts are tree counts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Plan: docs/drafts/p9-plan.md.
+State described: the working tree after the fix-all round (2026-10-21) and the visual alignment round (2026-10-22, on HEAD 5f0cc7c: quick link cards, sticky cap, two-row analytics and profile headers, workspace settings tables and touch targets). Line counts are tree counts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Plan: docs/drafts/p9-plan.md.
 
 ## 1. Purpose and boundaries
 
@@ -19,12 +19,12 @@ Lives elsewhere (this area only calls it):
 
 | File | Responsibility | Key exports |
 |---|---|---|
-| `workspace/settings.ts` (136) | The `workspace_settings` singleton: name, home widgets, AI overrides, week start, Home seen cursor. `ensureWorkspaceSettings` inserts with `onConflictDoNothing` so concurrent first opens are safe. | `getWorkspaceSettings`, `updateWorkspaceSettings`, `ensureWorkspaceSettings`, `normalizeHomeWidgets` |
-| `workspace/home.ts` (46), `since.ts` (173), `home-seen.ts` (30) | `getHomeSummary` is the single Home read (widgets, since-last-visit, quick links, your-work counts, six stickies, stored digest). `sinceLastVisit` lists non-user activity after the cursor, collapsed per actor and target (a null cursor means 7 days). `setHomeSeen` moves the cursor forward only and writes no activity. | `getHomeSummary`, `sinceLastVisit`, `setHomeSeen` |
-| `workspace/favorites.ts` (472) | Favourites with one-level folders; one live favourite per entity; resolved at read time (deleted or archived entities drop out). | `listFavorites`, `addFavorite`, `removeFavorite`, `moveFavorite`, `createFavoriteFolder`, `deleteFavoriteFolder` |
-| `workspace/stickies.ts` (197), `quick-links.ts` (129) | Stickies (new first, `LIKE` search) and quick links (`http(s)` URL or an app path starting `/`). | `createSticky`, `moveSticky`, `listStickies`, `addQuickLink`, `moveQuickLink` |
-| `workspace/profile.ts` (110) | Your work and agent profile summaries from `getCounts` profile scopes; agent list. | `getProfileSummary`, `listAgentProfiles` |
-| `analytics/index.ts` (78) and `overview.ts`, `breakdown.ts`, `planning.ts`, `trend.ts`, `population.ts`, `dimensions.ts`, `dates.ts` | `getAnalytics` per tab. Distributions use the `getCounts` population; trends include archived items of live projects; one item counts once per value of a multi-valued dimension plus a `none` bucket; `points` needs an active points estimate in every project in scope. | `getAnalytics`, `analyticsForDigest` |
+| `workspace/settings.ts` (135) | The `workspace_settings` singleton: name, home widgets, AI overrides, week start, Home seen cursor. `ensureWorkspaceSettings` inserts with `onConflictDoNothing` so concurrent first opens are safe. | `getWorkspaceSettings`, `updateWorkspaceSettings`, `ensureWorkspaceSettings`, `normalizeHomeWidgets` |
+| `workspace/home.ts` (45), `since.ts` (172), `home-seen.ts` (29) | `getHomeSummary` is the single Home read (widgets, since-last-visit, quick links, your-work counts, six stickies, stored digest). `sinceLastVisit` lists non-user activity after the cursor, collapsed per actor and target (a null cursor means 7 days). `setHomeSeen` moves the cursor forward only and writes no activity. | `getHomeSummary`, `sinceLastVisit`, `setHomeSeen` |
+| `workspace/favorites.ts` (471) | Favourites with one-level folders; one live favourite per entity; resolved at read time (deleted or archived entities drop out). | `listFavorites`, `addFavorite`, `removeFavorite`, `moveFavorite`, `createFavoriteFolder`, `deleteFavoriteFolder` |
+| `workspace/stickies.ts` (196), `quick-links.ts` (129) | Stickies (new first, `LIKE` search) and quick links (`http(s)` URL or an app path starting `/`). | `createSticky`, `moveSticky`, `listStickies`, `addQuickLink`, `moveQuickLink` |
+| `workspace/profile.ts` (109) | Your work and agent profile summaries from `getCounts` profile scopes; agent list. | `getProfileSummary`, `listAgentProfiles` |
+| `analytics/index.ts` (77) and `overview.ts`, `breakdown.ts`, `planning.ts`, `trend.ts`, `population.ts`, `dimensions.ts`, `dates.ts` | `getAnalytics` per tab. Distributions use the `getCounts` population; trends include archived items of live projects; one item counts once per value of a multi-valued dimension plus a `none` bucket; `points` needs an active points estimate in every project in scope. | `getAnalytics`, `analyticsForDigest` |
 | `static-views.ts`, `counts.ts` | Static workspace view scopes and the counts every surface shares (views-settings.md). | |
 
 Registry tools (`tools/registry/workspace.ts`, `analytics.ts`): `get_home_summary`, `get_profile_summary`, `get/update_workspace_settings`, favourite tools (8), sticky tools (5), quick link tools (5), `get_analytics`. Wrappers: `actions/{home,favorites,stickies,quick-links,workspace-settings}.ts`. Route: `api/home/seen` (beacon).
@@ -44,16 +44,16 @@ Registry tools (`tools/registry/workspace.ts`, `analytics.ts`): `get_home_summar
 
 | Path | Responsibility | Key exports |
 |---|---|---|
-| `home/HomeScreen.tsx` (74), `ManageWidgetsDialog.tsx` (126) | Five widgets in `summary.widgets` order (since_last_visit, quick_links, recents, your_work, stickies). The dialog edits a local draft and saves the whole list; rows drag with the pointer, "Reorder" menu keeps Move up/down. | `HomeScreen`, `ManageWidgetsDialog` |
-| `home/SinceLastVisit.tsx` (142) | Moves the anchor when the route hides, the tab unloads (beacon) or "Mark as seen" is clicked; it never moves on open. | `SinceLastVisit` |
-| `home/QuickLinksWidget.tsx` (230) | Chips in a wrap; drag from anywhere but the menu button (the click after a drag is swallowed); menu Move left/right. | `QuickLinksWidget` |
-| `home/{RecentsWidget,YourWorkWidget,StickiesWidget}.tsx`, `home-format.ts` (173) | Recents filtered by route icon; counts; up to six notes; pure phrases and URL checks. | same names |
-| `stickies/StickiesScreen.tsx` (198), `StickyCard.tsx` (202), `reorder-math.ts` (67, pure) | Grid with 2-D drop maths (`dropIndexForGrid`); the grip is the drag source and takes arrow keys; body saves 800 ms after the last edit and on blur; delete asks first. | `StickiesScreen`, `placementFor`, `reorderBy` |
+| `home/HomeScreen.tsx` (73), `ManageWidgetsDialog.tsx` (125) | Five widgets in `summary.widgets` order (since_last_visit, quick_links, recents, your_work, stickies). The dialog edits a local draft and saves the whole list; rows drag with the pointer, "Reorder" menu keeps Move up/down. | `HomeScreen`, `ManageWidgetsDialog` |
+| `home/SinceLastVisit.tsx` (141) | Moves the anchor when the route hides, the tab unloads (beacon) or "Mark as seen" is clicked; it never moves on open. | `SinceLastVisit` |
+| `home/QuickLinksWidget.tsx` (255) | Card rows in a wrap, 240 x 56 (32 px icon tile, title, supporting line from `home-format.ts`, a menu that shows on hover or focus and always under `(hover: none)`); drag from anywhere but the menu button (the click after a drag is swallowed); menu Move left/right. | `QuickLinksWidget` |
+| `home/{RecentsWidget,YourWorkWidget,StickiesWidget}.tsx`, `home-format.ts` (191) | Recents filtered by route icon (the heading sits above its filter; rows are 44 px under a coarse pointer or at 480 px and narrower); counts; up to six notes; pure phrases and URL checks. `DigestCard` is mounted with `inset="none"` here and on Analytics. | same names |
+| `stickies/StickiesScreen.tsx` (197), `StickyCard.tsx` (204), `reorder-math.ts` (66, pure) | Grid (column minimum 256 px, `STICKY_COLUMN_MIN`) of cards that are as tall as their content with a 540 px cap and a scrolling body, with 2-D drop maths (`dropIndexForGrid`); the grip is the drag source and takes arrow keys; body saves 800 ms after the last edit and on blur; delete asks first. | `StickiesScreen`, `placementFor`, `reorderBy` |
 | `dnd/drag-math.ts`, `use-pointer-drag.ts` | Shared pointer drag; `axis: "grid"` and `dropIndexForGrid` were added for stickies and quick links. | `dropIndexFor`, `dropIndexForGrid`, `usePointerDrag` |
 | `favorites/{tree.ts,state.ts,store.tsx}`, `shell/{FavoritesSection,FavoriteButton,FavoriteDialog}.tsx` | Pure tree maths and optimistic moves; the sidebar publishes its tree so Power K can read it; the star toggles from pages, views and projects. | `topEntries`, `reorderByPlacement`, `useIsFavorite` |
-| `profile/*` | Profile frame, summary, activity grouped by local day with "Load more" (`?before`), agents list, `RememberLabel` for recents. | `ProfileScreen`, `ProfileSummary`, `ActivityList` |
-| `analytics/*`, `charts/*` | Overview KPIs and bars, work-items breakdown (top 11 buckets plus Other in the chart, every bucket in the table), cycles and modules tabs; `ChartFrame` holds the hydration skeleton and the data table; `csv-download.tsx` gives every chart table and the four plain tables a Download CSV. | `AnalyticsScreen`, `ChartFrame`, `DownloadCsvButton`, `CsvTable` |
-| `workspace-settings/*` | General (name, week start) and AI (model, effort, digests) tabs; `workspace-settings-store.tsx` publishes `week_start` so pickers read it without a prop (`useWeekStart`). | `WorkspaceSettingsScreen`, `useWeekStart` |
+| `profile/*` | Profile frame (two-row `tabsBelow` header: avatar, name and tokens in one group, no "You" token on the user's own profile, a scrollable tab strip at 375 px), summary, activity grouped by local day with "Load more" (`?before`), agents list, `RememberLabel` for recents; link rows are 44 px under touch (`profile.css`). | `ProfileScreen`, `ProfileSummary`, `ActivityList` |
+| `analytics/*`, `charts/*` | Overview KPIs and bars, work-items breakdown (top 11 buckets plus Other in the chart, every bucket in the table), cycles and modules tabs; the header is two rows below 1100 px and three below 600 px (tabs on their own row), the count column has a 100 px floor (`table-widths.ts`); `ChartFrame` holds the hydration skeleton and the data table; `csv-download.tsx` gives every chart table and the four plain tables a Download CSV. | `AnalyticsScreen`, `ChartFrame`, `DownloadCsvButton`, `CsvTable` |
+| `workspace-settings/*` | General (name, week start) and AI (model, effort, digests) tabs, in the project settings column (`tessera-settings-body`); the Backups, Exports and Webhook tables use column floors from `table-widths.ts` and fold their secondary columns when narrow (`use-narrow-container.ts`), status is a dot with its word (`StatusLabel.tsx`); on a phone the five tabs fit (8 px tab padding); `workspace-settings-store.tsx` publishes `week_start` so pickers read it without a prop (`useWeekStart`). | `WorkspaceSettingsScreen`, `useWeekStart` |
 
 ## 3. Data and control flow
 
@@ -90,7 +90,7 @@ Registry tools (`tools/registry/workspace.ts`, `analytics.ts`): `get_home_summar
 ## 5. Tests that guard this area
 
 - Engine: `tests/workspace/{home,favorites,profile,quick-links,stickies,workspace-settings,sticky-quick-link-moves}.test.ts`, `tests/analytics/{breakdown,counts-parity,trend}.test.ts`, `tests/static-views.test.ts`.
-- UI: `tests/ui/{home-widgets,home-touch-css,favorites-tree,analytics-format,analytics-csv,analytics-touch-css,stickies-reorder,quick-links-reorder,widgets-reorder,reorder-math,drag-math,workspace-settings-general,week-start-store,week-start-pickers}.test.ts`; `tests/helpers/pointer-drag-dom.ts` stubs rects for the drag tests.
+- UI: `tests/ui/{home-widgets,home-touch-css,quick-link-supporting,workspace-visual-css,favorites-tree,analytics-format,analytics-csv,analytics-touch-css,analytics-header-css,profile-screen,profile-touch-css,settings-phone-css,status-label,use-narrow-container,stickies-reorder,quick-links-reorder,widgets-reorder,reorder-math,drag-math,workspace-settings-general,week-start-store,week-start-pickers}.test.ts` (the `-css` files read the stylesheets); `tests/helpers/pointer-drag-dom.ts` stubs rects for the drag tests.
 - Playwright: `tests/e2e/workspace.spec.ts` (a quick link survives a reload and opened items show under Recent; a favourited project shows under Favorites; the analytics total equals the sidebar counts), `drag-surfaces.spec.ts` (stickies, quick links, widgets).
 - No Vitest: `HomeScreen`, `SinceLastVisit`, `StickiesScreen`, `ProfileScreen`, `AgentsScreen`, `AnalyticsScreen` panels, `FavoritesSection`.
 
@@ -111,7 +111,7 @@ Registry tools (`tools/registry/workspace.ts`, `analytics.ts`): `get_home_summar
 - Dragged cards and chips are hidden with `display: none` and kept mounted so an unsaved sticky edit survives.
 - Keyboard drag does not exist; decision 14's keyboard path is the menus (plus arrow keys on the stickies grip).
 - No Latte look at drag states, no 375 px mid-drag screenshot.
-- Workspace views list has no drag reorder.
+- The two-row analytics header uses the viewport width, not the panel width, for its 1100 px switch (ASSUMPTION recorded in `analytics.css`), so a collapsed sidebar at 1000 px still gets two rows.
 
 ## 8. Where to read more
 

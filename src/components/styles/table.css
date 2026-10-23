@@ -23,6 +23,80 @@
   padding-inline-start: var(--spacing-1);
 }
 
+/*
+ * The selection checkbox starts on the panel inset too. The selection column is 36px wide and its cell pads 16px on the
+ * start; the 20px checkbox then overflowed a 12px content box and was centred 4px to the left of the inset. With no
+ * end padding the content box is the checkbox's own width, so its box starts at the 16px inset.
+ */
+.tessera-table .astryx-table-header-cell[data-column-key="__xds_selection"],
+.tessera-table .astryx-table-cell.tessera-table-select-cell {
+  padding-inline-end: 0;
+}
+
+/*
+ * The header row stays visible while the rows scroll. Astryx wraps the table in a scroll region that clips on both axes
+ * (overflow-x auto makes overflow-y a scroll container too), and as that region is as tall as the table it never
+ * scrolls vertically, so the headers scrolled away with the rows. Here the wrapper does not clip: the work items
+ * scroller (WorkItemsScreen `tessera-wi-scroller`) scrolls the table on both axes, which is the container a sticky
+ * header and the pinned key columns are measured against. The headers are opaque, above the pinned body cells.
+ */
+.astryx-table-scroll-wrapper:has(.tessera-table) {
+  overflow: visible;
+}
+
+.tessera-table .astryx-table-header-cell {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  background-color: var(--color-background-surface);
+}
+
+/* The pinned key columns' headers stay above the headers that scroll under them. */
+.tessera-table .astryx-table-header-cell:is([data-column-key="__xds_selection"], [data-column-key="key"]) {
+  z-index: 3;
+}
+
+/*
+ * Property headers start where their ghost control's text starts. Each trigger brings a 12px (--spacing-3) inset of its
+ * own inside the cell's 8px padding, so these headers pad 8 + 12 = --spacing-5; text columns (name, dates created and
+ * updated) need nothing. The key column has its own rule above.
+ */
+.tessera-table .astryx-table-header-cell:is([data-column-key="state"], [data-column-key="priority"], [data-column-key="assignees"], [data-column-key="labels"], [data-column-key="cycle"], [data-column-key="modules"], [data-column-key="start_date"], [data-column-key="target_date"], [data-column-key="estimate"]) {
+  padding-inline-start: var(--spacing-5);
+}
+
+/*
+ * A sortable header is a wrapper holding the sort button and, absolutely placed on the wrapper's end edge, the 8px resize
+ * handle. The wrapper pads that 8px (--spacing-2) so the button ends where the handle begins. The idle sort glyph is at
+ * full strength: Astryx dims it to 0.35, which is 1.7:1 on the header in both schemes (secondary text at full strength
+ * is above 4.5:1).
+ */
+.tessera-table .astryx-table-header-cell > div:has(> button) {
+  padding-inline-end: var(--spacing-2);
+}
+
+.tessera-table .astryx-table-header-cell button > span:has(> .astryx-icon) {
+  opacity: 1;
+}
+
+/*
+ * A group header's chevron starts on the 16px inset and its label on the key column's text (the 36px selection column
+ * after the inset). The content sticks to the start edge of the scroller, so the state name and count stay in view
+ * while the wide table scrolls sideways (the cell spans every column; the content is only as wide as itself, so it has
+ * room to move inside the cell).
+ */
+.tessera-table .astryx-table-row > td[colspan] {
+  padding-inline-start: var(--spacing-4);
+}
+
+.tessera-table .astryx-table-row > td[colspan] > :first-child {
+  position: sticky;
+  inset-inline-start: var(--spacing-4);
+  inline-size: max-content;
+  padding-inline-start: 0;
+  gap: var(--spacing-5);
+}
+
 /* Rows open the item, so they read as clickable; editable cells keep the default cursor. */
 .tessera-table-row {
   cursor: pointer;
@@ -43,7 +117,65 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The row the side peek shows (aria-current, set from ?peek=): a 1px accent edge on its first cell, inside the row. */
+.tessera-table-row[aria-current="true"] > :first-child {
+  box-shadow: inset var(--border-width) 0 0 var(--color-accent);
+}
+
 /* Quick-add placeholder rows: shown at once, inert until the server item replaces them. */
 .tessera-table-row-pending {
   opacity: 0.6;
+}
+
+/*
+ * Touch targets (decision 14; the theme already makes every Astryx button 44px, shell.css the checkbox hit area).
+ * Under a coarse pointer or on a phone a row is 44px tall with no padding of its own, each control fills the row, and
+ * the header row is as tall with its sort buttons. A selector's real button sits inside a 12px-padded wrapper, so both
+ * grow to 44px (and 44px wide, for a short value such as an estimate). The column resize handle is a pointer
+ * affordance and an 8px strip between two sort buttons, so it is dropped here. Nothing applies to a fine pointer on a
+ * wide screen: the 37px rows and the 29.5px header (compact density) stay.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-table .astryx-table-cell,
+  .tessera-table .astryx-table-header-cell {
+    height: var(--spacing-11);
+    padding-block: 0;
+  }
+
+  .tessera-table .astryx-table-header-cell > div:has(> button) > button {
+    min-block-size: var(--spacing-11);
+  }
+
+  .tessera-table [data-resize-handle] {
+    display: none;
+  }
+
+  .tessera-table .astryx-selector,
+  .tessera-table .astryx-multi-selector {
+    min-block-size: var(--spacing-11);
+    padding-block: 0;
+  }
+
+  .tessera-table .astryx-selector > button,
+  .tessera-table .astryx-multi-selector > button {
+    min-block-size: var(--spacing-11);
+    min-inline-size: var(--spacing-11);
+  }
+
+  /* The group chevron is a 16px icon button: a 44px hit area around it, the glyph stays where it is. */
+  .tessera-table .astryx-table-row > td[colspan] button[aria-expanded] {
+    min-inline-size: var(--spacing-11);
+    min-block-size: var(--spacing-11);
+    margin: calc((var(--spacing-4) - var(--spacing-11)) / 2);
+  }
+
+  /*
+   * The selection checkbox is 20px in a 36px cell and its 44px native input is the hit area. The cell clips (overflow
+   * hidden), which cut the area to the cell's width; the selection cells let it through. The key cell's button is the
+   * later sibling and takes the shared edge.
+   */
+  .tessera-table .astryx-table-cell.tessera-table-select-cell,
+  .tessera-table .astryx-table-header-cell[data-column-key="__xds_selection"] {
+    overflow: visible;
+  }
 }

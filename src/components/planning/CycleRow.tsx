@@ -29,6 +29,7 @@ export function CycleRow({ projectId, cycle, today }: CycleRowProps) {
   const { value, max } = moduleProgressValues(cycle.progress);
   return (
     <ListItem
+      className="tessera-row-hit"
       href={`/projects/${projectId}/cycles/${cycle.id}`}
       startContent={<StatusDot variant={cycleStatusVariant(cycle.status)} label={CYCLE_STATUS_LABEL[cycle.status]} />}
       label={cycle.name}

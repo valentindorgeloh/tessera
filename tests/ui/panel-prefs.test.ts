@@ -91,4 +91,53 @@ describe("panel prefs store", () => {
     invalid.savePanelPrefs({ chart: "burnup" });
     expect(stored()).toEqual({ open: true, chart: "burnup", unit: "issues" });
   });
+
+  describe("on a phone (max-width 480px)", () => {
+    const phone = (matches: boolean) =>
+      vi.stubGlobal("window", {
+        matchMedia: (query: string) => ({ matches: matches && query === "(max-width: 480px)" }),
+        localStorage: {
+          getItem: (key: string) => storage.get(key) ?? null,
+          setItem: (key: string, value: string) => void storage.set(key, value),
+        },
+      });
+
+    it("starts closed, so the work item list keeps its width", async () => {
+      phone(true);
+      const store = await import("@/components/planning/panel-prefs");
+      store.loadPanelPrefs();
+      expect(store.currentPanelPrefs().open).toBe(false);
+      // The toggle opens it for this visit; the wide-screen preference (open) stays in storage.
+      store.savePanelPrefs({ open: true });
+      expect(store.currentPanelPrefs().open).toBe(true);
+      expect(stored()).toEqual({ open: true, chart: "burndown", unit: "issues" });
+      store.savePanelPrefs({ chart: "burnup" });
+      expect(stored()).toEqual({ open: true, chart: "burnup", unit: "issues" });
+    });
+
+    it("ignores a stored open on the phone but keeps it in storage", async () => {
+      storage.set(PANEL_STORAGE_KEY, JSON.stringify({ open: true, chart: "burnup", unit: "points" }));
+      phone(true);
+      const store = await import("@/components/planning/panel-prefs");
+      store.loadPanelPrefs();
+      expect(store.currentPanelPrefs().open).toBe(false);
+      store.savePanelPrefs({ unit: "issues" });
+      expect(stored()).toEqual({ open: true, chart: "burnup", unit: "issues" });
+    });
+
+    it("never writes a stored closed panel back as open", async () => {
+      storage.set(PANEL_STORAGE_KEY, JSON.stringify({ open: false, chart: "burndown", unit: "issues" }));
+      phone(true);
+      const store = await import("@/components/planning/panel-prefs");
+      store.savePanelPrefs({ open: true });
+      expect(stored().open).toBe(false);
+    });
+
+    it("does not change a wide screen", async () => {
+      phone(false);
+      const store = await import("@/components/planning/panel-prefs");
+      store.savePanelPrefs({ open: false });
+      expect(stored().open).toBe(false);
+    });
+  });
 });

@@ -122,7 +122,7 @@ function CycleForm({ projectId, onOpenChange, cycle }: Omit<CycleDialogProps, "i
       header={<DialogHeader title={cycle ? `Edit ${cycle.name}` : "New cycle"} onOpenChange={close} hasDivider />}
       content={
         <LayoutContent>
-          <FormLayout>
+          <FormLayout className="tessera-dialog-form">
             <TextInput
               label="Name"
               value={name}
@@ -135,6 +135,7 @@ function CycleForm({ projectId, onOpenChange, cycle }: Omit<CycleDialogProps, "i
             />
             <TextArea label="Description" value={description} onChange={setDescription} rows={3} isOptional placeholder="Goal of the cycle (Markdown)" />
             <DateRangeInput
+              className="tessera-cycle-dates"
               label="Dates"
               description="Days of other cycles are not available. Leave empty to keep the cycle a draft."
               value={range}

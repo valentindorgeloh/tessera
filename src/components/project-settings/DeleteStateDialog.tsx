@@ -74,7 +74,7 @@ function DeleteStateForm({ title, onOpenChange, state, count }: Omit<DeleteState
       header={<DialogHeader title={title} onOpenChange={() => !isPending && onOpenChange(false)} hasDivider />}
       content={
         <LayoutContent>
-          <VStack gap={4}>
+          <VStack gap={4} className="tessera-settings-fields">
             <Text type="body">{`${count} work ${count === 1 ? "item is" : "items are"} in ${state.name}, archived ones included. Move them to:`}</Text>
             <Selector label="Move to" options={options} value={target} onChange={setTarget} />
             {error ? <FieldStatus type="error" message={error} /> : null}

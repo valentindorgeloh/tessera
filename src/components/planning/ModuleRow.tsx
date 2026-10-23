@@ -33,7 +33,7 @@ export function ModuleRow({ projectId, module }: ModuleRowProps) {
   const { value, max } = moduleProgressValues(module.progress);
   return (
     <ListItem
-      className="tessera-modules-row"
+      className="tessera-modules-row tessera-row-hit"
       href={`/projects/${projectId}/modules/${module.id}`}
       startContent={<StatusDot variant={moduleStatusVariant(module.status)} label={statusLabel} />}
       label={
@@ -44,16 +44,23 @@ export function ModuleRow({ projectId, module }: ModuleRowProps) {
       description={`${statusLabel} · ${formatModuleRange(module.start_date, module.target_date, bundle.today)}`}
       endContent={
         <HStack gap={4} vAlign="center" className="tessera-modules-row-end">
-          {lead !== null ? <Avatar name={lead} size="sm" tooltip={`Lead: ${lead}`} /> : null}
-          {members.length > 0 ? (
-            <AvatarGroup size="sm" aria-label={`Members: ${members.map(nameOf).join(", ")}`}>
-              {members.slice(0, VISIBLE_MEMBERS).map((id) => (
-                <Avatar key={id} name={nameOf(id)} tooltip={nameOf(id)} />
-              ))}
-              {members.length > VISIBLE_MEMBERS ? <AvatarGroupOverflow count={members.length - VISIBLE_MEMBERS} /> : null}
-            </AvatarGroup>
-          ) : null}
+          {/* The lead and the members take fixed slots (an empty one stays), so every row's avatars start at the same x (visual audit P8). */}
           <HStack gap={2} vAlign="center">
+            <HStack vAlign="center" className="tessera-modules-row-lead">
+              {lead !== null ? <Avatar name={lead} size="sm" tooltip={`Lead: ${lead}`} /> : null}
+            </HStack>
+            <HStack vAlign="center" className="tessera-modules-row-members">
+              {members.length > 0 ? (
+                <AvatarGroup size="sm" aria-label={`Members: ${members.map(nameOf).join(", ")}`}>
+                  {members.slice(0, VISIBLE_MEMBERS).map((id) => (
+                    <Avatar key={id} name={nameOf(id)} tooltip={nameOf(id)} />
+                  ))}
+                  {members.length > VISIBLE_MEMBERS ? <AvatarGroupOverflow count={members.length - VISIBLE_MEMBERS} /> : null}
+                </AvatarGroup>
+              ) : null}
+            </HStack>
+          </HStack>
+          <HStack gap={2} vAlign="center" className="tessera-modules-row-progress">
             <Text type="supporting" color="secondary" hasTabularNumbers className="tessera-modules-row-count">
               {moduleProgressText(module.progress)}
             </Text>

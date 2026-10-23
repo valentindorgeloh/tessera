@@ -37,10 +37,11 @@ import { groupLimitKey } from "@/lib/tessera/core/group";
 import { usePointerDrag, type DragDropEvent } from "@/components/dnd/use-pointer-drag";
 import type { Display, GroupBy, PaletteColor, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { PlusIcon } from "@/themes/catppuccin/icons";
-import { BoardCard, BoardCardBody } from "./BoardCards";
+import { BoardCard, BoardCardBody, BoardCardGrip, BoardCardMenuSlot } from "./BoardCards";
 import { dragKey, itemIdOf } from "./board-keys";
 import { NONE_GROUP, closedColumnText, containerId, groupValue, useBoardModel, type Column } from "./board-model";
 import { isMovableGroup } from "./moves";
+import { usePeekedId } from "./peeked";
 import { UNGROUPED_KEY } from "./paging";
 import { isOptimisticId } from "./optimistic";
 import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } from "./properties";
@@ -57,10 +58,26 @@ import type { LayoutProps, MoveInput, ProjectBundle, QuickAddGroup } from "./typ
  */
 const COLUMN_WIDTH = "min(350px, 100cqw)";
 
+/**
+ * Keeps `--tessera-board-head-h` (board.css) on the strip at the height of the swimlane heads row, so each lane bar
+ * sticks directly under it. A callback ref with a cleanup: no state, no render per resize.
+ */
+function trackHeadHeight(row: HTMLElement | null): (() => void) | void {
+  const strip = row?.parentElement;
+  if (!row || !strip) return;
+  const write = () => strip.style.setProperty("--tessera-board-head-h", `${row.offsetHeight}px`);
+  write();
+  if (typeof ResizeObserver === "undefined") return;
+  const observer = new ResizeObserver(write);
+  observer.observe(row);
+  return () => observer.disconnect();
+}
+
 const STATE_GROUPS: ReadonlySet<string> = new Set<StateGroup>(["backlog", "unstarted", "started", "completed", "cancelled", "triage"]);
 
 export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAdd, canQuickAdd, readOnly = false, onLoadMore, onLoadMoreUngrouped, isLoadingMore, onClearFilters }: LayoutProps) {
   const { columns, lanes, containers, byId } = useBoardModel(result, display);
+  const peekedId = usePeekedId();
   // Collapsed swimlanes (F3.2): their cells stay mounted but hidden and take no drops.
   const [collapsedLanes, setCollapsedLanes] = useState<ReadonlySet<string>>(() => new Set());
   const toggleLane = (id: string, isOpen: boolean) =>
@@ -213,7 +230,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
     const nodes: ReactNode[] = visible.map((item) =>
       isOptimisticId(item.id) ? (
         <Card key={item.id} padding={3} className="tessera-board-card tessera-board-card-pending" aria-busy="true">
-          <BoardCardBody item={item} bundle={bundle} properties={display.properties} menu={null} />
+          <BoardCardBody item={item} bundle={bundle} properties={display.properties} menu={<BoardCardMenuSlot />} />
         </Card>
       ) : (
         <BoardCard
@@ -225,6 +242,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
           currentColumn={column.id}
           cardRef={readOnly ? undefined : registerItem(dragKey(container, item.id))}
           handlers={readOnly ? undefined : itemHandlers(dragKey(container, item.id), container)}
+          isPeeked={item.id === peekedId}
           onOpen={onOpen}
           onMoveTo={moveToColumn}
         />
@@ -317,7 +335,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
         </HStack>
       ) : (
         <VStack gap={4} className="tessera-board-strip tessera-board-lanes" ref={registerScroller} aria-label="Board swimlanes">
-          <HStack gap={4} className="tessera-board-lane-row">
+          <HStack gap={4} className="tessera-board-lane-row tessera-board-heads" ref={trackHeadHeight}>
             {columns.map((column) => (
               <Card key={column.id} variant="muted" padding={3} width={COLUMN_WIDTH} className="tessera-board-column-head">
                 <VStack gap={2}>
@@ -368,7 +386,8 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
       {drag && dragged
         ? createPortal(
             <Card ref={registerOverlay} padding={3} elevation="high" className="tessera-drag-overlay" aria-hidden="true">
-              <BoardCardBody item={dragged} bundle={bundle} properties={display.properties} menu={null} />
+              {/* Same key row as the card (an inert menu slot and the grip), so the ghost is exactly as tall. */}
+              <BoardCardBody item={dragged} bundle={bundle} properties={display.properties} menu={<BoardCardMenuSlot />} grip={<BoardCardGrip />} />
             </Card>,
             document.body,
           )

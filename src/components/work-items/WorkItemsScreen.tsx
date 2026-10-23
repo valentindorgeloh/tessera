@@ -30,6 +30,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { createWorkItemAction, moveWorkItemAction, updateWorkItemAction } from "@/app/actions/work-items";
 import { notePeekPush } from "@/components/detail/peek-history";
 import { currentHref, peekHref, withSearchParam } from "@/components/detail/peek-url";
+import { HStack } from "@astryxdesign/core/Stack";
 import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
 import { SaveViewButton } from "@/components/views/SaveViewButton";
 import { normalizeFilters } from "@/components/views/view-state";
@@ -360,6 +361,7 @@ export function WorkItemsScreen({
             <PanelBar
               size="subheader"
               canWrap
+              className="tessera-wi-subheader"
               start={
                 <>
                   <Text weight="medium" maxLines={1}>
@@ -372,10 +374,13 @@ export function WorkItemsScreen({
               end={
                 <>
                   {showLayoutSwitch ? <LayoutSwitch display={display} urlState={urlState} settingsScope={settingsScope} /> : null}
-                  <DisplayMenu display={display} urlState={urlState} settingsScope={settingsScope} hiddenGroupFields={hiddenGroupFields} includeProject={crossProject} />
-                  <Button variant="ghost" size="sm" label="Export…" icon={<ExportIcon />} onClick={() => setExportOpen(true)} />
-                  {canCreateItems ? <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" /> : null}
-                  {subheaderEnd}
+                  {/* One group, so a narrow window wraps it as a unit under the layout switch (work-items.css `tessera-wi-subheader`). */}
+                  <HStack gap={2} vAlign="center" className="tessera-wi-subheader-actions">
+                    <DisplayMenu display={display} urlState={urlState} settingsScope={settingsScope} hiddenGroupFields={hiddenGroupFields} includeProject={crossProject} />
+                    <Button variant="ghost" size="sm" label="Export…" icon={<ExportIcon />} onClick={() => setExportOpen(true)} />
+                    {canCreateItems ? <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" /> : null}
+                    {subheaderEnd}
+                  </HStack>
                 </>
               }
             />

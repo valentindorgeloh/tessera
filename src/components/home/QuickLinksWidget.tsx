@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * Quick links (docs/drafts/p9-plan.md U1): chips in a wrap. A chip drags to a
+ * Quick links (docs/drafts/p9-plan.md U1): card rows in a wrap (icon tile, title,
+ * host or path; the menu shows on hover or focus). A card drags to a
  * new slot with the pointer (decision 105); the chip menu keeps Move left /
  * Move right as the keyboard path (decision 14). Removing a link is not
  * destructive.
@@ -23,7 +24,7 @@ import { usePointerDrag, type DragDropEvent } from "@/components/dnd/use-pointer
 import { placementFor, reorderBy, stepIndex } from "@/components/stickies/reorder-math";
 import { addQuickLinkAction, moveQuickLinkAction, removeQuickLinkAction, updateQuickLinkAction } from "@/app/actions/quick-links";
 import { LinkSimpleIcon, PlusIcon } from "@/themes/catppuccin/icons";
-import { isExternalQuickLink, isQuickLinkUrl, quickLinkLabel, type QuickLinkView } from "./home-format";
+import { isExternalQuickLink, isQuickLinkUrl, quickLinkLabel, quickLinkSupporting, type QuickLinkView } from "./home-format";
 
 export type QuickLinksWidgetProps = { links: QuickLinkView[] };
 
@@ -85,24 +86,40 @@ export function QuickLinksWidget({ links }: QuickLinksWidgetProps) {
         ref={registerItem(link.id)}
         {...itemHandlers(link.id, CHIP_CONTAINER)}
         onDragStart={(event) => event.preventDefault()}
-        gap={1}
+        gap={3}
         vAlign="center"
         className={isDragged ? "tessera-quick-link tessera-quick-link--dragging" : "tessera-quick-link"}
       >
-        <Icon icon={LinkSimpleIcon} size="sm" color="secondary" />
-        <Link href={link.url} isExternalLink={isExternalQuickLink(link.url)} maxLines={1}>
-          {quickLinkLabel(link)}
-        </Link>
-        <MoreMenu
-          label={`Actions for ${quickLinkLabel(link)}`}
-          size="sm"
-          items={[
-            { id: "edit", label: "Edit", onClick: () => setDraft({ id: link.id, url: link.url, title: link.title }) },
-            { id: "left", label: "Move left", isDisabled: index === 0, onClick: () => step(link.id, -1) },
-            { id: "right", label: "Move right", isDisabled: index === shown.length - 1, onClick: () => step(link.id, 1) },
-            { id: "remove", label: "Remove", variant: "destructive", onClick: () => remove(link) },
-          ]}
-        />
+        <HStack hAlign="center" vAlign="center" className="tessera-quick-link-tile" aria-hidden="true">
+          <Icon icon={LinkSimpleIcon} size="sm" color="secondary" />
+        </HStack>
+        <VStack gap={0} className="tessera-quick-link-text">
+          <Link
+            href={link.url}
+            isExternalLink={isExternalQuickLink(link.url)}
+            color="primary"
+            weight="medium"
+            maxLines={1}
+            className="tessera-quick-link-title"
+          >
+            {quickLinkLabel(link)}
+          </Link>
+          <Text type="supporting" color="secondary" maxLines={1}>
+            {quickLinkSupporting(link)}
+          </Text>
+        </VStack>
+        <HStack className="tessera-quick-link-menu">
+          <MoreMenu
+            label={`Actions for ${quickLinkLabel(link)}`}
+            size="sm"
+            items={[
+              { id: "edit", label: "Edit", onClick: () => setDraft({ id: link.id, url: link.url, title: link.title }) },
+              { id: "left", label: "Move left", isDisabled: index === 0, onClick: () => step(link.id, -1) },
+              { id: "right", label: "Move right", isDisabled: index === shown.length - 1, onClick: () => step(link.id, 1) },
+              { id: "remove", label: "Remove", variant: "destructive", onClick: () => remove(link) },
+            ]}
+          />
+        </HStack>
       </HStack>,
     );
     if (!isDragged) stayIndex++;
@@ -130,9 +147,18 @@ export function QuickLinksWidget({ links }: QuickLinksWidgetProps) {
         </HStack>
       )}
       {drag && dragged ? (
-        <HStack ref={registerOverlay} gap={1} vAlign="center" className="tessera-quick-link tessera-drag-overlay" aria-hidden="true">
-          <Icon icon={LinkSimpleIcon} size="sm" color="secondary" />
-          <Text maxLines={1}>{quickLinkLabel(dragged)}</Text>
+        <HStack ref={registerOverlay} gap={3} vAlign="center" className="tessera-quick-link tessera-drag-overlay" aria-hidden="true">
+          <HStack hAlign="center" vAlign="center" className="tessera-quick-link-tile">
+            <Icon icon={LinkSimpleIcon} size="sm" color="secondary" />
+          </HStack>
+          <VStack gap={0} className="tessera-quick-link-text">
+            <Text weight="medium" maxLines={1}>
+              {quickLinkLabel(dragged)}
+            </Text>
+            <Text type="supporting" color="secondary" maxLines={1}>
+              {quickLinkSupporting(dragged)}
+            </Text>
+          </VStack>
         </HStack>
       ) : null}
       <QuickLinkDialog

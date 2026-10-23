@@ -120,7 +120,7 @@ function EstimateForm({ projectId, onOpenChange, mode, estimate }: Omit<Estimate
         toast({ type: "error", body: failureText("Could not save the estimate system", result.message) });
         return;
       }
-      toast({ type: "info", body: mode === "edit" ? "Updated the estimate system" : "Created the estimate system" });
+      toast({ type: "info", body: mode === "edit" ? "Updated the estimate system" : mode === "replace" ? "Replaced the estimate system" : "Created the estimate system" });
       onOpenChange(false);
     });
   };
@@ -130,7 +130,7 @@ function EstimateForm({ projectId, onOpenChange, mode, estimate }: Omit<Estimate
       header={<DialogHeader title={mode === "edit" ? "Edit values" : mode === "replace" ? "Replace estimate system" : "Create estimate system"} onOpenChange={onOpenChange} hasDivider />}
       content={
         <LayoutContent>
-          <VStack gap={4}>
+          <VStack gap={4} className="tessera-settings-fields">
             {mode === "replace" ? (
               <Banner status="warning" title="Replacing the estimate system" description="Items keep their value when the new system has the same value; others lose their estimate." />
             ) : null}
@@ -152,8 +152,13 @@ function EstimateForm({ projectId, onOpenChange, mode, estimate }: Omit<Estimate
             <VStack gap={2}>
               {points.map((point, index) => (
                 <HStack key={point.key} gap={2} vAlign="end" className="tessera-estimate-row">
-                  <TextInput label={index === 0 ? "Value" : `Value ${index + 1}`} isLabelHidden={index > 0} value={point.value} onChange={(value) => setPoints((rows) => rows.map((row) => (row.key === point.key ? { ...row, value } : row)))} className="tessera-estimate-value" />
-                  <TextInput label={index === 0 ? "Description" : `Description ${index + 1}`} isLabelHidden={index > 0} value={point.description} onChange={(description) => setPoints((rows) => rows.map((row) => (row.key === point.key ? { ...row, description } : row)))} className="tessera-estimate-value" />
+                  {/* Each field sits in a cell that grows (estimates.css), so the two inputs fill the dialog body. */}
+                  <VStack className="tessera-estimate-value">
+                    <TextInput label={index === 0 ? "Value" : `Value ${index + 1}`} isLabelHidden={index > 0} value={point.value} onChange={(value) => setPoints((rows) => rows.map((row) => (row.key === point.key ? { ...row, value } : row)))} />
+                  </VStack>
+                  <VStack className="tessera-estimate-value">
+                    <TextInput label={index === 0 ? "Description" : `Description ${index + 1}`} isLabelHidden={index > 0} value={point.description} onChange={(description) => setPoints((rows) => rows.map((row) => (row.key === point.key ? { ...row, description } : row)))} />
+                  </VStack>
                   <MoreMenu
                     label={`Actions for value ${index + 1}`}
                     size="sm"
@@ -165,18 +170,21 @@ function EstimateForm({ projectId, onOpenChange, mode, estimate }: Omit<Estimate
                   />
                 </HStack>
               ))}
-              <Button
-                variant="ghost"
-                size="sm"
-                label="Add value"
-                icon={<PlusIcon />}
-                isDisabled={points.length >= ESTIMATE_POINTS_MAX}
-                onClick={() => {
-                  const key = `added-${added}`;
-                  setAdded((count) => count + 1);
-                  setPoints((rows) => [...rows, { key, value: "", description: "" }]);
-                }}
-              />
+              {/* Aligned to the start like the rows above (a bare button would centre in the column). */}
+              <HStack hAlign="start">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  label="Add value"
+                  icon={<PlusIcon />}
+                  isDisabled={points.length >= ESTIMATE_POINTS_MAX}
+                  onClick={() => {
+                    const key = `added-${added}`;
+                    setAdded((count) => count + 1);
+                    setPoints((rows) => [...rows, { key, value: "", description: "" }]);
+                  }}
+                />
+              </HStack>
             </VStack>
             {removed.map((point) => (
               <Selector
@@ -195,7 +203,7 @@ function EstimateForm({ projectId, onOpenChange, mode, estimate }: Omit<Estimate
         <LayoutFooter>
           <HStack gap={3} hAlign="end">
             <Button variant="ghost" label="Cancel" onClick={() => onOpenChange(false)} />
-            <Button variant="primary" label={mode === "edit" ? "Save" : "Create"} onClick={save} isLoading={isPending} isDisabled={name.trim() === "" || valuesError !== null} />
+            <Button variant="primary" label={mode === "edit" ? "Save" : mode === "replace" ? "Replace" : "Create"} onClick={save} isLoading={isPending} isDisabled={name.trim() === "" || valuesError !== null} />
           </HStack>
         </LayoutFooter>
       }

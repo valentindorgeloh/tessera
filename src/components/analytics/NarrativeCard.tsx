@@ -14,5 +14,5 @@ import type { DigestView } from "@/lib/tessera/types";
 export function NarrativeCard({ tab, filters, digest }: { tab: AnalyticsTab; filters: AnalyticsFilters; digest: DigestView | null }) {
   const parsed = DigestKindSchema.safeParse("analytics");
   if (!parsed.success) return null;
-  return <DigestCard kind={parsed.data} id={narrativeId(tab, filters)} digest={digest} />;
+  return <DigestCard kind={parsed.data} id={narrativeId(tab, filters)} digest={digest} inset="none" />;
 }

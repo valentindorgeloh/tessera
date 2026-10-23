@@ -21,15 +21,60 @@
   margin-inline-start: auto;
 }
 
-/* "3/8" keeps its width as the numbers change, so the bars line up row under row. */
-.tessera-modules-row-count {
-  min-width: 40px;
-  text-align: end;
+/*
+ * The lead and the members each keep a fixed slot (one avatar; three plus the
+ * "+N" overflow), so the avatars start at the same x row under row whatever a
+ * module has. On a phone the slots shrink to their content (an empty one takes
+ * nothing) and the wrapped line starts on the name's inset (the status dot and
+ * its gap), so the second line reads as part of the name above it.
+ */
+.tessera-modules-row-lead {
+  inline-size: var(--spacing-6);
+  flex: none;
+}
+
+.tessera-modules-row-members {
+  inline-size: calc(var(--spacing-6) * 4);
+  flex: none;
 }
 
 /* Structural width of the row progress bar. */
 .tessera-modules-row-bar {
   width: 96px;
+}
+
+@media (max-width: 480px) {
+  .tessera-modules-row > :has(> .tessera-modules-row-end) {
+    margin-inline-start: var(--spacing-4);
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* On the wrapped line the people stay at the name's inset and the count and menu keep the row's end edge. */
+  .tessera-modules-row-end {
+    inline-size: 100%;
+  }
+
+  .tessera-modules-row-progress {
+    margin-inline-start: auto;
+  }
+
+  .tessera-modules-row-lead,
+  .tessera-modules-row-members {
+    inline-size: auto;
+    flex: 0 0 auto;
+  }
+
+  /* The 96px bar would push the end group past the row's width beside the menu; a 48px one fits and the row keeps its bar (visual audit, the module row at 375). */
+  .tessera-modules-row-bar {
+    width: var(--spacing-12);
+  }
+}
+
+/* "3/8" keeps its width as the numbers change, so the bars line up row under row. */
+.tessera-modules-row-count {
+  min-width: 40px;
+  text-align: end;
 }
 
 /* The module description in the side panel keeps its line breaks (plain Markdown source). */
@@ -40,4 +85,35 @@
 
 .tessera-modules-links {
   min-width: 0;
+}
+
+/*
+ * The property rows (module side panel and dialog): Astryx aligns a label and
+ * its control on their text baselines, which put the label up to 3px off the
+ * control's centre and made the row pitch vary with the control (an avatar
+ * selector, a date field). Every control is 28px (size sm), so the label and
+ * the control share one centre line and the pitch is constant.
+ */
+.tessera-modules-props dl {
+  align-items: center;
+}
+
+/*
+ * Touch (P12, decision 14): the New and Edit module dialog's property rows are
+ * 36 to 40px apart, so the 44px hit areas of two neighbouring controls overlapped
+ * and a tap near a row's edge went to the next row. On a phone or under a coarse
+ * pointer each row is 44px (the control keeps its drawn size, centred), so the
+ * areas tile. The side panel keeps its denser rows: its fields have hit areas of
+ * their own and no overlap to settle.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-modules-props--dialog dl {
+    row-gap: 0;
+  }
+
+  .tessera-modules-props--dialog dd {
+    display: grid;
+    align-items: center;
+    min-block-size: var(--spacing-11);
+  }
 }

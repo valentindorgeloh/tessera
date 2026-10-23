@@ -51,7 +51,7 @@ function SubItemRow({ item, isFirst, isLast, readOnly, run, onOpenItem, onMoveUp
   return (
     <HStack gap={2} vAlign="center" className="tessera-detail-row" as="li" onKeyDown={onKeyDown}>
       <Button className="tessera-detail-key" variant="ghost" size="sm" label={item.key} onClick={() => onOpenItem(item.id)} />
-      <Text type="body" className="tessera-detail-row-name" maxLines={1}>
+      <Text type="body" className="tessera-detail-row-name tessera-detail-row-name--clamp" maxLines={1}>
         {item.name}
       </Text>
       <HStack gap={1} vAlign="center" className="tessera-detail-row-props">
@@ -138,7 +138,7 @@ function AddSubItem({ onSubmit }: { onSubmit: (name: string) => void }) {
           if (name.trim() === "") setActive(false);
         }}
         placeholder="Sub-item name, then Enter"
-        width="fill"
+        width="100%"
       />
     </HStack>
   );

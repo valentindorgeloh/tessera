@@ -25,6 +25,7 @@ import { useOptionalProject } from "@/components/work-items/project-provider";
 import type { ActorAccess, ActorRow } from "@/lib/tessera/types";
 import { PencilIcon } from "@/themes/catppuccin/icons";
 import { ActorDialog } from "./ActorDialog";
+import { SettingsHelp, SettingsTitle } from "./SettingsRow";
 
 const NOBODY = "__none__";
 
@@ -65,10 +66,11 @@ function IntakePolicy({ projectId, isOn, isIntakeEnabled, isArchived }: { projec
     if (!result.ok) toast({ type: "error", body: failureText(`Could not change ${label}`, result.message) });
   };
   return (
-    <List hasDividers density="balanced">
+    <List hasDividers density="balanced" className="tessera-settings-list">
       <ListItem
-        label={label}
-        description="Work items created by MCP clients wait in Intake until you accept them."
+        className="tessera-settings-row--wrap"
+        label={<SettingsTitle>{label}</SettingsTitle>}
+        description={<SettingsHelp>Work items created by MCP clients wait in Intake until you accept them.</SettingsHelp>}
         interactiveRef={rowRef}
         endContent={
           <Switch
@@ -121,15 +123,17 @@ function ActorList({ actors, isArchived }: { actors: ActorRow[]; isArchived: boo
   const [editing, setEditing] = useState<ActorRow | null>(null);
   return (
     <>
-      <List density="compact" hasDividers>
+      <List density="compact" hasDividers className="tessera-settings-list">
         {actors.map((actor) => (
           <ListItem
             key={actor.id}
-            startContent={<Avatar name={actor.name} size="sm" />}
-            label={actor.name}
-            description={actorDescription(actor)}
+            className="tessera-settings-row tessera-settings-row--wrap"
+            // The name is in the row, so the avatar is not a second, focusable tooltip stop.
+            startContent={<Avatar name={actor.name} size="sm" tooltip={false} />}
+            label={<SettingsTitle>{actor.name}</SettingsTitle>}
+            description={<SettingsHelp>{actorDescription(actor)}</SettingsHelp>}
             endContent={
-              <HStack gap={2} vAlign="center">
+              <HStack gap={2} vAlign="center" className="tessera-settings-end">
                 <Token label={KIND_LABELS[actor.kind] ?? "Agent"} size="sm" />
                 {actor.kind === "agent" ? <AccessSelect actor={actor} isArchived={isArchived} /> : null}
                 {actor.kind === "agent" ? (

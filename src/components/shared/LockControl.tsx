@@ -56,7 +56,7 @@ export function LockControl({ isLocked, confirmedLocked = isLocked, onToggle, si
     return (
       <HStack gap={1} vAlign="center" className={className}>
         <IconButton {...buttonProps} icon={<LockIcon className="tessera-lock-icon-in" />} />
-        <Text type="supporting" size="sm" weight="medium" className="tessera-lock-text-in">
+        <Text type="supporting" size="sm" weight="medium" className="tessera-lock-text-in tessera-lock-pill">
           Locked
         </Text>
       </HStack>

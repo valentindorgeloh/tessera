@@ -56,6 +56,7 @@ export function PageMeta({ page, labels, actors, labelsReadOnly, accessReadOnly,
         size="sm"
         icon={<Icon icon={page.access === "public" ? GlobeIcon : EyeSlashIcon} />}
         onClick={accessReadOnly ? undefined : onToggleAccess}
+        className="tessera-page-meta-control"
       />
       {page.is_locked ? <Token label="Locked" size="sm" icon={<Icon icon={LockIcon} />} /> : null}
       {labels === null ? null : (
@@ -69,6 +70,7 @@ export function PageMeta({ page, labels, actors, labelsReadOnly, accessReadOnly,
           isReadOnly={labelsReadOnly}
           hasSearch={options.length > 8}
           placeholder="Labels"
+          className="tessera-page-meta-control"
           emptyText="No labels in this project yet"
           renderOption={(option) => <Token label={option.label ?? option.value} size="sm" color={paletteTokenColor(byId.get(option.value)?.color)} />}
         />

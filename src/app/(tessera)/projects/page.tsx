@@ -63,10 +63,13 @@ async function ProjectRows() {
       {projects.map((project) => (
         <ListItem
           key={project.id}
+          // Touch: the row's link takes the row's padding as hit area (planning.css `tessera-row-hit`; visual audit P12).
+          className="tessera-row-hit"
           label={project.name}
           description={describeCounts(project.counts.total, project.counts.by_state_group.started, project.counts.by_state_group.completed)}
           href={`/projects/${project.id}/work-items`}
-          startContent={<ProjectToken project={{ identifier: project.identifier, logo: project.logo }} />}
+          // Visual audit P9: one minimum token width (archives.css), so the titles start at one x.
+          startContent={<ProjectToken project={{ identifier: project.identifier, logo: project.logo }} className="tessera-project-row-token" />}
         />
       ))}
     </List>

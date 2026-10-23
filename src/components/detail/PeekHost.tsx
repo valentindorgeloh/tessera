@@ -52,7 +52,8 @@ import { WorkItemDetail } from "./WorkItemDetail";
 import type { DetailHost, WorkItemDetailData } from "./types";
 import { clearPeekPush, movePeekPush, readPeekPush, stampPeekPush } from "./peek-history";
 import { registerPeekHost } from "./peek-hosts";
-import { PEEK_MAX_WIDTH, PEEK_MIN_WIDTH, loadPeekPrefs, savePeekPrefs, usePeekPrefs } from "./peek-prefs";
+import { PEEK_MAX_WIDTH, PEEK_MIN_WIDTH, hasNoResizeRange, loadPeekPrefs, savePeekPrefs, usePeekPrefs } from "./peek-prefs";
+import { useIsPanelCover } from "./peek-cover";
 import { closesWithBack, currentHref, mountsPeek, peekHref } from "./peek-url";
 
 /** The item the URL names; `data: null` when it is unknown, deleted or belongs to another project. */
@@ -112,6 +113,31 @@ function PeekSlot({ node }: { node: HTMLElement | null }) {
     );
   }
   return <VStack ref={adopt} className="tessera-peek-slot" />;
+}
+
+/**
+ * True while the container leaves the side panel no range to resize in. The
+ * panel never outgrows its container (detail.css: on a phone its stored
+ * 360–720px width is wider than the screen, so it covers the list), and a
+ * resize handle there has nothing to move. A panel merely as wide as the
+ * container still has a range (a tablet, a drag to the maximum): the handle
+ * stays so it can be dragged back. The returned ref goes on an element inside
+ * the panel; the observer re-checks whenever the container changes size.
+ */
+export function useIsPanelCapped(): [boolean, (element: HTMLElement | null) => void | (() => void)] {
+  const [isCapped, setCapped] = useState(false);
+  const watch = useCallback((element: HTMLElement | null) => {
+    const panel = element?.closest<HTMLElement>(".tessera-peek-panel");
+    const container = panel?.parentElement;
+    if (!panel || !container) return;
+    const update = () => setCapped(hasNoResizeRange(container.getBoundingClientRect().width));
+    update();
+    if (typeof ResizeObserver !== "function") return;
+    const observer = new ResizeObserver(update);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+  return [isCapped, watch];
 }
 
 const subscribeNothing = () => () => {};
@@ -221,6 +247,21 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
     resize(width);
   }, [isLoaded, resize, width]);
 
+  const [isPanelCapped, watchPanel] = useIsPanelCapped();
+  // A container too narrow for list plus panel (a tablet with the sidebar open): the panel covers the list (./peek-cover.ts).
+  const [isPanelCover, watchCover] = useIsPanelCover();
+  const watchPanelAndCover = useCallback(
+    (element: HTMLElement | null) => {
+      const stopCapped = watchPanel(element);
+      const stopCover = watchCover(element);
+      return () => {
+        if (typeof stopCapped === "function") stopCapped();
+        if (typeof stopCover === "function") stopCover();
+      };
+    },
+    [watchPanel, watchCover],
+  );
+
   const detail = peek ? (
     peek.data ? (
       <WorkItemDetail key={peek.id} data={peek.data} host={isModal ? "modal" : "peek"} onClose={close} onHostChange={changeHost} onOpenItem={openItem} />
@@ -232,9 +273,9 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
   const sidePanel =
     isOpen && !isModal ? (
       <>
-        <ResizeHandle resizable={panel.props} direction="horizontal" isReversed hasDivider={false} label="Resize the work item panel" />
-        <LayoutPanel resizable={panel.props} hasDivider={false} padding={1} isScrollable={false} label="Work item" role="complementary" className="tessera-peek-panel">
-          <Card padding={0} height="100%" elevation="low" className="tessera-peek-card">
+        {isPanelCapped || isPanelCover ? null : <ResizeHandle resizable={panel.props} direction="horizontal" isReversed hasDivider={false} label="Resize the work item panel" />}
+        <LayoutPanel resizable={panel.props} hasDivider={false} padding={1} isScrollable={false} label="Work item" role="complementary" className={isPanelCover ? "tessera-peek-panel tessera-peek-panel--cover" : "tessera-peek-panel"}>
+          <Card ref={watchPanelAndCover} padding={0} height="100%" elevation="low" className="tessera-peek-card">
             <PeekSlot node={slotNode} />
           </Card>
         </LayoutPanel>

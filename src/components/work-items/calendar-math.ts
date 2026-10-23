@@ -136,3 +136,11 @@ export function itemsByDay<T extends { target_date: string | null }>(items: read
   }
   return { byDay, unscheduled };
 }
+
+/** A day cell narrower than this (a phone, a side peek) opens quick add in a popover: an inline input in it would be a few pixels wide. */
+export const NARROW_CELL_PX = 120;
+
+/** Whether quick add for a cell `width` px wide opens in a popover (a cell that is not measured yet counts as narrow). */
+export function opensQuickAddInPopover(width: number | undefined): boolean {
+  return width === undefined || width < NARROW_CELL_PX;
+}

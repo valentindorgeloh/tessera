@@ -18,7 +18,7 @@
  * replaces them.
  */
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
@@ -42,6 +42,7 @@ import type { DisplayProperties, Group, GroupBy, StateGroup, WorkItem } from "@/
 import { GroupFooter, GroupPoints } from "./GroupFooter";
 import { isOptimisticId } from "./optimistic";
 import { UNGROUPED_KEY, hasUnloaded, loadedOfTotal } from "./paging";
+import { usePeekedId } from "./peeked";
 import { NoResults } from "./NoResults";
 import { RowProject } from "./row-project";
 import { TABLE_SORT_FIELDS, orderByFromSort, sortFromOrderBy } from "./table-sort";
@@ -55,6 +56,15 @@ interface TableRow extends Record<string, unknown> {
   groupKey: string;
 }
 
+function subscribeWide(onChange: () => void): () => void {
+  const query = window.matchMedia(PIN_COLUMNS_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+const readWide = () => window.matchMedia(PIN_COLUMNS_QUERY).matches;
+/** The server (and the first client render) pins, as a tablet or desktop does; a phone unpins right after hydration. */
+const serverWide = () => true;
+
 /** Group headers injected by the grouped-rows plugin read every unknown field as "" (never an object). */
 function isDataRow(row: TableRow): boolean {
   return typeof row.item === "object" && row.item !== null;
@@ -64,6 +74,14 @@ type ColumnKey = "key" | "name" | "project" | "state" | "priority" | "assignees"
 
 /** Columns whose cells hold a control; clicks inside them do not open the row. */
 const EDITABLE: ReadonlySet<string> = new Set<ColumnKey>(["state", "priority", "assignees", "labels", "cycle", "modules", "estimate", "start_date", "target_date"]);
+
+/** Id of the selection plugin's column (`__xds_selection` in the DOM); its cell stops clicks like an editable one. */
+const SELECTION_KEY = "__xds_selection";
+
+/** The Name column grows with the table but never below Plane's first-column floor of 240px (reference section 8). */
+const NAME_COLUMN_WIDTH = proportional(2, { minWidth: 240 });
+/** The key (and selection) columns stay pinned from tablet width up; on a phone the whole row scrolls. */
+const PIN_COLUMNS_QUERY = "(min-width: 768px)";
 
 const STATE_GROUPS: ReadonlySet<string> = new Set<StateGroup>(["backlog", "unstarted", "started", "completed", "cancelled", "triage"]);
 /** Id of the synthetic "no value" group (`NONE_GROUP_ID` in the engine's filters.ts). */
@@ -108,7 +126,7 @@ function buildColumns(
   columns.push({
     key: "name",
     header: "Name",
-    width: proportional(2),
+    width: NAME_COLUMN_WIDTH,
     renderCell: (row) => (
       <Text weight="medium" maxLines={1}>
         {row.item.name}
@@ -281,6 +299,7 @@ function GroupHeading({ group, field, bundle }: { group: Group | undefined; fiel
 }
 
 export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection, onLoadMore, onLoadMoreUngrouped, isLoadingMore, onOrderChange, onClearFilters }: LayoutProps) {
+  const peekedId = usePeekedId();
   const groups = useMemo(() => result.groups ?? [], [result.groups]);
   const grouped = display.group_by !== null && groups.length > 0;
 
@@ -374,7 +393,9 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
     // Only key, width and resizable matter for the minimum widths; dropping renderCell keeps the row type generic.
     columns: columns.map(({ key, width, resizable }) => ({ key, width, resizable })),
   });
-  const stickyPlugin = useTableStickyColumns<TableRow>({ startKeys: ["key"] });
+  // Pinned key columns need room to leave something to scroll; on a phone the whole row scrolls (reference section 8).
+  const pinColumns = useSyncExternalStore(subscribeWide, readWide, serverWide);
+  const stickyPlugin = useTableStickyColumns<TableRow>({ startKeys: pinColumns ? ["key"] : [] });
 
   /** A pointer click on the row opens the item (the key button is the keyboard route); editable cells keep their clicks. */
   const openPlugin = useMemo<TablePlugin<TableRow>>(
@@ -389,6 +410,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
           htmlProps: {
             ...props.htmlProps,
             className: "tessera-table-row",
+            "aria-current": row.item.id === peekedId ? "true" : undefined,
             onClick: () => onOpen(row.item.id),
           },
         };
@@ -397,6 +419,18 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
         if (!isDataRow(row)) return props;
         // The key cell's text starts where the Key header's does (table.css): its open button brings the inset.
         if (column.key === "key") return { ...props, htmlProps: { ...props.htmlProps, className: "tessera-table-key-cell" } };
+        // Ticking a row's checkbox selects it; the click (and Space on the checkbox) must not also open the peek.
+        if (column.key === SELECTION_KEY) {
+          return {
+            ...props,
+            htmlProps: {
+              ...props.htmlProps,
+              className: "tessera-table-select-cell",
+              onClick: (event) => event.stopPropagation(),
+              onKeyDown: (event) => event.stopPropagation(),
+            },
+          };
+        }
         if (!EDITABLE.has(column.key)) return props;
         return {
           ...props,
@@ -409,7 +443,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
         };
       },
     }),
-    [onOpen],
+    [onOpen, peekedId],
   );
 
   // Insertion order is the plugin order: the grouped plugin runs last so its header rows win over the open handler.

@@ -28,6 +28,11 @@ export type DigestCardProps = {
   kind: DigestKind;
   id: string;
   digest: DigestView | null;
+  /**
+   * `list` (the default) insets the card 16px from the edges of the list or panel it tops (inbox, cycle, module);
+   * `none` leaves the margins to the column it sits in (the Home and Analytics widgets).
+   */
+  inset?: "list" | "none";
 };
 
 const WORK_LINK = /\bwork:([A-Z][A-Z0-9]{1,11}-\d+)\b/gi;
@@ -43,7 +48,7 @@ function messageOf(body: unknown, fallback: string): string {
   return fallback;
 }
 
-export function DigestCard({ kind, id, digest }: DigestCardProps) {
+export function DigestCard({ kind, id, digest, inset = "list" }: DigestCardProps) {
   const router = useRouter();
   const toast = useToast();
   const { status } = useAiStatus();
@@ -98,7 +103,7 @@ export function DigestCard({ kind, id, digest }: DigestCardProps) {
   const action = !available || (shown !== null && !shown.is_stale) ? null : shown === null ? "Summarise" : "Refresh";
 
   return (
-    <Card className="tessera-ai-digest">
+    <Card className={inset === "list" ? "tessera-ai-digest tessera-ai-digest--inset" : "tessera-ai-digest"}>
       <VStack gap={3} width="100%">
         <HStack gap={2} vAlign="center" hAlign="between" wrap="wrap">
           <HStack gap={2} vAlign="center">

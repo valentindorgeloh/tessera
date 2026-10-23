@@ -87,7 +87,7 @@ describe("reduceTranscript", () => {
     state = reduceTranscript(state, { type: "event", event: { type: "proposal", proposal: proposal() } });
     state = reduceTranscript(state, { type: "event", event: { type: "done", stop_reason: "max_tokens", continue: true } });
     const assistant = state.turns[1];
-    expect(assistant?.content).toBe("Done.");
+    expect(assistant?.content.trim()).toBe("Done.");
     expect(assistant?.streaming).toBe(false);
     expect(assistant?.canContinue).toBe(true);
     expect(assistant?.calls).toEqual([{ id: "tool-1", name: "propose_update_work_item", status: "error", summary: "Missing id" }]);
@@ -97,6 +97,36 @@ describe("reduceTranscript", () => {
       { role: "user", content: "Set WEB-1 to high" },
       { role: "assistant", content: "Done." },
     ]);
+  });
+
+  it("separates the text blocks around tool calls with a blank line", () => {
+    let state = ask(emptyConversation(), "Raise WEB-49", 1);
+    state = reduceTranscript(state, { type: "event", event: { type: "text_delta", text: "Looking up WEB-49." } });
+    state = reduceTranscript(state, { type: "event", event: { type: "tool_use", id: "tool-1", name: "get_work_item_by_key" } });
+    state = reduceTranscript(state, { type: "event", event: { type: "tool_result", id: "tool-1", ok: true, summary: "WEB-49" } });
+    state = reduceTranscript(state, { type: "event", event: { type: "text_delta", text: "I will propose a change." } });
+    state = reduceTranscript(state, { type: "event", event: { type: "tool_use", id: "tool-2", name: "propose_update_work_item" } });
+    state = reduceTranscript(state, { type: "event", event: { type: "tool_use", id: "tool-3", name: "propose_update_work_item" } });
+    state = reduceTranscript(state, { type: "event", event: { type: "text_delta", text: "Done." } });
+    expect(state.turns[1]?.content).toBe("Looking up WEB-49.\n\nI will propose a change.\n\nDone.");
+  });
+
+  it("leaves no spinner behind: a proposal finishes its propose_ call and the end of the turn finishes the rest", () => {
+    let state = ask(emptyConversation(), "Raise WEB-49", 1);
+    state = reduceTranscript(state, { type: "event", event: { type: "tool_use", id: "tool-1", name: "get_work_item_by_key" } });
+    state = reduceTranscript(state, { type: "event", event: { type: "tool_result", id: "tool-1", ok: true, summary: "WEB-49" } });
+    state = reduceTranscript(state, { type: "event", event: { type: "tool_use", id: "tool-2", name: "propose_update_work_item" } });
+    expect(state.turns[1]?.calls.map((call) => call.status)).toEqual(["complete", "running"]);
+    state = reduceTranscript(state, { type: "event", event: { type: "proposal", proposal: proposal() } });
+    expect(state.turns[1]?.calls.map((call) => call.status)).toEqual(["complete", "complete"]);
+
+    // A read call that never reported a result is finished by `done`, and by `error` as a failure.
+    let done = ask(emptyConversation(), "Look", 1);
+    done = reduceTranscript(done, { type: "event", event: { type: "tool_use", id: "tool-9", name: "get_work_item_by_key" } });
+    const failed = reduceTranscript(done, { type: "event", event: { type: "error", kind: "unavailable", message: "Stream broke" } });
+    expect(failed.turns[1]?.calls[0]?.status).toBe("error");
+    done = reduceTranscript(done, { type: "event", event: { type: "done", stop_reason: "end_turn" } });
+    expect(done.turns[1]?.calls[0]?.status).toBe("complete");
   });
 
   it("marks a stopped turn and drops turns past the cap", () => {

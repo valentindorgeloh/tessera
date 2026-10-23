@@ -25,13 +25,117 @@
   --container-padding-block-end: var(--spacing-0);
 }
 
-/* The title keeps its full word on a phone; the tab strip scrolls in the room left ("Anal…" otherwise). */
+/*
+ * The trigger answers a pointer: the shared hover overlay (an Astryx button's
+ * hover is the same token), the pressed state one step on, and a 16px chevron.
+ * `astryx-collapsible-trigger` is Astryx's documented class.
+ */
+@media (hover: hover) {
+  .tessera-analytics-data-table .astryx-collapsible-trigger:hover {
+    background-image: linear-gradient(var(--color-overlay-hover), var(--color-overlay-hover));
+  }
+}
+
+.tessera-analytics-data-table .astryx-collapsible-trigger:active {
+  background-image: linear-gradient(var(--color-overlay-pressed), var(--color-overlay-pressed));
+}
+
+.tessera-analytics-data-table .astryx-collapsible-trigger svg {
+  inline-size: var(--spacing-4);
+  block-size: var(--spacing-4);
+}
+
+/* The title keeps its full word; the tab strip scrolls in the room left ("Anal…" otherwise). */
 .tessera-analytics-title {
   flex-shrink: 0;
 }
 
 .tessera-analytics-tabs {
   min-width: 0;
+}
+
+/*
+ * Below 1100px the title, the picker and the range control no longer fit one
+ * row beside the tabs. The header (PanelBar tabsBelow, without canWrap, which
+ * PanelHeader documents as unsupported with it) becomes two rows: the title and
+ * the end group, then the tab strip full width and docked on the bar's bottom
+ * hairline. From 1100px it is the ordinary single row. shell.css holds the
+ * same grid for phones; its tabsBelow rules stop at 600px, so this block
+ * carries the 600 to 1099px range (ASSUMPTION: a viewport width stands in for
+ * the panel width, so a collapsed sidebar at 1000px still gets two rows).
+ */
+@media (max-width: 1099px) {
+  .tessera-panel-bar.tessera-panel-bar--tabs-below.tessera-analytics-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: calc(var(--size-element-md) + var(--spacing-3)) auto;
+    grid-template-areas:
+      "title end"
+      "tabs tabs";
+    column-gap: var(--spacing-3);
+    row-gap: 0;
+    min-height: 0;
+    padding-block: 0;
+    align-items: center;
+  }
+
+  .tessera-analytics-header > .tessera-panel-bar-start {
+    display: contents;
+  }
+
+  .tessera-analytics-header > .tessera-panel-bar-start > :not(.astryx-tab-list) {
+    grid-area: title;
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  .tessera-analytics-header > .tessera-panel-bar-end {
+    grid-area: end;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .tessera-analytics-header > .tessera-panel-bar-start > .astryx-tab-list {
+    grid-area: tabs;
+    align-self: end;
+    width: calc(100% + var(--spacing-3));
+    min-width: 0;
+    margin-inline-start: calc(-1 * var(--spacing-3));
+  }
+}
+
+/*
+ * Below 600px the header is three rows (PanelBar tabsBelow): the title, the
+ * project picker with the range control under it (the picker takes the room the
+ * range leaves, and the pair wraps if even that is too narrow), and the tabs on
+ * their own full-width row, docked on the hairline, so no tab is half hidden
+ * at rest. shell.css holds the 44px tabs.
+ */
+@media (max-width: 599px) {
+  .tessera-panel-bar.tessera-panel-bar--tabs-below.tessera-analytics-header {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: calc(var(--size-element-md) + var(--spacing-3)) auto auto;
+    grid-template-areas:
+      "title"
+      "end"
+      "tabs";
+    align-items: stretch;
+  }
+
+  .tessera-analytics-header > .tessera-panel-bar-start > :not(.astryx-tab-list) {
+    align-self: center;
+  }
+
+  .tessera-analytics-header > .tessera-panel-bar-end {
+    flex-shrink: 1;
+    padding-block-end: var(--spacing-2);
+  }
+
+  .tessera-analytics-header > .tessera-panel-bar-end .tessera-analytics-projects {
+    inline-size: auto;
+    min-inline-size: calc(var(--spacing-10) * 3);
+    flex: 1 1 0;
+  }
 }
 
 .tessera-analytics-projects {
@@ -50,9 +154,33 @@
   flex: none;
 }
 
-/* A finger needs a 44px target; a narrow phone gets it with or without a coarse pointer. */
+/*
+ * Download CSV, the project picker, the breakdown selectors and the range
+ * control keep their drawn size on a phone: their 44px hit area is the theme's
+ * (Button, SegmentedControl) and shell.css's (Selector, MultiSelector), so the
+ * header stays as high as it was before the touch rework.
+ */
+
+/*
+ * A finger needs 44px: the Data table trigger and the links in the tables (a table row with a link is
+ * 44px tall, so two rows' targets never overlap; the count links are as wide as
+ * they are tall and sit at the end of their cell). The range control and
+ * Download CSV get 44 from the theme.
+ */
 @media (pointer: coarse), (max-width: 480px) {
-  .tessera-analytics-csv {
+  .tessera-analytics-link {
+    display: inline-flex;
+    align-items: center;
+    min-inline-size: var(--spacing-11);
     min-block-size: var(--spacing-11);
   }
+
+  .tessera-analytics-link--count {
+    justify-content: flex-end;
+  }
+
+  .tessera-analytics-data-table .astryx-collapsible-trigger {
+    min-block-size: var(--spacing-11);
+  }
+
 }

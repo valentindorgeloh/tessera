@@ -62,14 +62,139 @@
     grid-area: end;
   }
 
+  /* S7 (shell lane, additive): the first tab's 12px padding is pulled onto the 16px inset so its text sits under the title. */
   .tessera-inbox-bar .tessera-inbox-tabs {
     grid-area: tabs;
     align-self: end;
-    width: 100%;
+    width: calc(100% + var(--spacing-3));
+    margin-inline-start: calc(-1 * var(--spacing-3));
   }
 
   /* A touch target is 44px; the indicator still sits on the hairline. */
   .tessera-inbox-bar .tessera-inbox-tabs .astryx-tab {
     min-height: calc(var(--size-element-md) + var(--spacing-3));
+  }
+}
+
+/*
+ * Below 1024px there is no room for a 400px list beside the item (reference
+ * "Inbox layout": a full-width slide-in under 1024). The list fills the panel
+ * and has no resize handle; with ?item= set the detail replaces the list and a
+ * Back button (the first row of the detail) returns to it. The classes carry
+ * two selectors so they win over the panel's own width (a StyleX class reading
+ * --x-width, set by useResizable).
+ */
+.tessera-inbox .tessera-inbox-back {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .tessera-inbox .tessera-inbox-list {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    flex: 1 1 auto;
+  }
+
+  .tessera-inbox .astryx-resize-handle {
+    display: none;
+  }
+
+  .tessera-inbox:not(.tessera-inbox--item) .tessera-inbox-detail {
+    display: none;
+  }
+
+  .tessera-inbox--item .tessera-inbox-list {
+    display: none;
+  }
+
+  .tessera-inbox .tessera-inbox-back {
+    display: flex;
+  }
+}
+
+/* The detail's empty state sits in the middle of the pane, not at its top (decision: rule 1 of the audit, a centred empty state). */
+.tessera-inbox-empty {
+  min-block-size: 100%;
+}
+
+/*
+ * Rows start on the panel header's 16px inset (the avatar lines up with the
+ * "Inbox" title; the Actions button ends 16px before the divider). The row
+ * itself keeps the full width, so its hover and selected fill still reach both
+ * edges. Astryx's `astryx-item` (an li in a List) is the documented list item class.
+ */
+.tessera-inbox-list li.astryx-item {
+  padding-inline: var(--spacing-4);
+}
+
+/* The unread dot keeps its slot on a read row, so the time text has one x on every row. */
+.tessera-inbox-dot {
+  inline-size: var(--spacing-2);
+  flex: none;
+}
+
+/*
+ * 9.6px initials need 4.5:1 in both schemes: the primary text colour, and on the
+ * selected row (an accent tint that the avatar's own 10% overlay darkens past
+ * 4.5:1) no overlay.
+ */
+.tessera-inbox-list .astryx-avatar-fallback {
+  color: var(--color-text-primary);
+}
+
+.tessera-inbox-list [aria-current="true"] .astryx-avatar-fallback {
+  background-color: transparent;
+}
+
+/*
+ * A finger needs the row's main button (the label area) at 44px; the row
+ * itself is already taller. The Actions button and the Unread toggle get 44
+ * from the theme's coarse-pointer rule.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-inbox-list li.astryx-item button:not(.astryx-button) {
+    min-block-size: var(--spacing-11);
+  }
+
+  /* A short tab name ("All") is still 44px wide. */
+  .tessera-inbox-tabs .astryx-tab {
+    min-inline-size: var(--spacing-11);
+    justify-content: center;
+  }
+}
+
+/*
+ * The Snooze dialog's date and time fields (decision 14, S1). Each segment is a
+ * 32px box holding a 20px input and, at the start, a 16px icon button; the
+ * segments sit 8px apart, so two 44px areas would overlap. A phone gets 12px
+ * between them (two 44px areas then meet without overlapping). The input keeps
+ * its drawn size: padding with an equal negative margin makes its own box 44px
+ * tall (a bare input cannot carry a ::before; the native date and time inputs
+ * of a touch device have no content height of their own, hence the minimum),
+ * and the icon button's area
+ * reaches 20px to the start and 8px to the end (where the input begins).
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-snooze-field {
+    row-gap: var(--spacing-3) !important;
+  }
+
+  .tessera-snooze-field input {
+    min-block-size: var(--spacing-11);
+    padding-block: var(--spacing-3) !important;
+    margin-block: calc(-1 * var(--spacing-3)) !important;
+  }
+
+  .tessera-snooze-field .astryx-date-time-input-date-segment > button,
+  .tessera-snooze-field .astryx-date-time-input-time-segment > button {
+    position: relative;
+  }
+
+  .tessera-snooze-field .astryx-date-time-input-date-segment > button::before,
+  .tessera-snooze-field .astryx-date-time-input-time-segment > button::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: calc(-1 * var(--spacing-5)) calc(-1 * var(--spacing-2));
   }
 }

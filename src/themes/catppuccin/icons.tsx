@@ -27,6 +27,7 @@ import {
   FolderPlus,
   Funnel,
   FunnelSimple,
+  Smiley,
   House,
   Info,
   Kanban,
@@ -134,6 +135,14 @@ import {
   FolderSimpleStar,
   Note,
   NotePencil,
+  // Pages lane: the editor's slash-menu block commands.
+  CodeBlock,
+  ListNumbers,
+  Minus,
+  Quotes,
+  TextHOne,
+  TextHThree,
+  TextHTwo,
   // P5 assistant: panel, proposals, stop, retry and the view-from-prompt action.
   ArrowClockwise,
   ChatCircleDots,
@@ -309,6 +318,15 @@ export const MoveDownIcon = duotoneIcon(ArrowDown);
 // P5 assistant panel, proposals and view from prompt.
 export const AssistantIcon = duotoneIcon(ChatCircleDots);
 export const ProposalIcon = duotoneIcon(ListChecks);
+
+// Pages lane: one glyph per slash-menu block command (Heading 1-3, numbered list, code block, quote, divider).
+export const TextH1Icon = duotoneIcon(TextHOne);
+export const TextH2Icon = duotoneIcon(TextHTwo);
+export const TextH3Icon = duotoneIcon(TextHThree);
+export const ListNumbersIcon = duotoneIcon(ListNumbers);
+export const CodeBlockIcon = duotoneIcon(CodeBlock);
+export const QuoteIcon = duotoneIcon(Quotes);
+export const DividerIcon = duotoneIcon(Minus);
 export const StopIcon = duotoneIcon(Stop);
 export const RetryIcon = duotoneIcon(ArrowClockwise);
 export const MagicIcon = duotoneIcon(MagicWand);
@@ -328,6 +346,8 @@ export const DownloadIcon = duotoneIcon(DownloadSimple);
 export const BackupIcon = duotoneIcon(FloppyDisk);
 export const WebhookIcon = duotoneIcon(WebhooksLogo);
 export const AdvancedFilterIcon = duotoneIcon(FunnelSimple);
+// Detail reactions: the add-reaction trigger.
+export const SmileyIcon = duotoneIcon(Smiley);
 
 /**
  * Icons a project logo may use (`Logo.icon` holds the Phosphor name). The

@@ -119,6 +119,12 @@ export function MarkdownEditor({
   const [mode, setModeState] = useState<EditorMode>("rich");
   const [sourceText, setSourceText] = useState(value);
   const [linkDraft, setLinkDraft] = useState<string | null>(null);
+  /** The hovered block's heading level ("h1".."h3"), "" for any other block: the drag handle centres on the block's first line (editor.css). */
+  const [handleBlock, setHandleBlock] = useState("");
+  const onHandleNode = useCallback(({ node }: { node: { type: { name: string }; attrs: Record<string, unknown> } | null }) => {
+    const level = node?.type.name === "heading" ? Number(node.attrs.level) : 0;
+    setHandleBlock(level >= 1 && level <= 3 ? `h${level}` : "");
+  }, []);
 
   // Callbacks the editor's one-time option closures read; synced after every render.
   const callbacks = useRef<Callbacks>({ onChange, onFlush, onLossyParse, onOpenEntity });
@@ -127,6 +133,7 @@ export function MarkdownEditor({
   });
 
   const editorRef = useRef<Editor | null>(null);
+  const bubbleRef = useRef<HTMLDivElement | null>(null);
   const sourceRef = useRef<HTMLTextAreaElement>(null);
   const modeRef = useRef<EditorMode>("rich");
   const sourceTextRef = useRef(value);
@@ -259,6 +266,21 @@ export function MarkdownEditor({
   useEffect(() => {
     editor?.setEditable(!readOnly);
   }, [editor, readOnly]);
+
+  // The bubble menu plugin makes its root a tab stop (tabIndex 0) every time its view is rebuilt, and other plugins
+  // registering (the drag handle, suggestions) rebuild it. The buttons inside are the stops, so the root stays
+  // click-focusable only: put it back to -1 whenever the attribute changes.
+  useEffect(() => {
+    const root = bubbleRef.current;
+    if (root === null) return;
+    const settle = () => {
+      if (root.tabIndex !== -1) root.tabIndex = -1;
+    };
+    settle();
+    const observer = new MutationObserver(settle);
+    observer.observe(root, { attributes: true, attributeFilter: ["tabindex"] });
+    return () => observer.disconnect();
+  }, [editor, mode]);
 
   // `@` candidates and the `#` search scope, read by the triggers at query time.
   useEffect(() => {
@@ -449,6 +471,7 @@ export function MarkdownEditor({
         <BubbleMenu
           editor={editor}
           className="tessera-editor-bubble"
+          ref={bubbleRef}
           shouldShow={({ editor: current, from, to }) => from !== to && !current.isActive("codeBlock")}
           options={{ placement: "top" }}
         >
@@ -493,7 +516,7 @@ export function MarkdownEditor({
             </HStack>
             {linkDraft !== null ? (
               <TextInput
-                label="Link URL"
+                label="Link URL (empty removes the link)"
                 isLabelHidden
                 size="sm"
                 value={linkDraft}
@@ -505,7 +528,7 @@ export function MarkdownEditor({
                     setLinkDraft(null);
                   }
                 }}
-                placeholder="https://… or work:WEB-12 (empty removes the link)"
+                placeholder="https://… or work:WEB-12"
                 hasAutoFocus
                 className="tessera-editor-link-input"
               />
@@ -514,7 +537,7 @@ export function MarkdownEditor({
         </BubbleMenu>
       ) : null}
       {editor && !compact && mode === "rich" && !readOnly ? (
-        <DragHandle editor={editor} className="tessera-editor-drag">
+        <DragHandle editor={editor} className={handleBlock === "" ? "tessera-editor-drag" : `tessera-editor-drag tessera-editor-drag--${handleBlock}`} onNodeChange={onHandleNode}>
           <Icon icon={DragHandleIcon} size="sm" color="secondary" />
         </DragHandle>
       ) : null}

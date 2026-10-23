@@ -72,6 +72,7 @@ function DuplicateForm({ projectId, excludeId, onOpenChange, onConfirm, isPendin
                 {hits.map((hit) => (
                   <ListItem
                     key={hit.id}
+                    className="tessera-row-hit"
                     label={hit.title}
                     description={hit.key ?? undefined}
                     isSelected={picked === hit.id}

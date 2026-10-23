@@ -17,9 +17,9 @@
 }
 
 /*
- * The horizontal strip scrolls on its own; columns keep their width and fill the height. The strip is the size
- * container, so `cqw` is its content width: a column is 350px, or the whole strip when that is narrower (a phone).
- * On a narrow screen the columns snap to the strip's start, with the padding kept clear.
+ * The horizontal strip scrolls on its own; columns keep their width and fill the height. The strip is the size container, so `cqw` is its content width: a column is 350px, or the whole strip when that is narrower (a phone).
+ * On a narrow screen the columns snap to the strip's start, with the padding kept clear. The snap is mandatory, so a
+ * swipe never rests between two columns.
  */
 .tessera-board-strip {
   container-type: inline-size;
@@ -38,7 +38,7 @@
 
 @media (max-width: 480px) {
   .tessera-board-strip {
-    scroll-snap-type: x proximity;
+    scroll-snap-type: x mandatory;
     scroll-padding-inline: var(--spacing-4);
   }
 
@@ -69,34 +69,95 @@
   flex: 0 0 var(--tessera-board-column-width);
 }
 
+/* The column head is at least 44px tall (plane-visual-reference section 7); the title, count and add button centre in it. */
+.tessera-board-column-head,
+.tessera-board-column .astryx-layout-header {
+  min-block-size: var(--spacing-11);
+}
+
+/*
+ * A column's head is exactly 44px on a desktop: the 28px title row plus 8px above and 7px below, and the divider's 1px.
+ * Astryx pads the header's content 12px, which made it 53px. Under a finger the add button keeps its 28px box (its 44px
+ * hit area is the theme's pseudo-element), so the head is the same 44px there: the padding stays. (A swimlane head
+ * holds a quick-add row, so it is taller by design and keeps its card padding.)
+ */
+.tessera-board-column .astryx-layout-header > :first-child {
+  padding-block: var(--spacing-2) calc(var(--spacing-2) - var(--border-width));
+}
+
 .tessera-board-column-title {
   min-width: 0;
   flex: 1;
+  font-weight: var(--font-weight-medium);
+}
+
+/* The title reads 16px / 500 (a state name inherits it); the count and the points keep their own weights. */
+.tessera-board-column-title .astryx-heading {
+  font-weight: var(--font-weight-medium);
+}
+
+.tessera-board-column-title .tessera-paging-points {
+  font-weight: var(--font-weight-normal);
 }
 
 .tessera-board-column-body {
   min-height: var(--spacing-12);
 }
 
-/* Swimlanes: a header row of column titles, then one row of cells per sub-group. */
+/*
+ * Swimlanes: a header row of column titles, then one row of cells per sub-group. The header row sticks to the top of
+ * the strip and each lane's title bar sticks below it (and to the start edge), so every lane keeps its column titles
+ * and its own name in view while the strip scrolls on both axes. Both are opaque, above the cards. The strip gives up
+ * its top padding so the row's own 16px (the same space) sits inside the sticky box, and the row covers the 16px gap
+ * under it with a matching negative margin; the cards never show between the heads and the lane bar.
+ * `--tessera-board-head-h` is the row's height, kept by BoardLayout (a ResizeObserver: a quick-add row can open in a
+ * head and make it taller).
+ */
 .tessera-board-lanes {
   align-items: stretch;
+  padding-block-start: 0;
 }
 
 .tessera-board-lane-row > * {
   flex-shrink: 0;
 }
 
-/* A lane is a controlled Collapsible (F3.2): the trigger row sticks to the left while the cells scroll. */
+.tessera-board-heads {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  inline-size: max-content;
+  padding-block: var(--spacing-4);
+  margin-block-end: calc(-1 * var(--spacing-4));
+  background-color: var(--color-background-surface);
+}
+
+/* A lane is a controlled Collapsible (F3.2); its trigger is the lane bar, as wide as its label so it can slide with the strip. */
 .tessera-board-lane {
   flex-shrink: 0;
   width: max-content;
 }
 
-.tessera-board-lane-title {
+.tessera-board-lane > .astryx-collapsible-trigger {
   position: sticky;
+  inset-block-start: var(--tessera-board-head-h, 0px);
   inset-inline-start: 0;
+  z-index: 1;
+  inline-size: max-content;
+  padding-inline-end: var(--spacing-2);
+  background-color: var(--color-background-surface);
+  border-radius: var(--radius-element);
+}
+
+.tessera-board-lane-title {
   padding-inline: var(--spacing-1);
+}
+
+/* A finger needs a 44px lane bar (touch targets, decision 14). */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-board-lane > .astryx-collapsible-trigger {
+    min-block-size: var(--spacing-11);
+  }
 }
 
 .tessera-board-cell {
@@ -104,7 +165,11 @@
   flex: 0 0 var(--tessera-board-column-width);
 }
 
-/* Cards are the drag handles: no text selection, no touch panning, a lift on hover. */
+/*
+ * Cards are drag handles for a mouse or pen: no text selection, a lift on hover, a resting shadow. A finger drags from
+ * the grip only (BoardCards.tsx), so the card itself never carries `touch-action: none` and a swipe on a card or in a
+ * gap scrolls the column and the strip (field guide "Drag and touch").
+ */
 .tessera-board-card,
 .tessera-drag-overlay {
   border-radius: var(--radius-element);
@@ -113,19 +178,67 @@
 .tessera-board-card {
   cursor: grab;
   user-select: none;
-  touch-action: none;
-  transition: box-shadow var(--duration-fast) var(--ease-standard);
+  box-shadow: var(--shadow-low);
+  transition:
+    box-shadow var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
 }
 
 .tessera-board-card:hover {
   box-shadow: var(--shadow-med);
 }
 
+/* The card the side peek shows (aria-current, set from ?peek=): an accent border. */
+.tessera-board-card[aria-current="true"] {
+  border-color: var(--color-accent);
+}
+
 /* Archived project: cards open but are not drag sources. */
 .tessera-board-card-readonly {
   cursor: pointer;
-  touch-action: auto;
 }
+
+/*
+ * The grip sits at the start of the key row and exists for a finger: hidden where a mouse drags the whole card, 44px
+ * under a coarse pointer or on a phone (the `.tessera-row-grip` rules in project-settings.css size it, and its
+ * `touch-action: none` makes it the only part of the card that does not scroll).
+ */
+.tessera-board-card-grip {
+  display: none;
+}
+
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-board-card-grip {
+    display: block;
+  }
+}
+
+/*
+ * The card's menu is quiet until the card is hovered or holds focus (a keyboard user reaches it by Tab, which shows
+ * it), or while its menu is open. On a touch screen there is no hover, so it stays visible. The slot is also the
+ * drag overlay's inert stand-in, so both cards share the key row's height; `opacity` only, no pointer-events rule,
+ * so a click on the dimmed button still lands.
+ */
+.tessera-board-card-menu {
+  min-inline-size: var(--size-element-sm);
+  min-block-size: var(--size-element-sm);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.tessera-board-card:hover .tessera-board-card-menu,
+.tessera-board-card:focus-within .tessera-board-card-menu,
+.tessera-board-card-menu:has([aria-expanded="true"]) {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .tessera-board-card-menu {
+    opacity: 1;
+  }
+}
+
+/* A finger gets a 44px hit area on the menu button (the theme's pseudo-element); the button, the card and the overlay's inert slot keep their desktop size. */
 
 /* Landing slot while a card is dragged; the height follows the dragged card (Card height prop). */
 .tessera-board-placeholder {

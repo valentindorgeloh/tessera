@@ -149,7 +149,7 @@ function ArchivedWorkItemRow({ item, selected, onToggle, onOpen, onDelete }: Row
 
   return (
     <ListItem
-      className="tessera-wi-row"
+      className="tessera-wi-row tessera-row-hit"
       label={`${item.key} ${item.name}`}
       description={
         // No hover card: the time sits inside the row's link or button, which holds no second control or tab stop.

@@ -127,7 +127,7 @@ function ViewForm({ projectId, onOpenChange, mode, title, view, initial }: Omit<
       content={
         <LayoutContent>
           <VStack gap={4}>
-            <FormLayout>
+            <FormLayout className="tessera-dialog-form">
               <TextInput
                 label="Name"
                 value={name}

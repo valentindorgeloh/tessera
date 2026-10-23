@@ -18,6 +18,7 @@ import { createBackupAction } from "@/app/actions/maintenance";
 import { updateWorkspaceSettingsAction } from "@/app/actions/workspace-settings";
 import { RelativeTime } from "@/components/detail/RelativeTime";
 import { WorkspaceSettingsChrome } from "@/components/workspace-settings/WorkspaceSettingsChrome";
+import { FILE_NAME_COLUMN, SHORT_COLUMN, TIME_COLUMN, TOKEN_COLUMN } from "@/components/workspace-settings/table-widths";
 import type { BackupFile } from "@/lib/tessera/types";
 import { BackupIcon } from "@/themes/catppuccin/icons";
 import { autoBackupStale, BACKUP_KIND_LABEL, formatBackupSize } from "./backup-format";
@@ -87,10 +88,10 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
         <Button size="sm" variant="primary" label="Back up now" onClick={backUpNow} isLoading={isBackingUp} />
       }
     >
-      <VStack gap={4} padding={6}>
+      <VStack gap={4} paddingInline={4} className="tessera-settings-body">
         <VStack gap={2}>
-          <Switch label="Daily backups" value={enabled} onChange={toggleDaily} isDisabled={isSaving} />
-          <Text color="secondary" size="sm">
+          <Switch label="Daily backups" size="sm" value={enabled} onChange={toggleDaily} isDisabled={isSaving} />
+          <Text type="supporting" color="secondary">
             Automatic copies keep the newest per day for 7 days, per week for 4 weeks and per month for 12 months. Manual
             copies keep 20; migration copies keep 10.
           </Text>
@@ -117,6 +118,7 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
               {
                 key: "name",
                 header: "File",
+                width: FILE_NAME_COLUMN,
                 renderCell: (row) => (
                   <HStack gap={2} align="center">
                     <Icon icon={BackupIcon} />
@@ -127,21 +129,25 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
               {
                 key: "kind",
                 header: "Kind",
+                width: TOKEN_COLUMN,
                 renderCell: (row) => <Token label={row.kind} size="sm" />,
               },
               {
                 key: "size",
                 header: "Size",
+                width: SHORT_COLUMN,
                 renderCell: (row) => <Text color="secondary">{row.size}</Text>,
               },
               {
                 key: "created",
                 header: "Created",
+                width: TIME_COLUMN,
                 renderCell: (row) => <RelativeTime value={row.createdAt} type="supporting" color="secondary" hasTooltip={false} />,
               },
               {
                 key: "check",
                 header: "Check",
+                width: SHORT_COLUMN,
                 renderCell: (row) => <Text color="secondary">{row.check}</Text>,
               },
             ]}

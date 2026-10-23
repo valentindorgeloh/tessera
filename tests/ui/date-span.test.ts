@@ -3,7 +3,7 @@
  * and the calendar grid (src/components/work-items/calendar-math.ts).
  */
 import { describe, expect, it } from "vitest";
-import { calendarWeeks, itemsByDay, shiftPeriod } from "@/components/work-items/calendar-math";
+import { NARROW_CELL_PX, calendarWeeks, itemsByDay, opensQuickAddInPopover, shiftPeriod } from "@/components/work-items/calendar-math";
 import { applyDayDelta, barSpan, calendarDropPatch, dayDelta, scheduleOnDay, timelineRange } from "@/components/work-items/date-span";
 
 const span = { start_date: "2026-10-01", target_date: "2026-10-05" };
@@ -115,5 +115,16 @@ describe("calendarWeeks", () => {
     ]);
     expect(grouped.byDay.get("2026-10-02")?.map((item) => item.id)).toEqual(["a", "c"]);
     expect(grouped.unscheduled.map((item) => item.id)).toEqual(["b"]);
+  });
+});
+
+describe("opensQuickAddInPopover", () => {
+  it("opens quick add in a popover for a narrow or unmeasured cell, inline for a wide one", () => {
+    expect(NARROW_CELL_PX).toBe(120);
+    expect(opensQuickAddInPopover(44)).toBe(true);
+    expect(opensQuickAddInPopover(119.9)).toBe(true);
+    expect(opensQuickAddInPopover(120)).toBe(false);
+    expect(opensQuickAddInPopover(190)).toBe(false);
+    expect(opensQuickAddInPopover(undefined)).toBe(true);
   });
 });

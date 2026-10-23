@@ -1,54 +1,132 @@
 /*
  * Calendar layout (src/components/work-items/CalendarLayout.tsx).
- * Tokens only. The day grid is an Astryx Grid; these classes mark today,
- * days outside the month, a drop target and the hover-only add button.
+ * Tokens only. The day grid is an Astryx Grid; these classes mark today (a
+ * filled pill behind the date number), weekends and days outside the month, a
+ * drop target and the add button. The toolbar, weekday row and grid share one
+ * 16px inline gutter (the panel inset); the toolbar's PanelBar drops its own
+ * padding inside it.
  */
 
 .tessera-cal {
+  /* The date number's inset from the cell's edge; the weekday label above takes the same (see .tessera-cal-head). */
+  --tessera-cal-cell-pad: var(--spacing-1);
+  --tessera-cal-num-inset: var(--spacing-2);
   container: tessera-cal / inline-size;
   min-width: 0;
-  padding: var(--spacing-3);
+  padding-block: var(--spacing-3);
+  padding-inline: var(--spacing-4);
   gap: var(--spacing-2);
 }
 
+.tessera-cal-bar {
+  padding-inline: 0;
+}
+
+/* On a narrow panel the period's title drops under the buttons instead of squeezing them or breaking its own line. */
+.tessera-cal-bar > .tessera-panel-bar-start {
+  flex-wrap: wrap;
+  row-gap: var(--spacing-1);
+}
+
+.tessera-cal-bar > .tessera-panel-bar-start > * {
+  flex: none;
+}
+
+.tessera-cal-bar > .tessera-panel-bar-start > .astryx-heading {
+  white-space: nowrap;
+}
+
+/*
+ * Week view: the one row of cells takes the height the panel has left, at every
+ * width (Plane: the week view's day body "stretches to full height", visual
+ * audit T11). On a phone this makes the cells taller than the month view's
+ * (493px against 256 to 306px in the audit baseline) with empty space under a
+ * single 44px chip. That is kept on purpose: it matches the desktop week and
+ * Plane, and a tall column is a large drop target. The block is only as tall as
+ * the panel (min-block-size 100%), so it adds no page scroll.
+ */
+.tessera-cal[data-view="week"] {
+  flex: 1;
+  min-block-size: 100%;
+}
+
+.tessera-cal-week {
+  grid-auto-rows: 1fr;
+}
+
+.tessera-cal[data-view="week"] > .tessera-cal-week {
+  flex: 1;
+}
+
+/* A weekday label sits over its date numbers: right-aligned, with the number's inset from the column's edge. */
 .tessera-cal-head {
-  text-align: center;
+  text-align: end;
+  padding-inline-end: calc(var(--border-width) + var(--tessera-cal-cell-pad) + var(--tessera-cal-num-inset));
 }
 
 .tessera-cal-day {
   min-width: 0;
   min-height: calc(var(--spacing-8) * 4);
-  padding: var(--spacing-1);
+  padding: var(--tessera-cal-cell-pad);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-element);
   background: var(--color-background-surface);
 }
 
+.tessera-cal-day[data-weekend],
 .tessera-cal-day[data-outside] {
   background: var(--color-background-muted);
-}
-
-.tessera-cal-day[data-today] {
-  outline: var(--border-width) solid var(--color-accent);
-  outline-offset: calc(-1 * var(--border-width));
 }
 
 .tessera-cal-day[data-drop] {
   background: var(--color-accent-muted);
 }
 
+/* The date number sits at the end of the header row; the add button takes the start. */
+.tessera-cal-day-head > .tessera-cal-num {
+  margin-inline-start: auto;
+  margin-inline-end: var(--tessera-cal-num-inset);
+}
+
+/* Today: the number on a 20px filled accent circle. */
+.tessera-cal-num[data-today] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: var(--spacing-5);
+  block-size: var(--spacing-5);
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
 .tessera-cal-add {
   opacity: 0;
 }
 
+/* Where there is no hover (touch) the add button is always shown. */
+@media (hover: none) {
+  .tessera-cal-add {
+    opacity: 1;
+  }
+}
+
+/* Quick add in a narrow cell opens in a popover wide enough to type in: a 240px field plus the side padding around it (measured: 62px). */
+.tessera-cal-quickadd {
+  min-inline-size: calc(var(--spacing-12) * 5 + var(--spacing-12) + var(--spacing-4));
+}
+
 /*
  * The move button sits over the chip's end instead of beside it, so it takes
- * no width from the title. It is invisible until the item is hovered or holds
- * focus. With a mouse it stays clickable while invisible (a click always hovers
- * first, and Playwright's hit test needs the button to be the target). Where
- * there is no hover (touch) it is inert until focus, so a touch on the chip's
- * end opens the item rather than hitting an invisible button; the item's own
- * panel is the touch path to set the date.
+ * no width from the title. It is invisible until the item is hovered or the
+ * keyboard focuses it or its chip. With a mouse it stays clickable while
+ * invisible (a click always hovers first, and Playwright's hit test needs the
+ * button to be the target). Where there is no hover (touch) it is inert, and it
+ * is never revealed by hover or by a tap's focus: a tap makes the browser
+ * hover and focus the chip, which would show the button under the finger and
+ * send the tap's click to it instead of the chip (visual audit, timeline). Only
+ * keyboard focus (:focus-visible) shows and re-enables it; the item's own panel
+ * is the touch path to set the date.
  */
 .tessera-cal-item {
   position: relative;
@@ -74,8 +152,14 @@
   opacity: 1;
 }
 
-.tessera-cal-item:hover .tessera-cal-move,
-.tessera-cal-item:focus-within .tessera-cal-move {
+@media (hover: hover) {
+  .tessera-cal-item:hover .tessera-cal-move {
+    opacity: 1;
+  }
+}
+
+.tessera-cal-item:has(:focus-visible) .tessera-cal-move,
+.tessera-cal-move:focus-visible {
   opacity: 1;
   pointer-events: auto;
 }
@@ -103,11 +187,25 @@
   outline-offset: calc(-1 * var(--border-width));
   padding-inline: var(--spacing-1);
   min-height: var(--size-element-md);
-  touch-action: none;
+}
+
+/* Only a chip that can be dragged says so; a read-only chip, or one in a popover, keeps the default cursor. */
+.tessera-cal-open[data-draggable] {
   cursor: grab;
 }
 
-:where(.tessera-cal-day[data-outside]) .tessera-cal-open {
+/*
+ * A mouse or pen drags the whole chip, so only a fine pointer gets `touch-action: none`. A 44px touch chip fills its
+ * cell, so with it a finger on a chip could no longer scroll the month. A finger scrolls over chips and taps one to
+ * open it; the open panel sets the date (decision 14).
+ */
+@media (pointer: fine) {
+  .tessera-cal-open {
+    touch-action: none;
+  }
+}
+
+:where(.tessera-cal-day[data-outside], .tessera-cal-day[data-weekend]) .tessera-cal-open {
   --tessera-cal-chip: var(--color-background-surface);
   --tessera-cal-edge: var(--color-border);
 }
@@ -122,18 +220,47 @@
 .tessera-cal-open:active {
   --tessera-cal-edge: var(--color-border-emphasized);
   background-image: linear-gradient(var(--color-overlay-pressed), var(--color-overlay-pressed));
+}
+
+.tessera-cal-open[data-draggable]:active {
   cursor: grabbing;
 }
 
 .tessera-cal-open:focus-visible {
-  outline: var(--border-width) solid var(--color-accent);
-  outline-offset: 0;
+  outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
 }
 
-/* A touch screen gets 44px chips. */
-@media (pointer: coarse) {
+/* A touch screen, or a phone-width window, gets 44px chips and 44px calendar buttons (decision 14). */
+@media (pointer: coarse), (max-width: 480px) {
   .tessera-cal-open {
     min-height: calc(var(--spacing-10) + var(--spacing-1));
+  }
+
+  /*
+   * The move button sits over a 44px chip and shows on hover only (inert on a
+   * touch screen), so it keeps its 28px box and takes no 44px hit area: that
+   * area would be the whole chip and hide the chip's own tap (touch rework).
+   */
+  .tessera-cal-move::before {
+    content: none;
+  }
+
+  /*
+   * The add button's 44px hit box (shell.css `tessera-hit`) is centred on its
+   * 28px row, so it used to reach 8px below the row, 4px into the first chip
+   * (visual audit, timeline): a tap near the top of a chip could open the add
+   * flow. The box now stops where the chips start: its bottom margin is -4px,
+   * not -8px, so the head row is 4px taller and the chips sit 4px lower, and
+   * the date number is lifted 4px so it stays on the same line. The box and the
+   * first chip touch and do not overlap.
+   */
+  .tessera-cal-day-head .tessera-cal-add.tessera-hit {
+    margin-block-end: calc((var(--size-element-sm) - var(--spacing-11)) / 2 + var(--spacing-1));
+  }
+
+  .tessera-cal-day-head:has(.tessera-cal-add) > .tessera-cal-num {
+    margin-block-end: var(--spacing-1);
   }
 }
 
@@ -145,20 +272,26 @@
 
 /*
  * A narrow calendar (a phone, or a side peek beside it) leaves columns of about
- * 46px. The key (WEB-35 is 38px) only fits when the cell and chip padding
+ * 44px. The key (WEB-35 is 38px) only fits when the cell and chip padding
  * shrink and the state dot and the title step aside (the chip's aria-label
  * still carries the title); wider, the key stays whole and the title truncates
- * after it. The phone's outer gutters shrink with the viewport, since a
- * container cannot style itself.
+ * after it. The columns also close up to a 2px gap and the date number loses
+ * its inset, so a 44px chip fits its cell.
  */
 @container tessera-cal (max-width: 33rem) {
-  /* Only the chips in a cell: the "+N more" popover list has room for the whole title. */
-  .tessera-cal-day {
-    padding: var(--spacing-0-5);
+  .tessera-cal-week,
+  .tessera-cal-weekdays {
+    column-gap: var(--spacing-0-5);
+  }
+
+  .tessera-cal-day,
+  .tessera-cal-head {
+    --tessera-cal-cell-pad: var(--spacing-0);
+    --tessera-cal-num-inset: var(--spacing-0-5);
   }
 
   /*
-   * Seven columns at 375px leave a content box of about 44px minus the cell's
+   * Seven columns at 375px leave a content box of about 43px inside the cell's
    * hairline edge. The chip keeps a 44px floor (a touch target) and may
    * overflow the cell by a fraction of a pixel instead of shrinking below it.
    */
@@ -172,11 +305,10 @@
   .tessera-cal-day > .tessera-cal-item .tessera-cal-name {
     display: none;
   }
-}
 
-@media (max-width: 479px) {
-  .tessera-cal {
-    padding-inline: var(--spacing-1);
+  /* The "+4 more" button is about 44px wide here: it reads "+4" (its accessible name keeps "more"). */
+  .tessera-cal-day .tessera-cal-overflow-word {
+    display: none;
   }
 }
 

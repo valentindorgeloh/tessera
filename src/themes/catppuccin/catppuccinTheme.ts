@@ -26,6 +26,67 @@ import {
  * every syntax colour inherits their contrast.
  */
 
+/**
+ * Touch targets (decision 14, docs/contracts/ui.md "Theme"): under a coarse
+ * primary pointer or a phone-width viewport, every Astryx control gets a 44px
+ * HIT area (WCAG 2.5.5 level AAA, the platform guidance) without growing: the
+ * control keeps its drawn size, so the 1440 density and the 375 row look stay.
+ * The hit area is an absolutely positioned `::before` centred on the control
+ * (Astryx uses no `::before` on any control keyed below; they are all
+ * positioned already but `top-nav-heading` and `side-nav-heading`, which get `position: relative`).
+ * Its insets are
+ * `min(0px, (100% - 44px) / 2)`: negative, so the box reaches 44px, when the
+ * control is smaller, and zero when it is already 44px or more, so a wide
+ * control only grows on its short axis. It paints nothing and nothing in the
+ * layout moves. Two neighbours whose boxes meet share the overlap: the later
+ * sibling in the DOM takes it, so keep at least 8px between small controls
+ * (or use `tessera-hit--*` in shell.css). A visible 44px box stays only where
+ * a list has room by design: menu, option, palette and drawer rows. Switch,
+ * Checkbox, bare inputs and the dense rows' hit areas live in
+ * src/components/styles/shell.css.
+ */
+const HIT_INSET = "min(0px, calc((100% - var(--spacing-11)) / 2))";
+const hitArea = {
+  "::before": {
+    content: '""',
+    position: "absolute",
+    insetBlock: HIT_INSET,
+    insetInline: HIT_INSET,
+  },
+} as const;
+// The block axis only: an overlay or a segment that sits flush against a neighbour.
+const hitAreaBlock = {
+  "::before": {content: '""', position: "absolute", insetBlock: HIT_INSET, insetInline: "0"},
+} as const;
+const TOUCH_TARGET_COMPONENTS = {
+  button: {base: hitArea},
+  tab: {base: hitArea},
+  // Pointer-only arrows laid over the strip's ends (`display: none` without
+  // hover, keyboard and swipe scroll the strip): taller hit area, same width,
+  // so it never covers the tab beside it.
+  "tab-scroll-button": {base: hitAreaBlock},
+  "segmented-control-item": {base: hitAreaBlock},
+  // The only one of these that is not positioned already.
+  "top-nav-heading": {base: {position: "relative", ...hitArea}},
+  // The sidebar's group heading link (32px) between 44px rows: block axis only, it is as wide as the sidebar.
+  "side-nav-heading": {base: {position: "relative", ...hitAreaBlock}},
+  // Menu, option, palette and drawer rows are lists with room by design: the
+  // row itself is 44px (the dropdown's 300px cap is lifted under `dropdown-menu`).
+  "dropdown-menu-item": {base: {minBlockSize: "var(--spacing-11)"}},
+  "selector-option-row": {base: {minBlockSize: "var(--spacing-11)"}},
+  "command-palette-item": {base: {minBlockSize: "var(--spacing-11)"}},
+  "side-nav-item": {base: {minBlockSize: "var(--spacing-11)"}},
+  // Form fields: the field box keeps its size and a tap on its hit area
+  // focuses the input (TextInput focuses it on a click anywhere in the wrapper).
+  "text-input": {base: hitArea},
+  tokenizer: {base: hitArea},
+  "number-input": {base: hitArea},
+  "date-input": {base: hitArea},
+  "time-input": {base: hitArea},
+  "toggle-button": {base: hitArea},
+  "input-clear-button": {base: hitArea},
+} as const;
+
 const hairline = {
   borderWidth: "var(--border-width)",
   borderStyle: "solid",
@@ -109,11 +170,46 @@ export const catppuccinTheme = defineTheme({
     // logo, the tab strip's scroll arrows and calendar days are rounded squares.
     "nav-icon": {base: {borderRadius: "var(--radius-element)"}},
     "tab-scroll-button": {base: {borderRadius: "var(--radius-element)"}},
+    // The focus ring of a list row is drawn inside the row. Astryx offsets it
+    // outwards, where a list that sits flush against its scroller (cycles,
+    // inbox, your work, agent activity) clips the left and right sides.
+    "list-item": {base: {outlineOffset: "calc(-1 * var(--focus-outline-width))"}},
     "calendar-day": {base: {borderRadius: "var(--radius-element)"}},
+    // The selected sidebar row is shown by colour and the overlay only; Astryx
+    // also steps its weight to medium, which makes the label jump (S11).
+    "side-nav-item": {"selected:selected": {fontWeight: "var(--font-weight-normal)"}},
+  },
+  // Two rules with the same body make "(pointer: coarse), (max-width: 480px)":
+  // Astryx conditions in one rule are ANDed. `sm` is moved from 640 to 481 so
+  // "below sm" is exactly 480px and narrower. Only AppShell reads the named
+  // points (its drawer breakpoint is `md`, 768, which stays), so nothing else
+  // moves.
+  adaptations: {
+    widthBreakpoints: {sm: 481, md: 768, lg: 1024, xl: 1280, "2xl": 1536},
+    rules: [
+      {when: {pointer: "coarse"}, value: {components: TOUCH_TARGET_COMPONENTS}},
+      {when: {width: {below: "sm"}}, value: {components: TOUCH_TARGET_COMPONENTS}},
+    ],
   },
   // Toasts and other inverted surfaces collapse the accent to their on-colour;
   // the focus ring follows, as the accent ring drops below 3:1 on the red fill.
-  onDark: {tokens: {"--focus-outline-color": "var(--color-on-dark)"}},
-  onLight: {tokens: {"--focus-outline-color": "var(--color-on-light)"}},
+  // The hover and pressed overlays follow too (S14): they are the page's text
+  // colour at 6% and 8-10%, and an inverted surface (a toast) is filled with
+  // that same text colour, so the dismiss button showed no hover. On a media
+  // surface the overlay is the surface's own on-colour instead.
+  onDark: {
+    tokens: {
+      "--focus-outline-color": "var(--color-on-dark)",
+      "--color-overlay-hover": "color-mix(in srgb, var(--color-on-dark) 10%, transparent)",
+      "--color-overlay-pressed": "color-mix(in srgb, var(--color-on-dark) 14%, transparent)",
+    },
+  },
+  onLight: {
+    tokens: {
+      "--focus-outline-color": "var(--color-on-light)",
+      "--color-overlay-hover": "color-mix(in srgb, var(--color-on-light) 8%, transparent)",
+      "--color-overlay-pressed": "color-mix(in srgb, var(--color-on-light) 12%, transparent)",
+    },
+  },
   icons: catppuccinIconRegistry,
 });

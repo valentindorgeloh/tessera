@@ -5,10 +5,8 @@
  * "edited", the markdown body, and a menu for reply, edit, copy link and
  * delete. Replies indent under the root. A reply to a reply stays on the root.
  *
- * ASSUMPTION: `CommentView` is not exported from `@/lib/tessera/types` yet
- * (`comments.ts` is absent). This is the planned shape: the comment row plus
- * the actor, reactions and nested replies. `ReactionBar` is not in the tree
- * yet, so this row does not render reactions.
+ * `CommentView` is the comment row plus the actor, reactions and nested
+ * replies. The reactions render in a `ReactionBar` under the body (decision 57).
  */
 import { useState, useTransition } from "react";
 import { AlertDialog } from "@/components/shell/dialogs";
@@ -24,9 +22,11 @@ import { MarkdownEditor, type EntityLink } from "@/components/editor";
 import type { ActorKind, CommentRow } from "@/lib/tessera/types";
 import { CopyIcon, PencilIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { CommentComposer } from "./CommentComposer";
+import { ReactionBar } from "./ReactionBar";
+import type { ReactionSummary } from "./reaction-model";
 import { RelativeTime } from "./RelativeTime";
 
-export type ReactionSummary = { reaction: string; count: number; actor_ids: string[] };
+export type { ReactionSummary };
 
 export type CommentView = CommentRow & {
   actor_name: string;
@@ -79,11 +79,11 @@ export function CommentItem({ comment, rootId, workItemId, projectId, readOnly, 
   return (
     <VStack gap={2} id={`comment-${comment.id}`} className="tessera-comment" as="li">
       <HStack gap={2} vAlign="center">
-        <Avatar name={comment.actor_name} size="sm" />
+        <Avatar name={comment.actor_name} size="sm" className="tessera-comment-avatar" />
         <Text type="supporting" weight="medium">
           {comment.actor_name}
         </Text>
-        <RelativeTime value={comment.created_at} type="supporting" color="secondary" />
+        <RelativeTime value={comment.created_at} type="supporting" color="secondary" hasTooltip={false} />
         {comment.edited_at !== null ? (
           <Text type="supporting" color="secondary">
             edited
@@ -109,6 +109,14 @@ export function CommentItem({ comment, rootId, workItemId, projectId, readOnly, 
           <MarkdownEditor value={comment.body_md} onChange={() => {}} readOnly compact projectId={projectId} mentionActors={mentionActors} onOpenEntity={onOpenEntity} />
         </VStack>
       )}
+      <ReactionBar
+        target="comment"
+        targetId={comment.id}
+        reactions={comment.reactions}
+        currentActorId={currentActorId}
+        readOnly={readOnly}
+        label={`Reactions to the comment by ${comment.actor_name}`}
+      />
       {replying ? (
         <CommentComposer
           workItemId={workItemId}

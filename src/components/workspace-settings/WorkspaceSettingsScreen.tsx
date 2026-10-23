@@ -29,7 +29,8 @@ const EMPTY_AI: WorkspaceAiSettings = { model: null, effort: null, digest_enable
 export function WorkspaceSettingsScreen({ tab, settings }: WorkspaceSettingsScreenProps) {
   return (
     <WorkspaceSettingsChrome tab={tab}>
-      <VStack gap={6} padding={6}>
+      {/* The project settings column: the 16px inline inset and the body's block padding (St10, ASSUMPTION: every workspace settings tab shares it). */}
+      <VStack gap={6} paddingInline={4} className="tessera-settings-body">
         {tab === "general" ? <GeneralPane name={settings.name} weekStart={settings.week_start} /> : <AiPane ai={settings.ai ?? EMPTY_AI} />}
       </VStack>
     </WorkspaceSettingsChrome>
@@ -126,7 +127,7 @@ function AiPane({ ai }: { ai: WorkspaceAiSettings }) {
             if (isAiEffort(value) && value !== ai.effort) save({ effort: value });
           }}
         />
-        <Switch label="Digests and summaries" value={ai.digest_enabled} onChange={(enabled) => enabled !== ai.digest_enabled && save({ digest_enabled: enabled })} />
+        <Switch label="Digests and summaries" size="sm" value={ai.digest_enabled} onChange={(enabled) => enabled !== ai.digest_enabled && save({ digest_enabled: enabled })} />
       </FormLayout>
     </VStack>
   );

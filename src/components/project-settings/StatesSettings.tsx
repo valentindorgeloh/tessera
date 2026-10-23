@@ -32,10 +32,11 @@ import { stateGroupVariant } from "@/components/work-items/properties";
 import type { State, StateGroup } from "@/lib/tessera/types";
 import { MoveDownIcon, MoveUpIcon, PencilIcon, PlusIcon, StateIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { DeleteStateDialog } from "./DeleteStateDialog";
+import { SettingsHelp, SettingsTitle } from "./SettingsRow";
 import { StateDialog } from "./StateDialog";
 import { SETTINGS_STATE_GROUPS, SETTINGS_STATE_GROUP_LABELS } from "./palette-labels";
 import { moveStateInGroup, stateContainerId, stateDrop } from "./reorder-drop";
-import { siblingMove } from "./sibling-moves";
+import { siblingMove, siblingMoveIndex } from "./sibling-moves";
 
 export type StatesSettingsProps = { usage: Record<string, number> };
 
@@ -82,6 +83,18 @@ export function StatesSettings({ usage }: StatesSettingsProps) {
     });
   };
 
+  /** Move up / Move down: the order updates at once (decision 13) and reverts with a toast, like a drag. */
+  const moveBy = (state: State, groupIds: string[], direction: "up" | "down") => {
+    const placement = siblingMove(groupIds, state.id, direction);
+    const index = siblingMoveIndex(groupIds, state.id, direction);
+    if (placement === null || index === null) return;
+    startTransition(async () => {
+      applyMove({ id: state.id, index });
+      const result = await reorderStateAction({ state_id: state.id, ...placement });
+      if (!result.ok) toast({ type: "error", body: failureText(`Could not move ${state.name}`, result.message) });
+    });
+  };
+
   const menuFor = (state: State, groupIds: string[]): DropdownMenuOption[] => {
     const up = siblingMove(groupIds, state.id, "up");
     const down = siblingMove(groupIds, state.id, "down");
@@ -99,14 +112,14 @@ export function StatesSettings({ usage }: StatesSettingsProps) {
         label: "Move up",
         icon: MoveUpIcon,
         isDisabled: up === null,
-        onClick: () => up && run(`Could not move ${state.name}`, () => reorderStateAction({ state_id: state.id, ...up })),
+        onClick: () => moveBy(state, groupIds, "up"),
       },
       {
         id: "move-down",
         label: "Move down",
         icon: MoveDownIcon,
         isDisabled: down === null,
-        onClick: () => down && run(`Could not move ${state.name}`, () => reorderStateAction({ state_id: state.id, ...down })),
+        onClick: () => moveBy(state, groupIds, "down"),
       },
       { type: "divider" },
       { id: "delete", label: "Delete…", icon: TrashIcon, variant: "destructive", isDisabled: deleteBlock !== undefined, description: deleteBlock, onClick: () => setDeleting(state) },
@@ -131,7 +144,7 @@ export function StatesSettings({ usage }: StatesSettingsProps) {
               key={state.id}
               ref={canDrag ? registerItem(state.id) : undefined}
               {...(canDrag ? itemHandlers(state.id, container) : {})}
-              className={canDrag ? "tessera-row-draggable" : undefined}
+              className={["tessera-settings-row", canDrag ? "tessera-row-draggable" : ""].filter(Boolean).join(" ")}
               startContent={
                 canDrag ? (
                   <HStack gap={2} vAlign="center">
@@ -142,8 +155,8 @@ export function StatesSettings({ usage }: StatesSettingsProps) {
                   <Icon icon={StateIcon} color={state.color} size="sm" />
                 )
               }
-              label={state.name}
-              description={state.description === "" ? undefined : state.description}
+              label={<SettingsTitle maxLines={1}>{state.name}</SettingsTitle>}
+              description={state.description === "" ? undefined : <SettingsHelp>{state.description}</SettingsHelp>}
               endContent={
                 <HStack gap={2} vAlign="center">
                   {state.is_default ? <Token label="Default" size="sm" /> : null}

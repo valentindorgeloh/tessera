@@ -32,8 +32,9 @@ import { useProject } from "@/components/work-items/project-provider";
 import type { Label } from "@/lib/tessera/types";
 import { MoveDownIcon, MoveUpIcon, PencilIcon, PlusIcon, TagIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { LabelDialog } from "./LabelDialog";
+import { SettingsTitle } from "./SettingsRow";
 import { LABEL_TOP_CONTAINER, labelContainerId, labelDrop, labelDropRefusal, labelsIn, moveLabel } from "./reorder-drop";
-import { siblingMove } from "./sibling-moves";
+import { siblingMove, siblingMoveIndex } from "./sibling-moves";
 
 export type LabelsSettingsProps = { usage: Record<string, number> };
 
@@ -92,6 +93,18 @@ export function LabelsSettings({ usage }: LabelsSettingsProps) {
     });
   };
 
+  /** Move up / Move down: the order updates at once (decision 13) and reverts with a toast, like a drag. */
+  const moveBy = (label: Label, siblings: string[], direction: "up" | "down") => {
+    const placement = siblingMove(siblings, label.id, direction);
+    const index = siblingMoveIndex(siblings, label.id, direction);
+    if (placement === null || index === null) return;
+    startTransition(async () => {
+      applyMove({ id: label.id, parentId: label.parent_id, index });
+      const result = await reorderLabelAction({ label_id: label.id, ...placement });
+      if (!result.ok) toast({ type: "error", body: failureText(`Could not move ${label.name}`, result.message) });
+    });
+  };
+
   const menuFor = (label: Label): DropdownMenuOption[] => {
     const isChild = label.parent_id !== null;
     const siblings = (isChild ? childrenOf(label.parent_id as string) : topLevel).map((sibling) => sibling.id);
@@ -114,14 +127,14 @@ export function LabelsSettings({ usage }: LabelsSettingsProps) {
         label: "Move up",
         icon: MoveUpIcon,
         isDisabled: up === null,
-        onClick: () => up && run(`Could not move ${label.name}`, () => reorderLabelAction({ label_id: label.id, ...up })),
+        onClick: () => moveBy(label, siblings, "up"),
       },
       {
         id: "move-down",
         label: "Move down",
         icon: MoveDownIcon,
         isDisabled: down === null,
-        onClick: () => down && run(`Could not move ${label.name}`, () => reorderLabelAction({ label_id: label.id, ...down })),
+        onClick: () => moveBy(label, siblings, "down"),
       },
       { type: "divider" },
       { id: "delete", label: "Delete…", icon: TrashIcon, variant: "destructive", onClick: () => setDeleting(label) },
@@ -141,7 +154,7 @@ export function LabelsSettings({ usage }: LabelsSettingsProps) {
         key={label.id}
         ref={canDrag ? registerItem(label.id) : undefined}
         {...(canDrag ? itemHandlers(label.id, labelContainerId(label.parent_id)) : {})}
-        className={[isChild ? "tessera-settings-child" : "", canDrag ? "tessera-row-draggable" : ""].filter(Boolean).join(" ") || undefined}
+        className={["tessera-settings-row", isChild ? "tessera-settings-child" : "", canDrag ? "tessera-row-draggable" : ""].filter(Boolean).join(" ")}
         startContent={
           canDrag ? (
             <HStack gap={2} vAlign="center">
@@ -152,7 +165,7 @@ export function LabelsSettings({ usage }: LabelsSettingsProps) {
             <Icon icon={TagIcon} color={label.color} size="sm" />
           )
         }
-        label={label.name}
+        label={<SettingsTitle maxLines={1}>{label.name}</SettingsTitle>}
         endContent={
           <HStack gap={2} vAlign="center">
             <Text type="supporting" color="secondary" hasTabularNumbers>

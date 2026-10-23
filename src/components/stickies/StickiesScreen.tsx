@@ -29,8 +29,8 @@ export type StickiesScreenProps = {
   q: string;
 };
 
-/** Grid's minWidth is a pixel count. 240 is the card's structural minimum. */
-const STICKY_COLUMN_MIN = 240;
+/** Grid's minWidth is a pixel count. 256 is the reference card's minimum (Stickies grid), 4 or 5 columns at the 1170px content width. */
+const STICKY_COLUMN_MIN = 256;
 const SEARCH_DELAY_MS = 300;
 const GRID_CONTAINER = "stickies";
 /** The grip is the only drag source; everything that edits keeps its own press. */
@@ -166,7 +166,7 @@ export function StickiesScreen({ stickies, q }: StickiesScreenProps) {
         </PanelHeader>
       }
     >
-      <VStack gap={4} padding={6}>
+      <VStack gap={4} padding={4}>
         {shown.length === 0 ? (
           <EmptyState
             icon={<Icon icon={DraftIcon} size="lg" color="secondary" />}
@@ -175,7 +175,7 @@ export function StickiesScreen({ stickies, q }: StickiesScreenProps) {
             actions={searching ? undefined : <Button variant="primary" label="New sticky" icon={<PlusIcon />} onClick={create} isLoading={isCreating} />}
           />
         ) : (
-          <Grid ref={gridRef} className="tessera-sticky-grid" columns={{ minWidth: STICKY_COLUMN_MIN, repeat: "fit" }} gap={4}>
+          <Grid ref={gridRef} className="tessera-sticky-grid tessera-stickies-board" columns={{ minWidth: STICKY_COLUMN_MIN, repeat: "fit" }} gap={4}>
             {nodes}
           </Grid>
         )}

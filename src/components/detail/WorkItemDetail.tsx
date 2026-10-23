@@ -42,6 +42,8 @@ import { DetailHeader, workItemPath } from "./DetailHeader";
 import { LinksList } from "./LinksList";
 import { MentionedIn } from "./MentionedIn";
 import { PropertyRailFields, type PropertyName } from "./PropertyRail";
+import { ReactionBar } from "./ReactionBar";
+import { RelationsList } from "./RelationsList";
 import { SubItems } from "./SubItems";
 // The `.tsx` extension is required here: `timeline.ts` sits beside this file, and a
 // case-insensitive volume resolves `./Timeline` to that module before `Timeline.tsx`.
@@ -101,12 +103,12 @@ function DetailTitle({ item, host, readOnly, actions }: TitleProps) {
     );
   }
   return (
-    <HStack gap={1} vAlign="start" className="tessera-detail-title-row">
+    <HStack gap={2} vAlign="start" className="tessera-detail-title-row">
       <Heading level={host === "page" ? 1 : 2} className={readOnly ? "tessera-detail-title tessera-detail-title--readonly" : "tessera-detail-title"} onClick={start}>
         {item.name}
       </Heading>
       {readOnly ? null : (
-        <IconButton variant="ghost" size="sm" label="Edit title" icon={<Icon icon={PencilIcon} size="sm" />} onClick={start} className="tessera-detail-title-edit" />
+        <IconButton variant="ghost" size="sm" label="Edit title" icon={<Icon icon={PencilIcon} size="sm" />} onClick={start} className="tessera-detail-title-edit tessera-hit tessera-hit-x" />
       )}
     </HStack>
   );
@@ -265,10 +267,15 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
           <PropertyRailFields actions={actions} parent={parent} subItems={children} compact={host === "peek"} />
         </VStack>
         <VStack gap={6} className="tessera-detail-main">
-          <DescriptionEditor workItemId={item.id} text={item.description_md} version={item.description_version} readOnly={readOnly} compact={host === "peek"} onOpenItem={onOpenItem} />
+          {/* The reactions sit right under the description (decision 57), the relations after the sub-items (decision 55; Plane's widget order). */}
+          <VStack gap={2}>
+            <DescriptionEditor workItemId={item.id} text={item.description_md} version={item.description_version} readOnly={readOnly} compact={host === "peek"} onOpenItem={onOpenItem} />
+            <ReactionBar target="work_item" targetId={item.id} reactions={data.reactions ?? []} currentActorId={currentActorId} readOnly={readOnly} label="Reactions to the description" />
+          </VStack>
           <SubItems parent={item} readOnly={readOnly} onOpenItem={onOpenItem}>
             {children}
           </SubItems>
+          <RelationsList workItemId={item.id} projectId={item.project_id} relations={data.relations ?? []} readOnly={readOnly} onOpenItem={onOpenItem} />
           <MentionedIn backlinks={data.backlinks ?? []} />
           <LinksList workItemId={item.id} links={item.links} readOnly={readOnly} />
           <Timeline

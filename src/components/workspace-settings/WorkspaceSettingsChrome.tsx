@@ -2,6 +2,9 @@
 
 /**
  * Shared frame for workspace settings tabs (General, AI, Exports, Webhooks, Backups).
+ * The tab strip docks on the sub-header's hairline and starts on the 16px inset
+ * through the shared header tab-strip rules (shell.css, S7); `tessera-settings-tabs`
+ * only adds the 44px phone tab (project-settings.css), as in the project settings.
  */
 import type { ReactNode } from "react";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
@@ -26,9 +29,9 @@ export function WorkspaceSettingsChrome({ tab, children, end }: WorkspaceSetting
             size="subheader"
             hasDivider
             start={
-              <TabList aria-label="Workspace settings" value={tab} onChange={() => {}} size="sm" layout="hug">
+              <TabList aria-label="Workspace settings" value={tab} onChange={() => {}} size="sm" layout="hug" className="tessera-settings-tabs">
                 {SETTINGS_TABS.map((entry) => (
-                  <Tab key={entry.key} value={entry.key} label={entry.label} href={entry.href} />
+                  <Tab key={entry.key} value={entry.key} label={entry.label} href={entry.href} className={entry.label.length <= 2 ? "tessera-settings-tab-short" : undefined} />
                 ))}
               </TabList>
             }

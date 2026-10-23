@@ -20,9 +20,9 @@
   padding-block: var(--spacing-5) var(--spacing-8);
 }
 
-/* A sub-label row sits one step in from its parent. */
+/* A sub-label row sits one step in from its parent: the row's own 8px inset plus 24px (plane-visual-reference §14), so the child's grip is 24px right of the parent's. */
 .tessera-settings-child {
-  padding-inline-start: var(--spacing-6);
+  padding-inline-start: calc(var(--spacing-2) + var(--spacing-6));
 }
 
 /*
@@ -75,9 +75,9 @@
   border-top: var(--border-width) solid var(--color-border);
 }
 
-/* While a label is dragged, an empty parent shows a drop zone for nesting under it. */
+/* While a label is dragged, an empty parent shows a drop zone for nesting under it (the child rows' indent). */
 .tessera-label-nest-zone {
-  margin-inline-start: var(--spacing-6);
+  margin-inline-start: calc(var(--spacing-2) + var(--spacing-6));
   min-height: var(--spacing-8);
   border: var(--border-width) dashed var(--color-border-emphasized);
   border-radius: var(--radius-element);
@@ -85,15 +85,210 @@
 }
 
 /*
+ * Settings rows (states, labels, actors, intake policy): a ListItem with
+ * `tessera-settings-row` and its name in a Text `tessera-settings-title`
+ * (SettingsRow.tsx; 14/500, plane-visual-reference section 14).
+ *
+ * `tessera-settings-row--wrap` (actors) adds the wrapping pattern the work-item
+ * rows use (work-items.css): the label slot keeps a minimum share, so below
+ * roughly 768px the end cluster (`tessera-settings-end`: Agent token, Access
+ * selector, menu) drops under the name and the helper text instead of squeezing
+ * them to an ellipsis. At 1440 everything fits on one line and nothing moves.
+ */
+.tessera-settings-row {
+  min-width: 0;
+}
+
+.tessera-settings-row--wrap {
+  flex-wrap: wrap;
+  row-gap: var(--spacing-1);
+}
+
+.tessera-settings-row--wrap > :has(.tessera-settings-title) {
+  min-width: min(14rem, 100%);
+}
+
+.tessera-settings-row--wrap > :has(> .tessera-settings-end) {
+  margin-inline-start: auto;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.tessera-settings-end {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-inline-size: 100%;
+}
+
+/*
+ * The project danger zone is ProjectDangerZone (planning/ProjectArchive.tsx),
+ * which takes no class of its own: the same wrap, through the wrapper
+ * GeneralSettings puts around it. Its rows hold only a label slot (first) and
+ * the end button (last); the helper text is a plain string, which Astryx
+ * truncates to one line, so it is let wrap here.
+ */
+.tessera-settings-danger .astryx-item {
+  flex-wrap: wrap;
+  row-gap: var(--spacing-1);
+}
+
+.tessera-settings-danger .astryx-item > :first-child {
+  min-width: min(14rem, 100%);
+}
+
+.tessera-settings-danger .astryx-item > :first-child > :first-child {
+  font-weight: var(--font-weight-medium);
+}
+
+.tessera-settings-danger .astryx-item > :first-child > * {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.tessera-settings-danger .astryx-item > :last-child {
+  margin-inline-start: auto;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/*
+ * A list that sits under a section heading pulls its rows out by the row's own
+ * 8px inset, so the row titles start at the heading's x (settings rows, danger zone).
+ */
+.tessera-settings-list,
+.tessera-settings-danger .astryx-list {
+  margin-inline: calc(-1 * var(--spacing-2));
+}
+
+/*
+ * Hover feedback on the rows that are not links themselves (states, labels,
+ * actors): the shared 6% overlay tint, as the calendar chips use. Draggable rows
+ * also show their grip on hover or focus; a touch screen has no hover, so it keeps
+ * the grip visible.
+ */
+@media (hover: hover) {
+  .tessera-settings-row:hover {
+    background-image: linear-gradient(var(--color-overlay-hover), var(--color-overlay-hover));
+  }
+
+  .tessera-settings-row .tessera-row-grip {
+    opacity: 0;
+  }
+
+  .tessera-settings-row:hover .tessera-row-grip,
+  .tessera-settings-row:focus-within .tessera-row-grip {
+    opacity: 1;
+  }
+}
+
+/*
+ * The colour selector's value chip sits on the line's top edge, not its baseline:
+ * the baseline gap made the trigger's line 21px and the field 33px, a pixel
+ * taller than the 32px field beside it (see PaletteColorSelector).
+ */
+.tessera-palette-value {
+  vertical-align: top;
+}
+
+/* Webhook detail: the title and the action cluster share a row and wrap together (the cluster drops under the title on a phone). */
+.tessera-webhook-head {
+  max-inline-size: 100%;
+  flex-wrap: wrap;
+}
+
+.tessera-webhook-head > .tessera-webhook-title {
+  flex: 1 1 14rem;
+  min-width: min(14rem, 100%);
+}
+
+.tessera-webhook-actions {
+  flex-wrap: wrap;
+  max-inline-size: 100%;
+}
+
+/* The signing secret takes the row's free width; Copy and Rotate wrap under it when they no longer fit. */
+.tessera-webhook-secret {
+  flex-wrap: wrap;
+}
+
+.tessera-webhook-secret-field {
+  flex: 1 1 14rem;
+  min-width: min(14rem, 100%);
+}
+
+/*
  * A finger needs 44px: the settings tabs and the Automations buttons grow on a
  * phone or a coarse pointer. A tab's indicator still sits on the header's hairline.
+ * The theme gives Astryx buttons, tabs and menu rows 44px (catppuccinTheme.ts);
+ * what it does not reach is set here, for the settings screens and their
+ * dialogs (`tessera-settings-body` is the project settings column,
+ * `tessera-settings-fields` the workspace screens and the dialogs): the field
+ * boxes of text inputs and selectors, and the label of a switch, which is the
+ * switch's tap target. The 1440 field height (32px) is unchanged.
  */
 @media (pointer: coarse), (max-width: 480px) {
   .tessera-settings-tabs .astryx-tab {
     min-height: var(--spacing-11);
   }
 
+
+  /*
+   * A two-letter tab (AI) is narrower than a finger. Only that tab gets a minimum
+   * width: on every tab it would replace the automatic minimum (the label's
+   * width) and let the strip squeeze the labels into each other.
+   */
+  .tessera-settings-tab-short {
+    min-inline-size: var(--spacing-11);
+  }
+
   .tessera-settings-action {
     min-block-size: var(--spacing-11);
+  }
+
+  :is(.tessera-settings-body, .tessera-settings-fields) .astryx-text-input,
+  :is(.tessera-settings-body, .tessera-settings-fields) .astryx-selector {
+    min-block-size: var(--spacing-11);
+    padding-block: 0;
+  }
+
+  :is(.tessera-settings-body, .tessera-settings-fields) .astryx-text-input input,
+  :is(.tessera-settings-body, .tessera-settings-fields) .astryx-selector button[role="combobox"] {
+    min-block-size: var(--spacing-11);
+  }
+
+  /* A short value (the "Blue" chip) keeps a 44px-wide trigger too. */
+  :is(.tessera-settings-body, .tessera-settings-fields) .astryx-selector button[role="combobox"] {
+    min-inline-size: var(--spacing-11);
+  }
+
+  /* Checkbox lists in a dialog (webhook events): rows of 44px, so the neighbours' hit areas do not overlap. */
+  .tessera-settings-fields .astryx-item {
+    min-block-size: var(--spacing-11);
+  }
+
+  :is(.tessera-settings-body, .tessera-settings-fields) .astryx-switch-label {
+    min-block-size: var(--spacing-11);
+  }
+}
+
+/*
+ * On a phone the five workspace tabs fit: the tabs take an 8px inline padding
+ * instead of 12px and the strip runs to the panel's right edge (the bar's
+ * 16px inset is claimed back), so no tab hides under the scroll button at rest
+ * (S7, audit rule c). Narrower than the tabs, the strip scrolls as before.
+ * The first tab's text still starts on the panel's 16px inset.
+ */
+@media (max-width: 480px) {
+  .tessera-panel-bar-start > .tessera-settings-tabs.astryx-tab-list:first-child {
+    --tessera-settings-tab-pad: var(--spacing-2);
+    flex: none;
+    width: calc(100% + var(--tessera-settings-tab-pad) + var(--spacing-4));
+    max-width: none;
+    margin-inline-start: calc(-1 * var(--tessera-settings-tab-pad));
+  }
+
+  .tessera-settings-tabs .astryx-tab {
+    padding-inline: var(--spacing-2);
   }
 }

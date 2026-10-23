@@ -3,8 +3,9 @@
 /**
  * Module lead picker (docs/contracts/ui.md "Modules (E2)"): an Astryx
  * `Selector` labelled "Lead" over the project's actors plus "No lead". The
- * module dialog and the side panel pass `compact`: a ghost selector whose
- * label the MetadataList row already shows (the PropertyRail pattern).
+ * module dialog and the side panel pass `compact`: a ghost selector at size
+ * sm (28px, like the date inputs and Members beside it) whose label the
+ * MetadataList row already shows (the PropertyRail pattern).
  */
 import { Selector, type SelectorOptionData } from "@astryxdesign/core/Selector";
 import { ActorLabel } from "@/components/work-items/properties/AssigneeControl";
@@ -36,7 +37,7 @@ export function LeadControl({ value, onChange, readOnly = false, compact = false
       label="Lead"
       isLabelHidden={compact}
       variant={compact ? "ghost" : "input"}
-      size="md"
+      size={compact ? "sm" : "md"}
       options={options}
       value={value ?? NONE}
       onChange={(next) => {

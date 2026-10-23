@@ -27,7 +27,7 @@ import { AlertDialog } from "@/components/shell/dialogs";
 import { failureText } from "@/components/planning/archive-rules";
 import { useProject } from "@/components/work-items/project-provider";
 import type { IntakeItemView } from "@/lib/tessera/types";
-import { AcceptIcon, DeclineIcon, DuplicateIcon, TrashIcon } from "@/themes/catppuccin/icons";
+import { AcceptIcon, ClockIcon, DeclineIcon, DuplicateIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { DuplicateDialog } from "./DuplicateDialog";
 import { intakeHref, sourceLabel, statusToken, type IntakeQuery } from "./intake-format";
 
@@ -92,13 +92,13 @@ export function IntakeDetail({ view, detail, query, nextItemId }: IntakeDetailPr
             accepted ? (
               <Button variant="primary" size="sm" label="Open in project" href={`/projects/${bundle.project.id}/work-items/${view.work_item_id}`} />
             ) : (
-              <HStack gap={2} vAlign="center">
+              <HStack gap={2} vAlign="center" className="tessera-intake-actions">
                 <Button variant="primary" size="sm" label="Accept" icon={<AcceptIcon />} isDisabled={archived} isLoading={isPending} onClick={accept} />
                 <Button variant="secondary" size="sm" label="Decline" icon={<DeclineIcon />} isDisabled={archived} onClick={() => setDeclineOpen(true)} />
                 {view.status === "snoozed" ? (
-                  <Button variant="ghost" size="sm" label="Unsnooze" isDisabled={archived} onClick={() => run(() => unsnoozeIntakeItemAction({ intake_item_id: view.id }), "Could not unsnooze")} />
+                  <Button variant="ghost" size="sm" label="Unsnooze" icon={<ClockIcon />} isDisabled={archived} onClick={() => run(() => unsnoozeIntakeItemAction({ intake_item_id: view.id }), "Could not unsnooze")} />
                 ) : (
-                  <Button variant="ghost" size="sm" label="Snooze…" isDisabled={archived} onClick={() => setSnoozeAt(new Date())} />
+                  <Button variant="ghost" size="sm" label="Snooze…" icon={<ClockIcon />} isDisabled={archived} onClick={() => setSnoozeAt(new Date())} />
                 )}
                 <Button variant="ghost" size="sm" label="Mark duplicate…" icon={<DuplicateIcon />} isDisabled={archived} onClick={() => setDuplicateOpen(true)} />
                 <MoreMenu label="Intake actions" size="sm" isDisabled={archived} items={[{ id: "delete", label: "Delete", icon: TrashIcon, onClick: () => setDeleteOpen(true) }]} />

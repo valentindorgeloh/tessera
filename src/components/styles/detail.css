@@ -39,6 +39,16 @@
   max-width: 100%;
 }
 
+/*
+ * A container under 640px (a tablet with the sidebar open: about 490px at 768)
+ * cannot hold the list beside the panel, which left the board strip 32px and
+ * the table 20px wide. The panel then covers the list like it does on a phone
+ * (PeekHost, peek-cover.ts); min-width wins over the stored width.
+ */
+.tessera-peek-panel--cover {
+  min-width: 100%;
+}
+
 /* Header: the 44px panel bar, pinned at the top of whatever scrolls the detail (peek card, modal, project frame). */
 .tessera-detail-header {
   position: sticky;
@@ -89,6 +99,8 @@
   margin-inline: var(--spacing-4);
   padding-block: var(--spacing-4);
   border-block-end: var(--border-width) solid var(--color-border);
+  /* The rail's row height: the 32px control height; 44px under the touch query at the end of this file. */
+  --tessera-rail-row: var(--size-element-md);
 }
 
 .tessera-detail-main {
@@ -125,6 +137,23 @@
     border-block-end: none;
     border-inline-start: var(--border-width) solid var(--color-border);
   }
+
+  /*
+   * The rail stays in view while the main column scrolls. The column keeps its
+   * full-height hairline, so the properties inside it stick: below the pinned
+   * 44px header, and scrolling on their own when the window is shorter than
+   * the rail.
+   */
+  .tessera-detail--page .tessera-detail-rail > .tessera-detail-props {
+    position: sticky;
+    inset-block-start: calc(var(--spacing-11) + var(--spacing-4));
+    max-block-size: calc(100dvh - var(--spacing-11) - var(--spacing-12) - var(--spacing-12));
+    overflow-y: auto;
+    /* The scroll box would clip the 4px focus ring of the controls at its edges; the padding leaves room and the margin keeps the rows where they were. */
+    padding: var(--spacing-1);
+    margin: calc(-1 * var(--spacing-1));
+    width: calc(100% + 2 * var(--spacing-1));
+  }
 }
 
 /* Title: a heading with an "Edit title" button until either is clicked, then a large text input in the same place. */
@@ -136,7 +165,7 @@
 .tessera-detail-title {
   font-size: var(--text-heading-2-size);
   line-height: var(--text-heading-2-leading);
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   cursor: text;
   border-radius: var(--radius-inner);
@@ -157,9 +186,9 @@
   background: none;
 }
 
+/* The pencil sits 8px after the title text, centred on its first line (28px line, 28px button). */
 .tessera-detail-title-edit {
   flex-shrink: 0;
-  margin-block-start: var(--spacing-1);
 }
 
 .tessera-detail-title-input input {
@@ -177,6 +206,40 @@
 }
 
 /*
+ * Every rail row has one structure: label (dt) and value (dd) are the same
+ * height with their content centred, so the midlines meet and the pitch is
+ * constant. The row is the 32px control height (the rail's selectors are md);
+ * a date field (28px) and the plain Created and Updated text centre in it.
+ */
+.tessera-detail-rail dt,
+.tessera-detail-rail dd {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--tessera-rail-row);
+}
+
+/* Astryx aligns the grid on first baselines, which moves a row's label and value apart by their different baselines; the equal heights above centre both instead. */
+.tessera-detail-rail dl {
+  align-items: start;
+}
+
+.tessera-detail-rail dd > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/*
+ * The ghost controls keep a 12px inner padding; pulling them back by it puts
+ * the value texts (labels, assignees, cycle, ...) on the column's edge, where
+ * the dates and the plain text already start. A state dot, a priority icon or
+ * the bell sits in that pulled-back slot.
+ */
+.tessera-detail-rail .astryx-field > [data-variant="ghost"],
+.tessera-detail-rail .tessera-detail-subscribe {
+  margin-inline-start: calc(-1 * var(--spacing-3));
+}
+
+/*
  * Sub-item and link rows: the key column has a fixed width, the name takes the
  * rest. The hover fill is concentric with the 8px controls 4px inside it.
  */
@@ -184,6 +247,8 @@
   min-width: 0;
   padding: var(--spacing-1);
   border-radius: calc(var(--radius-element) + var(--spacing-1));
+  /* Under about 10rem of name the properties drop to a second line, end-aligned (as list rows do in work-items.css). */
+  flex-wrap: wrap;
 }
 
 .tessera-detail-row:hover,
@@ -199,12 +264,23 @@
 }
 
 .tessera-detail-row-name {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 auto;
+  min-width: min(10rem, 100%);
+}
+
+/*
+ * A name cut to one line (maxLines=1: relations, sub-items) must not claim its
+ * full text width as its flex basis, or a long title wraps the row to three
+ * lines (key, name, button). The basis is the 10rem floor and the name grows.
+ */
+.tessera-detail-row-name--clamp {
+  flex: 1 1 min(10rem, 100%);
 }
 
 .tessera-detail-row-props {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-inline-start: auto;
 }
 
 .tessera-detail-link-host {
@@ -260,4 +336,61 @@
 .tessera-detail-parent-menu {
   width: 320px;
   max-width: 100%;
+}
+
+/*
+ * Touch targets (decision 14; D3). Astryx buttons, tabs and menu items get a 44px
+ * hit area from the theme (catppuccinTheme.ts adaptations: a pseudo-element, no
+ * layout change); shell.css gives the same to a button[role="combobox"] (the
+ * property rail's selector triggers), a DateInput's wrapper and its calendar
+ * toggle. They keep their drawn size, so the rail rows stay at their 1440
+ * height. Rows of a list (sub-items, links) are 44px boxes by design, and the
+ * breadcrumb links get a hit area of their own below (touch rework). Nothing
+ * applies to a fine pointer on a wide screen.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-detail-row {
+    min-block-size: var(--spacing-11);
+    padding-block: 0;
+  }
+
+  .tessera-detail-row-name a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--spacing-11);
+    min-inline-size: var(--spacing-11);
+  }
+
+  /*
+   * The parent breadcrumb opens its item in place, so it is a button, not an
+   * anchor. A 44px box wrapped the crumbs and made the pinned header 80px tall
+   * (touch rework): the link keeps its line and gets a 44px hit area.
+   */
+  .tessera-detail-crumbs a,
+  .tessera-detail-crumbs button {
+    position: relative;
+  }
+
+  .tessera-detail-crumbs a::before,
+  .tessera-detail-crumbs button::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: min(0px, calc((100% - var(--spacing-11)) / 2));
+  }
+
+  /*
+   * Multi-select option rows (the Labels and Assignees popovers) are 36px high;
+   * the single selects already have 44px rows from the theme (visual audit,
+   * quick-edit popovers at 375). The popover is portalled, so the rule is global.
+   * ASSUMPTION: this could move to the theme next to selector-option-row.
+   */
+  .astryx-multi-selector-option {
+    min-block-size: var(--spacing-11);
+  }
+
+  /* The relation search results (the Add relation dialog): the row button was 40px. */
+  .tessera-relation-hits .astryx-list-item > button {
+    min-block-size: var(--spacing-11);
+  }
 }

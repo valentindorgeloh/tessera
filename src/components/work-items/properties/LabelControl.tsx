@@ -4,6 +4,7 @@ import { MultiSelector, type MultiSelectorOptionData } from "@astryxdesign/core/
 import { Token } from "@astryxdesign/core/Token";
 import type { PaletteColor } from "@/lib/tessera/types";
 import { useProject } from "../project-provider";
+import { summarizeNames } from "./membership-rules";
 
 export type LabelControlProps = {
   /** Label ids. */
@@ -34,7 +35,8 @@ export function LabelControl({ value, onChange, compact = false, readOnly = fals
       onChange={onChange}
       isReadOnly={readOnly}
       triggerDisplay="labels"
-      formatValue={(items) => items.map((item) => item.label).join(", ")}
+      // Two names then "+N", so the rail and the dialog never run to an ellipsis; the open list shows every label.
+      formatValue={(items) => summarizeNames(items.map((item) => item.label ?? item.value))}
       renderOption={(option) => (
         <Token label={option.label ?? option.value} size="sm" color={paletteTokenColor(labelsById.get(option.value)?.color)} />
       )}

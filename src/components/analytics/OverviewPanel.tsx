@@ -150,7 +150,7 @@ export function OverviewPanel({ result, projectIds, today }: { result: OverviewA
                 align: "end",
                 width: COUNT_COLUMN,
                 renderCell: (row) => (
-                  <Link href={row.href} label={`${row.open} open assigned to ${row.name}`}>
+                  <Link href={row.href} label={`${row.open} open assigned to ${row.name}`} className="tessera-analytics-link tessera-analytics-link--count">
                     {row.open}
                   </Link>
                 ),
@@ -177,7 +177,9 @@ export function OverviewPanel({ result, projectIds, today }: { result: OverviewA
                 renderCell: (row) => (
                   <HStack gap={2} vAlign="center">
                     <ProjectToken project={{ identifier: row.identifier, logo: row.logo }} size="sm" />
-                    <Link href={row.href}>{row.name}</Link>
+                    <Link href={row.href} className="tessera-analytics-link">
+                      {row.name}
+                    </Link>
                   </HStack>
                 ),
               },

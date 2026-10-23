@@ -115,7 +115,7 @@ export function CyclesPanel({ result, today }: { result: CyclesAnalytics; today:
             idKey="id"
             data={rows}
             columns={[
-              { key: "name", header: "Cycle", width: NAME_COLUMN, renderCell: (row) => <Link href={row.href}>{row.name}</Link> },
+              { key: "name", header: "Cycle", width: NAME_COLUMN, renderCell: (row) => <Link href={row.href} className="tessera-analytics-link">{row.name}</Link> },
               { key: "project", header: "Project", width: TEXT_COLUMN },
               { key: "status", header: "Status", width: TEXT_COLUMN },
               { key: "dates", header: "Dates", width: TEXT_COLUMN },
@@ -183,7 +183,7 @@ export function ModulesPanel({ result, today }: { result: ModulesAnalytics; toda
             idKey="id"
             data={rows}
             columns={[
-              { key: "name", header: "Module", width: NAME_COLUMN, renderCell: (row) => <Link href={row.href}>{row.name}</Link> },
+              { key: "name", header: "Module", width: NAME_COLUMN, renderCell: (row) => <Link href={row.href} className="tessera-analytics-link">{row.name}</Link> },
               { key: "project", header: "Project", width: TEXT_COLUMN },
               { key: "status", header: "Status", width: TEXT_COLUMN },
               { key: "target", header: "Target", width: TEXT_COLUMN },

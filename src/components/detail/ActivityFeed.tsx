@@ -99,7 +99,7 @@ function ActivityRow({ entry }: { entry: ActivityLogEntry }) {
         </Text>{" "}
         {describeActivity(entry, entry.actor_name)}
       </Text>
-      <RelativeTime value={entry.created_at} type="supporting" color="secondary" className="tessera-detail-activity-time" />
+      <RelativeTime value={entry.created_at} type="supporting" color="secondary" hasTooltip={false} className="tessera-detail-activity-time" />
     </HStack>
   );
 }

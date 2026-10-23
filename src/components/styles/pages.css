@@ -11,6 +11,43 @@
   width: min(calc(var(--spacing-12) * 4), 40vw);
 }
 
+/*
+ * The sub-header (tabs, search, New page) uses PanelBar `tabsBelow` (S7, Pg14):
+ * below 600px the search field and the button take the first row and the tab
+ * strip its own full-width row under them, docked on the bar's hairline (the
+ * wrapped layout left it 48px above it). There is no title, so the end group
+ * takes the whole first row and the search field the room the button leaves.
+ */
+@media (max-width: 599px) {
+  .tessera-panel-bar.tessera-panel-bar--tabs-below.tessera-pages-bar {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "end"
+      "tabs";
+  }
+
+  .tessera-pages-bar > .tessera-panel-bar-end {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .tessera-pages-bar .tessera-pages-actions {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+  }
+
+  /* The field's wrapper (Astryx's .astryx-field) is the flex item, so it takes the room and the input fills it. */
+  .tessera-pages-bar .tessera-pages-actions > .astryx-field {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .tessera-pages-bar .tessera-pages-search {
+    width: auto;
+    min-width: 0;
+  }
+}
+
 .tessera-page-row-end {
   flex-wrap: wrap;
   max-width: 100%;
@@ -80,8 +117,12 @@
 }
 
 @container (min-width: 1136px) {
+  /*
+   * The outline column has no gap of its own: the column's 16px inline padding is the gap to the outline, and
+   * the last track keeps a 16px gutter so the card never touches the panel's right edge (960 + 160 + 16 = 1136).
+   */
   .tessera-page-frame[data-outline="open"] {
-    grid-template-columns: minmax(0, 1fr) 960px minmax(calc(160px + var(--spacing-4)), calc(240px + var(--spacing-4))) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 960px minmax(160px, 240px) minmax(var(--spacing-4), 1fr);
   }
 
   .tessera-page-frame[data-outline="open"] > .tessera-page {
@@ -95,8 +136,9 @@
     max-width: none;
     max-height: 70dvh;
     position: sticky;
-    inset-block-start: var(--spacing-4);
-    margin-inline-start: var(--spacing-4);
+    /* The column pads its first element by --spacing-5: the card's top shares that line. */
+    inset-block-start: var(--spacing-5);
+    margin-block-start: var(--spacing-5);
   }
 }
 
@@ -105,9 +147,10 @@
   min-width: 0;
 }
 
+/* The page title is the largest text on the page (display 3, 29/36), above the body's h1 (24/32, editor.css). */
 .tessera-page-title {
-  font-size: var(--text-heading-2-size);
-  line-height: var(--text-heading-2-leading);
+  font-size: var(--text-display-3-size);
+  line-height: var(--text-display-3-leading);
   flex: 1;
   min-width: 0;
   cursor: text;
@@ -129,17 +172,19 @@
   background: none;
 }
 
+/* The pencil centres on the title's first line: (line - button) / 2. */
 .tessera-page-title-edit {
+  --tessera-title-edit-size: var(--size-element-sm);
   flex-shrink: 0;
-  margin-block-start: var(--spacing-1);
+  margin-block-start: calc((var(--text-display-3-size) * var(--text-display-3-leading) - var(--tessera-title-edit-size)) / 2);
 }
 
 .tessera-page-title-input input {
   height: auto;
   font-family: var(--font-family-heading);
-  font-size: var(--text-heading-2-size);
+  font-size: var(--text-display-3-size);
   font-weight: var(--font-weight-semibold);
-  line-height: var(--text-heading-2-leading);
+  line-height: var(--text-display-3-leading);
 }
 
 /*
@@ -171,6 +216,8 @@
 
 .tessera-page-row--draggable:hover .tessera-row-grip,
 .tessera-page-row--draggable:focus-within .tessera-row-grip,
+/* The tree's roving focus sits on the row's <li>, which holds the row (not inside it). */
+li[role="treeitem"]:focus-visible > div > .tessera-page-row--draggable .tessera-row-grip,
 .tessera-page-row--dragging .tessera-row-grip {
   opacity: 1;
 }
@@ -180,8 +227,89 @@
   visibility: hidden;
 }
 
+/*
+ * Pg16: the outline entries step in by heading level (Astryx puts h1 and h2 on
+ * one indent): h1 keeps the 12px Astryx gives it, h2 is 8px deeper, h3 16px.
+ * The pressed Outline toggle shows the hover overlay on top of its fill.
+ */
+.tessera-page-outline .astryx-outline-item[data-level="2"] {
+  padding-inline-start: calc(var(--spacing-3) + var(--spacing-2));
+}
+
+.tessera-page-outline .astryx-outline-item[data-level="3"] {
+  padding-inline-start: calc(var(--spacing-3) + var(--spacing-4));
+}
+
+.tessera-page-outline-toggle[aria-pressed="true"]:hover {
+  background-image: linear-gradient(var(--color-overlay-hover), var(--color-overlay-hover));
+}
+
+/*
+ * Touch (decision 14): every control reaches 44px. Tree rows are 44px tall; the
+ * expand chevron, the row's link, the menu and the grip each get a 44px hit
+ * area (padding with an equal negative margin, so the row keeps its layout).
+ * The chevron's box runs from the row's left edge to 44px; the grip sits after
+ * it (.tessera-page-row-lead--branches shifts it) so the two boxes do not
+ * overlap and the chevron's centre is never under the grip.
+ */
 @media (pointer: coarse), (max-width: 480px) {
+  .tessera-page-row-lead--branches {
+    margin-inline-start: calc(var(--spacing-6) + var(--spacing-0-5));
+  }
+
   .tessera-page-row--draggable .tessera-row-grip {
     opacity: 1;
   }
+
+  .tessera-page-row {
+    min-block-size: var(--spacing-11);
+  }
+
+  .tessera-page-row .astryx-tree-list-chevron {
+    box-sizing: content-box;
+    padding-block: calc(var(--spacing-3) + var(--spacing-1) / 2);
+    padding-inline: var(--spacing-3) var(--spacing-4);
+    margin-block: calc(-1 * (var(--spacing-3) + var(--spacing-1) / 2));
+    margin-inline: calc(var(--spacing-1) - var(--spacing-3)) calc(-1 * (var(--spacing-1) + var(--spacing-4)));
+  }
+
+  .tessera-page-row > a {
+    box-sizing: content-box;
+    padding-block: var(--spacing-3);
+    margin-block: calc(-1 * var(--spacing-3));
+  }
+
+  /* The row's menu keeps its 28px box; its 44px hit area is the theme's (a pseudo-element, no margin to give back). */
+
+  .tessera-page-grip-spacer {
+    box-sizing: content-box;
+    padding: calc(var(--spacing-3) + var(--spacing-1) / 2);
+    margin: calc(-1 * (var(--spacing-3) + var(--spacing-1) / 2));
+  }
+
+  .tessera-page-title-edit {
+    --tessera-title-edit-size: var(--spacing-11);
+  }
+
+  .tessera-page-crumbs a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--spacing-11);
+    min-inline-size: var(--spacing-11);
+  }
+
+  /*
+   * The access token and the Labels picker keep their pill size: the button
+   * inside has the theme's 44px hit area (a pseudo-element), so the pill is not
+   * a 44px grey block and the combobox text stays centred.
+   */
+  .tessera-page-meta-control > button {
+    align-self: stretch;
+  }
+
+  .tessera-page-outline .astryx-outline-item {
+    min-block-size: var(--spacing-11);
+  }
+
+  /* The search field keeps its 28px box; the text-input wrapper carries the 44px hit area (theme). */
 }
