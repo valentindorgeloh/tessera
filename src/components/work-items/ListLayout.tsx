@@ -148,7 +148,7 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowPr
     // Two labels, then "+N" with every name in a tooltip (docs/drafts/plane-visual-reference.md section 6).
     const { shown, hidden } = splitShownNames(labels);
     nodes.push(
-      <HStack key="labels" gap={2} vAlign="center" wrap="wrap">
+      <HStack key="labels" gap={2} vAlign="center" wrap="wrap" className="tessera-wi-chips">
         {shown.map((label) => (
           <Token key={label.id} label={label.name} size="sm" color={paletteTokenColor(label.color)} />
         ))}
@@ -165,7 +165,7 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowPr
   }
   if (props.modules && bundle.project.modules_enabled && item.module_ids.length > 0) {
     nodes.push(
-      <HStack key="modules" gap={2} vAlign="center" wrap="wrap">
+      <HStack key="modules" gap={2} vAlign="center" wrap="wrap" className="tessera-wi-chips">
         {item.module_ids.map((id) => {
           const mod = modulesById.get(id);
           return mod ? <Token key={id} label={mod.name} size="sm" /> : null;

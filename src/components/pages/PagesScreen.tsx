@@ -31,7 +31,7 @@ import { DragHandleIcon, LockIcon, PageIcon, PlusIcon, SearchIcon, resolveLogoIc
 import { PageRowMenu } from "./PageRowMenu";
 import { applyPageMove, type PageMove } from "./page-move";
 import { usePageDrag } from "./use-page-drag";
-import { pageHref, toTreeItems, withPageTab, type PageSpaceOption, type PageTreeItem } from "./page-tree";
+import { drawnOpen, pageHref, toTreeItems, withPageTab, type PageSpaceOption, type PageTreeItem } from "./page-tree";
 
 export type PagesScreenProps = {
   space: { kind: "wiki" } | { kind: "project"; project: Project };
@@ -77,6 +77,8 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
   const [, startMove] = useTransition();
   // Dragged order shows at once (decision 13); it drops back to the server list when a move fails.
   const [pages, applyMove] = useOptimistic(serverPages, (current, move: PageMove) => applyPageMove(current, move));
+  // Moved parents keep the expansion they were drawn with: the tree seeds only the first level open, so a depth change (the optimistic list, or the revert of a failed move) would close them.
+  const [pinnedOpen, setPinnedOpen] = useState<ReadonlyMap<string, boolean>>(() => new Map());
   const project = space.kind === "project" ? space.project : null;
   const projectArchived = project !== null && project.archived_at !== null;
   const canCreate = tab !== "archived" && !projectArchived;
@@ -136,7 +138,16 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
     </HStack>
   );
 
-  const move = (input: PageMove) =>
+  const items = toTreeItems(pages, query);
+  const move = (input: PageMove) => {
+    const open = drawnOpen(items, input.page_id);
+    // A leaf drops its pin (an earlier move may have pinned it as a parent): the tree seeds it by depth when it gets a sub-page.
+    setPinnedOpen((current) => {
+      const next = new Map(current);
+      if (open === undefined) next.delete(input.page_id);
+      else next.set(input.page_id, open);
+      return next;
+    });
     startMove(async () => {
       applyMove(input);
       // A request that rejects (the network is gone) reverts like a refused move; it must not reach the error boundary (decision 13).
@@ -152,13 +163,13 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
         toast({ type: "error", body: `Could not move ${name}. ${failure}` });
       }
     });
+  };
   const dragEnabled = tab !== "archived" && query.trim() === "" && !projectArchived;
   // Drag reorder: not in a search (a flat result list), on the Archived tab or in an archived project.
   const { setRoot, handlers, draggingId, registerOverlay, isRowDraggable, rowClassName } = usePageDrag({ pages, enabled: dragEnabled, onMove: move });
   const draggedPage = draggingId === null ? undefined : pages.find((entry) => entry.id === draggingId);
 
-  const items = toTreeItems(pages, query);
-  // A tree with a chevron column and grips shifts the grip on a touch screen so the two 44px hit areas do not overlap (pages.css).
+  // A tree with a chevron column and grips shifts the grip on a touch screen so the two 44px hit areas do not overlap; a flat tree with grips shifts it so its hit area stays inside the row (pages.css).
   const hasBranches = dragEnabled && items.some((node) => node.children.length > 0);
   const tree = (nodes: readonly PageTreeItem[]): TreeListItemData[] =>
     nodes.map((node) => ({
@@ -166,9 +177,9 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
       label: node.name,
       href: node.href,
       className: rowClassName(node.id),
-      isExpanded: node.isExpanded && node.children.length > 0,
+      isExpanded: (pinnedOpen.get(node.id) ?? node.isExpanded) && node.children.length > 0,
       startContent: (
-        <HStack gap={1} vAlign="center" className={hasBranches ? "tessera-page-row-lead tessera-page-row-lead--branches" : "tessera-page-row-lead"}>
+        <HStack gap={1} vAlign="center" className={hasBranches ? "tessera-page-row-lead tessera-page-row-lead--branches" : dragEnabled ? "tessera-page-row-lead tessera-page-row-lead--grip" : "tessera-page-row-lead"}>
           {isRowDraggable(node.id) ? <RowGrip /> : dragEnabled ? <Icon icon={DragHandleIcon} size="sm" className="tessera-page-grip-spacer" /> : null}
           <Icon icon={node.page.logo ? resolveLogoIcon(node.page.logo.icon) : PageIcon} size="sm" color={node.page.logo?.color} />
         </HStack>

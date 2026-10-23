@@ -9,18 +9,17 @@ import { z } from "zod";
 import { logActivity } from "./activity";
 import { getActor } from "./actors";
 import type { TesseraContext } from "./core/context";
-import { conflict, isTrackerError, notFound, rule, validation, validateInput } from "./core/errors";
-import { isId, newId } from "./core/ids";
+import { conflict, notFound, rule, validation, validateInput } from "./core/errors";
+import { newId } from "./core/ids";
 import { withTx } from "./core/tx";
 import { actor, comment, mention } from "./db/schema";
 import { IdSchema } from "./schemas";
 import type { ActorKind, CommentRow } from "./types";
-import { notifyMentions } from "./notifications";
+import { bodySnippet, syncMentions } from "./mentions";
 import { reactionsFor, type ReactionSummary } from "./reactions";
 import { getWorkItemRow, insertSubscriber, loadWritableWorkItem } from "./work-items";
 
 const BODY = z.string().trim().min(1).max(50_000);
-const SNIPPET_LIMIT = 140;
 
 export const CreateCommentInput = z
   .object({
@@ -45,63 +44,9 @@ export type CommentView = CommentRow & {
 
 type ActorInfo = { name: string; kind: ActorKind };
 
-/** Drops code fences, link targets and markdown marks, then keeps 140 characters. */
+/** 140-character plain text of a comment body (mentions.ts `bodySnippet`). */
 export function commentSnippet(md: string): string {
-  let text = md.replace(/\r\n/g, "\n");
-  text = text.replace(/```[\s\S]*?```/g, " ");
-  text = text.replace(/```[\s\S]*$/g, " ");
-  text = stripMarks(text);
-  text = text.replace(/!\[[^\]]*\]\([^)]*\)/g, " ");
-  text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");
-  text = text.replace(/^#{1,6}\s+/gm, "");
-  text = text.replace(/\s+/g, " ").trim();
-  return clip(text, SNIPPET_LIMIT);
-}
-
-function stripMarks(text: string): string {
-  let next = text;
-  for (let remaining = 3; remaining > 0; remaining -= 1) {
-    const stripped = next.replace(/(\*\*|__|~~|`)([\s\S]*?)\1/g, "$2").replace(/(^|\s)([*_])(\S(?:.*?\S)?)\2(?=\s|$)/g, "$1$3");
-    if (stripped === next) return next;
-    next = stripped;
-  }
-  return next;
-}
-
-/** Actor ids written as `[@Name](actor:<id>)`. Unknown ids are dropped by `syncMentions`. */
-function mentionedActorIds(body: string): string[] {
-  const found = new Set<string>();
-  for (const match of body.matchAll(/\]\(actor:([^)]+)\)/gi)) {
-    const id = match[1];
-    if (isId(id)) found.add(id);
-  }
-  return [...found];
-}
-
-function syncMentions(ctx: TesseraContext, loaded: ReturnType<typeof loadWritableWorkItem>, commentId: string, body: string): string[] {
-  const ids = mentionedActorIds(body).filter((id) => id !== ctx.actor.id);
-  ctx.db.delete(mention).where(and(eq(mention.entity_type, "comment"), eq(mention.entity_id, commentId))).run();
-  const live: string[] = [];
-  for (const id of ids) {
-    try {
-      getActor(ctx, id);
-    } catch (err) {
-      if (isTrackerError(err) && err.code === "NOT_FOUND") continue;
-      throw err;
-    }
-    ctx.db.insert(mention).values({ entity_type: "comment", entity_id: commentId, actor_id: id, created_at: ctx.now() }).run();
-    insertSubscriber(ctx, loaded, id);
-    live.push(id);
-  }
-  return live;
-}
-
-function clip(text: string, limit: number): string {
-  if (text.length <= limit) return text;
-  let end = limit;
-  const tail = text.charCodeAt(end - 1);
-  if (tail >= 0xd800 && tail <= 0xdbff) end -= 1;
-  return text.slice(0, end);
+  return bodySnippet(md);
 }
 
 function loadLiveComment(ctx: TesseraContext, id: string): CommentRow {
@@ -223,7 +168,8 @@ export function createComment(ctx: TesseraContext, workItemId: string, input: z.
       .run();
     insertSubscriber(ctx, loaded, ctx.actor.id);
     const snippet = commentSnippet(data.body_md);
-    const mentioned = syncMentions(ctx, loaded, id, data.body_md);
+    // Mentions first: a mentioned actor gets one `mentioned` row and is left out of the `commented` recipients (decision 53).
+    syncMentions(ctx, { entity_type: "comment", entity_id: id, work_item_id: loaded.item.id, project_id: loaded.project.id }, data.body_md);
     logActivity(ctx, {
       project_id: loaded.project.id,
       entity_type: "comment",
@@ -231,13 +177,6 @@ export function createComment(ctx: TesseraContext, workItemId: string, input: z.
       work_item_id: loaded.item.id,
       verb: "commented",
       comment: snippet,
-    });
-    notifyMentions(ctx, {
-      work_item_id: loaded.item.id,
-      entity_type: "comment",
-      entity_id: id,
-      actor_ids: mentioned,
-      snippet,
     });
     return getComment(ctx, id);
   });
@@ -267,7 +206,8 @@ export function updateComment(ctx: TesseraContext, id: string, input: z.input<ty
       .run();
     if (result.changes === 0) throw conflict("This comment changed", { current_version: loadLiveComment(ctx, row.id).body_version });
     const snippet = commentSnippet(data.body_md);
-    const mentioned = syncMentions(ctx, loaded, row.id, data.body_md);
+    // Only mentions added by this edit notify; a mention the edit keeps does not (decision 53).
+    syncMentions(ctx, { entity_type: "comment", entity_id: row.id, work_item_id: row.work_item_id, project_id: loaded.project.id }, data.body_md);
     logActivity(ctx, {
       project_id: loaded.project.id,
       entity_type: "comment",
@@ -276,13 +216,6 @@ export function updateComment(ctx: TesseraContext, id: string, input: z.input<ty
       verb: "updated",
       field: "body_md",
       comment: snippet,
-    });
-    notifyMentions(ctx, {
-      work_item_id: row.work_item_id,
-      entity_type: "comment",
-      entity_id: row.id,
-      actor_ids: mentioned,
-      snippet,
     });
     return getComment(ctx, row.id);
   });

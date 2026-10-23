@@ -99,6 +99,16 @@ describe("page tree", () => {
     expect(touch).toMatch(/\.tessera-page-outline \.astryx-outline-item\s*\{\s*min-block-size:\s*var\(--spacing-11\)/);
   });
 
+  it("keeps every 44px box of a tree row inside a square row so no corner is clipped (wiki at 375)", () => {
+    const touch = touchBlock(pages);
+    // The row clips to its rounded corners: square, the corners of a box that reaches the row's edge still hit it.
+    expect(touch).toMatch(/\.tessera-page-row\s*\{[^}]*border-radius:\s*0;/);
+    expect(/\.tessera-page-row \.astryx-tree-list-chevron\s*\{([^}]*)\}/.exec(touch)?.[1] ?? "").toMatch(/border-radius:\s*0;/);
+    // A flat tree's grip box (14px past its 16px icon each side) would start 6px left of the row: the lead steps in by 6px.
+    expect(touch).toMatch(/\.tessera-page-row-lead--grip\s*\{\s*margin-inline-start:\s*var\(--spacing-1-5\)/);
+    expect(touch.indexOf(".tessera-page-row-lead--grip")).toBeLessThan(touch.indexOf(".tessera-page-row-lead--branches"));
+  });
+
   it("never blocks touch panning outside the grip", () => {
     expect(pages).not.toContain("touch-action");
   });

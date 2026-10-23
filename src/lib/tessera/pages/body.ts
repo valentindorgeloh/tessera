@@ -11,6 +11,7 @@ import { newId } from "../core/ids";
 import { withTx } from "../core/tx";
 import { upsertPageFts } from "../db/fts";
 import { page, page_version } from "../db/schema";
+import { syncMentions } from "../mentions";
 import type { PageDetail } from "../types";
 import { replacePageEmbeds } from "./embeds";
 import { assertContentWritable, loadPage, UpdatePageBodyInput, type PageRecord } from "./model";
@@ -64,6 +65,8 @@ export function updatePageBody(ctx: TesseraContext, input: z.input<typeof Update
     replacePageEmbeds(ctx, row.id, data.description_md);
     upsertPageFts(ctx.sqlite, { id: row.id, project_id: row.project_id, name: fresh.name, body: data.description_md });
     logActivity(ctx, { project_id: row.project_id, entity_type: "page", entity_id: row.id, verb: "description" });
+    // Page mentions notify without a work item or a subscription (decision 53).
+    syncMentions(ctx, { entity_type: "page", entity_id: row.id, work_item_id: null, project_id: row.project_id }, data.description_md);
     return { id: row.id, description_version: version };
   });
 }

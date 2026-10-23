@@ -34,14 +34,28 @@ describe("tab strips fit a phone", () => {
     expect(block).toMatch(/margin-inline-start:\s*calc\(-1 \* var\(--tessera-profile-tab-pad\)\)/);
   });
 
+  it("at 360px the profile tabs take 4px and the analytics tabs 8px, so all of them still fit at rest", () => {
+    const profile = css("profile.css").slice(css("profile.css").lastIndexOf("@media (max-width: 374px) {"));
+    expect(profile).toMatch(/--tessera-profile-tab-pad:\s*var\(--spacing-1\)/);
+    expect(profile).toMatch(/\.tessera-profile-tabs \.astryx-tab\s*\{[^}]*padding-inline:\s*var\(--spacing-1\)/);
+    const analytics = css("analytics.css").slice(css("analytics.css").indexOf("@media (max-width: 374px) {"));
+    expect(analytics).toMatch(/\.tessera-analytics-tabs\.astryx-tab-list\s*\{[^}]*width:\s*calc\(100% \+ var\(--spacing-2\)\);[^}]*margin-inline-start:\s*calc\(-1 \* var\(--spacing-2\)\)/);
+    expect(analytics).toMatch(/\.tessera-analytics-tabs \.astryx-tab\s*\{[^}]*padding-inline:\s*var\(--spacing-2\)/);
+  });
+
+  it("the workspace settings strip carries the class, the project settings strip does not", () => {
+    expect(read("src/components/workspace-settings/WorkspaceSettingsChrome.tsx")).toContain('className="tessera-settings-tabs tessera-settings-tabs--workspace"');
+    expect(read("src/components/project-settings/SettingsTabs.tsx")).not.toContain("--workspace");
+  });
+
   it("the profile strip carries the class", () => {
     expect(read("src/components/profile/ProfileScreen.tsx")).toContain('className="tessera-profile-tabs"');
   });
 
   it("workspace settings tabs: 8px padding, strip to the panel edge, still on the 16px inset", () => {
     const block = phoneBlock(css("project-settings.css"));
-    expect(block).toContain(".tessera-settings-tabs.astryx-tab-list:first-child");
-    expect(block).toMatch(/\.tessera-settings-tabs \.astryx-tab\s*\{[^}]*padding-inline:\s*var\(--spacing-2\)/);
+    expect(block).toContain(".tessera-settings-tabs--workspace.astryx-tab-list:first-child");
+    expect(block).toMatch(/\.tessera-settings-tabs--workspace \.astryx-tab\s*\{[^}]*padding-inline:\s*var\(--spacing-2\)/);
     expect(block).toMatch(/width:\s*calc\(100% \+ var\(--tessera-settings-tab-pad\) \+ var\(--spacing-4\)\)/);
     expect(block).toMatch(/max-width:\s*none/);
   });
@@ -58,7 +72,7 @@ describe("settings tables keep readable columns", () => {
 
   it("gives every backups column a width", () => {
     const source = read("src/components/backups/BackupsScreen.tsx");
-    expect(source.match(/width: [A-Z_]+_COLUMN/g)).toHaveLength(5);
+    expect(source.match(/width: [A-Z_]+_COLUMN(_FOLDED)?/g)).toHaveLength(6);
   });
 
   it("gives every exports column a width", () => {

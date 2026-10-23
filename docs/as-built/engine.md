@@ -1,18 +1,18 @@
 # As-built map: the engine
 
-State described: git HEAD at `257798c` (P3 plus the P4 draft docs), with the stale lines (AI layer, handbook, MCP route, schema file, scripts, deferred notes) refreshed against the working tree after the fix-all round, 2026-10-21. Other lines and line counts are HEAD counts; P4 to P11 engine modules are mapped in the newer as-built files and ai.md. Written for a reworking agent: read this first, then open only the contract section you need (section 8).
+State described: the working tree after fix round 3, 2026-10-23 (HEAD `198611a` plus uncommitted lane work, including migration 0012). Line counts are tree counts. The domain modules of P4 to P11 are mapped in the newer as-built files (section 2.2 points to them); this file covers the foundations, the tool registry and its adapters, the scripts, the actions and the API routes. Written for a reworking agent: read this first, then open only the contract section you need (section 8).
 
 ## 1. Purpose and boundaries
 
-The engine is Tessera's whole domain layer: a TypeScript service over one SQLite file (better-sqlite3 13, WAL, Drizzle) that holds projects, states, labels, work items, cycles, modules, views and the activity log. Every operation is a service function that validates its zod input, runs in one `BEGIN IMMEDIATE` transaction, writes activity and FTS rows in that transaction, and returns a fresh view model. One tool registry (90 tools) is the only list of operations. Three adapters call it: Server Actions (UI), MCP over HTTP and stdio (agents), and later the Anthropic adapter (P5). All callers pass the same `TesseraContext` (db, sqlite, actor, now, today).
+The engine is Tessera's whole domain layer: a TypeScript service over one SQLite file (better-sqlite3 13, WAL, Drizzle) that holds projects, states, labels, work items, cycles, modules, views and the activity log. Every operation is a service function that validates its zod input, runs in one `BEGIN IMMEDIATE` transaction, writes activity and FTS rows in that transaction, and returns a fresh view model. One tool registry (192 tools: 137 mutating, 37 in the `core` set, 9 `userOnly`) is the only list of operations. Three adapters call it: Server Actions (UI), MCP over HTTP and stdio (agents) and the Anthropic adapter (the assistant, ai.md). All callers pass the same `TesseraContext` (db, sqlite, actor, now, today).
 
 In scope: `src/lib/tessera/**`, `drizzle/`, `scripts/**`, `src/app/actions/**`, `src/app/api/**`.
 
 Lives elsewhere:
 - UI (`src/components/**`, `src/app/(tessera)/**`, `src/themes/**`): `docs/contracts/ui.md`. Components never import the engine, except `types`, `schemas` and `core/{keys,time,group}`.
-- Editor and description CAS client: `docs/contracts/editor.md`. The AI layer (`src/lib/tessera/ai/`, `tools/anthropic.ts`) is built (P5); see ai.md.
+- Editor and description CAS client: `docs/contracts/editor.md`. The AI layer (`src/lib/tessera/ai/`, `tools/anthropic.ts`): ai.md.
 - The legacy handbook (`src/lib/workspace`, `(handbook)/`, the `list_items`/`get_item` MCP tools) is removed; `api/mcp/route.ts` is Tessera-only. `scripts/import-handbook.ts` still reads handbook markdown into wiki pages.
-- Not built, no files yet: pages, relations, comments, notifications, versions, drafts, intake accept/decline, estimates service, favourites, recents (server), stickies, home, analytics, automations, exports, webhooks. Their tables exist in `drizzle/0000_init.sql`.
+- Everything the older version of this file listed as not built exists now: pages, relations, comments, reactions, mentions, notifications (pages-collaboration.md), drafts, intake, estimates, bulk (planning-extras.md), favourites, stickies, home, analytics, quick links, workspace settings (workspace.md), automations, exports, webhooks (operations.md), maintenance, backups, paging (hardening.md). Recents are client-side only (shell-detail.md); there is no server recents service.
 
 ## 2. File map
 
@@ -20,16 +20,16 @@ Lives elsewhere:
 
 | Path (lines) | Responsibility | Key exports |
 |---|---|---|
-| `types.ts` (248), `schemas.ts` (292) | Client-safe enums, zod schemas, row types. One source of truth for enums (decision 5), filters, display, progress shapes. | `StateGroupSchema`, `PrioritySchema`, `FiltersSchema`, `RichFiltersSchema`, `DisplaySchema`, `CycleProgressSchema`, `IdSchema`, `ProjectIdentifierSchema`, `TrackerErrorCode`, `*Row`/`*Insert` types |
+| `types.ts` (581), `schemas.ts` (594) | Client-safe enums, zod schemas, row types. One source of truth for enums (decision 5), filters, display, progress shapes. | `StateGroupSchema`, `PrioritySchema`, `FiltersSchema`, `RichFiltersSchema`, `DisplaySchema`, `CycleProgressSchema`, `IdSchema`, `ProjectIdentifierSchema`, `NotificationKindSchema`, `NOTIFICATION_KIND_RANK`, `COALESCE_WINDOW_MS`, `TrackerErrorCode`, `*Row`/`*Insert` types |
 | `core/keys.ts`, `core/time.ts`, `core/group.ts` | Client-safe pure helpers. | `formatKey`, `parseKey`, `normalizeIdentifier`, `nameKey`; `nowIso`, `todayLocal`, `addDays`, `daysBetween`, `compareDates`; `GROUPABLE_FIELDS`, `MULTI_VALUED_GROUP_FIELDS`, `parseOrderBy`, `PRIORITY_RANK` |
 | `core/ids.ts`, `core/order.ts` | UUIDv7 ids; fractional-index sort keys (decisions 2, 4). | `newId`, `isId`; `firstSortOrder`, `sortOrderAfter`, `sortOrderBefore`, `sortOrderBetween`, `lastSortOrder`, `sortOrderForMove` |
 | `core/errors.ts` | The seven error codes and zod/SQLite mapping. | `TrackerError`, `notFound`, `validation`, `conflict`, `rule`, `archived`, `locked`, `busy`, `validateInput`, `fromSqliteError`, `isTrackerError` |
 | `core/context.ts`, `core/tx.ts` | Per-call context and transactions. | `createContext`, `withActor`, `TesseraContext`; `withTx`, `assertInTransaction` |
-| `db/schema.ts` (857, ratcheted at HEAD; since split into `db/schema/{core,planning,pages,collaboration,workspace,ai,hardening}.ts` with `columns.ts` and `index.ts`, 45 `sqliteTable` calls) | The Drizzle tables, P1 to P11, plus `schema` and `TesseraSchema`. The only file that imports `drizzle-zod`. | `project`, `state`, `label`, `work_item`, `work_item_label`, `work_item_module`, `work_item_assignee`, `work_item_subscriber`, `cycle`, `moduleTable`, `module_member`, `module_link`, `work_item_link`, `view`, `view_settings`, `activity`, `actor`, `intake`, `intake_item`, `estimate`, `estimate_point`, `page*`, `comment*`, `notification`, ... |
-| `db/client.ts` | Opens the file, applies pragmas (`journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout=5000`), runs migrate, FTS setup and system actors. Resolves the path from the module location, never from `cwd` (decision 17). | `openDatabase`, `getDb` (process singleton), `closeDb`, `resolveDbPath`, `DEFAULT_DB_PATH`, `MEMORY_DB`, `DbHandles` |
-| `db/migrate.ts` (188) | Drizzle migrator with a lock file and a pre-migration backup. | `migrate`, `migrateIfNeeded`, `pendingMigrations`, `backupDatabase`, `pruneBackups`, `REPO_ROOT`, `MIGRATIONS_DIR` |
+| `db/schema/` (`core` 350, `planning` 105, `pages` 75, `collaboration` 128, `workspace` 71, `ai` 70, `hardening` 90, plus `columns.ts` and `index.ts`; 45 `sqliteTable` calls; the old single `db/schema.ts` is gone) | The Drizzle tables, P1 to P11 (`notification` gained `event_count` and `sort_at` in 0012), plus `schema` and `TesseraSchema`. The only file that imports `drizzle-zod`. | `project`, `state`, `label`, `work_item`, `work_item_label`, `work_item_module`, `work_item_assignee`, `work_item_subscriber`, `cycle`, `moduleTable`, `module_member`, `module_link`, `work_item_link`, `view`, `view_settings`, `activity`, `actor`, `intake`, `intake_item`, `estimate`, `estimate_point`, `page*`, `comment*`, `notification`, ... |
+| `db/client.ts` (114) | Opens the file, applies pragmas (`busy_timeout=5000` first, then `journal_mode=WAL` (`enableWal` retries SQLITE_BUSY for 5 s, because several processes can open a fresh file together), `synchronous=NORMAL`, `foreign_keys=ON`), runs migrate under the lock, FTS setup, system actors and `ensureWorkspaceSettings` (insert-or-ignore, so processes opening a fresh file together seed one row each). Resolves the path from the module location, never from `cwd` (decision 17). | `openDatabase`, `getDb` (process singleton), `closeDb`, `resolveDbPath`, `DEFAULT_DB_PATH`, `MEMORY_DB`, `DbHandles` |
+| `db/migrate.ts` (150), `db/backups.ts` | Drizzle migrator with a lock file and a pre-migration backup (the backup code is in `db/backups.ts`, hardening.md). | `migrate`, `migrateIfNeeded`, `pendingMigrations`, `acquireLock`, `REPO_ROOT`, `MIGRATIONS_DIR` |
 | `db/fts.ts` | Standalone FTS5 tables, written by the service, no triggers (decision 25). | `ensureFtsTables`, `upsertWorkItemFts`, `deleteWorkItemFts`, `upsertPageFts`, `deletePageFts`, `rebuildFts`, `buildMatchExpression`, `searchWorkItemIds`, `searchPageIds` |
-| `drizzle/` | `0000_init.sql` (generated, all tables), `0001_fts.sql` (hand-written FTS5), `meta/_journal.json` (read at runtime, must ship), snapshots. | |
+| `drizzle/` | Thirteen migrations: `0000_init` (all tables), `0001_fts` (FTS5), `0002` (P5 `ai_proposal`, `ai_digest`), `0003` to `0007` (P8 `actor.access` and planning indexes, `last_seen_seq`, `automation_lease` run columns, export and version indexes, webhook columns), `0008_hardening`, `0009_week_start`, `0010_cycle_scope_idx`, `0011_workspace_list_idx`, `0012_notification_coalesce` (`event_count`, `sort_at`, `notification_inbox_idx`, `notification_coalesce_idx`). Migrations are hand-written SQL plus a `meta/_journal.json` entry (read at runtime, must ship) and a snapshot; never run `drizzle-kit generate` in the checkout (field guide). | |
 
 ### 2.2 Domain modules (`src/lib/tessera/`)
 
@@ -38,27 +38,28 @@ Lives elsewhere:
 | `activity.ts` | Append-only log; `seq` is the global change cursor (decision 24). | `logActivity`, `diffFields`, `latestSeq`, `ActivityEntrySchema`, `ACTIVITY_VERBS` |
 | `changes.ts` | Cursor feed and per-item/project history with read-time collapse of description edits. | `listChanges`, `listActivity`, `collapseDescriptionEdits`, `ListChangesInput`, `ListActivityInput` |
 | `actors.ts`, `assignees.ts` | Actors (`user`, `assistant`, `system`, `mcp:<name>`), assignee replace and subscriptions (decision 8). | `USER_ACTOR_ID`, `ASSISTANT_ACTOR_ID`, `SYSTEM_ACTOR_ID`, `ensureSystemActors`, `registerActor`, `updateActor`, `touchActor`, `listActors`; `setAssignees`, `subscribe`, `unsubscribe` |
-| `projects.ts` (513) | Projects, features toggles, archive, cascading soft delete, default Intake. | `createProject`, `updateProject`, `updateProjectFeatures`, `archiveProject`, `unarchiveProject`, `deleteProject`, `listProjects`, `getProject`, `getProjectRow` |
+| `projects.ts` (600) | Projects, features toggles, archive, cascading soft delete, default Intake. | `createProject`, `updateProject`, `updateProjectFeatures`, `archiveProject`, `unarchiveProject`, `deleteProject`, `listProjects`, `getProject`, `getProjectRow` |
 | `states.ts`, `labels.ts` | State groups, default and triage states; labels one level deep, with view-filter stripping on delete. | `seedProjectStates`, `ensureTriageState`, `createState`, `setDefaultState`, `deleteState`, `reorderState`; `createLabel`, `deleteLabel`, `reorderLabel` |
-| `work-items/` | The biggest domain, split in P1 to P3 to stay under the budget. `index.ts` re-exports; `model.ts` (305) holds loaders, resolvers and guards; `create.ts` (sequence, intake), `read.ts` (get, list, children), `hydrate.ts` (row to `WorkItem`), `update.ts` (patch, bulk, description CAS), `membership.ts` (labels, modules, subscribers sync), `lifecycle.ts` (archive, unarchive, delete), `move.ts` (drag/group move), `transfer.ts` (copy, move to project). | `createWorkItem`, `updateWorkItem`, `bulkUpdateWorkItems`, `updateWorkItemDescription`, `moveWorkItem`, `copyWorkItem`, `moveWorkItemToProject`, `setLabels`, `setModules`, `archiveWorkItem`, `deleteWorkItem`, `getWorkItem`, `getWorkItemByKey`, `listWorkItems`, `listChildren`, `loadWritableWorkItem`, `loadWritableProject`, `WorkItem`, `WorkItemDetail`, `ListResult` |
+| `work-items/` | The biggest domain, a folder to stay under the budget. `index.ts` re-exports; `model.ts` (329) holds loaders, resolvers and guards; `create.ts` (sequence, intake, mention sync), `read.ts` (get, list, children), `paging.ts` (hardening.md), `hydrate.ts` (row to `WorkItem`), `update.ts` (patch, description CAS and mention sync), `membership.ts` (labels, modules, subscribers sync), `lifecycle.ts` (archive, unarchive, delete), `move.ts` (drag/group move), `moved-keys.ts`, `transfer.ts`, `bulk.ts`, `bulk-transfer.ts` (planning-extras.md), `timeline.ts` (operations.md), `versions.ts` (pages-collaboration.md), `undo.ts` (hardening.md). | `createWorkItem`, `updateWorkItem`, `bulkUpdateWorkItems`, `updateWorkItemDescription`, `moveWorkItem`, `copyWorkItem`, `moveWorkItemToProject`, `setLabels`, `setModules`, `archiveWorkItem`, `deleteWorkItem`, `getWorkItem`, `getWorkItemByKey`, `listWorkItems`, `listChildren`, `loadWritableWorkItem`, `loadWritableProject`, `WorkItem`, `WorkItemDetail`, `ListResult` |
 | `links.ts`, `module-links.ts` | One link table for work items and modules (http(s) only). | `addLink`, `updateLink`, `removeLink`, `listLinks`, `countLinks`, `isHttpUrl`; `addModuleLink`, `updateModuleLink`, `removeModuleLink` |
-| `cycles.ts` (879, ratcheted), `cycle-dates.ts` | Cycles, derived status, overlap rule, progress, snapshots, transfer (decision 16). | `deriveCycleStatus`, `createCycle`, `updateCycle`, `archiveCycle`, `unarchiveCycle`, `deleteCycle`, `addWorkItemsToCycle`, `removeWorkItemsFromCycle`, `transferCycleWorkItems`, `getCycleProgress`, `getActiveCycles`, `listCycles`, `getCycle`; `checkDates`, `assertNoOverlap` |
-| `modules.ts` (691, ratcheted) | Modules, members, membership, progress. | `createModule`, `updateModule`, `archiveModule`, `unarchiveModule`, `deleteModule`, `addWorkItemsToModule`, `removeWorkItemsFromModule`, `setModuleMembers`, `getModuleProgress`, `listModules`, `getModule`, `ARCHIVABLE_MODULE_STATUSES` |
+| `cycles.ts` (871, ratcheted), `cycle-dates.ts` | Cycles, derived status, overlap rule, progress, snapshots, transfer (decision 16). | `deriveCycleStatus`, `createCycle`, `updateCycle`, `archiveCycle`, `unarchiveCycle`, `deleteCycle`, `addWorkItemsToCycle`, `removeWorkItemsFromCycle`, `transferCycleWorkItems`, `getCycleProgress`, `getActiveCycles`, `listCycles`, `getCycle`; `checkDates`, `assertNoOverlap` |
+| `modules.ts` (694, ratcheted) | Modules, members, membership, progress. | `createModule`, `updateModule`, `archiveModule`, `unarchiveModule`, `deleteModule`, `addWorkItemsToModule`, `removeWorkItemsFromModule`, `setModuleMembers`, `getModuleProgress`, `listModules`, `getModule`, `ARCHIVABLE_MODULE_STATUSES` |
 | `views.ts`, `view-settings.ts` | Saved views (project and workspace) and remembered display settings (decisions 20, 23). | `createView`, `updateView`, `duplicateView`, `lockView`, `unlockView`, `deleteView`, `listViews`, `getView`; `getViewSettings`, `saveViewSettings`, `resetViewSettings`, `mergeDisplay`, `mergeFilters`, `DisplayPatchSchema`, `WORKSPACE_SCOPE_ID` |
-| `filters.ts` (547) | Turns `Filters`/`RichFilters`/`Display` into Drizzle `where`, `order by` and groups. | `buildWhere`, `buildOrder`, `groupItems`, `resolveDateFilter`, `relativeDate`, `NONE_GROUP_ID` |
-| `counts.ts` (304) | The one counting function (decision 21). | `getCounts`, `GetCountsInput`, `CountsScopeSchema`, `Counts` |
+| `filters.ts` (545), `rich-filters.ts`, `rich-filter-spec.ts` | Turns `Filters`/`RichFilters`/`Display` into Drizzle `where`, `order by` and groups. | `buildWhere`, `buildOrder`, `groupItems`, `resolveDateFilter`, `relativeDate`, `NONE_GROUP_ID` |
+| `counts.ts` (383) | The one counting function (decision 21). | `getCounts`, `GetCountsInput`, `CountsScopeSchema`, `Counts` |
 | `search.ts` | Cross-entity search: FTS for items/pages, `LIKE` on name for projects, cycles, modules. | `searchAll`, `SearchAllInput`, `SEARCH_TYPES`, `SearchHit` |
 | `seed.ts` (387) | Demo project WEB, idempotent, built only from service calls. | `seedDemo`, `DEMO_PROJECT` |
-| `index.ts` | Barrel for actions, routes, scripts and tests. Leaves out `db/client`, `db/migrate`, `tools/mcp`. | |
+| Later domains | Pages (`pages/`), `comments.ts`, `relations.ts`, `reactions.ts`, `mentions.ts`, `notifications.ts`, `history.ts`: pages-collaboration.md. `intake*.ts`, `drafts.ts`, `estimates*.ts`: planning-extras.md. `workspace/`, `analytics/`, `projects-order.ts`, `static-views.ts`: workspace.md and views-settings.md. `automations/`, `exports/`, `webhooks/`: operations.md. `maintenance/`, `db/backups.ts`, `seed-perf.ts`: hardening.md. `ai/`: ai.md. | |
+| `index.ts` | Barrel for actions, routes, scripts and tests. Leaves out `db/client`, `db/migrate`, `tools/mcp`, and `ai/` (decision 34). | |
 | `server.ts` | `import "server-only"`; the entry for Server Components. | `readTessera`, `writeTessera`, `getDb`, `closeDb`, plus the barrel |
 
 ### 2.3 Tools (`src/lib/tessera/tools/`)
 
 | Path | Responsibility | Key exports |
 |---|---|---|
-| `define.ts` | The `ToolDef` shape. | `defineTool`, `TOOL_PHASES` (`P1,P3,P4..P11`), `ToolDef`, `Toolset` |
+| `define.ts` | The `ToolDef` shape. | `defineTool`, `TOOL_PHASES` (`P1,P3,P4..P11`; `core` is the assistant's default set, 37 tools), `ToolDef`, `Toolset` |
 | `registry/index.ts` | Concatenates the per-domain arrays, builds the map (duplicate name throws), validates and runs. | `registry`, `getTool`, `listTools`, `runToolWithContext`, `ToolName`, `ToolInput<N>`, `ToolOutput<N>` |
-| `registry/{projects,states,labels,actors,work-items,links,cycles,modules,views,meta}.ts` | The 90 tools (counts: projects 9, states 6, labels 5, actors 3, work items 21, links 3, cycles 13, modules 15, views 11, meta 4). `work-items.ts` also holds `list_children`, `list_activity`, `list_archived_work_items`. | `projectTools`, `stateTools`, ... `metaTools` |
+| `registry/*.ts` (27 files) | The 192 tools, per domain: projects 10, states 6, labels 5, actors 3, work items 25 (also `list_children`, `list_activity`, `list_archived_work_items`, bulk, copy and move), links 3, cycles 13, modules 15, views 12, meta 4, pages 15, comments 6, relations 3, notifications 7, history 3, intake 9, drafts 6, estimates 5, workspace 22, analytics 1, automations 2, exports 4, webhooks 8, maintenance 5. `access.ts` holds `assertToolAllowed` (per-agent access and `userOnly`). | `projectTools`, `stateTools`, ... `maintenanceTools` |
 | `registry/shared.ts` | Shared id inputs and result helpers. | `GetProjectInput` (the one string-or-id input), `EmptyInput`, `deleted`, `removed`, `toListResult` |
 | `describe-filters.ts` | The self-describing filter/display payload for agents. | `describeFilters` |
 | `mcp.ts` | MCP adapter. | `registerTesseraTools`, `createMcpActorResolver`, `mcpToolName`, `mcpInputSchema`, `MCP_TOOL_PREFIX` (`tessera_`), `CONFIRM_FIELD` |
@@ -69,15 +70,16 @@ Lives elsewhere:
 |---|---|
 | `scripts/mcp-stdio.ts` | `npm run mcp:stdio -- [--db] [--migrate] [--init] [--toolset core\|all]`. Refuses pending migrations without `--migrate` (exit 2); usage errors exit 1; always logs the absolute DB path to stderr. Backs `.mcp.json`. |
 | `scripts/mcp-call.ts` | `npx tsx scripts/mcp-call.ts <tool> '<json>'`: spawns the stdio server (no `--db`, no `--migrate`) as client `p3-acceptance` (actor `mcp:p3-acceptance`) and prints one result. |
-| `scripts/check-conventions.ts`, `convention-rules.ts`, `file-budget.json` | The convention gate and its pure rules (section 4). |
+| `scripts/check-conventions.ts`, `convention-rules.ts`, `file-budget.json` | The convention gate and its pure rules (section 4). `file-budget.json` now lists only `cycles.ts` (871) and `modules.ts` (694). |
 | `scripts/check-licenses.ts` + `licenses.exceptions.json` | Licence gate, decision U6; 7 reviewed exceptions. |
-| `scripts/migrate.ts`, `db-seed.ts`, `db-backup.ts`, `fts-rebuild.ts` | `db:migrate`, `db:seed` (idempotent WEB demo), `db:backup` (`VACUUM INTO`, keep newest 10), `db:fts-rebuild` (refuses on pending migrations). |
-| `scripts/automations.ts`, `import-handbook.ts` | `npm run automations` runs `runAutomations` once (`--dry-run`, `--project`, `--now`); `npm run import:handbook` reads handbook markdown into wiki pages as the user actor. P11 scripts (`maintenance`, `db-restore`, `perf-*`, `check-bundle`) are in hardening.md. |
+| `scripts/migrate.ts`, `db-seed.ts`, `db-backup.ts`, `db-restore.ts`, `fts-rebuild.ts` | `db:migrate`, `db:seed` (idempotent WEB demo), `db:backup` (kinded `VACUUM INTO`, rotated), `db:restore` (script only), `db:fts-rebuild` (refuses on pending migrations). |
+| `scripts/automations.ts`, `import-handbook.ts`, `webhook-echo.ts` | `npm run automations` runs `runAutomations` once (`--dry-run`, `--project`, `--now`); `npm run import:handbook` reads handbook markdown into wiki pages as the user actor; `webhook-echo.ts` is a local receiver for webhook tries. `maintenance`, `perf-*` and `check-bundle` are in hardening.md. The hourly automation timer and the daily maintenance run start from `src/instrumentation.ts` (operations.md). |
 | `src/app/actions/_run.ts` | `runTool` (the one Server Action: validate, open db, run as actor, then `refresh()` outside the try for mutating tools) and `toolAction(name)` (typed wrapper factory; wrong name fails at import). Result is `{ok,data,cursor}` or `{ok:false,code,message,details}`; unknown errors become `INTERNAL`. |
-| `src/app/actions/{projects,work-items,detail,cycles,modules,states-labels,views}.ts` | File-level `"use server"` wrappers, one `toolAction` line each. Projects: create, update, archive, unarchive, delete. Work items: create, update, description, move, bulk, archive, unarchive, delete, set labels/assignees/modules. Detail: subscribe, unsubscribe, copy, link add/update/remove. Cycles and modules: the P3 set. States-labels: create state, create label. Views: save/reset view settings. `shell.ts` exports `refreshAction` (plain `refresh()`). |
-| `src/app/api/changes/route.ts` | `GET ?since=<seq>`: `listChanges` excluding the `user` actor; 400 on a bad cursor; `no-store`. |
+| `src/app/actions/*.ts` (26 files besides `_run.ts`) | File-level `"use server"` wrappers, one `toolAction` line each, one file per domain: projects, work-items, detail, cycles, modules, states-labels, views, pages, relations-comments, inbox, intake, drafts, estimates, home, favorites, stickies, quick-links, workspace-settings, settings, history, exports, webhooks, automations, maintenance, ai. `shell.ts` exports `refreshAction` (plain `refresh()`, also called by the poller). |
+| `src/app/api/changes/route.ts` | `GET ?since=<seq>`: `listChanges` excluding the `user` actor plus `unread_notifications` (`getUnreadCount`, decision 59), so a snooze wake-up moves the badge without new activity; 400 on a bad cursor; `no-store`. Returns `{ changes, cursor, unread_notifications }`; `tests/changes-route.test.ts`. |
 | `src/app/api/search/route.ts` | `GET ?q&scope&types&limit`: `searchAll`; 400 on bad input; `no-store`. |
-| `src/app/api/mcp/route.ts` | HTTP MCP via `mcp-handler`: the legacy handbook tools plus `registerTesseraTools` with one actor resolver per process and `afterWrite: revalidatePath("/", "layout")`. |
+| `src/app/api/mcp/route.ts` (32) | HTTP MCP via `mcp-handler`: `registerTesseraTools` only, with one actor resolver per process and `afterWrite: revalidatePath("/", "layout")`. |
+| `src/app/api/{ai,exports,history,home}/**` | The AI routes (ai.md), export download, history read, `home/seen`; each guarded as its as-built file says. |
 | `src/app/api/work-items/[workItemId]/description/route.ts` | POST beacon for `pagehide`: runs `update_work_item_description` as the user; same-origin and JSON-only; `if_current_md` rebase of an in-flight save; maps error codes to HTTP statuses. |
 | `src/app/api/request-guards.ts` | `isSameOriginRequest`, `isJsonContentType`. |
 
@@ -89,9 +91,11 @@ Write (UI): client calls a wrapper such as `moveWorkItemAction(input)` (`actions
 
 Write (agent): MCP client calls `tessera_<tool>`. `callTool` (tools/mcp.ts) resolves the client name from the handshake, `createMcpActorResolver` registers/touches `mcp:<name>`, a destructive tool without `confirm: true` returns `VALIDATION` and writes nothing, then the same `runToolWithContext` runs as that actor. `afterWrite` fires after every successful mutating tool (HTTP: `revalidatePath`). A `create_work_item` that lands in Intake (decision 27) gets a note prefixed to the result text (`hasPendingIntake`).
 
+Notifications and mentions: `logActivity` calls `notifyFromActivity` inside the same transaction, so a row and its notifications commit together (decisions 50, 51; details in pages-collaboration.md). A body save (work item description, comment, page) also runs `syncMentions` (`mentions.ts`, decision 53), which logs a `mention` activity row per added actor.
+
 Description autosave: Server Action path (`updateWorkItemDescriptionAction`) or, on `pagehide`, the beacon route. Both run `update_work_item_description` with compare-and-set on `description_version` (decision 10).
 
-Cross-process: the Next server and the stdio server are separate processes on one file; `busy_timeout=5000` serialises writers, longer waits give `BUSY`. External writes reach open pages only through `/api/changes` (activity rows from non-user actors).
+Cross-process: the Next server and the stdio server are separate processes on one file; `busy_timeout=5000` serialises writers, longer waits give `BUSY`. External writes reach open pages only through `/api/changes` (activity rows from non-user actors), which also carries the unread count.
 
 Boot: `getDb()` -> `migrateIfNeeded(file)` (lock file `<db>.migrate.lock`, waits 30 s; `VACUUM INTO data/backups/tessera-<iso>.db` first when migrations are pending, keep 10) -> `openDatabase` (pragmas, `migrate`, `ensureFtsTables`, `ensureSystemActors`).
 
@@ -127,7 +131,9 @@ Decision numbers are from `docs/PLAN.md` "Resolved design decisions" (U1 to U9 a
 | Archive an item only when completed or cancelled; `completed_at` follows the group | schema.md | `lifecycle.archiveWorkItem` (`archive_open_item`); `model.nextCompletedAt` |
 | Labels one level deep; delete strips ids from view filters and `view_settings` | schema.md | `labels.ts` (`label_depth`, `label_has_children`, `stripLabelsFromFilters`) |
 | Destructive MCP tools need `confirm: true` | tools.md | `tools/mcp.callTool`; `tests/mcp.test.ts` |
-| Convention gate: client-boundary, component-boundary, server-only, forbidden-package, hex-colour, drizzle-zod, plane-marker, no-router-refresh, no-cwd-in-engine, decision-ref, file-budget | plan 10 | `scripts/check-conventions.ts`, `convention-rules.ts`; `tests/convention-rules.test.ts` |
+| Convention gate: client-boundary, component-boundary, ai-boundary, server-only, forbidden-package, hex-colour, drizzle-zod, plane-marker, no-router-refresh, no-cwd-in-engine, decision-ref, file-budget, css-token | plan 10 | `scripts/check-conventions.ts`, `convention-rules.ts`; `tests/convention-rules.test.ts` |
+| A notification merges into the recipient's newest unread row for the same item and actor within 10 minutes; snooze and archive rules; mentions are links synced on every body save | 51, 52, 53 | `notifications.ts`, `mentions.ts`; `tests/notifications.test.ts`, `tests/mentions.test.ts` (pages-collaboration.md) |
+| `/api/changes` returns the unread count | 59 | `api/changes/route.ts`; `tests/changes-route.test.ts` |
 
 Import boundary (eslint regex patterns in `eslint.config.mjs` plus the gate): `'use client'` files import `types`, `schemas`, `core/{keys,time,group}` only. Server Components import `@/lib/tessera/server` and never `db*`, `better-sqlite3`, `drizzle-orm`. Actions and route handlers may import engine modules directly. Only `server.ts` imports `server-only`. Scripts and tests use the barrel plus `db/client`, `db/migrate`, `tools/mcp`.
 
@@ -139,7 +145,7 @@ Import boundary (eslint regex patterns in `eslint.config.mjs` plus the gate): `'
 | `helpers/second-writer.ts`, `concurrency.test.ts` | Two handles and a second process on one file; `BUSY` |
 | `foundation.test.ts` | Migrations, pragmas, system actors, context, `withTx`, errors, sort order, keys |
 | `projects.test.ts`, `states.test.ts`, `labels.test.ts` | Project identifier/name rules, features, archive, cascade delete; state default/triage/delete rules; label depth and delete |
-| `work-items.test.ts` (1353 lines) | Create, intake policy, get/list, update, description CAS, move, bulk, copy, move to project, archive, delete |
+| `work-items.test.ts` (1518 lines) | Create, intake policy, get/list, update, description CAS, move, bulk, copy, move to project, archive, delete |
 | `cycles.test.ts`, `modules.test.ts` | Cycle dates, status, overlap, lock, transfer, snapshot, progress; module status, membership, progress |
 | `links.test.ts`, `views.test.ts`, `view-settings.test.ts` | Links and archived parents; view CRUD, lock, duplicate; settings merge/reset |
 | `filters.test.ts`, `counts.test.ts`, `search.test.ts`, `fts.test.ts` | Where/order/group builders; count population; `searchAll`; FTS after migration, rebuild and hostile queries |
@@ -148,27 +154,30 @@ Import boundary (eslint regex patterns in `eslint.config.mjs` plus the gate): `'
 | `mcp.test.ts`, `mcp-stdio.test.ts` | Adapter listing, `confirm`, error mapping, actor registration; stdio flags and exit codes |
 | `convention-rules.test.ts` | Decision-ref parsing and the file-budget ratchet |
 | `editor/description-route.test.ts` | Beacon route, same-origin and JSON guards |
+| `changes-route.test.ts`, `first-open-race.test.ts` | The `/api/changes` payload; several processes opening one fresh file |
 
-Gate: `npm run check` = typecheck, lint, vitest, `check:conventions`, `check:licenses`, `check:theme`. Vitest fails fast on Node-API < 10.
+The tests of later domains are listed in the as-built file of their area (about 67 entries under `tests/`, plus `tests/ui/` and `tests/e2e/`).
+
+Gate: `npm run check` = typecheck, lint, vitest, `check:conventions`, `check:licenses`, `check:theme`. `check:bundle` and the Playwright suite (`check:e2e`) are separate (hardening.md). Vitest fails fast on Node-API < 10.
 
 ## 6. Extension points for later phases
 
 - New tool: add a `defineTool` in the domain's `tools/registry/<domain>.ts`, append the array in `registry/index.ts` `TOOLS`, set `phase` from `TOOL_PHASES`, then add `export const xAction = toolAction("x")` in `src/app/actions/<domain>.ts`. `registry.test.ts` then demands one tool per mutating service export, strict inputs with descriptions, and the destructive/core flags.
 - New service module: add to `src/lib/tessera/index.ts`; keep each file under 600 lines (split like `work-items/`).
-- New table or column: edit `db/schema.ts`, `npm run db:generate`, then `db:fts-rebuild` if `work_item` or `page` is recreated. Tables for P5 to P11 exist (pages, relations, comments, reactions, mentions, notification, draft_work_item, intake_item, estimate, favorite, favorite_folder, recent_visit, sticky, quick_link, workspace_settings, work_item_version, export_job, webhook, automation_lease).
-- Anthropic adapter (P5, built; see ai.md): `tools/anthropic.ts` with `previewTool`, `propose_*` stubs and `applyProposals` as actor `ASSISTANT_ACTOR_ID`; read tools come from `listTools({ toolset: "core" })` (the `core` flag marks the 24 default tools).
+- New table or column: edit the file under `db/schema/`, hand-write `drizzle/NNNN_name.sql` and its `_journal.json` entry, generate the snapshot in a scratch copy only (field guide; the re-run must say "No schema changes"), then `db:fts-rebuild` if `work_item` or `page` is recreated.
+- Anthropic adapter (P5, built; see ai.md): `tools/anthropic.ts` with `previewTool`, `propose_*` stubs and `applyProposals` as actor `ASSISTANT_ACTOR_ID`; read tools come from `listTools({ toolset: "core" })` (the `core` flag marks the 37 default tools).
 - P4 hooks: project settings go through `update_project` / `update_project_features` (no separate settings tools); `getCounts` scopes `workspace|project|cycle|module|view|profile`; `groupItems` plus `MULTI_VALUED_GROUP_FIELDS` for multi-valued and sub-grouping; `saveViewSettings`/`resetViewSettings`; stripping of deleted state, label, cycle and module ids from view filters (`saved-filters.ts`, built); refusing cycle/module tools while the feature toggle is off (ui.md row 23).
-- P6 `pages.ts`, P7 `relations.ts`/`comments.ts`/`notifications.ts` (generated inside the triggering transaction, never for the causing actor), `WorkItemDetail.relations`, P8 `drafts.ts`/`intake.ts`/`estimates.ts`, P9 `home.ts`/`analytics.ts`, P10 `versions.ts`/`automations.ts` (`runAutomations`, lease via `automation_lease`)/`exports.ts`/`webhooks.ts`: signatures are in `service-api.md` "Later phases".
+- Later domains (pages, relations, comments, notifications, drafts, intake, estimates, home, analytics, versions, automations, exports, webhooks) are built; signatures are in `service-api.md` "Later phases" and the map of each is in its own as-built file.
 - `registerTesseraTools({ handles, toolset, actorResolver, afterWrite, fallbackClientName })` is how any new transport reuses the registry.
-- `scripts/automations.ts` and `import-handbook.ts` are wired placeholders.
 
 ## 7. Known debt and quirks
 
-File budget (`scripts/file-budget.json`, HEAD): `cycles.ts` 925, `db/schema.ts` 857, `modules.ts` 735. Actual HEAD sizes are 879, 857, 691, so the first two are now notes ("lower the json"), not failures. The field guide still names `work-items.ts`, `tools/registry.ts` and `CommandBar.tsx` as ratcheted; the first two were split into folders and are no longer listed. The ratchet allows shrinking only.
+File budget (`scripts/file-budget.json`): only `cycles.ts` (871) and `modules.ts` (694) are ratcheted; both may only shrink. `db/schema.ts` and `work-items.ts` were split into folders and left the list. `projects.ts` is exactly 600 lines and `schemas.ts` 594, so the next addition to either needs a split first.
 
 From the contracts and `docs/PLAN-STATUS.md` (P1 open items, P3 notes):
 - Deleting a state, label, cycle or module strips its id from saved views (`saved-filters.ts`). `filters.ts` still tolerates unknown ids.
-- Intake (accept, decline, snooze, duplicate) and the pending badge are built (P8); see planning-extras.md.
+- Intake, drafts, estimates and bulk are built (planning-extras.md).
+- Notification wording: `event_count` counts every merged event, so a state change merged into a `commented` row still reads "commented N times" (marked ASSUMPTION in `inbox-format.ts`; pages-collaboration.md).
 - FTS inside list queries is capped at 100 000 ids (P11).
 - A migration lock file left by a crash is not detected; remove `<db>.migrate.lock` by hand (P11).
 - `ModuleProgress` has no zod schema (type only). `WorkItemDetail.relations` exists since P7.
@@ -182,7 +191,7 @@ From the contracts and `docs/PLAN-STATUS.md` (P1 open items, P3 notes):
 - `api/mcp/route.ts` (33 lines) registers Tessera's tools only, through `registerTesseraTools` with an actor resolver per client name; the legacy handbook tools are gone.
 - `src/app/actions/_run.ts` puts `"use server"` inside `runTool`, not at file level; client code must never import `_run.ts`.
 - Stdio server refuses pending migrations unless `--migrate`; `mcp-call.ts` never migrates and always names the client `p3-acceptance`.
-- Tolerated gate noise: `astryx doctor` always shows one `theme-fonts` warning; `npm run lint` has 3 known warnings in `src/app/page-body.tsx`.
+- Tolerated gate noise: `astryx doctor` always shows one `theme-fonts` warning. The three lint warnings that used to come from `src/app/page-body.tsx` are gone with that file.
 - Module map in `service-api.md` still lists `work-items.ts`; the code is the folder `work-items/` (barrel `work-items/index.ts`).
 
 ## 8. Where to read more
@@ -195,6 +204,6 @@ From the contracts and `docs/PLAN-STATUS.md` (P1 open items, P3 notes):
 | Activity, counts, filters | `service-api.md`: "Activity, notifications, versions", "Counts", "Filters and display" |
 | P3 progress, points and snapshot rules | `service-api.md` "P3 additions (lane A)"; `tools.md` "P3 changes" |
 | ToolDef, tool list by domain, adapters, registry test | `docs/contracts/tools.md`: "ToolDef", "Tools by domain", "Adapters" (MCP, Server Actions, Anthropic), "Registry test" |
-| P4 plan (not built) | `docs/drafts/` P4 contract draft; `docs/PLAN-STATUS.md` P3 "Extension points for later phases" |
+| Later phases | The as-built file of the area (README.md); `docs/PLAN-STATUS.md` hand-off notes |
 | Process and gates | `docs/process/swarm.md`; `docs/field-guide/index.md`; `docs/contracts/OWNERS.md` |
 | Status and open items | `docs/PLAN-STATUS.md` hand-off notes "P1" and "P3" |

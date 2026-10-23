@@ -6,6 +6,8 @@ import { conflict, notFound, rule, validateInput } from "../core/errors";
 import { assertInTransaction, withTx } from "../core/tx";
 import { upsertWorkItemFts } from "../db/fts";
 import { work_item, work_item_version } from "../db/schema";
+import { syncMentions } from "../mentions";
+import { withoutUpdatedFor } from "../notifications";
 import { IdSchema, IsoDateSchema, PrioritySchema } from "../schemas";
 import type { WorkItemRow } from "../types";
 import { RestoreWorkItemVersionInput, writeWorkItemVersion } from "./versions";
@@ -173,16 +175,20 @@ export function updateWorkItemDescription(ctx: TesseraContext, id: string, input
     if (result.changes === 0) throw conflict("Description changed concurrently", { id });
     upsertWorkItemFts(ctx.sqlite, { id, project_id: item.project_id, name: item.name, body: data.description_md });
     writeWorkItemVersion(ctx, { id, name: item.name, description_md: data.description_md, description_version: item.description_version + 1 });
-    logActivity(ctx, {
-      project_id: projectRow.id,
-      entity_type: ENTITY,
-      entity_id: id,
-      work_item_id: id,
-      verb: "updated",
-      field: "description_md",
-      old_value: String(item.description_version),
-      new_value: String(item.description_version + 1),
-    });
+    // Mentions first: a newly mentioned actor is subscribed and told once (`mentioned`), and the `updated` row skips them (decision 53). Other subscribers still get "updated this".
+    const { added } = syncMentions(ctx, { entity_type: ENTITY, entity_id: id, work_item_id: id, project_id: projectRow.id }, data.description_md);
+    withoutUpdatedFor(ctx, added, () =>
+      logActivity(ctx, {
+        project_id: projectRow.id,
+        entity_type: ENTITY,
+        entity_id: id,
+        work_item_id: id,
+        verb: "updated",
+        field: "description_md",
+        old_value: String(item.description_version),
+        new_value: String(item.description_version + 1),
+      }),
+    );
     return loadWorkItem(ctx, id);
   });
 }

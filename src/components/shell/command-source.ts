@@ -16,7 +16,7 @@ import type { SearchSource, SearchableItem } from "@astryxdesign/core/Typeahead"
 import { favoriteTarget, isFavoriteInTree } from "@/components/favorites/tree";
 import { readFavoritesTree } from "@/components/favorites/state";
 import { SETTINGS_TABS } from "@/components/project-settings/settings-tabs";
-import type { SearchHit, SearchType } from "@/lib/tessera/types";
+import type { AppliedBatch, SearchHit, SearchType } from "@/lib/tessera/types";
 import { COLOR_SCHEME_LABELS, isColorScheme, type ColorScheme } from "./color-scheme";
 import type { CommandContextValue } from "./command-context";
 import { isShortcutHidden, type ProjectFeatures } from "./project-features";
@@ -280,6 +280,24 @@ export function buildAiCommands(projectId: string | null, features: ProjectFeatu
       id: DESCRIBE_VIEW_ID,
       label: "Describe a view…",
       auxiliaryData: { group: "Create", kind: "command", keywords: ["view", "ai", "assistant", "prompt", "filter", "generate", "new"] },
+    },
+  ];
+}
+
+/** Reverses the newest applied assistant batch (decisions 116-117), the keyboard path once the Apply toast is gone. */
+export const UNDO_ASSISTANT_ID = "ai.undoLastBatch";
+
+/**
+ * "Undo last assistant change" in the Actions section, with the batch's proposal
+ * titles as its hint. Left out (not disabled) when there is no batch to undo.
+ */
+export function buildUndoCommand(batch: AppliedBatch | null): CommandSearchItem[] {
+  if (batch === null) return [];
+  return [
+    {
+      id: UNDO_ASSISTANT_ID,
+      label: "Undo last assistant change",
+      auxiliaryData: { group: "Actions", kind: "command", hint: batch.titles.join(", "), keywords: ["undo", "assistant", "revert"] },
     },
   ];
 }

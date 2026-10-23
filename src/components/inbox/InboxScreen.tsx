@@ -33,7 +33,7 @@ import { DigestCard } from "@/components/ai/DigestCard";
 import { PanelBar, PanelHeader, PanelTitle } from "@/components/shell/PanelHeader";
 import type { DigestView } from "@/lib/tessera/types";
 import { CaretLeftIcon, CheckIcon } from "@/themes/catppuccin/icons";
-import { inboxHref, INBOX_TABS, matchesInboxTab, sortInbox, type InboxNote, type InboxQuery, type InboxTab } from "./inbox-format";
+import { inboxHref, INBOX_TABS, matchesInboxTab, notificationHref, sortInbox, type InboxNote, type InboxQuery, type InboxTab } from "./inbox-format";
 import { NotificationRow } from "./NotificationRow";
 import { SnoozeDialog } from "./SnoozeDialog";
 
@@ -77,7 +77,9 @@ export function InboxScreen({ query, notifications, digest, actorId, children }:
 
   const open = (note: InboxNote) => {
     if (note.read_at === null) run(() => markNotificationsReadAction({ ids: [note.uid] }), "Could not mark as read", true);
-    if (note.work_item_id !== null) router.push(inboxHref(query.tab, query.unread, note.work_item_id));
+    // A page mention has no work item: notificationHref sends it to the page (decision 53).
+    const href = notificationHref(note, query);
+    if (href) router.push(href);
   };
 
   const snooze = (uid: string, until: Date) => {
@@ -92,11 +94,11 @@ export function InboxScreen({ query, notifications, digest, actorId, children }:
       header={
         <PanelHeader label="Inbox">
           <PanelBar
-            className="tessera-inbox-bar"
+            tabsBelow
             start={
               <>
-                {/* Below 600px the tabs take their own row under the title (inbox.css), like the project frame's pages. */}
-                <PanelTitle className="tessera-inbox-title">Inbox</PanelTitle>
+                {/* Below 600px the tabs take their own row under the title (PanelBar tabsBelow, shell.css), like the project frame's pages. */}
+                <PanelTitle>Inbox</PanelTitle>
                 <TabList value={query.tab} onChange={() => {}} size="sm" layout="hug" aria-label="Inbox" className="tessera-inbox-tabs">
                   {INBOX_TABS.map((tab) => (
                     <Tab key={tab} value={tab} label={TAB_LABELS[tab]} href={inboxHref(tab, query.unread, query.item)} />

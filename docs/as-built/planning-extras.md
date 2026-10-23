@@ -1,6 +1,6 @@
 # As-built map: planning extras (P8): intake, drafts, estimates, bulk
 
-State described: the working tree after the fix-all round, 2026-10-21 (HEAD `e04b840` plus uncommitted lane work, including the bulk transfer dialog change and the no-results state). Line counts are tree counts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Plan: docs/drafts/p8-plan.md; the cycles, modules and archives screens are in planning.md.
+State described: the working tree after fix round 3, 2026-10-23 (HEAD `198611a` plus uncommitted lane work). Line counts are tree counts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Plan: docs/drafts/p8-plan.md; the cycles, modules and archives screens are in planning.md. Round 3 changed little here: the Intake bar (the assistant button is an icon button and the search shrinks first), the nested-dialog focus return, and e2e coverage.
 
 ## 1. Purpose and boundaries
 
@@ -22,12 +22,12 @@ Lives elsewhere (this area only calls it):
 
 | File | Responsibility | Key exports |
 |---|---|---|
-| `intake.ts` (419) | One live `intake_item` per work item. Status moves pending, snoozed, accepted, declined, duplicate; accepted is final. A snoozed item whose time has passed counts as Open at read time (no job writes it back). | `listIntakeItems`, `getIntakeItem`, `getIntakeItemForWorkItem`, `countOpenIntake`, `createIntakeItem`, `acceptIntakeItem`, `declineIntakeItem`, `snoozeIntakeItem`, `unsnoozeIntakeItem`, `markIntakeDuplicate`, `deleteIntakeItem` |
-| `intake-policy.ts` (105) | Decides where an actor's create lands: agents go to triage when the project requires it, and an agent with `intake` access always does. Notifies the user of a new item from anyone but the user or the assistant. | `intakeRequired`, `intakeSourceFor`, `recordIntakeItem`, `ensureDefaultIntake` |
-| `drafts.ts` (303) | Drafts; project-scoped fields need a project and are checked with the create rules; changing `project_id` clears them. `moveDraftToProject` creates the work item and soft-deletes the draft in one transaction. | `listDrafts`, `getDraft`, `countDrafts`, `createDraft`, `updateDraft`, `deleteDraft`, `moveDraftToProject` |
-| `estimates.ts` (292), `estimate-points.ts` (30) | Estimate systems; two to six values (`ESTIMATE_POINTS_MIN/MAX`); replacing a system keeps item points whose value matches (same type only) and clears the rest; removing a used point needs a remap. `activeEstimateId` returns an id only for type `points`. | `createEstimate`, `updateEstimate`, `deleteEstimate`, `getActiveEstimate`, `validateEstimateValues`, `activeEstimateId` |
-| `work-items/bulk.ts` (126) | `bulk_update`, archive, unarchive, delete; one transaction, one failure rolls the set back; at most 500 ids. | `bulkUpdateWorkItems`, `bulkArchiveWorkItems`, `bulkUnarchiveWorkItems`, `bulkDeleteWorkItems` |
-| `work-items/transfer.ts` (244), `bulk-transfer.ts` (41) | Single copy and move to another project (the move gives a new key, the old key still resolves); the bulk call applies the same rules to up to 100 items, all or nothing, and a move needs `confirm: true`. | `copyWorkItem`, `moveWorkItemToProject`, `bulkTransferWorkItems`, `MAX_BULK_TRANSFER` |
+| `intake.ts` (418) | One live `intake_item` per work item. Status moves pending, snoozed, accepted, declined, duplicate; accepted is final. A snoozed item whose time has passed counts as Open at read time (no job writes it back). | `listIntakeItems`, `getIntakeItem`, `getIntakeItemForWorkItem`, `countOpenIntake`, `createIntakeItem`, `acceptIntakeItem`, `declineIntakeItem`, `snoozeIntakeItem`, `unsnoozeIntakeItem`, `markIntakeDuplicate`, `deleteIntakeItem` |
+| `intake-policy.ts` (104) | Decides where an actor's create lands: agents go to triage when the project requires it, and an agent with `intake` access always does. Notifies the user of a new item from anyone but the user or the assistant. | `intakeRequired`, `intakeSourceFor`, `recordIntakeItem`, `ensureDefaultIntake` |
+| `drafts.ts` (302) | Drafts; project-scoped fields need a project and are checked with the create rules; changing `project_id` clears them. `moveDraftToProject` creates the work item and soft-deletes the draft in one transaction. | `listDrafts`, `getDraft`, `countDrafts`, `createDraft`, `updateDraft`, `deleteDraft`, `moveDraftToProject` |
+| `estimates.ts` (291), `estimate-points.ts` (29) | Estimate systems; two to six values (`ESTIMATE_POINTS_MIN/MAX`); replacing a system keeps item points whose value matches (same type only) and clears the rest; removing a used point needs a remap. `activeEstimateId` returns an id only for type `points`. | `createEstimate`, `updateEstimate`, `deleteEstimate`, `getActiveEstimate`, `validateEstimateValues`, `activeEstimateId` |
+| `work-items/bulk.ts` (125) | `bulk_update`, archive, unarchive, delete; one transaction, one failure rolls the set back; at most 500 ids. | `bulkUpdateWorkItems`, `bulkArchiveWorkItems`, `bulkUnarchiveWorkItems`, `bulkDeleteWorkItems` |
+| `work-items/transfer.ts` (243), `bulk-transfer.ts` (40) | Single copy and move to another project (the move gives a new key, the old key still resolves); the bulk call applies the same rules to up to 100 items, all or nothing, and a move needs `confirm: true`. | `copyWorkItem`, `moveWorkItemToProject`, `bulkTransferWorkItems`, `MAX_BULK_TRANSFER` |
 
 Registry tools: `intake.ts` (9 tools), `drafts.ts` (6), `estimates.ts` (5), and in `work-items.ts` the `bulk_*` family plus `copy_work_item`, `move_work_item_to_project`. Wrappers: `actions/{intake,drafts,estimates,work-items}.ts`.
 
@@ -35,26 +35,26 @@ Registry tools: `intake.ts` (9 tools), `drafts.ts` (6), `estimates.ts` (5), and 
 
 | Path | Responsibility |
 |---|---|
-| `projects/[projectId]/intake/page.tsx` (107) | `listIntakeItems` for `?tab=` (open, snoozed, closed) and `?q=`, `getIntakeItemForWorkItem` for `?item=`. Intake off gives the feature-off state. |
-| `drafts/page.tsx` (59) | `listDrafts`; `?draft=` opens one in the dialog. |
-| `projects/[projectId]/settings/estimates/page.tsx` (45) | Active and archived systems with usage counts. |
+| `projects/[projectId]/intake/page.tsx` (106) | `listIntakeItems` for `?tab=` (open, snoozed, closed) and `?q=`, `getIntakeItemForWorkItem` for `?item=`. Intake off gives the feature-off state. |
+| `drafts/page.tsx` (58) | `listDrafts`; `?draft=` opens one in the dialog. |
+| `projects/[projectId]/settings/estimates/page.tsx` (44) | Active and archived systems with usage counts. |
 
 ### Components
 
 | Path | Responsibility | Key exports |
 |---|---|---|
-| `intake/IntakeScreen.tsx` (131) | Open, Snoozed, Closed tabs beside the selected work item; search waits 300 ms then writes `q`; "Triage with assistant" asks the panel with the project scope. | `IntakeScreen` |
-| `intake/IntakeDetail.tsx` (159), `DuplicateDialog.tsx` (97) | Action bar: Accept, Decline, Snooze, Duplicate (search through `/api/search`, current item left out), Delete. An accepted item only links into the project. | `IntakeDetail`, `DuplicateDialog` |
-| `intake/intake-format.ts` (62, pure) | Tabs, query codec, source label, status token, next open item after an action. | `parseIntakeQuery`, `nextOpenItem` |
-| `drafts/DraftsScreen.tsx` (117), `DraftDialog.tsx` (221) | Workspace list; the dialog shows project fields once a project is chosen. The first save creates the row; creating the work item moves the draft. | `DraftsScreen`, `DraftDialog` |
-| `drafts/SaveDraftDialog.tsx` (78) | "Save this draft?" when the create dialog closes with text. `CreateWorkItemDialog` in `mode="intake"` does not offer it. | `SaveDraftDialog` |
-| `estimates/EstimatesSettings.tsx` (132), `EstimateDialog.tsx` (205) | Active system or an empty state; create, replace (type and template, then values), edit with a remap target for removed points. | `EstimatesSettings`, `EstimateDialog` |
-| `estimates/estimate-rules.ts` (46), `estimate-format.ts` (23) | Client copy of the engine's value rules; display (`1h 30m`, category text, number). | `estimateValuesError`, `formatEstimateValue` |
+| `intake/IntakeScreen.tsx` (146) | Open, Snoozed, Closed tabs beside the selected work item; search waits 300 ms then writes `q`; "Triage with assistant" (an `IconButton` with a tooltip, only when the assistant is available) asks the panel with the project scope. The filters bar stays one 44 px row from 1440 down to 360 px: the search shrinks first (`min-width: 0`) and the start group has a 96 px flex basis (`intake.css`). | `IntakeScreen` |
+| `intake/IntakeDetail.tsx` (158), `DuplicateDialog.tsx` (97) | Action bar: Accept, Decline, Snooze, Duplicate (search through `/api/search`, current item left out), Delete. An accepted item only links into the project. | `IntakeDetail`, `DuplicateDialog` |
+| `intake/intake-format.ts` (61, pure) | Tabs, query codec, source label, status token, next open item after an action. | `parseIntakeQuery`, `nextOpenItem` |
+| `drafts/DraftsScreen.tsx` (120), `DraftDialog.tsx` (221) | Workspace list; the dialog shows project fields once a project is chosen. The first save creates the row; creating the work item moves the draft. | `DraftsScreen`, `DraftDialog` |
+| `drafts/SaveDraftDialog.tsx` (77) | "Save this draft?" when the create dialog closes with text. `CreateWorkItemDialog` in `mode="intake"` does not offer it. After Save draft both dialogs close and focus returns to the control that opened the create dialog (`restoreFocus` in `shell/dialogs.tsx` falls back to the last element focused outside a dialog when the nested dialog's remembered opener, a field of the create dialog, has unmounted). | `SaveDraftDialog` |
+| `estimates/EstimatesSettings.tsx` (132), `EstimateDialog.tsx` (212) | Active system or an empty state; create, replace (type and template, then values), edit with a remap target for removed points. | `EstimatesSettings`, `EstimateDialog` |
+| `estimates/estimate-rules.ts` (45), `estimate-format.ts` (22) | Client copy of the engine's value rules; display (`1h 30m`, category text, number). | `estimateValuesError`, `formatEstimateValue` |
 | `work-items/properties/EstimateControl.tsx` | Estimate selector used by the property rail, the create and draft dialogs and the bulk bar. | `EstimateControl` |
-| `work-items/BulkBar.tsx` (180), `selection.ts` (55, pure), `use-selection.ts` (65) | Selection of at most 500 ids: shift-click range, Escape clears, a refresh prunes rows that left, navigation clears. Bar: state, priority, cycle, estimate, dates, add or remove labels, assignees and modules, archive, delete (asks first), copy, move. | `BulkBar`, `useSelection`, `MAX_SELECTION` |
-| `work-items/BulkTransferDialog.tsx` (118) | Copy or move the selection to another live project; takes `sourceProjectIds`. Copy may target a source project; Move excludes every source project of the selection; a move asks for confirmation in the dialog. | `BulkTransferDialog`, `transferChoices`, `BULK_TRANSFER_LIMIT` |
-| `detail/ProjectTransferDialog.tsx` (102) | Single-item copy or move from the detail's More menu. | `ProjectTransferDialog` |
-| `work-items/GroupFooter.tsx` (56) | "Show more" footer and the "N pts" beside a group count (the engine sums the whole group). | `GroupFooter`, `GroupPoints` |
+| `work-items/BulkBar.tsx` (185), `selection.ts` (54, pure), `use-selection.ts` (64) | Selection of at most 500 ids: shift-click range, Escape clears, a refresh prunes rows that left, navigation clears. Bar: state, priority, cycle, estimate, dates, add or remove labels, assignees and modules, archive, delete (asks first), copy, move. | `BulkBar`, `useSelection`, `MAX_SELECTION` |
+| `work-items/BulkTransferDialog.tsx` (117) | Copy or move the selection to another live project; takes `sourceProjectIds`. Copy may target a source project; Move excludes every source project of the selection; a move asks for confirmation in the dialog. | `BulkTransferDialog`, `transferChoices`, `BULK_TRANSFER_LIMIT` |
+| `detail/ProjectTransferDialog.tsx` (101) | Single-item copy or move from the detail's More menu. | `ProjectTransferDialog` |
+| `work-items/GroupFooter.tsx` (58) | "Show more" footer and the "N pts" beside a group count (the engine sums the whole group). | `GroupFooter`, `GroupPoints` |
 
 ## 3. Data and control flow
 
@@ -91,6 +91,8 @@ Registry tools: `intake.ts` (9 tools), `drafts.ts` (6), `estimates.ts` (5), and 
 - Engine: `tests/{intake,intake-policy,drafts,estimates,bulk,bulk-transfer,actor-access}.test.ts`.
 - UI: `tests/ui/{intake-format,estimate-format,estimate-rules,selection,bulk-transfer-dialog}.test.ts`.
 - Playwright: `tests/e2e/intake-drafts-bulk.spec.ts` (an MCP-created item lands in Intake and Accept moves it to Backlog; a closed create dialog saves a draft that becomes a work item; bulk priority on two rows; an estimate system and a point on an item). The 2026-10-22 run passed the intake spec.
+- Round 3 Playwright: `coverage-dialogs.spec.ts` (Mark duplicate at 375 and 768: the dialog fits the viewport, the item itself is not offered, confirm stays disabled until a row is picked, every control has a 44x44 hit box at 375, and `get_intake_item` shows status `duplicate`; "Save this draft?" at 375 saves a draft that shows in `/drafts` and `list_drafts`; Tab stays inside the New work item and Add link dialogs and Escape returns focus to the opener), `coverage-touch.spec.ts` (`/drafts` at 375 has no sideways scroll and every control's 44x44 box hits). These passed on the final tree.
+- Dialog focus has Vitest in `tests/ui/dialog-focus*.test.ts`; the nested-dialog `restoreFocus` fallback has only the Playwright spec above.
 - No Vitest: `IntakeScreen`, `IntakeDetail`, `DuplicateDialog`, `DraftsScreen`, `DraftDialog`, `SaveDraftDialog`, `EstimateDialog`, `EstimatesSettings`, `BulkBar`.
 
 ## 6. Extension points
@@ -108,7 +110,7 @@ Registry tools: `intake.ts` (9 tools), `drafts.ts` (6), `estimates.ts` (5), and 
 - Bulk Copy to the same project is allowed on purpose (the single-item dialog allows it too).
 - Time estimates and categories show no group total and feed no progress.
 - Intake item `source` input is ignored outside tests; the source comes from the actor kind.
-- No browser walk of the draft dialog or the estimate replace flow beyond the Playwright spec above.
+- No browser walk of the estimate replace flow beyond the Playwright spec above. The Intake bar was measured at 1440, 768, 375 and 360 px with and without the assistant (one 44 px row; every control hits its 44x44 box at 375 and 360).
 
 ## 8. Where to read more
 

@@ -129,7 +129,7 @@ export function SinceLastVisit({ since, digest, digestEnabled }: SinceLastVisitP
           )}
           {since.more > 0 || canMark ? (
             <HStack gap={3} vAlign="center" wrap="wrap">
-              {since.more > 0 ? <Link href="/inbox">{`+${since.more} more`}</Link> : null}
+              {since.more > 0 ? <Link href="/inbox" className="tessera-home-more">{`+${since.more} more`}</Link> : null}
               <Button variant="secondary" size="sm" label="Mark as seen" onClick={mark} isLoading={isMarking} isDisabled={!canMark || isMarking} />
             </HStack>
           ) : null}

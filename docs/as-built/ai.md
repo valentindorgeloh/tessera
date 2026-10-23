@@ -1,6 +1,6 @@
 # As-built map: the assistant (P5)
 
-State described: HEAD 85140b6 (2026-10-22). Written for a reworking agent: read this first, then open only the contract section named in section 8.
+State described: working tree after fix round 3 (HEAD 198611a plus uncommitted lane work, 2026-10-23). The engine under `ai/` is unchanged since 85140b6; round 3 added the Undo surfaces in `components/ai` and Power K. Written for a reworking agent: read this first, then open only the contract section named in section 8.
 
 ## 1. Purpose and boundaries
 
@@ -11,11 +11,11 @@ In scope: `src/lib/tessera/ai/**`, `src/lib/tessera/tools/anthropic.ts`, `src/ap
 Lives elsewhere:
 - Registry tools, `listTools`, `runToolWithContext`: `docs/as-built/engine.md`.
 - Where digest cards and the Ask button are mounted: the screens in `pages-collaboration.md` (inbox), `workspace.md` (home, analytics) and `planning.md` (cycle, module).
-- Undo of an applied batch: engine in `ai/undo.ts`, tools in `tools/registry/maintenance.ts` (see `hardening.md`).
+- Undo of an applied batch: engine in `ai/undo.ts`, tools in `tools/registry/maintenance.ts` (see `hardening.md`); the UI entry points are the Applied toast and Power K (section 2.3).
 
 With `TESSERA_AI_FAKE=<dir>` the client is a replay of recorded turns and nothing reaches the network (decision 124); the Playwright server runs this way.
 
-Not built (see section 7): live acceptance with the real model, the undo toast button and History view, per-workspace model/effort.
+Not built (see section 7): live acceptance with the real model, the History view and the undo confirm dialog (deliberately, see section 7), per-workspace model/effort.
 
 ## 2. File map
 
@@ -52,11 +52,13 @@ Not built (see section 7): live acceptance with the real model, the undo toast b
 | Path | Responsibility |
 |---|---|
 | `AiStatusProvider.tsx`, `ai-status.ts` | Fetches `/api/ai/status` once; a failed fetch counts as offline. Every entry point stays hidden unless `available`. |
-| `AssistantProvider.tsx` (393) | State and actions: ask, stop, continue, apply, discard. Transcript in `sessionStorage`, panel width and open flag in `localStorage`. A destructive apply waits for `ConfirmApplyDialog`. Toast "Applied N changes" (no Undo button yet). |
+| `AssistantProvider.tsx` (410) | State and actions: ask, stop, continue, apply, discard. Transcript in `sessionStorage`, panel width and open flag in `localStorage`. A destructive apply waits for `ConfirmApplyDialog`. The toast "Applied N changes" carries an Undo button (`endContent`, ghost `sm`) that dismisses the toast and calls `undoAssistantBatch` with the ids that Apply applied. |
+| `assistant-undo.ts` (59) | The one undo path of the UI (decisions 116, 117). `undoAssistantBatch(expectedIds, toast)` reads the newest batch with `getUndoableAssistantBatchAction`, stops with "This change can no longer be undone" unless that batch holds every expected id (so a stale toast never undoes a newer batch), then calls `undoLastAssistantBatchAction({confirm: true})` and toasts "Undid N change(s)"; a CONFLICT reads "Could not undo: a later change touched the same work items", other failures show the engine message, a throw shows "Could not undo". `fetchUndoableBatch` returns the newest batch or null and never throws. |
 | `AssistantPanel.tsx`, `AssistantTranscript.tsx`, `ProposalList.tsx`, `ProposalRow.tsx`, `ConfirmApplyDialog.tsx` | The panel (shell end slot, width 320–640, covers the content under 768 px), the turns, the proposals of a turn with Apply all / Discard all, one row, the confirm dialog. |
 | `assistant-store.ts` (378) | Pure transcript reducer and storage (at most 50 turns); `toAssistMessages` replays text turns only (decision 35). |
 | `assistant-scope.ts`, `ask-items.ts`, `CommandBarAsk.tsx` | Scope from the pathname via `projectIdFromPath`; Power K Ask items; the palette never chats, it hands the text to the panel (decision 38). |
 | `sse-parse.ts`, `use-assistant-stream.ts` | Client side of the SSE stream (`streamAssist`). |
+| Power K row (`shell/command-source.ts` `buildUndoCommand`, `shell/CommandBar.tsx`) | Opening the palette fetches the undoable batch (`fetchUndoableBatch`) before listing; when one exists the Actions section gets "Undo last assistant change" (`UNDO_ASSISTANT_ID`, hint = the batch's proposal titles, keywords undo, assistant, revert). Selecting it runs `undoAssistantBatch` with that batch's proposal ids. The row is omitted, not disabled, without a batch or when the lookup fails, and it shows even when the assistant is unavailable (undo is an engine action). This is the keyboard path to undo. |
 | `DigestCard.tsx`, `ViewFromPromptDialog.tsx` | Stored digest with Summarise / Refresh; the Describe-a-view dialog posts to `/api/ai/view` and applies through `applyProposalsAction`. |
 
 ## 3. Data and control flow
@@ -80,9 +82,10 @@ Errors: the SSE stream carries a failure after it started as an `error` event (`
 | Digests only on click; one row per `(kind, entity_id)`; `input_seq` = highest activity seq summarised | 37 | `digest.generateDigest`, `digest-store.saveDigest`; `tests/ai/digest.test.ts`, `digest-store.test.ts` |
 | One conversation surface: Ask hands off to the panel; view from prompt makes a `create_view` proposal | 38 | `CommandBarAsk`, `view-from-prompt.ts`; `tests/ai/view-from-prompt.test.ts` |
 | Anything that calls the model is a route under `/api/ai/`; Apply and Discard are Server Actions | 39 | `app/api/ai/**`, `actions/ai.ts` |
-| Notifications never go to the user for assistant writes (the user clicked Apply) | 50 | `notifications.ts` recipient filter (see `pages-collab.md`) |
+| Notifications never go to the user for assistant writes (the user clicked Apply) | 50 | `notifications.ts` recipient filter (see `pages-collaboration.md`) |
 | Inbox digest is `ai_digest` kind `inbox` keyed by the recipient actor id | 60 | `digest-store.inboxInputs` |
 | Analytics narrative is kind `analytics`, entity id `<tab>:<projects>:<range>` | 81 | `digest-store.digestInputs` -> `analyticsForDigest` |
+| The Undo surfaces name the proposal ids they would undo; the UI refuses when the newest batch no longer holds them | 116 | `assistant-undo.undoAssistantBatch`; `tests/ui/assistant-undo.test.ts`, `assistant-undo-palette.test.ts` |
 | Undo takes the latest applied batch (shared `apply_batch_id`) of any conversation, not undone, less than 24 h old; one batch at a time | 116 | `undo.findLatestUndoableBatch`; `tests/ai/assistant-undo.test.ts` |
 | Undo refuses (CONFLICT `undo_blocked`) when later activity touched the same entity and field, or when the batch holds a verb it cannot invert; inverse rows carry the note "Undid assistant change" | 117 | `undo.blockedByLater`, `invertRow`, `ASSISTANT_UNDO_NOTE` |
 | AI routes answer loopback hosts only, same-origin, JSON POST | 123 (security gate, p5 plan) | `guardAiRequest`; `tests/ui/http-guard.test.ts` |
@@ -101,9 +104,11 @@ Errors: the SSE stream carries a failure after it started as an `error` event (`
 | `tests/ai/assistant-events.test.ts` | Event order, refusal, `max_tokens`, `pause_turn`, abort, fallback notice |
 | `tests/ai/digest.test.ts`, `digest-store.test.ts`, `view-from-prompt.test.ts` | Digest reuse and refusal, stale flag per kind, structured view output |
 | `tests/ai/assistant-undo.test.ts` | Batch undo and the conflict case |
+| `tests/ui/assistant-undo.test.ts`, `assistant-undo-palette.test.ts` | `buildUndoCommand`, `fetchUndoableBatch`, every undo outcome and message, the real provider's Applied toast with its Undo button, the real `CommandBar` row (shown with its hint, runs the undo, absent without a batch) |
+| `tests/e2e/round-features.spec.ts` | Fake AI: Apply, then Undo on the toast puts the priority back (recording `fixtures/ai/undo-priority.json`) |
 | `tests/ui/assistant-store.test.ts`, `assistant-scope.test.ts`, `ask-items.test.ts`, `sse-encode.test.ts`, `sse-parse.test.ts`, `http-guard.test.ts` | Transcript reducer, scope from path, Ask items, SSE framing both ways, the request guard |
 
-Untested: the panel and provider components beyond that one Playwright scenario, the digest cards, the routes themselves (only their pure helpers), and any call to the real model.
+Untested: the panel components beyond the Playwright scenarios above, the digest cards, the routes themselves (only their pure helpers), and any call to the real model.
 
 ## 6. Extension points
 
@@ -117,9 +122,10 @@ Untested: the panel and provider components beyond that one Playwright scenario,
 ## 7. Known debt and quirks
 
 - P5 live acceptance with the real model never ran. It needs the user's approval (about $1–3 of API use per run).
-- Decision 118 surfaces are missing: the "Applied N changes" toast has no Undo button and the assistant panel has no History view. `undoLastAssistantBatchAction` and `getUndoableAssistantBatchAction` exist but no component calls them.
+- Decision 118 is only partly built, on purpose: the Applied toast has Undo and Power K has the row, but there is no History view in the panel and no `UndoConfirmDialog` (the toast button and the palette row are the confirmation; the helper passes `confirm: true`). The transcript still shows a proposal as Applied after an undo; no "Undone" status exists. The toast's Undo button gets no keyboard handling beyond Astryx's toast; Power K is the keyboard path.
 - Decision 117 asks for an `UNDO_INVERSES` entry per mutating tool; the code inverts only work-item field updates (`name`, `state_id`, `priority`, `parent_id`, `cycle_id`, `estimate_point_id`, `start_date`, `target_date`) and archives, and refuses the whole batch for anything else.
 - `work-items/undo.ts` (`undoLastWorkItemChange`, covered by `tests/undo.test.ts`) is exported but has no registry tool and no UI.
+- Undo reverses the newest batch of any conversation, so Power K may offer a batch the person did not just see; its hint lists the titles for that reason.
 - `workspace_settings.ai.model` / `.effort` are ignored by the client (decision 84). `digest_enabled` is honoured by the Home digest only (`digestsEnabled` in `SinceLastVisit`); the cycle, module, inbox and analytics cards ignore it, though decision 84 says every Summarise button hides.
 - Proposals are not checked against `userOnly` or agent access when created, only when applied, so the assistant can propose `create_webhook` and then fail at Apply (`user_only`).
 - `createProposal` takes no note, so `view-from-prompt.attachRationale` updates the stored preview after the insert (marked ASSUMPTION in the file).

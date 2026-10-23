@@ -273,14 +273,17 @@
 }
 
 /*
- * On a phone the five workspace tabs fit: the tabs take an 8px inline padding
- * instead of 12px and the strip runs to the panel's right edge (the bar's
- * 16px inset is claimed back), so no tab hides under the scroll button at rest
- * (S7, audit rule c). Narrower than the tabs, the strip scrolls as before.
- * The first tab's text still starts on the panel's 16px inset.
+ * On a phone the five workspace tabs fit (WorkspaceSettingsChrome.tsx adds
+ * `tessera-settings-tabs--workspace`): the tabs take an 8px inline padding
+ * instead of 12px and the strip runs to the panel's right edge (the bar's 16px
+ * inset is claimed back), so no tab hides under the scroll button at rest (S7,
+ * audit rule c). The five tabs need about 322px of the 360px phone; narrower than that
+ * it scrolls as before. The project settings' seven tabs keep the generic
+ * strip, which scrolls. The first tab's text still starts on the panel's 16px
+ * inset, and the tabs stay 44px high (the AI tab 44px wide).
  */
 @media (max-width: 480px) {
-  .tessera-panel-bar-start > .tessera-settings-tabs.astryx-tab-list:first-child {
+  .tessera-panel-bar-start > .tessera-settings-tabs--workspace.astryx-tab-list:first-child {
     --tessera-settings-tab-pad: var(--spacing-2);
     flex: none;
     width: calc(100% + var(--tessera-settings-tab-pad) + var(--spacing-4));
@@ -288,7 +291,7 @@
     margin-inline-start: calc(-1 * var(--tessera-settings-tab-pad));
   }
 
-  .tessera-settings-tabs .astryx-tab {
+  .tessera-settings-tabs--workspace .astryx-tab {
     padding-inline: var(--spacing-2);
   }
 }

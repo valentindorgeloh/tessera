@@ -8,6 +8,7 @@ import { lastSortOrder, sortOrderAfter } from "../core/order";
 import { assertInTransaction, withTx } from "../core/tx";
 import { upsertWorkItemFts } from "../db/fts";
 import { work_item, work_item_assignee, work_item_label, work_item_module } from "../db/schema";
+import { syncMentions } from "../mentions";
 import { intakeRequired, intakeSourceFor, recordIntakeItem } from "../intake-policy";
 import { IdListSchema, IdSchema, IntakeSourceSchema, IsoDateSchema, PrioritySchema } from "../schemas";
 import { ensureTriageState } from "../states";
@@ -195,6 +196,10 @@ export function createWorkItem(ctx: TesseraContext, input: CreateWorkItemInputTy
       assignee_ids: assigneeIds,
     });
     if (viaIntake) recordIntakeItem(ctx, projectRow, row, data.source ?? intakeSourceFor(ctx));
+    // Mentions in a description given at creation (decision 53). Not the copy path (transfer.ts) and not intake.
+    else if (row.description_md !== "") {
+      syncMentions(ctx, { entity_type: ENTITY, entity_id: row.id, work_item_id: row.id, project_id: projectRow.id }, row.description_md);
+    }
     return loadWorkItem(ctx, row.id);
   });
 }

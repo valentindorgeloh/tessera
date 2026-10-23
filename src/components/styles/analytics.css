@@ -138,6 +138,22 @@
   }
 }
 
+/*
+ * A 360px phone leaves the four tabs (315px at 12px padding) 5px short at rest.
+ * Below 375px the tabs take 8px, and the strip's start is pulled back by the
+ * same 8px, so the first tab's text still sits on the 16px inset.
+ */
+@media (max-width: 374px) {
+  .tessera-panel-bar.tessera-panel-bar--tabs-below.tessera-analytics-header > .tessera-panel-bar-start > .tessera-analytics-tabs.astryx-tab-list {
+    width: calc(100% + var(--spacing-2));
+    margin-inline-start: calc(-1 * var(--spacing-2));
+  }
+
+  .tessera-analytics-tabs .astryx-tab {
+    padding-inline: var(--spacing-2);
+  }
+}
+
 .tessera-analytics-projects {
   inline-size: calc(var(--spacing-10) * 5);
   max-inline-size: 100%;

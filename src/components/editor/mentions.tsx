@@ -3,8 +3,8 @@
 /**
  * Suggestion popovers of the description editor (docs/contracts/editor.md,
  * "Suggestion sources" and "Renderer"): `#` work items (GET /api/search),
- * `@` actors from the project bundle, `/` block commands and the reserved
- * `[[` page trigger. One React list component is mounted through Tiptap's
+ * `@` actors from the project bundle, `/` block commands and `[[` pages
+ * (decision 10). One React list component is mounted through Tiptap's
  * `ReactRenderer` and positioned by the Suggestion plugin's `mount()`.
  */
 import { useEffect, useId, useImperativeHandle, useState, type Ref } from "react";
@@ -260,6 +260,58 @@ async function searchWorkItems(query: string, projectId: string | null, signal: 
   return (body.hits ?? []).map((hit) => ({ id: hit.id, label: hit.title, token: hit.key, description: hit.subtitle }));
 }
 
+const rowOf = (hit: SearchHit): SuggestionRow => ({ id: hit.id, label: hit.title, description: hit.subtitle });
+
+async function pageHits(params: Record<string, string>, signal: AbortSignal): Promise<SearchHit[]> {
+  try {
+    const response = await fetch(`/api/search?${new URLSearchParams(params).toString()}`, { signal });
+    if (!response.ok) return [];
+    return ((await response.json()) as { hits?: SearchHit[] }).hits ?? [];
+  } catch (error) {
+    // An aborted request (the next keystroke) is the suggestion plugin's business; any other failure shows no rows.
+    if (signal.aborted) throw error;
+    return [];
+  }
+}
+
+/**
+ * `[[` candidates (decision 10). In a project: that project's pages, then the
+ * wiki pages (a scoped search leaves wiki pages out, so they come from a second,
+ * unscoped request filtered to `project_id === null`). In the wiki: every page.
+ * ASSUMPTION: a wiki page may link a project page, so the wiki search is unscoped.
+ */
+async function searchPages(query: string, projectId: string | null, signal: AbortSignal): Promise<SuggestionRow[]> {
+  if (projectId === null) {
+    return (await pageHits({ q: query, types: "page", limit: String(MAX_ROWS) }, signal)).slice(0, MAX_ROWS).map(rowOf);
+  }
+  const [inProject, everywhere] = await Promise.all([
+    pageHits({ q: query, types: "page", limit: String(MAX_ROWS), scope: projectId }, signal),
+    pageHits({ q: query, types: "page", limit: "20" }, signal),
+  ]);
+  const wiki = everywhere.filter((hit) => hit.project_id === null);
+  const seen = new Set<string>();
+  const rows: SuggestionRow[] = [];
+  for (const hit of [...inProject, ...wiki]) {
+    if (seen.has(hit.id)) continue;
+    seen.add(hit.id);
+    rows.push(rowOf(hit));
+  }
+  return rows.slice(0, MAX_ROWS);
+}
+
+/** A `[[` pick inserts the page name as text with a `page:` link mark, which serialises to `[Name](page:<id>)` and is recorded as a back-link on a page-body save. */
+function insertPageLink(editor: Editor, range: Range, props: MentionNodeAttrs): void {
+  if (!props.id) return;
+  editor
+    .chain()
+    .focus()
+    .insertContentAt(range, [
+      { type: "text", text: props.label || props.id, marks: [{ type: "link", attrs: { href: entityHref({ scheme: "page", ref: props.id }) } }] },
+      { type: "text", text: " " },
+    ])
+    .run();
+}
+
 /** A `#` pick inserts the key as text with an entity link mark, which serialises to `[WEB-12](work:WEB-12)`. */
 function insertWorkItemLink(editor: Editor, range: Range, row: SuggestionRow): void {
   const key = row.token ?? row.label;
@@ -330,9 +382,12 @@ export function buildEditorSuggestions(): EditorSuggestions {
   const page: MentionTrigger = {
     char: "[[",
     pluginKey: PAGE_SUGGEST_KEY,
-    items: () => [],
-    command: () => {},
-    render: createRenderer("Pages arrive in P6", "Pages", PAGE_SUGGEST_KEY, toMention),
+    debounce: 150,
+    minQueryLength: 1,
+    allow: outsideCode,
+    items: ({ query, editor, signal }) => searchPages(query, readSuggestionContext(editor).projectId, signal),
+    command: ({ editor, range, props }) => insertPageLink(editor, range, props),
+    render: createRenderer("No pages match", "Pages", PAGE_SUGGEST_KEY, toMention),
   };
   const workItem: SuggestionTrigger = {
     char: "#",

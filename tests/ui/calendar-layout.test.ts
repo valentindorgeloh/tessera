@@ -3,7 +3,8 @@
  * Calendar layout (src/components/work-items/CalendarLayout.tsx) under jsdom
  * (visual audit, timeline):
  * - only a chip that can be dragged carries `data-draggable` (calendar.css gives
- *   the grab cursor to that alone), so a read-only chip keeps the default cursor;
+ *   the grab cursor to that alone); a read-only chip has no Move control and no
+ *   grab cursor, but a click still opens the peek (pointer cursor);
  * - the "+N more" button keeps "+N more" as its accessible name while its visible
  *   text splits into the count and a word that narrow cells hide.
  */
@@ -81,7 +82,7 @@ const items = [1, 2, 3, 4, 5, 6].map((n) => item(n, "2026-10-17"));
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-function calendar(readOnly: boolean): ReactNode {
+function calendar(readOnly: boolean, onOpen: (id: string) => void = vi.fn()): ReactNode {
   const scopeProps = { bundle } as ComponentProps<typeof ProjectScope>;
   return createElement(
     ProjectScope,
@@ -92,7 +93,7 @@ function calendar(readOnly: boolean): ReactNode {
       bundle,
       onMove: vi.fn(),
       onUpdate: vi.fn(),
-      onOpen: vi.fn(),
+      onOpen,
       readOnly,
     }),
   );
@@ -150,12 +151,34 @@ describe("calendar chips", () => {
     expect(all.filter((chip) => !chip.hasAttribute("data-draggable"))).toHaveLength(2);
   });
 
-  it("leaves a read-only chip without the draggable mark, so it keeps the default cursor", async () => {
+  it("leaves a read-only chip without the draggable mark (no grab cursor) and without a Move control", async () => {
     const el = await render(calendar(true));
     const chips = [...el.querySelectorAll(".tessera-cal-open")];
     expect(chips.length).toBeGreaterThan(0);
     expect(chips.some((chip) => chip.hasAttribute("data-draggable"))).toBe(false);
     expect(el.querySelector(".tessera-cal-move")).toBeNull();
+    expect(el.querySelector('[aria-label^="Move WEB-"]')).toBeNull();
+  });
+
+  it("still opens the peek from a read-only chip, which is why it shows the pointer cursor", async () => {
+    const onOpen = vi.fn();
+    const el = await render(calendar(true, onOpen));
+    const chip = el.querySelector<HTMLElement>('.tessera-cal-open[aria-label="WEB-1 Item 1"]');
+    expect(chip).not.toBeNull();
+    await act(async () => {
+      chip?.click();
+    });
+    expect(onOpen).toHaveBeenCalledWith("00000000-0000-7000-8000-000000000001");
+  });
+
+  it("opens the peek from a tap on an editable chip too (the touch path to the Due date field) and offers Move to date by button", async () => {
+    const onOpen = vi.fn();
+    const el = await render(calendar(false, onOpen));
+    await act(async () => {
+      el.querySelector<HTMLElement>('.tessera-cal-open[aria-label="WEB-2 Item 2"]')?.click();
+    });
+    expect(onOpen).toHaveBeenCalledWith("00000000-0000-7000-8000-000000000002");
+    expect(el.querySelector('button[aria-label="Move WEB-2 to date"]')).not.toBeNull();
   });
 });
 

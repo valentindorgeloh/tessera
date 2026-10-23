@@ -217,6 +217,8 @@
     grid-area: tabs;
     align-self: end;
     width: calc(100% + var(--spacing-3));
+    /* Astryx caps a TabList at max-width: 100%, which left the strip 12px short of the bar's inner edge. */
+    max-width: none;
     min-width: 0;
     margin-inline-start: calc(-1 * var(--spacing-3));
   }
@@ -224,6 +226,56 @@
   /* A touch target is 44px (the first row's height); the indicator still sits on the hairline. */
   .tessera-panel-bar--tabs-below .astryx-tab {
     min-height: calc(var(--size-element-md) + var(--spacing-3));
+  }
+}
+
+/*
+ * Tablet widths (600 to 1099px): the sidebar is docked, so the panel is a
+ * viewport narrower than the width the media query sees (768px gives a panel of
+ * about 505px), and a title with a long name beside a five-tab strip left the
+ * strip half hidden at rest (an agent's profile). A bar with a title in front of
+ * its strip takes the same two rows as on a phone; the tabs keep their desktop
+ * height. A bar with no title (the Pages sub-header) is left to its own
+ * stylesheet. From 1100px it is the ordinary single row (ASSUMPTION: the
+ * viewport width stands in for the panel width, as in analytics.css).
+ */
+@media (min-width: 600px) and (max-width: 1099px) {
+  .tessera-panel-bar.tessera-panel-bar--tabs-below:has(> .tessera-panel-bar-start > :not(.astryx-tab-list)) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: calc(var(--size-element-md) + var(--spacing-3)) auto;
+    grid-template-areas:
+      "title end"
+      "tabs tabs";
+    column-gap: var(--spacing-3);
+    row-gap: 0;
+    min-height: 0;
+    padding-block: 0;
+    align-items: center;
+  }
+
+  .tessera-panel-bar--tabs-below:has(> .tessera-panel-bar-start > :not(.astryx-tab-list)) > .tessera-panel-bar-start {
+    display: contents;
+  }
+
+  .tessera-panel-bar--tabs-below > .tessera-panel-bar-start > :not(.astryx-tab-list) {
+    grid-area: title;
+    min-width: 0;
+  }
+
+  .tessera-panel-bar--tabs-below:has(> .tessera-panel-bar-start > :not(.astryx-tab-list)) > .tessera-panel-bar-end {
+    grid-area: end;
+    flex-shrink: 0;
+  }
+
+  .tessera-panel-bar--tabs-below:has(> .tessera-panel-bar-start > :not(.astryx-tab-list)) > .tessera-panel-bar-start > .astryx-tab-list {
+    grid-area: tabs;
+    align-self: end;
+    width: calc(100% + var(--spacing-3));
+    /* Astryx caps a TabList at max-width: 100%, which left the strip 12px short of the bar's inner edge. */
+    max-width: none;
+    min-width: 0;
+    margin-inline-start: calc(-1 * var(--spacing-3));
   }
 }
 
@@ -296,6 +348,8 @@
     grid-area: tabs;
     align-self: end;
     width: calc(100% + var(--spacing-3));
+    /* Astryx caps a TabList at max-width: 100%, which left the strip 12px short of the bar's inner edge. */
+    max-width: none;
     min-width: 0;
     margin-inline-start: calc(-1 * var(--spacing-3));
   }
@@ -303,6 +357,116 @@
   /* A touch target is 44px (the same height as the first row); the indicator still sits on the hairline. */
   .tessera-project-bar .tessera-project-tabs .astryx-tab {
     min-height: calc(var(--size-element-md) + var(--spacing-3));
+  }
+}
+
+/*
+ * Tablet and small laptop widths (600 to 1279px): the docked sidebar leaves a panel about 260px
+ * narrower than the viewport, and the token, the name and the actions left the
+ * eight tabs a 261px strip at 768px (six of them outside it at rest). The bar
+ * takes the phone's two rows (token, name and actions above, the strip below);
+ * the tabs keep their desktop height. ASSUMPTION: the viewport width stands in
+ * for the panel width, as in analytics.css.
+ */
+@media (min-width: 600px) and (max-width: 1279px) {
+  .tessera-panel-bar--header.tessera-project-bar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: calc(var(--size-element-md) + var(--spacing-3)) auto;
+    grid-template-areas:
+      "token title end"
+      "tabs tabs tabs";
+    column-gap: var(--spacing-3);
+    row-gap: 0;
+    min-height: 0;
+    align-items: center;
+  }
+
+  .tessera-project-bar > .tessera-panel-bar-start {
+    display: contents;
+  }
+
+  .tessera-project-bar .tessera-project-frame-token {
+    grid-area: token;
+  }
+
+  .tessera-project-bar .tessera-project-frame-title {
+    grid-area: title;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .tessera-project-bar .tessera-panel-bar-divider {
+    display: none;
+  }
+
+  .tessera-project-bar .tessera-panel-bar-end {
+    grid-area: end;
+  }
+
+  .tessera-project-bar .tessera-project-tabs {
+    grid-area: tabs;
+    align-self: end;
+    width: calc(100% + var(--spacing-3));
+    /* Astryx caps a TabList at max-width: 100%, which left the strip 12px short of the bar's inner edge. */
+    max-width: none;
+    min-width: 0;
+    margin-inline-start: calc(-1 * var(--spacing-3));
+  }
+}
+
+/*
+ * Eight tabs are 740px wide with their labels, wider than the strip below 1280px
+ * (with the old one-row bar: 337px at 375, 261px at 768, 593px at 1100, 693px at 1200), so below 1280px only the current tab keeps its
+ * label and the other seven fold to their icon (ProjectFrame.tsx keeps the label
+ * as each tab's aria-label). The label is the one span that holds an
+ * aria-hidden sizer span (Astryx Tab's labelContainer); a Vitest pins that shape.
+ * About 400px of tabs then fit at rest in the tablet strip.
+ */
+@media (max-width: 1279px) {
+  .tessera-project-tabs .astryx-tab:not([aria-current="true"]) > span:has(> span[aria-hidden="true"]) {
+    display: none;
+  }
+}
+
+/*
+ * A phone strip is 347px (375px wide), 330px at 360px: the current tab's label
+ * plus seven icons need about 320px with 6px of inline padding (instead of 12px)
+ * and the strip runs to the panel's right edge, like the profile's tabs. Under
+ * 375px the padding is 5px (the icons are 24px drawn, the WCAG 2.2 minimum, and
+ * the longest label still fits a 330px strip with about 25px to spare); under
+ * 340px, where the strip scrolls anyway, it is 4px.
+ *
+ * Hit areas of the folded icons (decision 14, option A): eight 44px-wide targets
+ * do not fit a 347px strip, so each folded icon owns exactly its pitch, its own
+ * width plus half of the strip's 2px gap on each side (24 to 28px wide, 44px
+ * high), instead of the theme's 44px square, whose overlapping squares left the
+ * first icon 12px of reach and let the later neighbour win the rest. The tabs
+ * tile with no dead gap and no overlap (the rule sits in the touch block below, with
+ * the other hit areas). The current tab keeps its label, wider than 44px, so the
+ * theme's area is already its own box.
+ */
+@media (max-width: 480px) {
+  .tessera-project-bar .tessera-project-tabs {
+    --tessera-project-tab-pad: calc(var(--spacing-1) * 1.5);
+    width: calc(100% + var(--tessera-project-tab-pad) + var(--spacing-4));
+    margin-inline-start: calc(-1 * var(--tessera-project-tab-pad));
+  }
+
+  .tessera-project-bar .tessera-project-tabs .astryx-tab {
+    padding-inline: var(--tessera-project-tab-pad);
+  }
+}
+
+@media (max-width: 374px) {
+  .tessera-project-bar .tessera-project-tabs {
+    --tessera-project-tab-pad: calc(var(--spacing-1) * 1.25);
+  }
+}
+
+@media (max-width: 339px) {
+  .tessera-project-bar .tessera-project-tabs {
+    --tessera-project-tab-pad: var(--spacing-1);
   }
 }
 
@@ -532,6 +696,20 @@
     margin-block: calc(-1 * var(--spacing-2));
   }
 
+  /* The project strip's folded icon tabs tile their hit areas (decision 14, the "Hit areas of the folded icons" note above; the 2px gap is --spacing-0-5). */
+  .tessera-project-bar .tessera-project-tabs .astryx-tab:not([aria-current="true"])::before {
+    inset-inline: calc(var(--spacing-0-5) / -2);
+  }
+
+  /*
+   * A strip alone in a sub-header (archives, settings) is a 44px row of its own:
+   * its tabs are 44px high, so the indicator still sits on the hairline. Where
+   * the sub-header uses tabsBelow, the phone rule above already does this.
+   */
+  .tessera-panel-bar--subheader > .tessera-panel-bar-start > .astryx-tab-list .astryx-tab {
+    min-height: var(--spacing-11);
+  }
+
   /* A SegmentedControl's outermost segments reach 8px past the group's edge; the segments between tile exactly. */
   .astryx-segmented-control-item:first-of-type::before {
     inset-inline-start: min(0px, calc((100% - var(--spacing-11)) / 2));
@@ -574,5 +752,35 @@
     position: relative;
     min-inline-size: var(--spacing-11);
     margin-inline: calc((var(--tessera-hit-base) - var(--spacing-11)) / 2);
+  }
+
+  /*
+   * Text-like inputs stack above the hit areas around them (decision 14). A
+   * field's wrapper carries a 44px ::before (the theme's text-input, tokenizer,
+   * number-input, date-input and time-input areas), and a Selector, Tokenizer or
+   * a neighbouring control's area can overlap the field's box; a positioned
+   * element paints above a non-positioned one and above an earlier positioned
+   * sibling, so a tap on the field's centre lands on the <input> itself (the
+   * Playwright "intercepts pointer events" failure). Position only, no z-index:
+   * Astryx defines no z-index tokens, its popovers, menus and dialogs sit in the
+   * top layer, and a z-index would paint a field over the sticky bands
+   * (z-index 1) it scrolls under. A later sibling's area over a field is fixed
+   * where the pair meets (spacing or tessera-hit--*), not here.
+   */
+  :is(
+      .astryx-text-input,
+      .astryx-tokenizer,
+      .astryx-number-input,
+      .astryx-date-input,
+      .astryx-time-input,
+      .astryx-date-time-input,
+      .astryx-selector-search,
+      .astryx-multi-selector-search
+    )
+    input,
+  input:is(.astryx-selector-search, .astryx-multi-selector-search),
+  .astryx-text-area textarea,
+  textarea.astryx-text-area-control {
+    position: relative;
   }
 }

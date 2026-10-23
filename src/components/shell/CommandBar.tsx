@@ -36,12 +36,13 @@ import { HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { askItems } from "@/components/ai/ask-items";
+import { fetchUndoableBatch, undoAssistantBatch } from "@/components/ai/assistant-undo";
 import { useCommandBarAsk } from "@/components/ai/CommandBarAsk";
 import { notePeekPush } from "@/components/detail/peek-history";
 import { hasPeekHost } from "@/components/detail/peek-hosts";
 import { currentHref, PEEK_PARAM, workItemHitTarget } from "@/components/detail/peek-url";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
-import type { SearchHit, SearchType } from "@/lib/tessera/types";
+import type { AppliedBatch, SearchHit, SearchType } from "@/lib/tessera/types";
 import {
   AssistantIcon,
   CompassIcon,
@@ -55,6 +56,7 @@ import {
   ModuleIcon,
   PageIcon,
   PlusIcon,
+  ResetIcon,
   ViewIcon,
 } from "@/themes/catppuccin/icons";
 import { setColorScheme } from "./color-scheme";
@@ -63,6 +65,7 @@ import {
   buildAiCommands,
   buildCommands,
   buildProjectSettingsCommands,
+  buildUndoCommand,
   createCommandSource,
   DESCRIBE_VIEW_ID,
   NEW_DRAFT_ID,
@@ -70,6 +73,7 @@ import {
   projectSettingsTab,
   recentToItem,
   themeCommandScheme,
+  UNDO_ASSISTANT_ID,
   type CommandSearchItem,
   type CommandSection,
   type CommandSource,
@@ -104,6 +108,8 @@ type PaletteState = {
   inner: CommandSource | null;
   aiAvailable: boolean;
   handoff: (text: string) => void;
+  /** The newest undoable assistant batch, read when the palette lists (null: none, or the lookup failed). */
+  undoBatch: AppliedBatch | null;
 };
 
 export function CommandBar({ ref }: CommandBarProps) {
@@ -128,7 +134,7 @@ export function CommandBar({ ref }: CommandBarProps) {
   // time. Handlers write `scope` before re-running the query so the source
   // sees the new value; `context` follows the hook; `items` is the map of
   // palette items by id that the selection handler resolves.
-  const paletteRef = useRef<PaletteState>({ scope: CLOSED_SCOPE, context: null, items: new Map(), inner: null, aiAvailable: false, handoff: () => undefined });
+  const paletteRef = useRef<PaletteState>({ scope: CLOSED_SCOPE, context: null, items: new Map(), inner: null, aiAvailable: false, handoff: () => undefined, undoBatch: null });
 
   // Layout effect so the palette's own effect, which re-runs the query, reads the new values.
   useLayoutEffect(() => {
@@ -180,6 +186,7 @@ export function CommandBar({ ref }: CommandBarProps) {
     if (next) return;
     paletteRef.current.scope = CLOSED_SCOPE;
     paletteRef.current.items = new Map();
+    paletteRef.current.undoBatch = null;
     setScope(CLOSED_SCOPE);
   }, []);
 
@@ -221,6 +228,7 @@ export function CommandBar({ ref }: CommandBarProps) {
             ...buildCommands(current.context, features),
             ...buildProjectSettingsCommands(current.scope.projectId),
             ...buildAiCommands(current.scope.projectId, features, current.aiAvailable),
+            ...buildUndoCommand(current.undoBatch),
           ];
         },
         recents: () => (state().scope.mode === "ask" ? [] : otherRecents(readRecents(), state().scope.onScreen, RECENTS_IN_PALETTE).map(recentToItem)),
@@ -235,7 +243,12 @@ export function CommandBar({ ref }: CommandBarProps) {
     };
     const askList = (query: string) => remember(askItems(query, state().scope.pathname));
     return {
-      bootstrap: async () => (state().scope.mode === "ask" ? askList("") : remember(await inner().bootstrap())),
+      bootstrap: async () => {
+        if (state().scope.mode === "ask") return askList("");
+        // Before listing, so the "Undo last assistant change" row (decisions 116-117) is there only when a batch is.
+        state().undoBatch = await fetchUndoableBatch();
+        return remember(await inner().bootstrap());
+      },
       search: async (query: string) => (state().scope.mode === "ask" ? askList(query) : remember(await inner().search(query))),
       cancel: () => state().inner?.cancel(),
     };
@@ -318,6 +331,12 @@ export function CommandBar({ ref }: CommandBarProps) {
         if (projectId) router.push(`/projects/${projectId}/views?describe=1`);
         return;
       }
+      if (id === UNDO_ASSISTANT_ID) {
+        // The batch the row showed; a newer one since then makes the undo refuse instead of reversing it.
+        const batch = paletteRef.current.undoBatch;
+        if (batch) void undoAssistantBatch(batch.proposal_ids, toast);
+        return;
+      }
       if (id.startsWith(OPEN_ITEM_PREFIX)) {
         const current = paletteRef.current.context;
         if (current) router.push(current.item.url);
@@ -338,7 +357,7 @@ export function CommandBar({ ref }: CommandBarProps) {
       // so a picker the command opens (Change state…) keeps the focus.
       if (isShortcutId(id)) window.setTimeout(() => run(id), 0);
     },
-    [openHit, router, run],
+    [openHit, router, run, toast],
   );
 
   return (
@@ -386,6 +405,7 @@ const SECTION_ICONS: Partial<Record<CommandSection, IconType>> = {
 function commandIcon(item: CommandSearchItem): IconType {
   if (item.auxiliaryData?.kind === "ask") return AssistantIcon;
   if (item.id === DESCRIBE_VIEW_ID) return MagicIcon;
+  if (item.id === UNDO_ASSISTANT_ID) return ResetIcon;
   if (item.id === "shortcuts.help") return KeyboardIcon;
   const scheme = themeCommandScheme(item.id);
   if (scheme) return COLOR_SCHEME_ICONS[scheme];

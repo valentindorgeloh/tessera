@@ -50,11 +50,14 @@ describe("calendar chip reachability", () => {
 });
 
 describe("calendar chip cursor and overflow label (visual audit, timeline)", () => {
-  it("shows the grab cursor only on a chip that can be dragged", () => {
-    expect(topRule(".tessera-cal-open")).not.toContain("cursor");
+  it("shows the pointer on every chip (a click opens the peek, an archived one too) and the grab cursor only on a chip that can be dragged", () => {
+    expect(topRule(".tessera-cal-open")).toMatch(/cursor:\s*pointer/);
     expect(topRule(".tessera-cal-open[data-draggable]")).toMatch(/cursor:\s*grab/);
     expect(topRule(".tessera-cal-open[data-draggable]:active")).toMatch(/cursor:\s*grabbing/);
     expect(topRule(".tessera-cal-open:active")).not.toContain("cursor");
+    // Only `data-draggable` chips get grab or grabbing: no other selector sets a cursor on a chip.
+    const cursorRules = [...source.matchAll(/([^{}]+)\{[^{}]*cursor:[^{}]*\}/g)].map((match) => (match[1] ?? "").trim());
+    expect(cursorRules).toEqual([".tessera-cal-open", ".tessera-cal-open[data-draggable]", ".tessera-cal-open[data-draggable]:active"]);
   });
 
   it("drops the word from the +N more button in a narrow calendar, so the count stays readable", () => {
@@ -105,10 +108,19 @@ describe("calendar gutter, header and today (visual audit T9-T11)", () => {
     expect(topRule('.tessera-cal[data-view="week"]')).toMatch(/min-block-size:\s*100%/);
   });
 
-  it("keeps the week stretch at phone width: no narrow-width rule gives the week rows back their own height", () => {
-    const narrow = source.match(/@media \(pointer: coarse\), \(max-width: 480px\)\s*\{[\s\S]*?\n\}\n/)?.[0] ?? "";
-    expect(narrow).not.toMatch(/tessera-cal-week|data-view="week"/);
-    expect(topRule('.tessera-cal[data-view="week"]')).toMatch(/flex:\s*1/);
+  it("lets the week cells hug their chips on a phone: no stretch, no min-block-size, automatic rows (fix round 2026-10-23)", () => {
+    const phone = /@media \(max-width: 480px\)\s*\{([\s\S]*?)\n\}\n/.exec(source)?.[1] ?? "";
+    expect(phone).toMatch(/\.tessera-cal\[data-view="week"\]\s*\{[^}]*flex:\s*none;[^}]*min-block-size:\s*0;/);
+    expect(phone).toMatch(/\.tessera-cal-week,\s*\.tessera-cal\[data-view="week"\] > \.tessera-cal-week\s*\{[^}]*flex:\s*none;[^}]*grid-auto-rows:\s*auto;/);
+    // The phone rule is a max-width query alone: a coarse tablet keeps the stretch.
+    expect(source).not.toMatch(/@media \(pointer: coarse\)[^{]*\{[^@]*tessera-cal-week/);
+    // The wide rules stay as T11 left them.
+    expect(topRule(".tessera-cal[data-view=\"week\"]")).toMatch(/flex:\s*1/);
+    expect(topRule(".tessera-cal-week")).toMatch(/grid-auto-rows:\s*1fr/);
+  });
+
+  it("puts the phone week rule after the wide ones so it wins at equal specificity", () => {
+    expect(source.indexOf('@media (max-width: 480px)')).toBeGreaterThan(source.indexOf('.tessera-cal[data-view="week"] > .tessera-cal-week {'));
   });
 });
 

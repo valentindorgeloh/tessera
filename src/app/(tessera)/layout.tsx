@@ -92,17 +92,18 @@ type EngineExtras = {
  */
 async function WatchersData() {
   await io();
-  const [projects, archived, cursor, workspace] = await Promise.all([
+  const [projects, archived, cursor, unread, workspace] = await Promise.all([
     loadProjects(),
     readTessera((ctx) => listProjects(ctx, { archived: true })),
     readTessera((ctx) => latestSeq(ctx)),
+    readTessera((ctx) => getUnreadCount(ctx)),
     readTessera((ctx) => getWorkspaceSettings(ctx)),
   ]);
   return (
     <>
       <WorkspaceSettingsPublisher settings={{ name: workspace.name, week_start: workspace.week_start }} />
       <RecentsTracker projectNames={projectNameMap([...projects, ...archived])} projectFeatures={projectFeatureMap([...projects, ...archived])} />
-      <ChangesPoller initialCursor={cursor} />
+      <ChangesPoller initialCursor={cursor} initialUnread={unread} />
     </>
   );
 }

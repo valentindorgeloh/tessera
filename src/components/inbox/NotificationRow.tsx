@@ -2,8 +2,10 @@
 
 /**
  * One inbox row (docs/drafts/p7-plan.md §6): who did what, the work item and
- * snippet, the time, an unread dot, and "+N" when the row coalesced. The menu
- * marks read or unread, archives, and snoozes. Preset times are computed in
+ * snippet, the time, an unread dot, and "+N" when a row other than a comment burst coalesced. The menu
+ * marks read or unread, archives, and snoozes. The label is a <Text> so a long
+ * actor name wraps at 375px instead of clipping "mentioned you" (a plain string
+ * label is one line). Preset times are computed in
  * the click, not during render.
  */
 import type { DropdownMenuItemData } from "@astryxdesign/core/DropdownMenu";
@@ -44,7 +46,7 @@ export function NotificationRow({
 }: NotificationRowProps) {
   const actor = note.actor_name ?? "Someone";
   const phrase = notificationPhrase(note.kind, note.event_count);
-  const extra = extraEventLabel(note.event_count);
+  const extra = extraEventLabel(note.event_count, note.kind);
   const unread = note.read_at === null;
   const snooze = (id: SnoozePresetId) => {
     const preset = snoozePresets(new Date()).find((item) => item.id === id);
@@ -74,7 +76,7 @@ export function NotificationRow({
   }
   return (
     <ListItem
-      label={`${actor} ${phrase}`}
+      label={<Text>{`${actor} ${phrase}`}</Text>}
       description={notificationDescription(note)}
       isSelected={isSelected}
       onClick={onOpen}

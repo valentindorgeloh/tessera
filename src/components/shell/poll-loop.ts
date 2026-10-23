@@ -30,6 +30,25 @@ export const POLL_INTERVAL_MS = 4_000;
 /** Cadence after a failed request, until one succeeds again. */
 export const POLL_BACKOFF_MS = 30_000;
 
+export type PollState = { cursor: number; unread: number | null };
+
+export type PollPayload = { changes: readonly unknown[]; cursor: number; unread_notifications?: number };
+
+/**
+ * What one `/api/changes` payload does (decision 59). The cursor moves only
+ * when changes arrived. The screen refreshes when there are changes, or when
+ * the unread notification count differs from the last known one, so a snooze
+ * wake-up updates the sidebar badge without any new activity. `prev.unread`
+ * is null until a count is known, and a payload without the field keeps it.
+ */
+export function nextPollState(prev: PollState, payload: PollPayload): PollState & { refresh: boolean } {
+  const hasChanges = payload.changes.length > 0;
+  const count = typeof payload.unread_notifications === "number" ? payload.unread_notifications : null;
+  const unread = count ?? prev.unread;
+  const unreadChanged = count !== null && prev.unread !== null && count !== prev.unread;
+  return { cursor: hasChanges ? payload.cursor : prev.cursor, unread, refresh: hasChanges || unreadChanged };
+}
+
 export type PollLoopOptions = {
   /** One poll. Resolves true when the request succeeded (keeps `intervalMs`); false or a throw backs off to `backoffMs`. */
   poll: () => Promise<boolean>;

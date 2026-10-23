@@ -82,11 +82,18 @@ function useRestoreOpenerFocus(dialogRef: { current: HTMLDialogElement | null },
   }, [isOpen, dialogRef]);
 }
 
-/** Refocuses the opener when focus was lost (a removed form field leaves it on <body>). */
+/**
+ * Refocuses the opener when focus was lost (a removed form field leaves it on <body>). A nested dialog
+ * ("Save this draft?" over the create dialog) records a field of the dialog under it as its opener, and
+ * that field unmounts together with it: fall back to the last element focused outside any dialog, the
+ * control that opened the outer dialog.
+ */
 function restoreFocus(opener: HTMLElement | null) {
   const active = document.activeElement;
   const lost = active === null || active === document.body || !active.isConnected;
-  if (lost && opener?.isConnected) opener.focus();
+  if (!lost) return;
+  const target = opener?.isConnected ? opener : lastFocusOutside;
+  if (target?.isConnected) target.focus();
 }
 
 /**

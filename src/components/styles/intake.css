@@ -16,14 +16,19 @@
 }
 
 /*
- * The search field keeps a usable width (144px) beside the buttons: the
- * filters bar wraps (PanelBar canWrap), so when the field and the buttons do
- * not fit the 360px list, the buttons drop under the field instead of taking
- * all the room and leaving it 0px wide.
+ * One filters row in the 360px list at 1440 and at 768 (the list fills the panel
+ * there): "New intake item" keeps its text, "Triage with assistant" is an icon
+ * button, and the search field shrinks first (min-width 0, a small flex basis,
+ * so the row does not wrap for want of 144px). Only where even that does not
+ * fit does the PanelBar wrap and drop the buttons under the field.
  */
 .tessera-intake-search {
   flex: 1 1 auto;
-  min-width: calc(var(--spacing-12) * 3);
+  min-width: 0;
+}
+
+.tessera-intake-filters.tessera-panel-bar--wraps > .tessera-panel-bar-start {
+  flex: 1 1 calc(var(--spacing-12) * 2);
 }
 
 /*
@@ -68,10 +73,14 @@
  * Touch (P12, decision 14): the filters row wraps, so on a phone the buttons sit
  * on a second line with 4px under them, and their 44px areas ran 4px into the
  * first intake row (the row won the tap). 8px above and below keeps each area
- * inside the bar.
+ * inside the bar. The bar then ends exactly where the first row begins, and a
+ * hit test at the area's lower edge (within a pixel of the row) reached the row
+ * instead, so the bar keeps 2px more below its buttons: the 44px area ends 2px
+ * before the row.
  */
 @media (pointer: coarse), (max-width: 480px) {
   .tessera-intake-filters.tessera-panel-bar--wraps {
     padding-block: var(--spacing-2);
+    padding-block-end: calc(var(--spacing-2) + var(--spacing-0-5));
   }
 }

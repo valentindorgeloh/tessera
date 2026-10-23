@@ -11,6 +11,7 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
+import { IconButton } from "@astryxdesign/core/IconButton";
 import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
@@ -89,7 +90,7 @@ export function IntakeScreen({ projectId, query, items, counts, children }: Inta
                 <HStack gap={1}>
                   <Button variant="secondary" size="sm" label="New intake item" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />
                   {assistant.status?.available === true ? (
-                    <Button variant="ghost" size="sm" label="Triage with assistant" icon={<SparkleIcon />} onClick={() => assistant.ask(TRIAGE_PROMPT)} />
+                    <IconButton variant="ghost" size="sm" label="Triage with assistant" tooltip="Triage with assistant" icon={<SparkleIcon />} onClick={() => assistant.ask(TRIAGE_PROMPT)} />
                   ) : null}
                 </HStack>
               }

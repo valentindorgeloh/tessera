@@ -215,15 +215,24 @@ Configuration (verified option names):
   `SuggestionOptions`: `char`, `pluginKey`, `items({ query, editor, signal })`,
   `render()` hooks, `command({ editor, range, props })`, `allowedPrefixes`,
   `debounce`, `minQueryLength` (`suggestion/dist/index.d.ts`).
-- `[[` is registered as a third trigger (`char: "[["`, `pluginKey: new PluginKey("suggest-page")`)
-  whose `items` returns `[]` and whose popover says "Pages arrive in P6"; it exists
-  so the keystroke is reserved and the P6 lane only fills `items`.
+- `[[` is registered as a third trigger on the Mention extension (`char: "[["`,
+  `pluginKey: new PluginKey("suggest-page")`, `allow: outsideCode`, `debounce: 150`,
+  `minQueryLength: 1`). A pick does not insert a mention node: its `command` inserts the
+  page name as text with a Link mark `page:<id>` plus a trailing space (the same path as
+  `#`), which serialises to `[Name](page:<id>)`; `replacePageEmbeds` records the
+  back-link when a page body is saved (decision 44). Empty text "No pages match".
 
 Suggestion sources:
 
 - `#`: `fetch(`/api/search?q=${q}&types=work_item&limit=8${projectId ? `&scope=${projectId}` : ""}`, { signal })`
   → `{ hits: SearchHit[] }` (route contract in ui.md "Power K"); `debounce: 150`,
   `minQueryLength: 1`. Rendered rows: key as `Token`, title.
+- `[[` (decision 10): inside a project, two parallel requests,
+  `/api/search?q=<q>&types=page&limit=8&scope=<projectId>` (project pages) and
+  `/api/search?q=<q>&types=page&limit=20` filtered to `project_id === null` (a scoped
+  search leaves wiki pages out); rows are the project hits then the wiki hits, deduped by
+  id, at most 8, `description` = the hit's `subtitle`. Without a `projectId` (a wiki page)
+  one unscoped request lists every hit, so a wiki page may link a project page.
 - `@`: `mentionActors` filtered by name prefix, max 8.
 - `/`: static list — Heading 1/2/3, Bullet list, Numbered list, Task list, Table
   (3×3), Code block, Quote, Divider; the command deletes the typed range then

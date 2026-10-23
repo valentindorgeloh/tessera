@@ -1,19 +1,21 @@
 /**
- * Inbox notifications (docs/drafts/p7-plan.md). `logActivity` calls
- * `notifyFromActivity` inside the same transaction, so a state change or
- * comment cannot land without the subscriber rows. The actor never receives
- * their own notification. An unread row for the same recipient, kind and work
- * item is updated in place.
+ * Inbox notifications (docs/drafts/p7-plan.md, decisions 49-52). `logActivity`
+ * calls `notifyFromActivity` inside the same transaction, so a state change or
+ * comment cannot land without the subscriber rows. Who never receives is
+ * decision 50 (`deliverable`). A new event merges into the recipient's newest
+ * row for the same work item and causing actor while that row is unread, not
+ * archived, not snoozed and under `COALESCE_WINDOW_MS` old (decision 51);
+ * otherwise it adds a row. Rows are listed by `sort_at` (decision 52).
  */
-import { and, count, desc, eq, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, count, desc, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
 import { z } from "zod";
 import type { TesseraContext } from "./core/context";
 import { notFound, validateInput, validation } from "./core/errors";
 import { newId } from "./core/ids";
 import { formatKey } from "./core/keys";
 import { assertInTransaction, withTx } from "./core/tx";
-import { actor, mention, notification, project, work_item, work_item_assignee, work_item_subscriber } from "./db/schema";
-import { IdSchema } from "./schemas";
+import { actor, mention, notification, page, project, work_item, work_item_assignee, work_item_subscriber } from "./db/schema";
+import { IdSchema, NotificationKindSchema, type NotificationKind } from "./schemas";
 import type { ActivityEntry } from "./activity";
 import type { ActorKind } from "./types";
 
@@ -21,6 +23,15 @@ const SNIPPET_LIMIT = 280;
 const LIST_LIMIT = 200;
 /** Built-in user actor. Duplicated here so this module does not import actors.ts (that module imports activity, which imports this file). */
 const USER_ACTOR_ID = "00000000-0000-7000-8000-000000000001";
+
+/** A new event merges into the newest matching row only while its `sort_at` is under this old (decision 51). */
+export const COALESCE_WINDOW_MS = 10 * 60_000;
+/** Kind rank, 0 = highest: when rows merge the higher-ranked kind wins (decision 51). */
+export const NOTIFICATION_KIND_RANK: Readonly<Record<NotificationKind, number>> = Object.fromEntries(
+  NotificationKindSchema.options.map((kind, index) => [kind, index]),
+) as Record<NotificationKind, number>;
+/** Activity verbs that never notify. */
+const SILENT_VERBS = new Set(["created", "copied", "reacted", "unreacted"]);
 
 export type NotificationView = {
   uid: string;
@@ -66,17 +77,21 @@ const ListInput = z
 
 type Ids = z.infer<typeof IdsInput>;
 
-/** Writes subscriber notifications for this activity row. No-op for verbs the inbox does not surface. */
+/** Writes the notifications this activity row causes. No-op for rows the inbox does not surface. */
 export function notifyFromActivity(ctx: TesseraContext, entry: ActivityEntry): void {
   assertInTransaction(ctx, "notifyFromActivity");
   const workItemId = entry.work_item_id ?? null;
   let kind = kindFor(entry);
   // An automation's own note replaces the ordinary state or archive kind (decision 28).
   if (ctx.activityNote && workItemId !== null && (entry.field === "state_id" || entry.verb === "archived")) kind = "automation";
-  if (kind === null || workItemId === null) return;
+  if (kind === null) return;
+  if (workItemId === null) {
+    notifyPageMention(ctx, kind, entry);
+    return;
+  }
   const item = loadItem(ctx, workItemId);
   if (!item) return;
-  const recipients = recipientsFor(ctx, kind, workItemId, entry);
+  const recipients = deliverable(ctx, recipientsFor(ctx, kind, workItemId, entry));
   writeRows(ctx, recipients, {
     kind,
     title: item.name,
@@ -85,6 +100,22 @@ export function notifyFromActivity(ctx: TesseraContext, entry: ActivityEntry): v
     entity_id: entry.entity_id,
     work_item_id: item.id,
     project_id: item.project_id,
+  });
+}
+
+/** A page mention (decision 53) has no work item: the row names the page and opens it. */
+function notifyPageMention(ctx: TesseraContext, kind: NotificationKind, entry: ActivityEntry): void {
+  if (kind !== "mentioned" || entry.entity_type !== "page" || typeof entry.new_value !== "string") return;
+  const row = ctx.db.select({ id: page.id, name: page.name, project_id: page.project_id }).from(page).where(eq(page.id, entry.entity_id)).get();
+  if (!row) return;
+  writeRows(ctx, deliverable(ctx, [entry.new_value]), {
+    kind,
+    title: row.name,
+    snippet: snippetOf(entry),
+    entity_type: "page",
+    entity_id: row.id,
+    work_item_id: null,
+    project_id: row.project_id,
   });
 }
 
@@ -106,26 +137,6 @@ export function notifyIntakeReceived(
     entity_id: input.intake_item_id,
     work_item_id: input.work_item_id,
     project_id: input.project_id,
-  });
-}
-
-/** One `mentioned` row per actor. Call after the mention rows exist. */
-export function notifyMentions(
-  ctx: TesseraContext,
-  input: { work_item_id: string; entity_type: string; entity_id: string; actor_ids: string[]; snippet: string },
-): void {
-  assertInTransaction(ctx, "notifyMentions");
-  const item = loadItem(ctx, input.work_item_id);
-  if (!item) return;
-  const recipients = input.actor_ids.filter((id) => id !== ctx.actor.id);
-  writeRows(ctx, recipients, {
-    kind: "mentioned",
-    title: item.name,
-    snippet: input.snippet.slice(0, SNIPPET_LIMIT),
-    entity_type: input.entity_type,
-    entity_id: input.entity_id,
-    work_item_id: item.id,
-    project_id: item.project_id,
   });
 }
 
@@ -164,7 +175,7 @@ export function listNotifications(ctx: TesseraContext, input: z.input<typeof Lis
     .leftJoin(project, eq(work_item.project_id, project.id))
     .leftJoin(actor, eq(notification.actor_id, actor.id))
     .where(eq(notification.recipient_actor_id, ctx.actor.id))
-    .orderBy(desc(notification.seq))
+    .orderBy(desc(notification.sort_at), desc(notification.seq))
     .limit(limit)
     .all();
   return rows.map((row) => ({
@@ -181,8 +192,8 @@ export function listNotifications(ctx: TesseraContext, input: z.input<typeof Lis
     archived_at: row.note.archived_at,
     snoozed_till: row.note.snoozed_till,
     is_snoozed: row.note.snoozed_till !== null && row.note.snoozed_till > now,
-    event_count: 1,
-    sort_at: row.note.created_at,
+    event_count: row.note.event_count,
+    sort_at: row.note.sort_at,
     created_at: row.note.created_at,
     project_id: row.note.project_id,
     entity_type: row.note.entity_type,
@@ -202,7 +213,17 @@ export function markNotificationsUnread(ctx: TesseraContext, input: z.input<type
 
 export function archiveNotifications(ctx: TesseraContext, input: z.input<typeof IdsInput>): { updated: number } {
   const data = validateInput(IdsInput, input);
-  return withTx(ctx, () => ({ updated: apply(ctx, resolveIds(ctx, data, false), { archived_at: ctx.now(), snoozed_till: null }) }));
+  return withTx(ctx, () => {
+    const uids = resolveIds(ctx, data, false);
+    const now = ctx.now();
+    // A still-snoozed row leaves its future sort_at behind when archived (decision 52). Archive keeps read_at.
+    ctx.db
+      .update(notification)
+      .set({ sort_at: now })
+      .where(and(eq(notification.recipient_actor_id, ctx.actor.id), inArray(notification.uid, uids), gt(notification.snoozed_till, now)))
+      .run();
+    return { updated: apply(ctx, uids, { archived_at: now, snoozed_till: null }) };
+  });
 }
 
 export function unarchiveNotifications(ctx: TesseraContext, input: z.input<typeof IdsInput>): { updated: number } {
@@ -213,33 +234,62 @@ export function unarchiveNotifications(ctx: TesseraContext, input: z.input<typeo
 export function snoozeNotifications(ctx: TesseraContext, input: z.input<typeof SnoozeInput>): { updated: number } {
   const data = validateInput(SnoozeInput, input);
   const until = new Date(data.until).toISOString();
-  return withTx(ctx, () => ({ updated: apply(ctx, resolveIds(ctx, data, false), { snoozed_till: until }) }));
+  return withTx(ctx, () => ({ updated: apply(ctx, resolveIds(ctx, data, false), { snoozed_till: until, sort_at: until, read_at: null }) }));
 }
 
 export function unsnoozeNotifications(ctx: TesseraContext, input: z.input<typeof IdsInput>): { updated: number } {
   const data = validateInput(IdsInput, input);
-  return withTx(ctx, () => ({ updated: apply(ctx, resolveIds(ctx, data, false), { snoozed_till: null }) }));
+  return withTx(ctx, () => ({ updated: apply(ctx, resolveIds(ctx, data, false), { snoozed_till: null, sort_at: ctx.now() }) }));
 }
 
-function kindFor(entry: ActivityEntry): string | null {
+/** The notification kind an activity row causes, or null (decision 51). */
+function kindFor(entry: ActivityEntry): NotificationKind | null {
+  if (SILENT_VERBS.has(entry.verb)) return null;
+  // sort_order is a drag. subscribers rows are bookkeeping (ASSUMPTION: an agent's first comment logs "added subscribers" before "commented", which would otherwise merge into "commented 2 times").
+  if (entry.field === "sort_order" || entry.field === "subscribers") return null;
+  if (entry.field === "mention") return entry.verb === "added" ? "mentioned" : null;
   if (entry.verb === "commented") return "commented";
   if (entry.field === "state_id") return "state_changed";
   if (entry.field === "assignees" && entry.verb === "added") return "assigned";
-  return null;
+  // Any other change to the work item itself. Comment edits and deletes, intake and draft rows stay silent (ASSUMPTION).
+  return entry.entity_type === "work_item" ? "updated" : null;
 }
 
-function recipientsFor(ctx: TesseraContext, kind: string, workItemId: string, entry: ActivityEntry): string[] {
-  if (kind === "assigned") {
-    const id = entry.new_value;
-    return typeof id === "string" && id !== ctx.actor.id ? [id] : [];
+/** Decision 50: never the causing actor, system or assistant actors, deleted actors, nor the user when the assistant caused it. */
+function deliverable(ctx: TesseraContext, ids: readonly string[]): string[] {
+  const wanted = [...new Set(ids)].filter((id) => id !== ctx.actor.id);
+  if (wanted.length === 0) return [];
+  const rows = ctx.db.select({ id: actor.id, kind: actor.kind, deleted_at: actor.deleted_at }).from(actor).where(inArray(actor.id, wanted)).all();
+  return rows
+    .filter((row) => row.deleted_at === null && row.kind !== "system" && row.kind !== "assistant" && !(ctx.actor.kind === "assistant" && row.kind === "user"))
+    .map((row) => row.id);
+}
+
+/** Actors that get no `updated` row while `withoutUpdatedFor` runs, per connection. */
+const heldBack = new WeakMap<object, Set<string>>();
+
+/**
+ * Runs `fn` so the `updated` rows it logs skip `ids`. A description save that
+ * newly mentions an actor tells them once (`mentioned`), not also "updated this"
+ * (decision 53): the caller passes the ids `syncMentions` just added.
+ */
+export function withoutUpdatedFor<T>(ctx: TesseraContext, ids: readonly string[], fn: () => T): T {
+  const previous = heldBack.get(ctx.sqlite);
+  heldBack.set(ctx.sqlite, new Set([...(previous ?? []), ...ids]));
+  try {
+    return fn();
+  } finally {
+    if (previous) heldBack.set(ctx.sqlite, previous);
+    else heldBack.delete(ctx.sqlite);
   }
-  if (kind === "automation") {
-    const ids = new Set([...subscriberIds(ctx, workItemId), ...assigneeIds(ctx, workItemId)]);
-    ids.delete(ctx.actor.id);
-    return [...ids];
-  }
+}
+
+function recipientsFor(ctx: TesseraContext, kind: NotificationKind, workItemId: string, entry: ActivityEntry): string[] {
+  if (kind === "assigned" || kind === "mentioned") return typeof entry.new_value === "string" ? [entry.new_value] : [];
+  if (kind === "automation") return [...new Set([...subscriberIds(ctx, workItemId), ...assigneeIds(ctx, workItemId)])];
   const mentioned = mentionedActors(ctx, entry);
-  return subscriberIds(ctx, workItemId).filter((id) => id !== ctx.actor.id && !mentioned.has(id));
+  const held = kind === "updated" ? heldBack.get(ctx.sqlite) : undefined;
+  return subscriberIds(ctx, workItemId).filter((id) => !mentioned.has(id) && !held?.has(id));
 }
 
 function mentionedActors(ctx: TesseraContext, entry: ActivityEntry): Set<string> {
@@ -284,44 +334,56 @@ function snippetOf(entry: ActivityEntry): string {
 }
 
 type Draft = {
-  kind: string;
+  kind: NotificationKind;
   title: string;
   snippet: string;
   entity_type: string;
   entity_id: string;
-  work_item_id: string;
-  project_id: string;
+  work_item_id: string | null;
+  project_id: string | null;
 };
+
+function rankOf(kind: string): number {
+  return NOTIFICATION_KIND_RANK[kind as NotificationKind] ?? Number.MAX_SAFE_INTEGER;
+}
+
+/**
+ * The recipient's newest row for this work item and causing actor, when it may
+ * still absorb a new event: unread, not archived, not snoozed, and its
+ * `sort_at` strictly under the window old (decision 51). Older rows never merge.
+ */
+function coalesceTarget(ctx: TesseraContext, recipient: string, workItemId: string, now: string) {
+  const newest = ctx.db
+    .select()
+    .from(notification)
+    .where(and(eq(notification.recipient_actor_id, recipient), eq(notification.work_item_id, workItemId), eq(notification.actor_id, ctx.actor.id)))
+    .orderBy(desc(notification.seq))
+    .limit(1)
+    .get();
+  if (!newest || newest.read_at !== null || newest.archived_at !== null) return undefined;
+  if (newest.snoozed_till !== null && newest.snoozed_till > now) return undefined;
+  const age = Date.parse(now) - Date.parse(newest.sort_at);
+  return age < COALESCE_WINDOW_MS ? newest : undefined;
+}
 
 function writeRows(ctx: TesseraContext, recipients: string[], draft: Draft): void {
   const now = ctx.now();
   for (const recipient of new Set(recipients)) {
-    const existing = ctx.db
-      .select({ uid: notification.uid })
-      .from(notification)
-      .where(
-        and(
-          eq(notification.recipient_actor_id, recipient),
-          eq(notification.kind, draft.kind),
-          eq(notification.work_item_id, draft.work_item_id),
-          isNull(notification.read_at),
-          isNull(notification.archived_at),
-          isNull(notification.snoozed_till),
-        ),
-      )
-      .get();
-    if (existing) {
+    // A row without a work item (a page mention) never coalesces.
+    const target = draft.work_item_id === null ? undefined : coalesceTarget(ctx, recipient, draft.work_item_id, now);
+    if (target) {
       ctx.db
         .update(notification)
         .set({
+          kind: rankOf(draft.kind) < rankOf(target.kind) ? draft.kind : target.kind,
           title: draft.title,
           snippet: draft.snippet,
-          actor_id: ctx.actor.id,
           entity_type: draft.entity_type,
           entity_id: draft.entity_id,
-          created_at: now,
+          event_count: target.event_count + 1,
+          sort_at: now,
         })
-        .where(eq(notification.uid, existing.uid))
+        .where(eq(notification.uid, target.uid))
         .run();
       continue;
     }
@@ -338,6 +400,8 @@ function writeRows(ctx: TesseraContext, recipients: string[], draft: Draft): voi
         title: draft.title,
         snippet: draft.snippet,
         actor_id: ctx.actor.id,
+        event_count: 1,
+        sort_at: now,
         created_at: now,
       })
       .run();
@@ -349,7 +413,15 @@ function resolveIds(ctx: TesseraContext, input: Ids, unreadWhenAll: boolean): st
     return ctx.db
       .select({ uid: notification.uid })
       .from(notification)
-      .where(and(eq(notification.recipient_actor_id, ctx.actor.id), isNull(notification.read_at), isNull(notification.archived_at)))
+      .where(
+        and(
+          eq(notification.recipient_actor_id, ctx.actor.id),
+          isNull(notification.read_at),
+          isNull(notification.archived_at),
+          // A snoozed row stays unread until it wakes (decision 52).
+          or(isNull(notification.snoozed_till), lte(notification.snoozed_till, ctx.now())),
+        ),
+      )
       .all()
       .map((row) => row.uid);
   }

@@ -62,7 +62,7 @@ Owner: lane A. Source folder: `src/lib/tessera/db/schema/` (Drizzle, SQLite; `in
 | `comment_reaction` | `id`, `comment_id`, `actor_id`, `reaction`, `created_at` | unique triple (`comment_id`, `actor_id`, `reaction`), not partial (no soft delete) |
 | `work_item_reaction` | `id`, `work_item_id`, `actor_id`, `reaction`, `created_at` | unique triple, not partial |
 | `mention` | `entity_type` (`work_item, comment, page`), `entity_id`, `actor_id`, `created_at` | primary key (all three); index (`actor_id`) |
-| `notification` | `seq`, `uid`, `recipient_actor_id`, `kind` (`assigned, mentioned, commented, state_changed, intake_received, automation, ...`), `entity_type`, `entity_id`, `work_item_id`, `project_id`, `title`, `snippet`, `actor_id` (who caused it), `read_at`, `archived_at`, `snoozed_till`, `created_at` | index (`recipient_actor_id`, `read_at`, `seq`) |
+| `notification` | `seq`, `uid`, `recipient_actor_id`, `kind` (`mentioned, assigned, commented, state_changed, updated, intake_received, automation`, rank in that order), `entity_type`, `entity_id`, `work_item_id`, `project_id`, `title`, `snippet`, `actor_id` (who caused it), `read_at`, `archived_at`, `snoozed_till`, `event_count` (default 1; events merged into the row), `sort_at` (inbox order; the code always writes it), `created_at` | index (`recipient_actor_id`, `read_at`, `seq`); `notification_archived_idx` (`archived_at`); `notification_inbox_idx` (`recipient_actor_id`, `archived_at`, `sort_at`); `notification_coalesce_idx` (`recipient_actor_id`, `work_item_id`, `actor_id`, `seq`) (migration 0012) |
 
 ### Planning extras (P8; `intake` and `intake_item` are already written by P1)
 
@@ -180,7 +180,7 @@ Drafts (P8)
 
 Cross-cutting
 - Every mutation runs in one `BEGIN IMMEDIATE` transaction and writes its activity rows inside it; `activity.seq` is the global cursor (`latestSeq`).
-- Notifications (P7) are generated inside the same transaction as the triggering mutation and never for the actor who caused it.
+- Notifications (P7) are generated inside the same transaction as the triggering mutation (decisions 49-52). Never for the causing actor, system or assistant actors, or deleted actors, and never for the user when the assistant caused it. A new event merges into the recipient's newest row for the same work item and causing actor while it is unread, not archived, not snoozed and under 10 minutes old; the list orders by `sort_at`.
 - Soft-delete cascades (project → states, labels, items, cycles, modules, views, intakes; item → children, junctions, intake item) run synchronously in the same transaction.
 - FTS rows are written in the same transaction as the entity row; `search_all` and `filters.search` go through FTS5 (capped at 100 000 ids inside a list query), cycles, modules and projects are matched with `LIKE` on name (projects also on identifier).
 - Second-process writes (`tests/concurrency.test.ts`, `tests/helpers/second-writer.ts`) are serialised by `busy_timeout`; a writer that waits longer gets `BUSY`.

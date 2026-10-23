@@ -43,3 +43,7 @@ export const CODE_COLUMN_FOLDED = proportional(1, { minWidth: 136 });
 export const EXPORTS_FULL_WIDTH = 584;
 /** Widest container (px) at which the delivery table needs its folded layout: CODE 152 + 72 + 104 + 96 + 96 + 112 + 56. */
 export const DELIVERIES_FULL_WIDTH = 688;
+/** A backup file name when the table is folded: wraps at its hyphens; size, age and check sit under it. */
+export const FILE_NAME_COLUMN_FOLDED = proportional(1, { minWidth: 168 });
+/** Widest container (px) at which the backups table needs its folded layout: FILE 216 + 104 + 72 + 112 + 72 (the backups table has no actions column). */
+export const BACKUPS_FULL_WIDTH = 576;

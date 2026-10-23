@@ -2,8 +2,9 @@
 
 /**
  * Tabs of the project archives (docs/contracts/ui.md "Archives (E3)"), in
- * the archives' panel sub-header, docked on its hairline like the frame's own
- * tabs: Work items, Cycles, Modules, each a link to
+ * the archives' panel sub-header, docked on its hairline and started on the
+ * 16px inset by the generic header tab-strip rules (shell.css, S7) like the
+ * frame's own tabs: Work items, Cycles, Modules, each a link to
  * `/projects/<id>/archives/<kind>`.
  * Navigation tabs, so no `role` and no `panelId`; the no-op `onChange` is the
  * frame's pattern for `href` tabs; the nav is named "Archives" so it is told
@@ -26,7 +27,7 @@ export function ArchivesTabs({ projectId }: ArchivesTabsProps) {
   const tabs = archiveTabs(context?.bundle.project ?? ALL_FEATURES);
   const activeKind = activeArchiveKind(pathname, projectId);
   return (
-    <TabList aria-label="Archives" value={activeKind} onChange={() => {}} size="sm" layout="hug" className="tessera-archives-tabs">
+    <TabList aria-label="Archives" value={activeKind} onChange={() => {}} size="sm" layout="hug">
       {tabs.map((tab) => (
         <Tab key={tab.kind} value={tab.kind} label={tab.label} href={`/projects/${projectId}/archives/${tab.kind}`} />
       ))}

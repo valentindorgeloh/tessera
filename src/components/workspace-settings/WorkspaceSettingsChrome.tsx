@@ -5,6 +5,8 @@
  * The tab strip docks on the sub-header's hairline and starts on the 16px inset
  * through the shared header tab-strip rules (shell.css, S7); `tessera-settings-tabs`
  * only adds the 44px phone tab (project-settings.css), as in the project settings.
+ * `tessera-settings-tabs--workspace` is the five-tab strip that fits a 360px
+ * phone without scrolling (smaller tab padding, project-settings.css).
  */
 import type { ReactNode } from "react";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
@@ -29,7 +31,7 @@ export function WorkspaceSettingsChrome({ tab, children, end }: WorkspaceSetting
             size="subheader"
             hasDivider
             start={
-              <TabList aria-label="Workspace settings" value={tab} onChange={() => {}} size="sm" layout="hug" className="tessera-settings-tabs">
+              <TabList aria-label="Workspace settings" value={tab} onChange={() => {}} size="sm" layout="hug" className="tessera-settings-tabs tessera-settings-tabs--workspace">
                 {SETTINGS_TABS.map((entry) => (
                   <Tab key={entry.key} value={entry.key} label={entry.label} href={entry.href} className={entry.label.length <= 2 ? "tessera-settings-tab-short" : undefined} />
                 ))}

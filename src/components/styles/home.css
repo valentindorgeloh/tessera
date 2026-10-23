@@ -173,6 +173,21 @@
     padding-block: 0;
   }
 
+  /*
+   * The "+N more" link in the Since card (decision 14): a 20px link gets a 44x44
+   * box and gives the room back with an equal negative block margin, so the
+   * action row keeps its height. Positioned so the box paints above the siblings.
+   */
+  .tessera-home-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-inline-size: var(--spacing-11);
+    min-block-size: var(--spacing-11);
+    margin-block: calc((var(--spacing-5) - var(--spacing-11)) / 2);
+  }
+
   .tessera-quick-link-title {
     display: inline-flex;
     align-items: center;

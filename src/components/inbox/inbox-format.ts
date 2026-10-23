@@ -5,7 +5,9 @@
  * of `Date.now()`.
  *
  * `InboxNote` is the slice the screen renders. The table's stable key is
- * `uid`. `event_count` stays 1 until a coalesced count is stored.
+ * `uid`. `event_count` is the number of events merged into the row (decision
+ * 51); `sort_at` orders the list and moves to the wake time on a snooze
+ * (decision 52).
  */
 import type { ActorKind } from "@/lib/tessera/types";
 
@@ -29,6 +31,9 @@ export type InboxNote = {
   event_count: number;
   sort_at: string;
   created_at: string;
+  /** Entity the row is about. Present on rows from the engine; a page mention has no work item. */
+  entity_type?: string;
+  entity_id?: string;
 };
 
 const PHRASES: Readonly<Record<string, string>> = {
@@ -41,15 +46,25 @@ const PHRASES: Readonly<Record<string, string>> = {
   automation: "ran an automation",
 };
 
-/** The words after the actor's name. A coalesced row keeps the same phrase; the row shows "+N" beside it. */
-export function notificationPhrase(kind: string, eventCount: number): string {
-  const base = PHRASES[kind] ?? kind.replaceAll("_", " ");
-  if (eventCount > 1 && kind === "commented") return `commented ${eventCount} times`;
-  return base;
+/**
+ * The words after the actor's name. A coalesced `commented` row reads
+ * "commented N times" (decision 51: `event_count` is the number of events
+ * merged into the row). ASSUMPTION: the count can include a merged state
+ * change or edit by the same actor; the phrase still says "times" because the
+ * row is the actor's burst on one item.
+ */
+export function notificationPhrase(kind: string, eventCount = 1): string {
+  if (kind === "commented" && eventCount > 1) return `commented ${eventCount} times`;
+  return PHRASES[kind] ?? kind.replaceAll("_", " ");
 }
 
-/** "+1" once a row has coalesced (event_count 2). Null for a single event. */
-export function extraEventLabel(eventCount: number): string | null {
+/**
+ * "+1" once a row has coalesced (event_count 2): the number of events merged
+ * in beyond the first. Null for a single event and for `commented`, whose
+ * phrase already carries the count.
+ */
+export function extraEventLabel(eventCount: number, kind?: string): string | null {
+  if (kind === "commented") return null;
   return eventCount > 1 ? `+${eventCount - 1}` : null;
 }
 
@@ -113,6 +128,16 @@ export function inboxHref(tab: InboxTab, unread: boolean, item: string | null): 
   if (item !== null && item !== "") params.set("item", item);
   const query = params.toString();
   return query === "" ? "/inbox" : `/inbox?${query}`;
+}
+
+/**
+ * Where a row leads: a page mention opens the page (the `/pages/<id>` alias
+ * redirects a project page into its project), a row with a work item opens it
+ * in the inbox's detail pane, anything else goes nowhere.
+ */
+export function notificationHref(note: Pick<InboxNote, "work_item_id" | "entity_type" | "entity_id">, query: Pick<InboxQuery, "tab" | "unread">): string | null {
+  if (note.entity_type === "page" && note.entity_id !== undefined) return `/pages/${note.entity_id}`;
+  return note.work_item_id === null ? null : inboxHref(query.tab, query.unread, note.work_item_id);
 }
 
 export type SnoozePresetId = "hour" | "tomorrow" | "monday";

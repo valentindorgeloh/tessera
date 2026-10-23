@@ -596,8 +596,9 @@ describe("migrateIfNeeded", () => {
       const probe = new Database(filePath);
       // The migrator's `id SERIAL` column is NULL in SQLite, so the newest row is found by created_at.
       probe.prepare(`DELETE FROM "${MIGRATIONS_TABLE}" WHERE created_at = (SELECT max(created_at) FROM "${MIGRATIONS_TABLE}")`).run();
-      // 0011 adds the two live-row indexes of the workspace list; drop them so the newest migration can re-apply.
-      probe.exec(`DROP INDEX IF EXISTS work_item_live_sort_idx; DROP INDEX IF EXISTS work_item_live_state_idx;`);
+      // The newest migration (0012) adds two notification columns and their indexes; drop them so it can re-apply.
+      probe.exec(`DROP INDEX IF EXISTS notification_inbox_idx; DROP INDEX IF EXISTS notification_coalesce_idx;`);
+      probe.exec(`ALTER TABLE notification DROP COLUMN event_count; ALTER TABLE notification DROP COLUMN sort_at;`);
       expect(pendingMigrations(probe)).toBe(1);
       probe.close();
 

@@ -8,7 +8,8 @@
  */
 import { createContext, Suspense, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useToast } from "@astryxdesign/core/Toast";
+import { Button } from "@astryxdesign/core/Button";
+import { useToast, type ToastDismissFn } from "@astryxdesign/core/Toast";
 import { z } from "zod";
 import { applyProposalsAction, discardProposalsAction } from "@/app/actions/ai";
 import { ProposalViewSchema } from "@/lib/tessera/schemas";
@@ -28,6 +29,7 @@ import {
   type TranscriptAction,
 } from "./assistant-store";
 import { useAiStatus } from "./AiStatusProvider";
+import { undoAssistantBatch } from "./assistant-undo";
 import { streamAssist } from "./use-assistant-stream";
 
 export type AssistantValue = {
@@ -285,9 +287,24 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         const failed = result.data.find((outcome) => outcome.status === "failed");
         if (failed?.error) toast({ type: "error", body: failed.error.message });
         else if (applied.length > 0) {
-          toast({
+          // Undo (decisions 116-117) names the ids this toast applied, so a toast left over from an earlier Apply
+          // never undoes a newer batch. Power K ("Undo last assistant change") is the path once the toast is gone.
+          const appliedIds = applied.map((outcome) => outcome.id);
+          let dismiss: ToastDismissFn | null = null;
+          dismiss = toast({
             type: "info",
             body: applied.length === 1 ? "Applied 1 change" : `Applied ${applied.length} changes`,
+            endContent: (
+              <Button
+                size="sm"
+                variant="ghost"
+                label="Undo"
+                onClick={() => {
+                  dismiss?.();
+                  void undoAssistantBatch(appliedIds, toast);
+                }}
+              />
+            ),
           });
         }
         setConfirmIds(null);

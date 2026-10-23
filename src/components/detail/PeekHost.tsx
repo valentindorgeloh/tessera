@@ -53,7 +53,7 @@ import type { DetailHost, WorkItemDetailData } from "./types";
 import { clearPeekPush, movePeekPush, readPeekPush, stampPeekPush } from "./peek-history";
 import { registerPeekHost } from "./peek-hosts";
 import { PEEK_MAX_WIDTH, PEEK_MIN_WIDTH, hasNoResizeRange, loadPeekPrefs, savePeekPrefs, usePeekPrefs } from "./peek-prefs";
-import { useIsPanelCover } from "./peek-cover";
+import { useCoverFocus, useIsPanelCover } from "./peek-cover";
 import { closesWithBack, currentHref, mountsPeek, peekHref } from "./peek-url";
 
 /** The item the URL names; `data: null` when it is unknown, deleted or belongs to another project. */
@@ -262,6 +262,11 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
     [watchPanel, watchCover],
   );
 
+  // The covered list is inert (decision 11): out of the tab order and the accessibility tree while the panel is on top of it.
+  // The attribute goes in the same commit as the close, before the focus returns to the row (useCoverFocus).
+  const isListCovered = isOpen && !isModal && isPanelCover;
+  const rememberListFocus = useCoverFocus({ isOpen, isModal, isCovering: isListCovered }, slotNode);
+
   const detail = peek ? (
     peek.data ? (
       <WorkItemDetail key={peek.id} data={peek.data} host={isModal ? "modal" : "peek"} onClose={close} onHostChange={changeHost} onOpenItem={openItem} />
@@ -287,7 +292,7 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
       <Layout
         height="fill"
         content={
-          <LayoutContent padding={0} isScrollable>
+          <LayoutContent padding={0} isScrollable inert={isListCovered} onFocus={rememberListFocus}>
             {children}
           </LayoutContent>
         }

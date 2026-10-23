@@ -6,9 +6,11 @@
  * can update them without recreating the editor; the `/` and `@` row filters;
  * the `#` search request.
  */
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Editor } from "@tiptap/core";
 import { editorExtensions, readSuggestionContext, setSuggestionContext } from "@/components/editor/extensions";
+import { extractEntityRefs } from "@/lib/tessera/pages/embeds";
 import { actorRows, blockRows, buildEditorSuggestions, suggestionAria, suggestionOptionId } from "@/components/editor/mentions";
 
 const editors: Editor[] = [];
@@ -93,12 +95,109 @@ describe("suggestion context", () => {
     const { workItem } = buildEditorSuggestions();
     expect(await workItem.items?.({ query: "x", editor, signal: new AbortController().signal })).toEqual([]);
   });
+});
 
-  it("the [[ trigger is reserved and lists nothing until pages arrive", async () => {
-    const editor = headless(true);
+describe("the [[ page trigger (decision 10)", () => {
+  const WIKI_HIT = { type: "page", id: "pg-wiki", project_id: null, title: "Handbook", subtitle: "Wiki", score: 1 };
+  const PROJECT_HIT = { type: "page", id: "pg-web", project_id: "p1", title: "Web spec", subtitle: "Website", score: 1 };
+  const OTHER_PROJECT_HIT = { type: "page", id: "pg-ops", project_id: "p2", title: "Ops runbook", subtitle: "Ops", score: 1 };
+
+  function stubSearch(answer: (url: URL) => unknown[] | Response) {
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
+      const result = answer(new URL(String(input), "http://localhost"));
+      if (result instanceof Response) return result;
+      return new Response(JSON.stringify({ hits: result }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  it("is configured like # (debounce, minimum query, no triggers inside code)", () => {
     const { page } = buildEditorSuggestions();
     expect(page.char).toBe("[[");
-    expect(await page.items?.({ query: "spec", editor, signal: new AbortController().signal })).toEqual([]);
+    expect(page.debounce).toBe(150);
+    expect(page.minQueryLength).toBe(1);
+    expect(page.allow).toBeTypeOf("function");
+  });
+
+  it("in a project it lists project pages first, then wiki pages, deduped and capped at eight", async () => {
+    const fetchMock = stubSearch((url) =>
+      url.searchParams.has("scope")
+        ? [PROJECT_HIT]
+        : [WIKI_HIT, OTHER_PROJECT_HIT, { ...PROJECT_HIT, project_id: null }, ...Array.from({ length: 9 }, (_, i) => ({ ...WIKI_HIT, id: `w${i}`, title: `Wiki ${i}` }))],
+    );
+    const editor = headless(true);
+    const { page } = buildEditorSuggestions();
+    setSuggestionContext(editor, { actors: [], projectId: "p1" });
+    const signal = new AbortController().signal;
+    const rows = await page.items?.({ query: "spec", editor, signal });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const urls = fetchMock.mock.calls.map((call) => new URL(String(call[0]), "http://localhost"));
+    const scoped = urls.find((url) => url.searchParams.has("scope"));
+    const unscoped = urls.find((url) => !url.searchParams.has("scope"));
+    expect(Object.fromEntries(scoped?.searchParams ?? [])).toEqual({ q: "spec", types: "page", limit: "8", scope: "p1" });
+    expect(Object.fromEntries(unscoped?.searchParams ?? [])).toEqual({ q: "spec", types: "page", limit: "20" });
+    expect(scoped?.pathname).toBe("/api/search");
+
+    expect(rows).toHaveLength(8);
+    expect(rows?.[0]).toEqual({ id: "pg-web", label: "Web spec", description: "Website" });
+    expect(rows?.[1]).toEqual({ id: "pg-wiki", label: "Handbook", description: "Wiki" });
+    // The page of another project is left out, and a page seen twice shows once.
+    expect(rows?.map((row) => row.id)).not.toContain("pg-ops");
+    expect(new Set(rows?.map((row) => row.id)).size).toBe(rows?.length);
+  });
+
+  it("without a project (a wiki page) it makes one unscoped request and lists every hit", async () => {
+    const fetchMock = stubSearch(() => [WIKI_HIT, PROJECT_HIT, OTHER_PROJECT_HIT]);
+    const editor = headless(true);
+    const { page } = buildEditorSuggestions();
+    const rows = await page.items?.({ query: "o", editor, signal: new AbortController().signal });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const url = new URL(String(fetchMock.mock.calls[0][0]), "http://localhost");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ q: "o", types: "page", limit: "8" });
+    expect(rows?.map((row) => row.id)).toEqual(["pg-wiki", "pg-web", "pg-ops"]);
+  });
+
+  it("keeps the other half of the list when one request fails, and shows nothing when both do", async () => {
+    stubSearch((url) => (url.searchParams.has("scope") ? new Response("{}", { status: 500 }) : [WIKI_HIT]));
+    const editor = headless(true);
+    const { page } = buildEditorSuggestions();
+    setSuggestionContext(editor, { actors: [], projectId: "p1" });
+    const signal = new AbortController().signal;
+    expect((await page.items?.({ query: "h", editor, signal }))?.map((row) => row.id)).toEqual(["pg-wiki"]);
+    stubSearch(() => new Response("{}", { status: 500 }));
+    expect(await page.items?.({ query: "h", editor, signal })).toEqual([]);
+  });
+
+  it("a pick inserts the page name as a page: link and a space, which serialises to [Name](page:<id>)", () => {
+    const editor = headless(true);
+    editor.commands.setContent("see [[he", { contentType: "markdown" });
+    const { page } = buildEditorSuggestions();
+    const end = editor.state.doc.content.size - 1;
+    const from = end - "[[he".length;
+    page.command?.({ editor, range: { from, to: end }, props: { id: "pg-wiki", label: "Handbook" } });
+    const markdown = editor.getMarkdown();
+    expect(markdown).toBe("see [Handbook](page:pg-wiki) ");
+    expect(editor.getHTML()).toContain('href="page:pg-wiki"');
+    expect(extractEntityRefs(markdown)).toEqual([{ scheme: "page", ref: "pg-wiki" }]);
+    // The space after the link is plain text: typing on does not extend the link.
+    expect(editor.state.doc.textContent).toBe("see Handbook ");
+  });
+
+  it("the inserted link survives a Markdown round trip", () => {
+    const editor = headless(true);
+    editor.commands.setContent("Read [Handbook](page:pg-wiki) and [Web spec](page:pg-web) first.", { contentType: "markdown" });
+    expect(editor.getMarkdown()).toBe("Read [Handbook](page:pg-wiki) and [Web spec](page:pg-web) first.");
+    const again = headless(true);
+    again.commands.setContent(editor.getMarkdown(), { contentType: "markdown" });
+    expect(again.getMarkdown()).toBe(editor.getMarkdown());
+  });
+
+  it("says 'No pages match' when nothing is found", () => {
+    const source = readFileSync("src/components/editor/mentions.tsx", "utf8");
+    expect(source).toContain('createRenderer("No pages match", "Pages"');
+    expect(source).not.toContain("Pages arrive in P6");
   });
 });
 

@@ -69,7 +69,8 @@ export const pageTools = [
   defineTool({
     name: "create_page",
     title: "Create page",
-    description: "Creates a wiki or project page. Refused with RULE feature_disabled when the project has Pages off.",
+    description:
+      "Creates a wiki or project page. Refused with RULE feature_disabled when the project has Pages off. Mention an actor as [@Name](actor:<id>), with ids from list_actors; a newly mentioned actor is notified.",
     input: CreatePageInput,
     mutates: true,
     core: true,
@@ -89,7 +90,8 @@ export const pageTools = [
   defineTool({
     name: "update_page_body",
     title: "Update page body",
-    description: "Compare-and-set on the page body. CONFLICT carries current_version when the body moved.",
+    description:
+      "Compare-and-set on the page body. CONFLICT carries current_version when the body moved. Mention an actor as [@Name](actor:<id>), with ids from list_actors; a newly mentioned actor is notified.",
     input: UpdatePageBodyInput,
     mutates: true,
     core: true,

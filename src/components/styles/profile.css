@@ -47,6 +47,21 @@
 }
 
 /*
+ * A 360px phone is 15px narrower than the 375px one the 6px padding was sized
+ * for and left "Activity" 8px short at rest: 4px keeps all five tabs inside the
+ * strip (320px of 332px). Under about 340px the strip scrolls as before.
+ */
+@media (max-width: 374px) {
+  .tessera-panel-bar.tessera-panel-bar--tabs-below > .tessera-panel-bar-start > .tessera-profile-tabs.astryx-tab-list {
+    --tessera-profile-tab-pad: var(--spacing-1);
+  }
+
+  .tessera-profile-tabs .astryx-tab {
+    padding-inline: var(--spacing-1);
+  }
+}
+
+/*
  * Lists under a section heading (Projects, Recent activity, Activity) pull
  * their rows out by the row's own 8px inset, so the row text starts at the
  * heading's x (the same rule as the settings lists).

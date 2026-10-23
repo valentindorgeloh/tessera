@@ -13,12 +13,17 @@
 
 /*
  * The sub-header (tabs, search, New page) uses PanelBar `tabsBelow` (S7, Pg14):
- * below 600px the search field and the button take the first row and the tab
+ * below 1100px the search field and the button take the first row and the tab
  * strip its own full-width row under them, docked on the bar's hairline (the
  * wrapped layout left it 48px above it). There is no title, so the end group
  * takes the whole first row and the search field the room the button leaves.
+ * The 1100px limit is the docked-sidebar width (shell.css tablet block): at 768px
+ * the panel is about 505px, and the strip, the 192px search field and the button
+ * left the Private and Archived tabs hidden behind the scroll button at rest.
+ * Below 600px shell.css supplies the grid; from 600 to 1099px it is repeated here
+ * because the shell.css tablet block only takes bars with a title.
  */
-@media (max-width: 599px) {
+@media (max-width: 1099px) {
   .tessera-panel-bar.tessera-panel-bar--tabs-below.tessera-pages-bar {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
@@ -45,6 +50,34 @@
   .tessera-pages-bar .tessera-pages-search {
     width: auto;
     min-width: 0;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 1099px) {
+  .tessera-panel-bar.tessera-panel-bar--tabs-below.tessera-pages-bar {
+    display: grid;
+    grid-template-rows: calc(var(--size-element-md) + var(--spacing-3)) auto;
+    row-gap: 0;
+    min-height: 0;
+    padding-block: 0;
+    align-items: center;
+  }
+
+  .tessera-pages-bar > .tessera-panel-bar-start {
+    display: contents;
+  }
+
+  .tessera-pages-bar > .tessera-panel-bar-end {
+    grid-area: end;
+  }
+
+  .tessera-pages-bar > .tessera-panel-bar-start > .astryx-tab-list {
+    grid-area: tabs;
+    align-self: end;
+    width: calc(100% + var(--spacing-3));
+    max-width: none;
+    min-width: 0;
+    margin-inline-start: calc(-1 * var(--spacing-3));
   }
 }
 
@@ -251,8 +284,19 @@ li[role="treeitem"]:focus-visible > div > .tessera-page-row--draggable .tessera-
  * The chevron's box runs from the row's left edge to 44px; the grip sits after
  * it (.tessera-page-row-lead--branches shifts it) so the two boxes do not
  * overlap and the chevron's centre is never under the grip.
+ *
+ * The row clips its content (overflow hidden) to its rounded corners, so a 44px
+ * box that reaches the row's edge loses its corners to the row's wrapper. The
+ * row is square here, the chevron too (its own 4px radius cut the box's lower
+ * right corner), and the flat tree's lead starts 6px in (--grip) so the grip's
+ * box, which sticks out 14px each side of its 16px icon, begins at the row's
+ * left edge: every corner of every 44px box hits its control.
  */
 @media (pointer: coarse), (max-width: 480px) {
+  .tessera-page-row-lead--grip {
+    margin-inline-start: var(--spacing-1-5);
+  }
+
   .tessera-page-row-lead--branches {
     margin-inline-start: calc(var(--spacing-6) + var(--spacing-0-5));
   }
@@ -263,10 +307,12 @@ li[role="treeitem"]:focus-visible > div > .tessera-page-row--draggable .tessera-
 
   .tessera-page-row {
     min-block-size: var(--spacing-11);
+    border-radius: 0;
   }
 
   .tessera-page-row .astryx-tree-list-chevron {
     box-sizing: content-box;
+    border-radius: 0;
     padding-block: calc(var(--spacing-3) + var(--spacing-1) / 2);
     padding-inline: var(--spacing-3) var(--spacing-4);
     margin-block: calc(-1 * (var(--spacing-3) + var(--spacing-1) / 2));

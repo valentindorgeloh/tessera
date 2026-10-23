@@ -2,11 +2,25 @@ import { describe, expect, it } from "vitest";
 import { registerActor } from "@/lib/tessera/actors";
 import { setAssignees, subscribe } from "@/lib/tessera/assignees";
 import { createComment } from "@/lib/tessera/comments";
-import { archiveNotifications, getUnreadCount, listNotifications, markNotificationsRead, snoozeNotifications } from "@/lib/tessera/notifications";
+import { logActivity } from "@/lib/tessera/activity";
+import { ASSISTANT_ACTOR_ID } from "@/lib/tessera/actors";
+import { withTx } from "@/lib/tessera/core/tx";
+import { createContext, type TesseraContext } from "@/lib/tessera/core/context";
+import {
+  archiveNotifications,
+  COALESCE_WINDOW_MS,
+  getUnreadCount,
+  listNotifications,
+  markNotificationsRead,
+  markNotificationsUnread,
+  NOTIFICATION_KIND_RANK,
+  snoozeNotifications,
+  unsnoozeNotifications,
+} from "@/lib/tessera/notifications";
 import { createProject } from "@/lib/tessera/projects";
 import { listStates } from "@/lib/tessera/states";
 import { createWorkItem, updateWorkItem } from "@/lib/tessera/work-items";
-import { createTestContext, createTestDb } from "./helpers/db";
+import { createTestContext, createTestDb, type DbHandles } from "./helpers/db";
 
 describe("notifications", () => {
   it("notifies a subscriber on a state change and not the actor", () => {
@@ -85,5 +99,254 @@ describe("notifications", () => {
     snoozeNotifications(agentCtx, { ids: [byName.get("Snoozed")!], until: "2099-01-01T00:00:00.000Z" });
     snoozeNotifications(agentCtx, { ids: [byName.get("Awake")!], until: "2000-01-01T00:00:00.000Z" });
     expect(getUnreadCount(agentCtx)).toBe(2);
+  });
+});
+
+const T0 = Date.parse("2030-01-01T12:00:00.000Z");
+
+/** A context whose clock reads `clock.at` (ms since the epoch), so the coalescing window is exact. */
+function clockCtx(handles: DbHandles, actorId: string, clock: { at: number }): TesseraContext {
+  return createContext({ db: handles.db, sqlite: handles.sqlite, actorId, now: () => new Date(clock.at).toISOString() });
+}
+
+/** The user creates an item and an agent follows it; the agent is the recipient under test. */
+function coalesceSetup() {
+  const handles = createTestDb();
+  const clock = { at: T0 };
+  const user = clockCtx(handles, createTestContext(handles).actor.id, clock);
+  const project = createProject(user, { name: "Web", identifier: "WEB" });
+  const item = createWorkItem(user, { project_id: project.id, name: "Login" });
+  const reader = registerActor(user, { kind: "agent", name: "mcp:reader" });
+  const writer = registerActor(user, { kind: "agent", name: "mcp:writer" });
+  subscribe(user, item.id, reader.id);
+  return {
+    handles,
+    clock,
+    user,
+    item,
+    project,
+    readerId: reader.id,
+    readerCtx: clockCtx(handles, reader.id, clock),
+    writerCtx: clockCtx(handles, writer.id, clock),
+    writerId: writer.id,
+    inbox: () => listNotifications(clockCtx(handles, reader.id, clock)).filter((note) => note.work_item_id === item.id),
+  };
+}
+
+describe("coalescing (decision 51)", () => {
+  it("ranks the kinds in the decision's order", () => {
+    expect(Object.keys(NOTIFICATION_KIND_RANK)).toEqual(["mentioned", "assigned", "commented", "state_changed", "updated", "intake_received", "automation"]);
+    expect(COALESCE_WINDOW_MS).toBe(600_000);
+  });
+
+  it("merges events by one actor under ten minutes apart: event_count, newest snippet, sort_at, kept created_at", () => {
+    const { clock, writerCtx, item, inbox } = coalesceSetup();
+    createComment(writerCtx, item.id, { body_md: "first" });
+    const first = inbox();
+    expect(first).toHaveLength(1);
+    expect(first[0]).toMatchObject({ kind: "commented", event_count: 1, snippet: "first" });
+    clock.at = T0 + 9 * 60_000 + 59_000;
+    createComment(writerCtx, item.id, { body_md: "second" });
+    const rows = inbox();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ kind: "commented", event_count: 2, snippet: "second" });
+    expect(rows[0]?.sort_at).toBe(new Date(clock.at).toISOString());
+    expect(rows[0]?.created_at).toBe(new Date(T0).toISOString());
+    clock.at += 9 * 60_000;
+    createComment(writerCtx, item.id, { body_md: "third" });
+    expect(inbox()[0]).toMatchObject({ event_count: 3, snippet: "third" });
+  });
+
+  it("starts a new row at the window edge (strictly under ten minutes merges)", () => {
+    const { clock, writerCtx, item, inbox } = coalesceSetup();
+    createComment(writerCtx, item.id, { body_md: "first" });
+    clock.at = T0 + COALESCE_WINDOW_MS;
+    createComment(writerCtx, item.id, { body_md: "at ten" });
+    expect(inbox()).toHaveLength(2);
+    clock.at += COALESCE_WINDOW_MS + 1_000;
+    createComment(writerCtx, item.id, { body_md: "later" });
+    expect(inbox()).toHaveLength(3);
+    expect(inbox().map((note) => note.event_count)).toEqual([1, 1, 1]);
+  });
+
+  it("keeps rows of different causing actors apart", () => {
+    const { handles, clock, writerCtx, item, inbox } = coalesceSetup();
+    const other = registerActor(createTestContext(handles), { kind: "agent", name: "mcp:other" });
+    createComment(writerCtx, item.id, { body_md: "from writer" });
+    createComment(clockCtx(handles, other.id, clock), item.id, { body_md: "from other" });
+    createComment(writerCtx, item.id, { body_md: "from writer again" });
+    const rows = inbox();
+    expect(rows.filter((note) => note.event_count === 2)).toHaveLength(1);
+    expect(rows).toHaveLength(2);
+  });
+
+  it.each([
+    ["read", (ctx: TesseraContext, uid: string) => markNotificationsRead(ctx, { ids: [uid] })],
+    ["archived", (ctx: TesseraContext, uid: string) => archiveNotifications(ctx, { ids: [uid] })],
+    ["snoozed", (ctx: TesseraContext, uid: string) => snoozeNotifications(ctx, { ids: [uid], until: "2030-01-02T00:00:00.000Z" })],
+  ])("does not merge into a %s row", (_name, change) => {
+    const { readerCtx, writerCtx, item, inbox } = coalesceSetup();
+    createComment(writerCtx, item.id, { body_md: "first" });
+    change(readerCtx, inbox()[0]!.uid);
+    createComment(writerCtx, item.id, { body_md: "second" });
+    const rows = inbox();
+    expect(rows).toHaveLength(2);
+    expect(rows.map((note) => note.event_count)).toEqual([1, 1]);
+  });
+
+  it("merges into a woken snoozed row again", () => {
+    const { clock, readerCtx, writerCtx, item, inbox } = coalesceSetup();
+    createComment(writerCtx, item.id, { body_md: "first" });
+    snoozeNotifications(readerCtx, { ids: [inbox()[0]!.uid], until: new Date(T0 + 60_000).toISOString() });
+    clock.at = T0 + 120_000;
+    createComment(writerCtx, item.id, { body_md: "after wake" });
+    expect(inbox()).toHaveLength(1);
+    expect(inbox()[0]).toMatchObject({ event_count: 2, snippet: "after wake" });
+  });
+
+  it("upgrades the kind to the higher rank and never downgrades it", () => {
+    const { clock, writerCtx, readerId, item, inbox } = coalesceSetup();
+    createComment(writerCtx, item.id, { body_md: "plain" });
+    expect(inbox()[0]?.kind).toBe("commented");
+    // The mention row merges in and upgrades the kind; the reader is left out of the commented recipients of that comment.
+    createComment(writerCtx, item.id, { body_md: `ping [@Reader](actor:${readerId})` });
+    expect(inbox()).toHaveLength(1);
+    expect(inbox()[0]).toMatchObject({ kind: "mentioned", event_count: 2 });
+    clock.at += 60_000;
+    createComment(writerCtx, item.id, { body_md: "plain again" });
+    expect(inbox()[0]).toMatchObject({ kind: "mentioned", event_count: 3, snippet: "plain again" });
+  });
+
+  it("lists by sort_at then seq, newest first", () => {
+    const { clock, user, writerCtx, item, project, readerCtx, readerId } = coalesceSetup();
+    const second = createWorkItem(user, { project_id: project.id, name: "Second" });
+    subscribe(user, second.id, readerId);
+    createComment(writerCtx, item.id, { body_md: "a1" });
+    clock.at += 60_000;
+    createComment(writerCtx, second.id, { body_md: "b1" });
+    expect(listNotifications(readerCtx).map((note) => note.work_item_id)).toEqual([second.id, item.id]);
+    clock.at += 60_000;
+    createComment(writerCtx, item.id, { body_md: "a2" });
+    const rows = listNotifications(readerCtx);
+    expect(rows.map((note) => note.work_item_id)).toEqual([item.id, second.id]);
+    expect(rows.map((note) => note.event_count)).toEqual([2, 1]);
+  });
+});
+
+describe("what notifies (decisions 50, 51)", () => {
+  it("never notifies for a subscribers row, sort_order, created, copied, reacted or unreacted", () => {
+    const { writerCtx, item, inbox } = coalesceSetup();
+    subscribe(writerCtx, item.id, writerCtx.actor.id);
+    withTx(writerCtx, () => {
+      const base = { project_id: item.project_id, entity_type: "work_item", entity_id: item.id, work_item_id: item.id };
+      logActivity(writerCtx, { ...base, verb: "updated", field: "sort_order" });
+      for (const verb of ["created", "copied", "reacted", "unreacted"]) logActivity(writerCtx, { ...base, verb });
+    });
+    expect(inbox()).toHaveLength(0);
+    // The agent's first comment logs "added subscribers" and "commented": one event, not two.
+    createComment(writerCtx, item.id, { body_md: "hello" });
+    expect(inbox()).toHaveLength(1);
+    expect(inbox()[0]?.event_count).toBe(1);
+  });
+
+  it("writes an updated row for a priority change on a subscribed item", () => {
+    const { writerCtx, item, inbox } = coalesceSetup();
+    updateWorkItem(writerCtx, item.id, { priority: "high" });
+    expect(inbox()).toHaveLength(1);
+    expect(inbox()[0]).toMatchObject({ kind: "updated", event_count: 1 });
+    updateWorkItem(writerCtx, item.id, { priority: "low" });
+    expect(inbox()[0]).toMatchObject({ kind: "updated", event_count: 2 });
+  });
+
+  it("never tells the user about the assistant's change, nor the assistant anything", () => {
+    const { handles, clock, user, item, inbox } = coalesceSetup();
+    const assistant = clockCtx(handles, ASSISTANT_ACTOR_ID, clock);
+    subscribe(user, item.id, ASSISTANT_ACTOR_ID);
+    updateWorkItem(assistant, item.id, { priority: "high" });
+    createComment(assistant, item.id, { body_md: "Applied" });
+    expect(listNotifications(user)).toHaveLength(0);
+    expect(listNotifications(assistant)).toHaveLength(0);
+    // An MCP agent subscribed to the item still hears about it: both events merged.
+    expect(inbox()).toHaveLength(1);
+    expect(inbox()[0]).toMatchObject({ kind: "commented", event_count: 2 });
+  });
+
+  it("tells the user about an agent's change and not about the user's own", () => {
+    const { user, writerCtx, item } = coalesceSetup();
+    updateWorkItem(user, item.id, { priority: "high" });
+    expect(listNotifications(user)).toHaveLength(0);
+    updateWorkItem(writerCtx, item.id, { priority: "low" });
+    expect(listNotifications(user).map((note) => note.kind)).toEqual(["updated"]);
+  });
+
+  it("skips a deleted actor", () => {
+    const { handles, writerCtx, readerId, item } = coalesceSetup();
+    handles.sqlite.prepare("UPDATE actor SET deleted_at = ? WHERE id = ?").run(new Date(T0).toISOString(), readerId);
+    updateWorkItem(writerCtx, item.id, { priority: "high" });
+    const count = handles.sqlite.prepare("SELECT count(*) AS n FROM notification WHERE recipient_actor_id = ?").get(readerId) as { n: number };
+    expect(count.n).toBe(0);
+  });
+});
+
+describe("read, archive and snooze (decision 52)", () => {
+  it("snooze sets sort_at to the wake time and clears read; the badge excludes it until it wakes", () => {
+    const { clock, readerCtx, writerCtx, item, inbox } = coalesceSetup();
+    createComment(writerCtx, item.id, { body_md: "first" });
+    const uid = inbox()[0]!.uid;
+    markNotificationsRead(readerCtx, { ids: [uid] });
+    expect(getUnreadCount(readerCtx)).toBe(0);
+    const until = new Date(T0 + 3_600_000).toISOString();
+    snoozeNotifications(readerCtx, { ids: [uid], until });
+    const snoozed = inbox()[0]!;
+    expect(snoozed).toMatchObject({ read_at: null, sort_at: until, snoozed_till: until, is_snoozed: true });
+    expect(getUnreadCount(readerCtx)).toBe(0);
+    clock.at = T0 + 3_600_000;
+    expect(getUnreadCount(readerCtx)).toBe(1);
+    expect(inbox()[0]).toMatchObject({ is_snoozed: false, read_at: null });
+  });
+
+  it("a woken row sorts above rows created while it slept", () => {
+    const { clock, user, readerCtx, writerCtx, item, project, inbox } = coalesceSetup();
+    createComment(writerCtx, item.id, { body_md: "first" });
+    const uid = inbox()[0]!.uid;
+    snoozeNotifications(readerCtx, { ids: [uid], until: new Date(T0 + 30 * 60_000).toISOString() });
+    const other = createWorkItem(user, { project_id: project.id, name: "Other" });
+    subscribe(user, other.id, readerCtx.actor.id);
+    clock.at = T0 + 5 * 60_000;
+    updateWorkItem(writerCtx, other.id, { priority: "high" });
+    clock.at = T0 + 40 * 60_000;
+    expect(listNotifications(readerCtx).map((note) => note.uid)[0]).toBe(uid);
+  });
+
+  it("unsnooze clears snoozed_till and sets sort_at to now", () => {
+    const { clock, readerCtx, writerCtx, item, inbox } = coalesceSetup();
+    createComment(writerCtx, item.id, { body_md: "first" });
+    const uid = inbox()[0]!.uid;
+    snoozeNotifications(readerCtx, { ids: [uid], until: new Date(T0 + 3_600_000).toISOString() });
+    clock.at = T0 + 60_000;
+    unsnoozeNotifications(readerCtx, { ids: [uid] });
+    expect(inbox()[0]).toMatchObject({ snoozed_till: null, is_snoozed: false, sort_at: new Date(clock.at).toISOString() });
+  });
+
+  it("archive keeps the read state, and a snoozed row leaves its future sort_at behind", () => {
+    const { clock, readerCtx, writerCtx, item, inbox } = coalesceSetup();
+    createComment(writerCtx, item.id, { body_md: "first" });
+    const uid = inbox()[0]!.uid;
+    markNotificationsRead(readerCtx, { ids: [uid] });
+    archiveNotifications(readerCtx, { ids: [uid] });
+    expect(inbox()[0]).toMatchObject({ read_at: expect.any(String) });
+    markNotificationsUnread(readerCtx, { ids: [uid] });
+    snoozeNotifications(readerCtx, { ids: [uid], until: new Date(T0 + 3_600_000).toISOString() });
+    clock.at = T0 + 1_000;
+    archiveNotifications(readerCtx, { ids: [uid] });
+    expect(inbox()[0]).toMatchObject({ read_at: null, snoozed_till: null, sort_at: new Date(clock.at).toISOString() });
+  });
+
+  it("mark all read leaves a still-snoozed row unread", () => {
+    const { readerCtx, writerCtx, item, inbox } = coalesceSetup();
+    createComment(writerCtx, item.id, { body_md: "first" });
+    snoozeNotifications(readerCtx, { ids: [inbox()[0]!.uid], until: "2099-01-01T00:00:00.000Z" });
+    expect(markNotificationsRead(readerCtx, { ids: [], all: true }).updated).toBe(0);
+    expect(inbox()[0]?.read_at).toBeNull();
   });
 });

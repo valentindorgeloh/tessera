@@ -11,6 +11,7 @@ import { sortOrderAfter, sortOrderBetween } from "../core/order";
 import { withTx } from "../core/tx";
 import { upsertPageFts } from "../db/fts";
 import { label, page, page_label } from "../db/schema";
+import { syncMentions } from "../mentions";
 import type { PageDetail } from "../types";
 import { replacePageEmbeds } from "./embeds";
 import { writePageVersion } from "./body";
@@ -53,7 +54,8 @@ function replaceLabels(ctx: TesseraContext, row: PageRecord, labelIds: string[])
   for (const id of labelIds) ctx.db.insert(page_label).values({ page_id: row.id, label_id: id }).run();
 }
 
-export function createPage(ctx: TesseraContext, input: z.input<typeof CreatePageInput>): PageDetail {
+/** `notifyMentions: false` is for copies (duplicatePage): the mentioned actors were told when the source was written, so the copy only records its mention rows (a later save of the same body adds nothing, decision 53). */
+export function createPage(ctx: TesseraContext, input: z.input<typeof CreatePageInput>, options: { notifyMentions?: boolean } = {}): PageDetail {
   const data = CreatePageInput.parse(input);
   return withTx(ctx, () => {
     assertProjectWritable(ctx, data.project_id);
@@ -87,6 +89,11 @@ export function createPage(ctx: TesseraContext, input: z.input<typeof CreatePage
     if (data.description_md) replacePageEmbeds(ctx, id, data.description_md);
     writePageVersion(ctx, row, data.description_md ?? "");
     logActivity(ctx, { project_id: data.project_id, entity_type: "page", entity_id: id, verb: "created", new_identifier: data.name });
+    if (data.description_md) {
+      syncMentions(ctx, { entity_type: "page", entity_id: id, work_item_id: null, project_id: data.project_id }, data.description_md, {
+        silent: options.notifyMentions === false,
+      });
+    }
     return getPage(ctx, id);
   });
 }
@@ -125,15 +132,19 @@ export function duplicatePage(ctx: TesseraContext, pageId: string): PageDetail {
     const source = loadPage(ctx, pageId);
     assertProjectWritable(ctx, source.project_id);
     assertPagesEnabled(ctx, source.project_id);
-    const copy = createPage(ctx, {
-      project_id: source.project_id,
-      parent_id: source.parent_id,
-      name: `${source.name} (Copy)`.slice(0, 255),
-      description_md: source.description_md,
-      access: source.access,
-      logo: source.logo,
-      label_ids: source.project_id ? undefined : undefined,
-    });
+    const copy = createPage(
+      ctx,
+      {
+        project_id: source.project_id,
+        parent_id: source.parent_id,
+        name: `${source.name} (Copy)`.slice(0, 255),
+        description_md: source.description_md,
+        access: source.access,
+        logo: source.logo,
+        label_ids: source.project_id ? undefined : undefined,
+      },
+      { notifyMentions: false },
+    );
     if (source.project_id) {
       const ids = ctx.db.select().from(page_label).where(eq(page_label.page_id, source.id)).all().map((row) => row.label_id);
       if (ids.length) updatePage(ctx, { page_id: copy.id, label_ids: ids });

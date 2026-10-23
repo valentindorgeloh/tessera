@@ -223,6 +223,19 @@ describe("ProjectFrame", () => {
     expect(bar?.querySelector(".tessera-panel-bar-start .tessera-project-tabs")).not.toBeNull();
   });
 
+  it("names every tab by its label and keeps one foldable label span per tab (the narrow strip hides it, shell.css)", async () => {
+    const el = await render(`/projects/${PROJECT}/work-items`);
+    const links = [...el.querySelectorAll<HTMLElement>(".tessera-project-tabs a[data-tab-value]")];
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link.getAttribute("aria-label")).toBeTruthy();
+      // The CSS folds this exact shape: a span that holds an aria-hidden sizer span, one per tab.
+      const labels = [...link.children].filter((child) => child.tagName === "SPAN" && child.querySelector(":scope > span[aria-hidden='true']") !== null);
+      expect(labels).toHaveLength(1);
+      expect(labels[0].textContent).toContain(link.getAttribute("aria-label"));
+    }
+  });
+
   it("shows an archived project's Banner under the header row, outside it", async () => {
     const el = await render(`/projects/${PROJECT}/work-items`, { archived_at: NOW });
     expect(el.textContent).toContain("This project is archived");

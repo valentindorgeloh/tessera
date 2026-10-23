@@ -1,6 +1,6 @@
 # As-built map: views and settings (P4)
 
-State described: the working tree after the fix-all round (2026-10-21) and the visual alignment round (2026-10-22, on HEAD 5f0cc7c: workspace views reorder, optimistic Move up/Move down, settings touch targets and tab strips). Line counts are tree counts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Contract: docs/contracts/ui.md "Views" and "Project settings".
+State described: the working tree after the fix-all round (2026-10-21) and the visual alignment round (2026-10-22, on HEAD 5f0cc7c: workspace views reorder, optimistic Move up/Move down, settings touch targets and tab strips). Line counts are tree counts. Fix round 3 (2026-10-23) refreshed only the lines on text-input stacking, the Home "+N more" link, the settings tab strips and the Backups fold. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Contract: docs/contracts/ui.md "Views" and "Project settings".
 
 ## 1. Purpose and boundaries
 
@@ -108,7 +108,7 @@ Registry tools: `views.ts` (list/get/create/update/duplicate/lock/unlock/reorder
 
 ## 7. Known debt and quirks
 
-- Touch (decision 14): settings and dialog fields (text inputs, selectors, switch labels, dialog item rows) are visible 44 px boxes under `(pointer: coarse), (max-width: 480px)` through `.tessera-settings-body` and `.tessera-settings-fields` in `project-settings.css`; the 1440 field height (32 px) stays. All Switches in settings and dialogs are Astryx size `sm` (32x20).
+- Touch (decision 14): under the same query every Astryx text-like input (text, text area, tokenizer, number, date and time fields, the Selector search) is `position: relative` (`shell.css`), so it paints above its own wrapper's 44 px hit area and a tap lands on the input (decision 14; ui.md "Theme"; `tests/ui/input-stacking-css.test.ts`). Settings and dialog fields (text inputs, selectors, switch labels, dialog item rows) are visible 44 px boxes under `(pointer: coarse), (max-width: 480px)` through `.tessera-settings-body` and `.tessera-settings-fields` in `project-settings.css`; the 1440 field height (32 px) stays. All Switches in settings and dialogs are Astryx size `sm` (32x20).
 - Move up/down in the views, states and labels menus are optimistic like the drags (decision 13).
 - A drop the surface refuses (another state group, a label that would nest two levels) snaps back with no toast.
 - `reorder_state` is not scoped by group in the engine, which is why the UI sends one neighbour.

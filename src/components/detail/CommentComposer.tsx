@@ -6,9 +6,12 @@
  * `expected_body_version`; a CONFLICT shows "This comment changed" and
  * "Load theirs".
  *
- * ASSUMPTION: `createComment` and `updateComment` are not exported yet. The
- * wrappers in `src/app/actions/relations-comments.ts` keep those names and
- * answer UNAVAILABLE until `comments.ts` lands.
+ * A new comment (or a reply, with `parentCommentId`) goes through
+ * `createCommentAction`; threads are one level deep, so a reply to a reply
+ * attaches to its root (decision 56). A `[@Name](actor:<id>)` mention picked
+ * with `@` notifies that actor and subscribes them to the work item, and
+ * posting a comment subscribes its author (decisions 53 and 54). Reactions live
+ * on the comment row (`ReactionBar`), not here.
  */
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Banner } from "@astryxdesign/core/Banner";

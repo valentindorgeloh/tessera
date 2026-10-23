@@ -216,10 +216,10 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
           }
           if (!openProperty(root, "estimate")) toast({ type: "info", body: "Turn on estimates in project settings" });
         },
-        // shift+s: the subscription works now; the notifications it leads to arrive in P7.
+        // shift+s: a subscriber gets this item's changes in the inbox (decision 54: later comments, assignments and mentions subscribe again).
         "item.subscribe": () => {
           const subscribed = toggleSubscribe();
-          toast({ type: "info", body: subscribed ? "Subscribed. Notifications arrive in P7" : "Unsubscribed" });
+          toast({ type: "info", body: subscribed ? "Subscribed. Changes to this work item now reach your inbox." : "Unsubscribed" });
         },
         "item.delete": () => setConfirmDelete(true),
         "item.history": () => setHistoryOpen(true),

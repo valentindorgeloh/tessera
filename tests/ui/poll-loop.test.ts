@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   EXTERNAL_WRITE_BOUND_MS,
+  nextPollState,
   POLL_BACKOFF_MS,
   POLL_INTERVAL_MS,
   startPollLoop,
@@ -223,5 +224,28 @@ describe("startPollLoop", () => {
     const latency = (shownAt as unknown as number) - (writeAt as unknown as number);
     expect(latency).toBeGreaterThan(POLL_INTERVAL_MS);
     expect(latency).toBeLessThanOrEqual(EXTERNAL_WRITE_BOUND_MS);
+  });
+});
+
+describe("nextPollState (decision 59)", () => {
+  const prev = { cursor: 10, unread: 3 };
+
+  it("refreshes and moves the cursor when changes arrived", () => {
+    expect(nextPollState(prev, { changes: [{}], cursor: 12, unread_notifications: 3 })).toEqual({ cursor: 12, unread: 3, refresh: true });
+  });
+
+  it("refreshes on an unread change alone, with zero changes, and keeps the cursor", () => {
+    expect(nextPollState(prev, { changes: [], cursor: 40, unread_notifications: 4 })).toEqual({ cursor: 10, unread: 4, refresh: true });
+    expect(nextPollState(prev, { changes: [], cursor: 40, unread_notifications: 0 })).toEqual({ cursor: 10, unread: 0, refresh: true });
+  });
+
+  it("does nothing when neither changed", () => {
+    expect(nextPollState(prev, { changes: [], cursor: 40, unread_notifications: 3 })).toEqual({ cursor: 10, unread: 3, refresh: false });
+  });
+
+  it("learns the first count without refreshing, and a payload without the field keeps the last one", () => {
+    expect(nextPollState({ cursor: 10, unread: null }, { changes: [], cursor: 10, unread_notifications: 5 })).toEqual({ cursor: 10, unread: 5, refresh: false });
+    expect(nextPollState(prev, { changes: [], cursor: 10 })).toEqual({ cursor: 10, unread: 3, refresh: false });
+    expect(nextPollState(prev, { changes: [{}], cursor: 11 })).toEqual({ cursor: 11, unread: 3, refresh: true });
   });
 });

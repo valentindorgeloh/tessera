@@ -38,12 +38,15 @@
 
 /*
  * Week view: the one row of cells takes the height the panel has left, at every
- * width (Plane: the week view's day body "stretches to full height", visual
- * audit T11). On a phone this makes the cells taller than the month view's
- * (493px against 256 to 306px in the audit baseline) with empty space under a
- * single 44px chip. That is kept on purpose: it matches the desktop week and
- * Plane, and a tall column is a large drop target. The block is only as tall as
- * the panel (min-block-size 100%), so it adds no page scroll.
+ * width above a phone (Plane: the week view's day body "stretches to full
+ * height", visual audit T11). The block is only as tall as the panel
+ * (min-block-size 100%), so it adds no page scroll.
+ *
+ * On a phone (480px and below) the cells hug their chips instead (fix round
+ * 2026-10-23, decided by the user): stretched they were 493px tall at 375, with
+ * empty space under a single 44px chip, and a phone has no room to spare. The
+ * week block and its row go back to their own height; the cell keeps its 128px
+ * floor. 768px (and a coarse tablet) keep the stretch.
  */
 .tessera-cal[data-view="week"] {
   flex: 1;
@@ -56,6 +59,19 @@
 
 .tessera-cal[data-view="week"] > .tessera-cal-week {
   flex: 1;
+}
+
+@media (max-width: 480px) {
+  .tessera-cal[data-view="week"] {
+    flex: none;
+    min-block-size: 0;
+  }
+
+  .tessera-cal-week,
+  .tessera-cal[data-view="week"] > .tessera-cal-week {
+    flex: none;
+    grid-auto-rows: auto;
+  }
 }
 
 /* A weekday label sits over its date numbers: right-aligned, with the number's inset from the column's edge. */
@@ -187,9 +203,16 @@
   outline-offset: calc(-1 * var(--border-width));
   padding-inline: var(--spacing-1);
   min-height: var(--size-element-md);
+  cursor: pointer;
 }
 
-/* Only a chip that can be dragged says so; a read-only chip, or one in a popover, keeps the default cursor. */
+/*
+ * Every chip opens the peek on a click, an archived (read-only) one too, so every
+ * chip has the pointer cursor (set on `.tessera-cal-open` above). Only a chip that
+ * can be dragged says so on top of that: the grab rules (attribute selector, so
+ * they win) apply to `data-draggable` alone, which a read-only chip, or one in a
+ * popover, never has.
+ */
 .tessera-cal-open[data-draggable] {
   cursor: grab;
 }

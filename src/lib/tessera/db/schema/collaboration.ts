@@ -113,10 +113,16 @@ export const notification = sqliteTable(
     read_at: text("read_at"),
     archived_at: text("archived_at"),
     snoozed_till: text("snoozed_till"),
+    // Coalescing (decision 51): events merged into this row, and the inbox order key.
+    // SQLite's ADD COLUMN ... NOT NULL needs a constant default; the service always writes sort_at.
+    event_count: integer("event_count").notNull().default(1),
+    sort_at: text("sort_at").notNull().default(""),
     created_at: text("created_at").notNull(),
   },
   (t) => [
     index("notification_recipient_read_seq_idx").on(t.recipient_actor_id, t.read_at, t.seq),
     index("notification_archived_idx").on(t.archived_at),
+    index("notification_inbox_idx").on(t.recipient_actor_id, t.archived_at, t.sort_at),
+    index("notification_coalesce_idx").on(t.recipient_actor_id, t.work_item_id, t.actor_id, t.seq),
   ],
 );

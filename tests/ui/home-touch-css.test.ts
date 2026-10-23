@@ -36,4 +36,13 @@ describe("home reorder touch handling", () => {
     expect(match?.[1]).toMatch(/min-width:\s*var\(--spacing-11\)/);
     expect(match?.[1]).toMatch(/min-height:\s*var\(--spacing-11\)/);
   });
+
+  it("gives the Since card's +N more link a 44x44 box on touch that keeps the row height", () => {
+    const match = /@media \(pointer: coarse\), \(max-width: 480px\)\s*\{[\s\S]*?\.tessera-home-more\s*\{([^}]*)\}/.exec(source);
+    expect(match?.[1]).toMatch(/min-block-size:\s*var\(--spacing-11\)/);
+    expect(match?.[1]).toMatch(/min-inline-size:\s*var\(--spacing-11\)/);
+    expect(match?.[1]).toMatch(/position:\s*relative/);
+    expect(match?.[1]).toMatch(/margin-block:\s*calc\(\(var\(--spacing-5\) - var\(--spacing-11\)\) \/ 2\)/);
+    expect(readFileSync(path.join(process.cwd(), "src/components/home/SinceLastVisit.tsx"), "utf8")).toContain('className="tessera-home-more"');
+  });
 });

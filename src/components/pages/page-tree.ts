@@ -147,3 +147,20 @@ function flatten(pages: readonly PageSummary[], query: string): PageTreeItem[] {
 export function toTreeItems(pages: readonly PageSummary[], query: string): PageTreeItem[] {
   return query.trim() === "" ? nest(pages) : flatten(pages, query);
 }
+
+/**
+ * Whether the tree draws the parent `id` open, or undefined when `id` is not in
+ * `nodes` or has no sub-pages (a leaf has no expansion to keep: pinning it
+ * closed would hide a child dropped under it later). A moved parent is pinned
+ * to this value before the move so a depth change (the tree seeds only the
+ * first level open) cannot close it, in the optimistic list or after a failed
+ * move is reverted.
+ */
+export function drawnOpen(nodes: readonly PageTreeItem[], id: string): boolean | undefined {
+  for (const node of nodes) {
+    if (node.id === id) return node.children.length > 0 ? node.isExpanded : undefined;
+    const inside = drawnOpen(node.children, id);
+    if (inside !== undefined) return inside;
+  }
+  return undefined;
+}

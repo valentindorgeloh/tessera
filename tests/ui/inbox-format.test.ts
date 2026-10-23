@@ -9,6 +9,7 @@ import {
   inboxHref,
   matchesInboxTab,
   notificationDescription,
+  notificationHref,
   notificationPhrase,
   parseInboxQuery,
   parseLocalDateTime,
@@ -39,13 +40,20 @@ function note(overrides: Partial<InboxNote> & Pick<InboxNote, "uid" | "seq">): I
 }
 
 describe("notificationPhrase", () => {
-  it("names the kind, and keeps a coalesced mention as the same phrase", () => {
-    expect(notificationPhrase("mentioned", 1)).toBe("mentioned you");
-    expect(notificationPhrase("mentioned", 2)).toBe("mentioned you");
-    expect(notificationPhrase("assigned", 1)).toBe("assigned you");
-    expect(notificationPhrase("state_changed", 1)).toBe("changed the state");
+  it("names the kind", () => {
+    expect(notificationPhrase("mentioned")).toBe("mentioned you");
+    expect(notificationPhrase("assigned")).toBe("assigned you");
+    expect(notificationPhrase("state_changed")).toBe("changed the state");
+    expect(notificationPhrase("commented")).toBe("commented");
+    expect(notificationPhrase("custom_kind")).toBe("custom kind");
+  });
+
+  it("reads event_count for a coalesced comment row: 1 stays plain, 3 says 3 times", () => {
+    expect(notificationPhrase("commented", 1)).toBe("commented");
+    expect(notificationPhrase("commented", 2)).toBe("commented 2 times");
     expect(notificationPhrase("commented", 3)).toBe("commented 3 times");
-    expect(notificationPhrase("custom_kind", 1)).toBe("custom kind");
+    // Other kinds keep their phrase; the "+N" label carries their count.
+    expect(notificationPhrase("mentioned", 3)).toBe("mentioned you");
   });
 });
 
@@ -53,7 +61,27 @@ describe("extraEventLabel", () => {
   it("shows how many events coalesced past the first", () => {
     expect(extraEventLabel(1)).toBeNull();
     expect(extraEventLabel(2)).toBe("+1");
-    expect(extraEventLabel(4)).toBe("+3");
+    expect(extraEventLabel(3)).toBe("+2");
+    expect(extraEventLabel(3, "mentioned")).toBe("+2");
+  });
+
+  it("stays silent on a commented row, whose phrase already says how many times", () => {
+    expect(extraEventLabel(2, "commented")).toBeNull();
+    expect(extraEventLabel(3, "commented")).toBeNull();
+  });
+});
+
+describe("notificationHref", () => {
+  const query = { tab: "mentions", unread: true } as const;
+
+  it("opens a page row at the page and a work item row in the inbox pane", () => {
+    expect(notificationHref({ work_item_id: null, entity_type: "page", entity_id: "p1" }, query)).toBe("/pages/p1");
+    expect(notificationHref({ work_item_id: "w1", entity_type: "work_item", entity_id: "w1" }, query)).toBe("/inbox?tab=mentions&unread=1&item=w1");
+    expect(notificationHref({ work_item_id: "w1" }, { tab: "inbox", unread: false })).toBe("/inbox?item=w1");
+  });
+
+  it("goes nowhere for a row with neither", () => {
+    expect(notificationHref({ work_item_id: null, entity_type: "intake_item", entity_id: "i1" }, query)).toBeNull();
   });
 });
 

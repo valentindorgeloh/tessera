@@ -60,12 +60,19 @@ function mediaRule(text: string, media: string, selector: string): string {
 }
 
 describe("intake search (P1)", () => {
-  it("keeps 144px beside the buttons, and the filters bar wraps so the buttons drop under the field", () => {
+  it("shrinks first so the filters stay on one row in the 360px list, and the bar still wraps where even that does not fit", () => {
     const rule = topRule(css("intake"), ".tessera-intake-search");
     expect(rule).toMatch(/flex:\s*1 1 auto/);
-    expect(rule).toMatch(/min-width:\s*calc\(var\(--spacing-12\) \* 3\)/);
+    expect(rule).toMatch(/min-width:\s*0/);
+    expect(topRule(css("intake"), ".tessera-intake-filters.tessera-panel-bar--wraps > .tessera-panel-bar-start")).toMatch(/flex:\s*1 1 calc\(var\(--spacing-12\) \* 2\)/);
     const screen = source("src/components/intake/IntakeScreen.tsx");
     expect(screen).toMatch(/size="filters"\s*canWrap/);
+  });
+
+  it("makes Triage with assistant an icon button with a tooltip and keeps the text on New intake item", () => {
+    const screen = source("src/components/intake/IntakeScreen.tsx");
+    expect(screen).toMatch(/<IconButton[^>]*label="Triage with assistant"[^>]*tooltip="Triage with assistant"[^>]*icon=\{<SparkleIcon \/>\}/);
+    expect(screen).toMatch(/<Button[^>]*label="New intake item"/);
   });
 });
 

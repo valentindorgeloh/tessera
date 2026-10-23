@@ -1,13 +1,13 @@
 # As-built map: work items UI
 
-State described: git HEAD `257798c` (P3), with the stale deferred lines refreshed against the working tree after the fix-all round (2026-10-21) and the visual alignment round (2026-10-22, on HEAD 5f0cc7c). Line counts are tree counts. P4 to P11 additions to this screen (calendar, gantt, bulk bar, paging, rich filters) are mapped in views-settings.md, planning-extras.md, operations.md and hardening.md; sections 5 to 7 below are corrected where they said otherwise. Read this before the contracts; open the contract only for the section named in section 8.
+State described: the working tree after fix round 3, 2026-10-23 (HEAD `198611a` plus uncommitted lane work). The file was first written at `257798c` (P3); sections 2 to 7 are refreshed for the P4 to P11 changes, the visual alignment round (2026-10-22) and round 3 (phone list rows, the covered-list focus rules, the project tab strip). Line counts are tree counts. P4 to P11 additions to this screen (calendar, gantt, bulk bar, paging, rich filters) are mapped in views-settings.md, planning-extras.md, operations.md and hardening.md. Read this before the contracts; open the contract only for the section named in section 8.
 
 ## 1. Purpose and boundaries
 
 This area draws the project frame (header, tabs, project context) and the work items list of a project, a cycle or a module, in three layouts (list, board, table) with filters, display settings, quick-add, a create dialog, inline property edits and pointer drag-and-drop. It also holds the Projects index and the "New project" dialog. One screen component (`WorkItemsScreen`) serves the project, cycle and module lists; only the server wrapper (`ScopedWorkItems`) differs by scope.
 
 Lives elsewhere (do not look here):
-- Engine, tools, zod schemas: `src/lib/tessera/**` (`work-items.ts`, `view-settings.ts`, `filters.ts`, `tools/registry.ts`). Server Action wrappers: `src/app/actions/{work-items,views,projects}.ts`.
+- Engine, tools, zod schemas: `src/lib/tessera/**` (`work-items/`, `view-settings.ts`, `filters.ts`, `tools/registry/`). Server Action wrappers: `src/app/actions/{work-items,views,projects}.ts`.
 - Peek, full detail page, property rail, editor: `src/components/detail/**`, `src/components/editor/**`, `src/app/(tessera)/work-items/**` (`load-detail.ts`, `DetailPage.tsx`).
 - Cycles, modules, archives screens and the project menu/banner: `src/components/planning/**` (they mount `ScopedWorkItems` and import the property controls).
 - Shell: sidebar, recents, Power K, shortcuts, `ChangesPoller`, `PanelHeader/PanelBar`, `dialogs`: `src/components/shell/**`.
@@ -20,7 +20,7 @@ Routes (`src/app/(tessera)/projects/`):
 
 | Path | Responsibility | Key exports |
 |---|---|---|
-| `page.tsx` (84) | Projects index: one `ListItem` per project with counts text, links to `/projects/<id>/work-items`; header has `ArchivedProjectsLink` + `NewProjectButton`. Reads under Suspense + `io()` | `default ProjectsPage` |
+| `page.tsx` (87) | Projects index: one `ListItem` per project with counts text, links to `/projects/<id>/work-items`; header has `ArchivedProjectsLink` + `NewProjectButton`. Reads under Suspense + `io()` | `default ProjectsPage` |
 | `[projectId]/layout.tsx` (81) | Loads the `ProjectBundle` once per navigation (`readTessera`); renders `ProjectProvider` + `ProjectFrame`; on NOT_FOUND/VALIDATION returns `children` bare (never throws). `instant = false` | `instant`, `default ProjectLayout` |
 | `[projectId]/page.tsx` (47) | Index route: redirects to `work-items`; calls `notFound()` for an unknown project so Tessera's 404 shows | `default ProjectIndexPage` |
 | `[projectId]/not-found.tsx` (31) | Not-found boundary; framed when the project context exists, bare otherwise (`useOptionalProject`) | `default ProjectNotFound` |
@@ -33,7 +33,7 @@ Routes (`src/app/(tessera)/projects/`):
 | Path | Responsibility | Key exports |
 |---|---|---|
 | `WorkItemsScreen.tsx` (430) | The screen: sub-header (title, purple count Badge, `LayoutSwitch`, `DisplayMenu`, "New work item"), filter row, layout switch; owns `useOptimistic`, the update/move/quick-add handlers, `?create=1`, hotkey `c`, `onOpen` (peek href) | `WorkItemsScreen`, `WorkItemsScreenProps` |
-| `ListLayout.tsx` (493) | Groups as collapsible `List`s, rows with compact property chips (24 px chips with a 44 px touch hit area), roving arrow-key focus, per-group quick-add; below 481 px or under a coarse pointer the group marker and quick-add text sit 8 px right to stay on the key's x | `ListLayout` |
+| `ListLayout.tsx` (493) | Groups as collapsible `List`s, rows with compact property chips (24 px chips with a 44 px touch hit area), roving arrow-key focus, per-group quick-add; below 481 px or under a coarse pointer the group marker and quick-add text sit 8 px right to stay on the key's x. Row density (`work-items.css`): at 481 px and up the chip gap is 8 px and the title slot takes 4 px of the gap before the properties (`margin-inline-end: -4px`) so a full-width title no longer ends in an ellipsis early; at 480 px and narrower the chip gap and the row gap are 4 px on both axes, with no end padding (the label and module clusters carry `tessera-wi-chips`), so a row is as high as before the touch rework (65 px with one property line, 93 px with two) and key and title share a line; a coarse pointer above 480 px (a tablet) keeps 8 px gaps and 8 px of end padding. `.tessera-wi-filter` is `position: relative; z-index: 1` under touch so the Advanced button's hit area is not covered by the first row's own hit area. | `ListLayout` |
 | `BoardLayout.tsx` (448) | Columns per group, swimlanes for `sub_group_by`, pointer DnD via `usePointerDrag`, "Move to" menu per card, quick-add per column; closed columns accept no drops; a touch drag starts only from the card grip (`.tessera-board-card-grip`), a mouse or pen from anywhere on the card; the peeked card is `aria-current` | `BoardLayout` |
 | `TableLayout.tsx` (496) | Astryx `Table`: key and selection columns pinned from 768 px up, sticky header against `.tessera-wi-scroller`, Name column with a 240 px floor, one column per enabled property, client-side sort, grouped sections, resizable columns, inline-edit cells; the peeked row is `aria-current` | `TableLayout` |
 | `DisplayMenu.tsx` (269) | `LayoutSwitch` and `DisplayMenu`; `useDisplayWriter` writes the URL (`q`) and `saveViewSettingsAction`/`resetViewSettingsAction` | `LayoutSwitch`, `DisplayMenu` |
@@ -41,9 +41,10 @@ Routes (`src/app/(tessera)/projects/`):
 | `CreateWorkItemDialog.tsx` (264) | Dialog (shell `dialogs`) with name, description, common properties, "Create more", discard confirm; calls `createWorkItemAction` | `CreateWorkItemDialog`, `CreatedWorkItem` |
 | `QuickAdd.tsx` (94) | Inline "add here" row: Enter creates and stays open, Escape cancels; `onCancel` tells a popover host (the calendar's narrow day cells) to close | `QuickAdd` |
 | `peeked.ts` (15) | The id the side peek shows (`?peek=`), so the board and the table can mark their card or row | `usePeekedId` |
-| `ProjectFrame.tsx` (132) | 52px project header: `ProjectToken`, title, `TabList` from `projectTabs`, `ProjectMenu`; archived Banner outside the scroller; `LayoutContent` is the page scroller | `ProjectFrame`, `ProjectToken` |
+| `detail/PeekHost.tsx` (321), `detail/peek-cover.ts` (103) | The peek around the list. When the container is under 640 px (`PEEK_COVER_BELOW`) the side panel covers the list, and the list region is then `inert` (decision 11): out of the tab order and the accessibility tree. `useCoverFocus` remembers the last control focused in the list (the row's key button, via the region's `onFocus`), moves focus to the first tabbable control in the detail when the cover starts (unless focus is already inside it), and returns it to the remembered control when the peek closes or a resize ends the cover, only if the page left focus on `<body>`. The remembered control survives resizes (768 to 1440 to 768) and is dropped on close. A side panel beside the list gets the same return on close; the modal Dialog restores its own focus. | `PeekHost`, `useCoverFocus`, `useIsPanelCover`, `coversList` |
+| `ProjectFrame.tsx` (134) | 52px project header: `ProjectToken`, title, `TabList` from `projectTabs`, `ProjectMenu`; archived Banner outside the scroller; `LayoutContent` is the page scroller. Below 1280 px the tabs take their own row (600 to 1279 px a two-row grid; the phone grid below 600 px) and only the current tab keeps its label: the other tabs fold to their icon through a `:has()` rule in `shell.css` on the Astryx label span, and every `Tab` has `aria-label={tab.label}` so the accessible name and the label-in-name rule hold (Astryx omits `title`, so a folded icon has no hover tooltip). At 480 px and narrower the tab padding is 6 px (5 px at 340 to 374 px, 4 px below) and the strip runs to the panel edge, so all eight fit at 320, 360 and 375 px; each folded tab owns exactly its pitch as hit area (the theme's overlapping 44 px squares would let the later tab win). `tests/ui/project-tabs-css.test.ts` | `ProjectFrame`, `ProjectToken` |
 | `project-provider.tsx` (86) | Context over the bundle: lookup maps, `firstStateByGroup`; writes `tessera.lastProject.v1` after mount | `ProjectProvider`, `useProject`, `useOptionalProject`, `buildProjectContext`, `LAST_PROJECT_STORAGE_KEY`, `ProjectContextValue` |
-| `types.ts` (84, pure) | Shared types | `ProjectBundle`, `LayoutProps`, `MoveInput`, `UpdateWorkItemPatch`, `QuickAddGroup`, `SettingsScope`, `ScopeDefaults`, `UrlState` |
+| `types.ts` (130, pure) | Shared types | `ProjectBundle`, `LayoutProps`, `MoveInput`, `UpdateWorkItemPatch`, `QuickAddGroup`, `SettingsScope`, `ScopeDefaults`, `UrlState` |
 | `url-state.ts` (187, pure) | `q` param codec and layering helpers | `encodeUrlState`, `decodeUrlState`, `mergeDisplay`, `mergeFilters`, `UrlDisplayPatchSchema` |
 | `filter-state.ts` (42, pure) | Which filter keys the bar manages; explicit-empty clears | `LIST_FIELDS`, `DATE_FIELDS`, `isListField`, `isDateField`, `withExplicitClears` |
 | `moves.ts` (99, pure) | Layout move -> engine `move_work_item` vocabulary | `isMovableGroup`, `toEngineMove` |
@@ -84,7 +85,7 @@ Display/filter write (no Server Action for filters):
 - Filter bar: `withExplicitClears(current, next)` -> `encodeUrlState` -> `router.replace(withSearchParam(…, "q", …), { scroll: false })`. Only `q` changes, so `?peek` survives.
 - Display menu and layout switch: same URL write plus `saveViewSettingsAction({ scope_type, scope_id, display: patch })`; "Reset to defaults" calls `resetViewSettingsAction`. Properties are sent as the full object (the engine merges nested objects one level deep).
 
-External writes (agents/MCP): `ChangesPoller` (shell) polls `/api/changes` every 4 s and calls `refreshAction()`, which re-runs the read path. The bundle's `cursor` seeds it.
+External writes (agents/MCP): `ChangesPoller` (shell) polls `/api/changes` every 4 s (`POLL_INTERVAL_MS`) and calls `refreshAction()`, which re-runs the read path; it also calls it when the payload's `unread_notifications` differs from the last count. The bundle's `cursor` seeds it.
 
 Open item: `onOpen` builds `peekHref(pathname, searchParams, id)` and `notePeekPush`, then `router.push` (keeps `q`).
 
@@ -129,7 +130,10 @@ Rules without a decision number (code conventions): layouts import engine code o
 | `tests/ui/drag-math.test.ts` | Pure drag maths |
 | `tests/ui/property-controls.test.ts` | `cycleControlModel`, `splitModuleValue`/`mergeModuleChange` |
 | `tests/ui/dialog-names.test.ts`, `planning-a11y.test.ts`, `detail-smoke.test.ts` | Reference some of these components (grep matched `CreateWorkItemDialog`, `ProjectProvider`, `ScopedWorkItems`); not read in detail |
-| `tests/ui/list-touch-css.test.ts`, `list-visual-fixes.test.ts`, `list-audit-round2.test.ts` | Work-items stylesheet rules of the visual audit (touch hit areas, group gutter, filter field) and the list fixes under jsdom |
+| `tests/ui/list-touch-css.test.ts`, `list-visual-fixes.test.ts`, `list-audit-round2.test.ts` | Work-items stylesheet rules of the visual audit (touch hit areas, group gutter, filter field, the phone arm and tablet arm of row gaps, the title margin, the filter z-index) and the list fixes under jsdom |
+| `tests/ui/peek-inert.test.ts`, `peek-cover.test.ts` | `useCoverFocus` and `inert` on the covered list: cover starts, close, resize round trips, a wide container, the modal, focus the user moved elsewhere is not stolen back |
+| `tests/ui/project-tabs-css.test.ts`, `project-tabs.test.ts` | The folded tab strip rules, one `aria-label` and one foldable label span per tab, the tiling of folded hit areas |
+| `tests/e2e/round-features.spec.ts` | Key and title share one line in every list row at 375 px, over WEB's rows and a project with very long titles |
 | `tests/ui/board-table-css.test.ts`, `board-table-fixes.test.ts`, `quick-add-cancel.test.ts` | Board and table stylesheet rules (column head, grip, sticky header, pinned columns) and behaviour (peeked marks, `QuickAdd` `onCancel`) |
 | `tests/ui/peek-url.test.ts`, `peek-prefs.test.ts` | `withSearchParam`, `peekHref` used by the screen, filter bar and display menu |
 | `tests/work-items.test.ts`, `tests/filters.test.ts`, `tests/projects.test.ts` | Engine behind the area (moves, filters, projects) |
@@ -152,7 +156,7 @@ Not covered: `reduceOptimisticList`, `ListLayout`/`BoardLayout`/`TableLayout` re
 
 ## 7. Known debt and quirks
 
-File budget (`scripts/file-budget.json` at HEAD): only `cycles.ts` 925, `db/schema.ts` 857, `modules.ts` 735. Nothing in this area is listed; the biggest files here are `TableLayout.tsx` (496 of 600) and `ListLayout.tsx` (493). The field guide still names `work-items.ts`, `tools/registry.ts` and `CommandBar.tsx` as budgeted; HEAD's json no longer does. Cursor's working tree edits the json, so recheck it.
+File budget (`scripts/file-budget.json`): only `cycles.ts` and `modules.ts` are ratcheted. Nothing in this area is listed; the biggest files here are `TableLayout.tsx` (496 of 600), `ListLayout.tsx` (493) and `BoardLayout.tsx` (448).
 
 Deferred, from the contracts:
 - Calendar and Gantt, the modules timeline, `EstimateControl`, the intake badge and drafts in the create dialog were deferred when this file was written and have since shipped (P8 to P10); see planning-extras.md and operations.md.
@@ -163,8 +167,12 @@ Deferred, from the contracts:
 - `LayoutProps.readOnly` is declared ("archived project: no create, no drag") but `WorkItemsScreen` never sets it and Board/List ignore it; an archived project's list is only marked by the banner.
 - Paging (P11) replaced the fixed `LIMIT = 2000`: first pages of 200 rows or 50/30 per group, then "Show more" (hardening.md). A table header sort now writes `display.order_by` through `table-sort.ts`, so the server re-sorts the whole filtered list.
 - `date-format.ts` calls `new Date()` for the current-year check in render paths; the field guide warns against argless `new Date()` in render (the bundle's `today` exists for this).
-- The side peek narrows the list/board instead of overlaying it; at 1440 px the board's fourth column is cut while it is open. Below a 640 px container (360 px panel plus 280 px for the list) it covers the list instead (`detail/peek-cover.ts`).
+- The side peek narrows the list/board instead of overlaying it; at 1440 px the board's fourth column is cut while it is open. Below a 640 px container (360 px minimum panel plus 280 px for the list) it covers the list instead (`detail/peek-cover.ts`) and the list is inert.
+- Focus after closing a side peek: the row's key button gets it back only if the browser focused that button on click; Safari does not focus a button on click, so there focus falls to `<body>`.
+- At 360 px a few list rows (those with many chips) wrap one chip line more than at the 375 px audit baseline, so they are up to 28 px taller; key and title still share a line.
+- In a row whose properties wrap under a long title, the title's `-4px` end margin can reach 4 px into the row's 16 px end inset (cosmetic).
 - The poll runs every 4 s (fixed rate), not 5 s as `docs/PLAN.md` and `ui.md` "External writes" still say.
+- A folded project tab (icon only) has no hover tooltip: Astryx `Tab` omits `title`. Its accessible name is still its label.
 
 Quirks that cost agents time:
 - `projects/[projectId]/layout.tsx` has `instant = false` and never throws: it returns `children` so each page can `notFound()` itself.
@@ -174,7 +182,7 @@ Quirks that cost agents time:
 - `useOptimistic` only reverts through the server re-render; a failed action relies on the Toast plus the transition ending.
 - `toEngineMove` can return null (nothing to do); `onMove` then silently ignores the drop.
 - Dev-only console noise: Astryx Table `tableContextMenu` warnings and React's negative time stamp `measure` error after `notFound()`.
-- Open issues in `docs/PLAN-STATUS.md` touching this area: peek-narrows-board (above), `.claude/**` worktrees scanned by eslint/tsc, Next 16.4 dev reload loop (clear `.next/dev`).
+- Open issues in `docs/PLAN-STATUS.md` touching this area: peek-narrows-board (above), `.claude/**` worktrees scanned by eslint/tsc, the Next dev reload loop (clear `.next/dev`).
 
 ## 8. Where to read more
 

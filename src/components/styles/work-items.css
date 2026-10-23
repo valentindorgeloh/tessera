@@ -121,6 +121,17 @@
   min-width: min(14rem, 100%);
 }
 
+/*
+ * From 481px the chip gap is 8px (the 4px it was before the visual alignment round, L11, plus 4px). The title
+ * takes those 4px back from the 8px gap before the properties, so a 707px title that filled its slot no longer
+ * ends in an ellipsis 4px early; the gap to the properties is 4px, the title's start and the key column stay.
+ */
+@media (min-width: 481px) {
+  .tessera-wi-row > :has(.tessera-wi-title) {
+    margin-inline-end: calc(var(--spacing-1) * -1);
+  }
+}
+
 /* Astryx's end slot (it holds the properties): stays at the end of the row, also on the wrapped line, and may narrow to it. */
 .tessera-wi-row > :has(> .tessera-wi-props) {
   margin-inline-start: auto;
@@ -343,24 +354,22 @@
  */
 @media (pointer: coarse), (max-width: 480px) {
   /*
-   * Wrapped chip lines sit 8px apart (4px at 1440): a chip's 44px hit area reaches
-   * 10px past its 24px box, so a line takes at most 2px of the chip above it and the
-   * rows stay about as high as before the touch rework (they were 44px a line).
-   * The create dialog's form row and the list rows' properties share the rule.
+   * The create dialog's property row: wrapped chip lines sit 8px apart (4px at 1440). A chip's 44px hit area
+   * reaches 10px past its 24px box, so a line takes at most 2px of the chip above it.
    */
-  .tessera-wi-props,
   .tessera-wi-form-props {
     row-gap: var(--spacing-2);
   }
 
   /*
-   * A chip's hit area reaches 10px past its 24px box. The row's lines (key and title, then the chips) sit 8px
-   * apart (4px at 1440) so the chips take at most 2px of the key's hit area, and the last chip line keeps 8px
-   * of row padding so its area stays inside the row.
+   * The filter bar paints above the rows. The Advanced button's 44px hit area is a positioned `::before` that
+   * reaches 10px past the 28px button; on the archived work items page the first row's own hit area (also a
+   * pseudo-element, later in the tree) lay over its lower part. The bar is not sticky and rows never scroll
+   * under it; the sticky bulk bar comes later in the tree and still paints above it.
    */
-  .tessera-wi-row {
-    row-gap: var(--spacing-2);
-    padding-block-end: var(--spacing-2);
+  .tessera-wi-filter {
+    position: relative;
+    z-index: 1;
   }
 
   /* The checkbox's invisible input is 44px about a 20px box (12px each side): the key button starts 8px further right so the two areas meet instead of overlapping. */
@@ -430,5 +439,37 @@
 
   .tessera-wi-quickadd .astryx-button {
     column-gap: calc(var(--spacing-5) + var(--spacing-2));
+  }
+}
+
+/*
+ * The list rows' density on a phone (480px and narrower, any pointer). The chips keep their drawn 24px and their
+ * 44px hit areas (the theme), which overlap their neighbours by a few px instead of pushing the rows apart: the
+ * gap between chips is 4px on both axes (8px at 1440), and the row adds no gap or end padding of its own, so a
+ * row is as high as before the touch rework (the audit baseline: 65px with one property line, 93px with two) and
+ * key and title still share a line. A row whose chips fit on one line at the audit baseline fits on one line here.
+ * `tessera-wi-chips` is the label and module clusters inside the properties (ListLayout.tsx).
+ */
+@media (max-width: 480px) {
+  .tessera-wi-row {
+    row-gap: var(--spacing-1);
+  }
+
+  .tessera-wi-row .tessera-wi-props,
+  .tessera-wi-row .tessera-wi-chips {
+    gap: var(--spacing-1);
+  }
+}
+
+/* A coarse pointer on a wider screen (a tablet): wrapped chip lines and the row's lines sit 8px apart, and the last chip line keeps 8px of row padding so its hit area stays inside the row. */
+@media (pointer: coarse) and (min-width: 481px) {
+  .tessera-wi-props,
+  .tessera-wi-form-props {
+    row-gap: var(--spacing-2);
+  }
+
+  .tessera-wi-row {
+    row-gap: var(--spacing-2);
+    padding-block-end: var(--spacing-2);
   }
 }

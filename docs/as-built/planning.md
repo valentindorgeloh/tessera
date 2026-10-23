@@ -1,6 +1,6 @@
 # As-built map: planning (cycles, modules, archives)
 
-State described: the working tree after the visual alignment round (2026-10-22, on HEAD 5f0cc7c). Read this before the long contracts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Contract: docs/contracts/ui.md "## P3: cycles, modules, archives".
+State described: the working tree after the visual alignment round (2026-10-22, on HEAD 5f0cc7c); fix round 3 (2026-10-23) changed only the archives and intake chrome: the archives strip is the generic `PanelBar tabsBelow` strip with 44 px tabs on a phone, and the Intake bar is covered in planning-extras.md. Read this before the long contracts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Contract: docs/contracts/ui.md "## P3: cycles, modules, archives".
 
 ## 1. Purpose and boundaries
 
@@ -67,7 +67,7 @@ Lives elsewhere (this area only calls it):
 |---|---|
 | `planning.css` | `tessera-planning-{row-end,cycle-bar,detail-bar,detail-title,side-panel,row-bar,panel-list,breakdown-tabs,link,tabpanel,chart-frame,chart-legend,chart-swatch,data-table}`; side panel capped at `max-width: 100%`; `tessera-row-hit` (the row's link gets a block-axis hit area under touch; shared by the views, intake, drafts and projects lists), `tessera-cycle-dates`, `tessera-dialog-form` (touch rules, see below) |
 | `modules.css` | `tessera-modules-{row,row-lead,row-members,row-progress,row-count,row-bar,row-end,row-name,description,links,props}` (`props--dialog`: 44 px property rows under touch) |
-| `archives.css` | `tessera-archives-tabs` (pulled in 12px so the first tab sits on the 16px inset), `tessera-archives-projects` |
+| `archives.css` | `tessera-archives-projects` (the archives strip uses the generic `shell.css` tab-strip rules) |
 
 The timeline uses the `tessera-gantt-*` classes of `gantt.css`.
 

@@ -110,7 +110,7 @@ export const workItemTools = [
     name: "create_work_item",
     title: "Create work item",
     description:
-      "Creates a work item in a project and assigns the next key. State, labels, modules, cycle, parent and estimate must belong to the same project; the state defaults to the project default and the triage state is reserved for Intake. start_date must not be after target_date, closed items cannot join a cycle, and the parent chain must stay acyclic. When the project requires agent intake, items created by agents land in Intake.",
+      "Creates a work item in a project and assigns the next key. State, labels, modules, cycle, parent and estimate must belong to the same project; the state defaults to the project default and the triage state is reserved for Intake. start_date must not be after target_date, closed items cannot join a cycle, and the parent chain must stay acyclic. When the project requires agent intake, items created by agents land in Intake. Mention an actor as [@Name](actor:<id>), with ids from list_actors; a newly mentioned actor is notified.",
     input: CreateWorkItemInput,
     mutates: true,
     core: true,
@@ -132,7 +132,7 @@ export const workItemTools = [
     name: "update_work_item_description",
     title: "Update work item description",
     description:
-      "Replaces the Markdown body with optimistic concurrency: expected_description_version is the description_version the client last read, and the call fails with CONFLICT when the body changed since. Re-read the item and retry on CONFLICT.",
+      "Replaces the Markdown body with optimistic concurrency: expected_description_version is the description_version the client last read, and the call fails with CONFLICT when the body changed since. Re-read the item and retry on CONFLICT. Mention an actor as [@Name](actor:<id>), with ids from list_actors; a newly mentioned actor is notified.",
     input: UpdateWorkItemDescriptionInput.extend({ work_item_id: WorkItemId }),
     mutates: true,
     core: true,

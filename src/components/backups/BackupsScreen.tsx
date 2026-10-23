@@ -10,7 +10,7 @@ import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Switch } from "@astryxdesign/core/Switch";
-import { Table } from "@astryxdesign/core/Table";
+import { Table, type TableColumn } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
 import { useToast } from "@astryxdesign/core/Toast";
@@ -18,7 +18,15 @@ import { createBackupAction } from "@/app/actions/maintenance";
 import { updateWorkspaceSettingsAction } from "@/app/actions/workspace-settings";
 import { RelativeTime } from "@/components/detail/RelativeTime";
 import { WorkspaceSettingsChrome } from "@/components/workspace-settings/WorkspaceSettingsChrome";
-import { FILE_NAME_COLUMN, SHORT_COLUMN, TIME_COLUMN, TOKEN_COLUMN } from "@/components/workspace-settings/table-widths";
+import {
+  BACKUPS_FULL_WIDTH,
+  FILE_NAME_COLUMN,
+  FILE_NAME_COLUMN_FOLDED,
+  SHORT_COLUMN,
+  TIME_COLUMN,
+  TOKEN_COLUMN,
+} from "@/components/workspace-settings/table-widths";
+import { useNarrowContainer } from "@/components/workspace-settings/use-narrow-container";
 import type { BackupFile } from "@/lib/tessera/types";
 import { BackupIcon } from "@/themes/catppuccin/icons";
 import { autoBackupStale, BACKUP_KIND_LABEL, formatBackupSize } from "./backup-format";
@@ -44,6 +52,9 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
   const [enabled, setEnabled] = useState(autoBackup);
   const [isSaving, startSave] = useTransition();
   const [isBackingUp, startBackup] = useTransition();
+
+  // Below the full table's floors (decision 14: no hidden sideways swipe), size, age and check fold under the file name.
+  const { ref: bodyRef, isNarrow } = useNarrowContainer(BACKUPS_FULL_WIDTH);
 
   const lastAuto = backups.find((file) => file.kind === "auto")?.created_at ?? null;
   const stale = enabled && autoBackupStale(lastAuto, now);
@@ -81,6 +92,55 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
     });
   };
 
+  const fileCell = (row: Row) => (
+    <HStack gap={2} align="center">
+      <Icon icon={BackupIcon} />
+      <Text>{row.name}</Text>
+    </HStack>
+  );
+  const fileColumn: TableColumn<Row> = { key: "name", header: "File", width: FILE_NAME_COLUMN, renderCell: fileCell };
+  const foldedFileColumn: TableColumn<Row> = {
+    key: "name",
+    header: "File",
+    width: FILE_NAME_COLUMN_FOLDED,
+    renderCell: (row) => (
+      <VStack gap={1}>
+        {fileCell(row)}
+        <HStack gap={1} wrap="wrap">
+          <Text type="supporting" color="secondary">
+            {row.size}
+            {row.check === "—" ? "" : ` · ${row.check}`} ·
+          </Text>
+          <RelativeTime value={row.createdAt} type="supporting" color="secondary" hasTooltip={false} />
+        </HStack>
+      </VStack>
+    ),
+  };
+  const kindColumn: TableColumn<Row> = {
+    key: "kind",
+    header: "Kind",
+    width: TOKEN_COLUMN,
+    renderCell: (row) => <Token label={row.kind} size="sm" />,
+  };
+  const sizeColumn: TableColumn<Row> = {
+    key: "size",
+    header: "Size",
+    width: SHORT_COLUMN,
+    renderCell: (row) => <Text color="secondary">{row.size}</Text>,
+  };
+  const createdColumn: TableColumn<Row> = {
+    key: "created",
+    header: "Created",
+    width: TIME_COLUMN,
+    renderCell: (row) => <RelativeTime value={row.createdAt} type="supporting" color="secondary" hasTooltip={false} />,
+  };
+  const checkColumn: TableColumn<Row> = {
+    key: "check",
+    header: "Check",
+    width: SHORT_COLUMN,
+    renderCell: (row) => <Text color="secondary">{row.check}</Text>,
+  };
+
   return (
     <WorkspaceSettingsChrome
       tab="backups"
@@ -88,7 +148,7 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
         <Button size="sm" variant="primary" label="Back up now" onClick={backUpNow} isLoading={isBackingUp} />
       }
     >
-      <VStack gap={4} paddingInline={4} className="tessera-settings-body">
+      <VStack gap={4} paddingInline={4} className="tessera-settings-body" ref={bodyRef}>
         <VStack gap={2}>
           <Switch label="Daily backups" size="sm" value={enabled} onChange={toggleDaily} isDisabled={isSaving} />
           <Text type="supporting" color="secondary">
@@ -114,43 +174,7 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
             density="compact"
             idKey="id"
             data={data}
-            columns={[
-              {
-                key: "name",
-                header: "File",
-                width: FILE_NAME_COLUMN,
-                renderCell: (row) => (
-                  <HStack gap={2} align="center">
-                    <Icon icon={BackupIcon} />
-                    <Text>{row.name}</Text>
-                  </HStack>
-                ),
-              },
-              {
-                key: "kind",
-                header: "Kind",
-                width: TOKEN_COLUMN,
-                renderCell: (row) => <Token label={row.kind} size="sm" />,
-              },
-              {
-                key: "size",
-                header: "Size",
-                width: SHORT_COLUMN,
-                renderCell: (row) => <Text color="secondary">{row.size}</Text>,
-              },
-              {
-                key: "created",
-                header: "Created",
-                width: TIME_COLUMN,
-                renderCell: (row) => <RelativeTime value={row.createdAt} type="supporting" color="secondary" hasTooltip={false} />,
-              },
-              {
-                key: "check",
-                header: "Check",
-                width: SHORT_COLUMN,
-                renderCell: (row) => <Text color="secondary">{row.check}</Text>,
-              },
-            ]}
+            columns={isNarrow ? [foldedFileColumn, kindColumn] : [fileColumn, kindColumn, sizeColumn, createdColumn, checkColumn]}
           />
         )}
       </VStack>

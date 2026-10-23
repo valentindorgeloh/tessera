@@ -36,7 +36,7 @@ export const notificationTools = [
   defineTool({
     name: "list_notifications",
     title: "List notifications",
-    description: "Lists the caller's notifications, newest first. Snoozed and archived rows are included; the inbox screen hides them by tab.",
+    description: "Lists the caller's notifications by sort_at, newest first; event_count is how many events merged into a row. Snoozed and archived rows are included; the inbox screen hides them by tab.",
     input: ListInput,
     mutates: false,
     phase: "P7",
@@ -86,7 +86,7 @@ export const notificationTools = [
   defineTool({
     name: "snooze_notifications",
     title: "Snooze notifications",
-    description: "Hides the caller's notifications until the given instant, then they return to the inbox.",
+    description: "Hides the caller's notifications until the given instant, then they return unread at the top of the inbox.",
     input: SnoozeInput,
     mutates: true,
     phase: "P7",

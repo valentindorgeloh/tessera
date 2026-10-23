@@ -87,7 +87,7 @@ export function ProjectFrame({ children }: { children: ReactNode }) {
               className="tessera-project-bar"
               start={
                 <>
-                  {/* On a narrow panel the token and the name keep their room and the tabs scroll (shell.css); below 600px the tabs take their own row. */}
+                  {/* Below 1280px the tabs take their own row and only the current tab keeps its label, so all eight fit at rest (shell.css). */}
                   <ProjectToken project={project} size="sm" className="tessera-project-frame-token" />
                   <PanelTitle className="tessera-project-frame-title" accessibilityLevel={titleLevel}>
                     {project.name}
@@ -101,6 +101,8 @@ export function ProjectFrame({ children }: { children: ReactNode }) {
                         label={tab.label}
                         icon={TAB_ICONS[tab.key]}
                         href={`/projects/${project.id}/${tab.segment}`}
+                        // The label stays the accessible name when shell.css folds a narrow strip's other tabs to their icon (decision 14); Astryx omits `title`, so the folded icons have no hover tooltip.
+                        aria-label={tab.label}
                         endContent={tab.key === "intake" && bundle.intake_open > 0 ? <Badge label={String(bundle.intake_open)} /> : undefined}
                       />
                     ))}

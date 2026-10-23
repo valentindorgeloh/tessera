@@ -207,9 +207,74 @@ describe("header tab strips (S7, shell.css)", () => {
     expect(narrow?.body).toMatch(/:not\(\.astryx-tab-list\)\s*\{[^}]*grid-area:\s*title[^}]*flex-shrink:\s*0/);
   });
 
-  it("applies the tabs-below grid to nothing from 600px up", () => {
+  it("lets the tabs-below strip run to the bar's inner edge: Astryx caps a TabList at 100%, so max-width is lifted", () => {
+    expect(shell).toMatch(/\.tessera-panel-bar--tabs-below > \.tessera-panel-bar-start > \.astryx-tab-list\s*\{[^}]*width:\s*calc\(100% \+ var\(--spacing-3\)\);[^}]*max-width:\s*none/);
+    expect(shell).toMatch(/\.tessera-project-bar \.tessera-project-tabs\s*\{[^}]*width:\s*calc\(100% \+ var\(--spacing-3\)\);[^}]*max-width:\s*none/);
+  });
+
+  it("applies the tabs-below grid outside a media query to nothing", () => {
     const outside = blocks(shell).filter((block) => !block.prelude.startsWith("@media"));
     for (const block of outside) expect(block.body).not.toContain("grid-template-areas");
+  });
+
+  it("gives a bar with a title in front of its strip the same two rows from 600 to 1099px (the docked sidebar), and leaves a bar with no title alone", () => {
+    const tablet = blocks(shell).find((block) => block.prelude === "@media (min-width: 600px) and (max-width: 1099px)");
+    expect(tablet).toBeDefined();
+    const titled = ":has(> .tessera-panel-bar-start > :not(.astryx-tab-list))";
+    expect(tablet?.body).toContain(`.tessera-panel-bar.tessera-panel-bar--tabs-below${titled} {`);
+    expect(tablet?.body).toMatch(/"title end"\s+"tabs tabs"/);
+    expect(tablet?.body).toMatch(/grid-template-rows:\s*calc\(var\(--size-element-md\) \+ var\(--spacing-3\)\) auto/);
+    expect(tablet?.body).toMatch(/\.tessera-panel-bar--tabs-below:has\([^)]*\)\)? > \.tessera-panel-bar-start\s*\{[^}]*display:\s*contents/);
+    // Every rule that changes the layout carries the :has() guard, so the Pages sub-header (no title) keeps its own row.
+    for (const rule of blocks(tablet?.body ?? "")) {
+      if (rule.body.includes("display: contents") || rule.body.includes("grid-template")) expect(rule.prelude, rule.prelude).toContain(titled);
+    }
+    // The tabs keep their desktop height: the 44px tab is the phone rule only.
+    expect(tablet?.body).not.toContain("min-height: calc(var(--size-element-md)");
+  });
+
+  it("gives the Pages sub-header (no title) the two-row layout from 600 to 1099px too, in pages.css: the docked sidebar left its strip half hidden at 768px", () => {
+    const pages = stripComments(read("src/components/styles/pages.css"));
+    const wide = blocks(pages).find((block) => block.prelude === "@media (max-width: 1099px)");
+    expect(wide?.body).toMatch(/\.tessera-panel-bar\.tessera-panel-bar--tabs-below\.tessera-pages-bar\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)[^}]*"end"\s+"tabs"/);
+    const tablet = blocks(pages).find((block) => block.prelude === "@media (min-width: 600px) and (max-width: 1099px)");
+    expect(tablet?.body).toMatch(/\.tessera-pages-bar\s*\{[^}]*display:\s*grid[^}]*grid-template-rows:\s*calc\(var\(--size-element-md\) \+ var\(--spacing-3\)\) auto/);
+    expect(tablet?.body).toMatch(/\.tessera-pages-bar > \.tessera-panel-bar-start\s*\{[^}]*display:\s*contents/);
+    expect(tablet?.body).toMatch(/\.astryx-tab-list\s*\{[^}]*grid-area:\s*tabs[^}]*max-width:\s*none/);
+    // The tabs keep their desktop height from 600px; the 44px tab is the phone rule.
+    expect(tablet?.body).not.toContain("min-height: calc(var(--size-element-md)");
+  });
+
+  it("makes a strip alone in a sub-header (archives, settings) a row of 44px tabs under a touch query", () => {
+    const touch = blocks(shell).find((block) => block.prelude === TOUCH_MEDIA);
+    expect(touch?.body).toMatch(/\.tessera-panel-bar--subheader > \.tessera-panel-bar-start > \.astryx-tab-list \.astryx-tab\s*\{[^}]*min-height:\s*var\(--spacing-11\)/);
+  });
+
+  it("keeps the archives and inbox strips on these generic rules: no copy of their own", () => {
+    const archives = stripComments(read("src/components/styles/archives.css"));
+    const inbox = stripComments(read("src/components/styles/inbox.css"));
+    expect(archives).not.toContain("tessera-archives-tabs");
+    expect(inbox).not.toMatch(/tessera-inbox-(bar|title)/);
+    expect(inbox).not.toContain("grid-template");
+    expect(read("src/components/planning/ArchivesTabs.tsx")).not.toContain("tessera-archives-tabs");
+    expect(read("src/components/inbox/InboxScreen.tsx")).toMatch(/<PanelBar\s+tabsBelow\s+start=/);
+  });
+
+  it("starts the inbox's 44px-wide All tab label at the tab's padding, so the first label sits on the 16px inset (not centred 2px right)", () => {
+    const inbox = stripComments(read("src/components/styles/inbox.css"));
+    const touch = blocks(inbox).find((block) => block.prelude === TOUCH_MEDIA);
+    const rule = blocks(touch?.body ?? "").find((block) => block.prelude === ".tessera-inbox-tabs .astryx-tab");
+    expect(rule?.body).toMatch(/min-inline-size:\s*var\(--spacing-11\)/);
+    expect(rule?.body).toMatch(/justify-content:\s*flex-start/);
+    expect(rule?.body).not.toMatch(/justify-content:\s*center/);
+  });
+
+  it("keeps the intake filters row's 44px button areas 2px clear of the first row, whose area starts where the bar ends", () => {
+    const intake = stripComments(read("src/components/styles/intake.css"));
+    const touch = blocks(intake).find((block) => block.prelude === TOUCH_MEDIA);
+    const rule = blocks(touch?.body ?? "").find((block) => block.prelude === ".tessera-intake-filters.tessera-panel-bar--wraps");
+    expect(rule?.body).toMatch(/padding-block:\s*var\(--spacing-2\)/);
+    expect(rule?.body).toMatch(/padding-block-end:\s*calc\(var\(--spacing-2\) \+ var\(--spacing-0-5\)\)/);
   });
 });
 

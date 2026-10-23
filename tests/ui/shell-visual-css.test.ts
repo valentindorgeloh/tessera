@@ -148,13 +148,13 @@ describe("theme (S11, S14)", () => {
 });
 
 describe("header tab strips on a phone (S7)", () => {
-  const inbox = strip(read("src/components/styles/inbox.css"));
 
   it("pulls the first tab's padding onto the 16px inset in every docked strip", () => {
     const pull = /width:\s*calc\(100% \+ var\(--spacing-3\)\)[^}]*margin-inline-start:\s*calc\(-1 \* var\(--spacing-3\)\)/;
     expect(block(shell, ".tessera-panel-bar-start > .astryx-tab-list:first-child {")).toMatch(/margin-inline-start:\s*calc\(-1 \* var\(--spacing-3\)\)/);
     expect(block(shell, ".tessera-panel-bar--tabs-below > .tessera-panel-bar-start > .astryx-tab-list {")).toMatch(pull);
     expect(block(shell, ".tessera-project-bar .tessera-project-tabs {")).toMatch(pull);
-    expect(block(inbox, ".tessera-inbox-bar .tessera-inbox-tabs {")).toMatch(pull);
+    // The inbox is a PanelBar tabsBelow like the profile and analytics: no strip rules of its own (inbox.css).
+    expect(read("src/components/inbox/InboxScreen.tsx")).toMatch(/<PanelBar\s+tabsBelow\s+start=/);
   });
 });

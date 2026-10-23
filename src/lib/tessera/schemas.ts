@@ -20,6 +20,10 @@ export const StateGroupSchema = z.enum(["backlog", "unstarted", "started", "comp
 
 export const PrioritySchema = z.enum(["urgent", "high", "medium", "low", "none"]);
 
+/** Inbox notification kinds in rank order, highest first (decision 51). */
+export const NotificationKindSchema = z.enum(["mentioned", "assigned", "commented", "state_changed", "updated", "intake_received", "automation"]);
+export type NotificationKind = z.infer<typeof NotificationKindSchema>;
+
 export const ModuleStatusSchema = z.enum(["backlog", "planned", "in_progress", "paused", "completed", "cancelled"]);
 
 /** Derived from dates; never stored. */

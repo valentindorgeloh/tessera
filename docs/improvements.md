@@ -1,52 +1,39 @@
-# Tessera: what needs improving (2026-10-22)
+# Tessera: what needs improving (2026-10-23)
 
-Reconciled on 2026-10-23 against the working tree after the visual alignment round (tree = HEAD 5f0cc7c plus the round's uncommitted changes; nine lanes, three fix rounds, two browser verify passes on scratch copies, never :3000 or `data/tessera.db*`). Gates on that tree: the round's gate is green after fix 3, and the reconciler re-ran `tsc --noEmit` (clean), `eslint .` (clean), `vitest run` (218 files / 2759 tests pass) and `scripts/check-conventions.ts` (passed). Playwright: 56 of 56 (13 spec files, including `relations-reactions.spec.ts`) on a scratch production build of the final tree after fix 3 (2026-10-23, port 3600). Item statuses are in `docs/drafts/visual-audit-items.json` (`status` per item). Re-check an item before working on it.
+Reconciled on 2026-10-23 against the working tree after fix round 3 (tree = HEAD d0dc0c4, which is 198611a plus the root's Next 16.4.3 upgrade commit, plus this round's uncommitted changes; nine lanes, three fix passes, two browser verify passes on scratch copies, never :3000 or `data/tessera.db*`). Gates on that tree: the round's gate is green after fix 3, and the reconciler re-ran `tsc --noEmit` (clean), `eslint .` (clean), `vitest run` (228 files / 2880 tests pass) and `scripts/check-conventions.ts` (passed). Playwright: 88 of 88 (21 spec files) on a scratch production build of the tree after fix 2, run twice (verify 1 and verify 2, port 3800); the two fix 3 changes (project tab hit tiling, inbox label wrap) have Vitest only. Contract for the round: `docs/drafts/fix-round-2026-10-23.md`. Re-check an item before working on it.
 
 ## Open
 
 ### Features from the plan
-- Notification grouping diverges from decisions 51 and 52: an unread row is updated in place (no 10-minute window, no actor match), `event_count` is always 1, no `updated` kind; the `+N` and "commented N times" wording is dead (`docs/as-built/pages-collaboration.md` §7).
-- Decision 53: only comments sync mentions; a mention in a description or page body notifies nobody.
-- Decision 59: `GET /api/changes` returns no `unread_notifications`, so the badge does not refresh on snooze wake-up.
+- Notifications: "commented N times" counts every merged event (decision 51 `event_count`), so a state change plus one comment by the same agent within 10 minutes reads "commented 2 times". Fix 1 switched to "commented +1", fix 2 restored the contract wording ("commented N times", p7-plan §6) because verify asked for it. A truthful label needs a per-kind count or a different phrase. Low; wording call.
+- Creating a work item whose description mentions the actor it also assigns gives one "mentioned +1" row (two events, one actor, decision 51 coalescing). A description save no longer does this (fix 1). Low; confirm it is wanted.
+- `[[` page search lists the current page in its own results (a self-link is dropped on save by `replacePageEmbeds`). Low.
 
 ### Accessibility, 375 px and visual
 Work items
-- L3 partial: the group name follows the dot (x 321 at 1440), not the title column (x 375), which would leave a 60 px gap. Design call.
-- At 1440 a 707 px title ends in an ellipsis 4 px early, because the chip gap went from 4 to 8 px (L11). Gaining it back moves the key column. Low.
-- Phone list rows are taller than before the round. Fix 3 put key and title back on one line at 480 px and narrower (title minimum `min(10rem, 100%)`; checked on the final build: 12 of 12 rows at 375 and 360 in both schemes, no page overflow, 44 px rows at 1440). But the same items measured at 375 against the audit baseline grew 8–12 px (93 → 105, 65 → 73; added row gap and end padding), and some rows now wrap their properties onto a second line (65 → 105; the 8 px chip gap). Low; a density call if it bothers.
-- Archived work items: the lower hit area of the Advanced filter button is taken by the first row (`FilterBar.tsx`). Low.
-- Theme: at phone width a hit-area `::before` can sit over an Astryx text input or tokenizer input (Playwright "intercepts pointer events"). Fixed only for the work-item filter (`position: relative`); a theme-wide rule would cover the rest. Low.
-- Peek at 768: it now covers the list, but the covered list stays in the tab order (same as on phones). Low.
-Timeline
-- Calendar chips have no visible Move to date control on touch since fix 2 (a tap opens the peek; dates change there). Low.
-- Archived (read-only) calendar chips show the pointer cursor, not the default one. Low.
-Pages
-- After a failed move is reverted, the moved parent is collapsed and its sub-pages are hidden. Low.
-Workspace and settings
-- Verify 2: a workspace tab strip shares the title row and is half hidden at rest (screen not named in the report; profile and analytics use `tabsBelow` only under 600 px). Low.
-- Accepted limits: the backups table scrolls sideways on a phone (576 px in a 325 px region); the five workspace settings tabs scroll again below about 360 px.
-- Latte not looked at for the Home Since rows and the Snooze dialog after their fixes (layout-only changes).
+- L3 partial: the group name follows the dot (x 321 at 1440), not the title column (x 375), which would leave a 60 px gap. Design call (no lane changed it).
+- At 360 px a few rows (WEB-11, WEB-13, WEB-8, WEB-32) wrap one more chip line than at 375 (up to 28 px taller); key and title stay on one line. The baseline exists only for 375. Low; density call.
+- Project tab strip (new in fix 2, not in the contract): below 1280 px every tab but the current one folds to its icon (aria-label keeps the name; no hover tooltip, Astryx Tab omits `title`). At 480 px and narrower the folded icons' hit areas tile to their 24–28 px pitch (fix 3), not 44 px: eight 44 px targets do not fit a 347 px strip. Needs a design confirm and a `ui.md` line; the fix 3 tiling has a CSS test only, no browser re-measure.
 Shell
-- S7 leftovers: `inbox.css` and `archives.css` keep their own tab-strip copies instead of the generic rules; the inbox first tab text sits 2 px right of the title at 375 (44 px minimum width of the All tab, by design).
-- The intake filter bar is two rows (68 px) at 375 and 1440 since the intake rework; not judged.
+- App header at 375: the Help and Account buttons (about 28 px, 4 px apart) overlap each other's 44 px hit boxes, so Help's right corners hit Account. Low.
+- Inbox rows at 375 clipped the phrase after a long agent name ("mcp:p3-acceptance com…"). Fix 3 passes a `<Text>` label so it wraps (`tests/ui/inbox-row-label.test.ts`); not checked in a browser yet.
+- Project settings: the seven-tab strip still scrolls below 1440 (the phone-fit rules now apply to workspace settings only). Low.
+Workspace and settings
+- Home Since rows at 375 truncate their label with an ellipsis (ListItem with a plain string). Passing a `<Text>` wraps them at the cost of taller rows. Low.
 
 ### Coverage gaps (not checked this round)
-- Real-device touch (Playwright emulation only), including a touch drag on the page-tree grip. Committed drops on board, gantt and calendar, and the workspace views drag, were not exercised in a browser (the views grip has a Vitest test).
-- Transfer open items dialog (its menu entry is disabled for every fixture cycle), Mark duplicate at 375 and 768, the Save draft dialog, dialog focus walks at 375.
-- Ctrl/Meta+K opening Power K (the probe did not open it; the click path works).
-- Gantt connectors and today centring at 768, gantt with a Sunday week start, board and table at 768 and 1100 without a peek.
-- Private and Archived wiki tabs at 375; the full `hit-area.mjs` harness stalled on `/drafts` (those routes were probed by hand).
+- Real devices: all touch checks are Playwright emulation (the page-tree grip now uses CDP touch events in `coverage-touch.spec.ts`).
+- Browser re-measure of the two fix 3 changes above (project tab hit tiling at 360 and 375, inbox label wrap at 375).
+- Peek focus return in a browser that does not focus a button on click (Safari): nothing is recorded, so focus falls to `<body>` on close.
+- No Vitest for the nested-dialog focus fallback in `shell/dialogs.tsx`; the e2e spec in `coverage-dialogs.spec.ts` is the only guard.
 
 ### Docs and housekeeping
-- `docs/contracts/ui.md`: the route-group lines near the top, the "Home at `/home`" bullet and the P2b table naming `TabBar.tsx` and `tab-registry.ts` are stale (Home is `/`, there are no tabs).
-- `docs/as-built/` README: `ai.md`, `engine.md`, `hardening.md` and `planning-extras.md` still describe the 2026-10-21 tree.
-- Stale code text: the `[[` page trigger in `editor/mentions.tsx` still says "Pages arrive in P6" and inserts nothing; the ASSUMPTION header comments in `detail/CommentComposer.tsx` and `CommentItem.tsx` and the subscribe toast predate P7.
-- Undo of an assistant apply has engine actions but no UI (no Undo on the "Applied N changes" toast, no history view); recorded in `docs/as-built/ai.md` known debt.
+- `docs/contracts/ui.md`: the project tab strip text ("the strip scrolls inside that row", Project frame section) predates the fold-to-icon rule and the hit tiling; the sidebar bullet still says the "Work" heading goes to `/home`; the Home "Mark as seen" trade-off below is not in "Accepted trade-offs".
+- Trade-off to record: the Home "Mark as seen" secondary button is tint-only (edge 1.27:1 Frappé, 1.12:1 Latte against the card, under the 3:1 control-edge target); it is Astryx's secondary style, owned by the theme; its label passes (6.3:1).
+- `docs/as-built/hardening.md` (E2E line): says round 3 ran only its new specs and the 2026-10-22 `collaboration.spec.ts` and `pages.spec.ts` failures were not re-run. The full suite (88, both specs included) passed twice this round.
 
 ## Waiting for the user
-- Live P5 acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is now built and `assistant.spec.ts` passes on it.
-- Calendar week view on phones: cells stretch to the panel height (493 px, baseline 256–306) because T11 follows Plane. Hugging the chips on phones reverses T11; the timeline lane left the recipe (a `max-width: 480px` rule on `.tessera-cal[data-view="week"]` and `.tessera-cal-week`, plus the test).
-- Next.js 16.4.0: dev server logs reported it as affected by a known security advisory, and one `next build` exited with a SecurityFatalError before passing on retry. Upgrading is your call (no agent ran an upgrade).
+- Live P5 acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is built and `assistant.spec.ts` and `round-features.spec.ts` pass on it.
 
 ## Planned for P12 (docs/drafts/p12-plan.md)
 - Dock/undock (floating) sidebar.
@@ -56,6 +43,36 @@ Shell
 - Calendar zoom Week / Month / Quarter, consistent with the gantt zoom (decision 90).
 
 ## Closed
+
+### Fix round 3 (2026-10-23)
+- Decision 51 coalescing (migration 0012 `event_count`, `sort_at`; 10-minute window per recipient, item and actor; `updated` kind; decision 50 recipients): `tests/notifications.test.ts`; browser PASS (one row per agent, a second agent gets its own row, layout at 1440/768/375 both schemes); e2e `round-features.spec.ts`.
+- Decision 52 snooze, unsnooze and archive (`sort_at`, unread on wake): engine tests; browser PASS (snooze wake-up at 1440 and 375 in Frappé, once in Latte; badge within 1 s).
+- Decision 53 mentions in descriptions, page bodies and comments (`syncMentions`, page mentions open `/pages/<id>`; a page copy writes its rows silently; a description save gives one `mentioned` row): `tests/mentions.test.ts`; browser PASS; e2e `round-features.spec.ts`.
+- Decision 59 `unread_notifications` in `GET /api/changes` and the poller (`nextPollState`): `tests/changes-route.test.ts`, `tests/ui/poll-loop.test.ts`; browser PASS; e2e `round-features.spec.ts` (count rises by one).
+- Assistant Undo on the Applied toast and as a Power K row: `assistant-undo*.test.ts`; browser PASS at 1440, 768 and 375 in both schemes (44x44 hit at 375); e2e `round-features.spec.ts` (`undo-priority.json`).
+- `[[` page trigger (project hits first, then wiki, max 8; inserts `[Name](page:<id>)`): `tests/editor/suggestions.test.ts`; browser PASS (two requests, backlinks); e2e `round-features.spec.ts`.
+- Phone list rows (chip gap 4 px below 481 px; key and title on one line at 480, 375, 360): `list-touch-css.test.ts`; browser PASS (both schemes; at 375 every row within baseline + 4 px); e2e `round-features.spec.ts`.
+- 1440 title ending 4 px early (title slot `margin-inline-end: -4px`): browser PASS (no clipped title, key column unchanged).
+- Archived work items Advanced button hit area (filter `z-index: 1` under touch): `list-touch-css.test.ts`; browser PASS at 375 and 1024 coarse, also with sticky group bands.
+- Theme input stacking (text-like inputs `position: relative` under coarse/480 px; sentence in `ui.md` "Theme"): `input-stacking-css.test.ts`; browser PASS on eight inputs in both schemes.
+- Peek at 768 and 375: covered list is `inert`, focus moves into the peek and back to the row key; a resize never pulls focus out of the detail; closing a side panel at 1440 refocuses the row: `peek-inert.test.ts`; browser PASS (verify 1, re-check verify 2 after fix 2).
+- Calendar on touch: a tap opens the peek and the Target date field moves the chip without a reload (ui.md calendar bullet): browser PASS; e2e `coverage-touch.spec.ts`.
+- Archived calendar chips keep the pointer cursor on purpose (they open the peek), with no Move control: `calendar-css`, `calendar-layout` tests; browser PASS.
+- Calendar week view on phones (your decision: fix it): the week hugs its chips at 480 px and narrower, 768 and 1440 keep the T11 stretch: `calendar-css.test.ts`; browser PASS (cell 178 px, block 306 px at 375 on the fixture).
+- Pages: a failed move keeps the parent expanded; a moved leaf is never pinned closed: `pages-move-expansion.test.ts`; browser PASS (blocked POST, toast, tree restored).
+- Wiki Private and Archived tabs at 375 (square row and chevron clips, grip lead shift): `pages-visual-css.test.ts`; browser PASS (re-check verify 2).
+- Verify 2 half-hidden strips: tablet two-row header for profile, agent profile, analytics and inbox; wiki and project Pages strip on its own row up to 1099 px; strips reach the bar edge (`max-width: none`): `touch-target-css.test.ts`; browser PASS at 1440, 1099, 768, 600, 375, 360 in both schemes.
+- Workspace settings five tabs fit at 360 and 375; profile and analytics fit at 360: `settings-phone-css.test.ts`; browser PASS.
+- Backups table folds below 576 px (size, check and age under the name): `backups-fold.test.ts`; browser PASS at 1440, 768, 375 in both schemes.
+- Latte for the Home Since rows and the Snooze dialog: browser PASS (lowest text ratio 4.93); `+N more` link 44x44 at 375 (`home-touch-css.test.ts`; re-check PASS).
+- S7 leftovers: inbox and archives use the generic tab rules; the inbox first tab label sits on the 16 px inset at 375 and 360: `touch-target-css.test.ts`; browser PASS (re-check verify 2).
+- Intake filter bar: one row at 1440, 768, 375, 360; Triage is an icon button; button hit areas clear the first row: `touch-target-css.test.ts`; browser PASS (re-check verify 2).
+- Project tab strip fully visible at rest at 360, 375, 768 and 1440 on 12 project routes: `project-tabs-css.test.ts`, `project-frame.test.ts`; browser PASS (re-check verify 2). Hit area width is Open.
+- Focus after "Save this draft?" > Save draft returns to the "New work item" opener (fallback in `shell/dialogs.tsx`): e2e `coverage-dialogs.spec.ts` (was `test.fail`).
+- Coverage gaps from the last round, now e2e: committed drops on board, gantt body and edges, calendar, workspace views, states, stickies (`coverage-drops.spec.ts`); Transfer open items, gantt connector and Today at 768, Sunday week start, board and table at 768/1100 (`coverage-timeline.spec.ts`, 60 of 60 with `--repeat-each=4`); Mark duplicate at 375/768, Save draft, focus walks at 375, Power K by keyboard (`coverage-dialogs.spec.ts`); calendar tap, page-tree touch drag, `/drafts` at 375 (`coverage-touch.spec.ts`, drafts 12 of 12).
+- Flaky specs: gantt connector (role locators) and `/drafts` (`:visible`, one match) are stable.
+- Docs: `ui.md` route group, Home bullet and P2b table; `docs/as-built/` refreshed (README, ai, engine, hardening, planning-extras, pages-collaboration, work-items, shell-detail, operations and others); stale code text (`[[` trigger, CommentComposer header, subscribe toast).
+- Next.js 16.4.0 → 16.4.3 (root, d0dc0c4): gate, production build and Playwright green; `npm audit --omit=dev` clean; one moderate esbuild advisory remains inside drizzle-kit (dev only, never serves).
 
 ### Visual alignment round (2026-10-22)
 - shell: S1–S6, S8–S15 PASS (browser measure at 1440 and 375 in Frappé and Latte; `touch-target-css`, `shell-visual-css`, `rail-parts`, `panel-header` tests); S7 PASS after fix 2 (phone strips pulled onto the 16 px inset).

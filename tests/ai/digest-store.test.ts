@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { registerActor } from "@/lib/tessera/actors";
 import { subscribe } from "@/lib/tessera/assignees";
 import { createComment } from "@/lib/tessera/comments";
+import { withActor } from "@/lib/tessera/core/context";
 import { TrackerError } from "@/lib/tessera/core/errors";
 import { digestInputs, getStoredDigest, saveDigest } from "@/lib/tessera/ai/digest-store";
 import { archiveNotifications, listNotifications, markNotificationsRead, snoozeNotifications } from "@/lib/tessera/notifications";
@@ -26,7 +27,9 @@ describe("inbox digest inputs", () => {
     const agent = registerActor(ctx, { kind: "agent", name: "mcp:digest" });
     subscribe(ctx, item.id, agent.id);
     updateWorkItem(ctx, item.id, { state_id: otherState(ctx, project.id, item.state_id) });
-    createComment(ctx, item.id, { body_md: "Needs a decision" });
+    // A second actor comments: events by one actor within ten minutes merge into one row (decision 51).
+    const commenter = registerActor(ctx, { kind: "agent", name: "mcp:commenter" });
+    createComment(withActor(ctx, commenter.id), item.id, { body_md: "Needs a decision" });
     updateWorkItem(ctx, other.id, { state_id: otherState(ctx, project.id, other.state_id) });
 
     const agentCtx = createTestContext(handles, agent.id);
@@ -38,7 +41,8 @@ describe("inbox digest inputs", () => {
     expect(inputs.activity.some((row) => row.work_item_id === item.id && row.verb === "commented")).toBe(true);
     expect(inputs.activity.some((row) => row.work_item_id === other.id)).toBe(false);
     expect(inputs.input_seq).toBe(Math.max(...inputs.activity.map((row) => row.last_seq)));
-    expect(digestInputs(ctx, "inbox", ctx.actor.id).notifications).toEqual([]);
+    // The user follows the item as its creator: only the other actor's comment reaches them, never their own state changes.
+    expect(digestInputs(ctx, "inbox", ctx.actor.id).notifications?.map((note) => [note.kind, note.actor_name])).toEqual([["commented", "mcp:commenter"]]);
 
     const comment = inputs.notifications?.find((note) => note.kind === "commented");
     const notes = listNotifications(agentCtx);

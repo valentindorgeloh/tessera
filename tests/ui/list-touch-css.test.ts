@@ -141,21 +141,27 @@ describe("touch targets (L7, L8)", () => {
     expect(items).not.toMatch(/\.tessera-wi-chip::before/);
   });
 
-  it("keeps the group band a 44px target, and spaces wrapped chip lines 8px apart so a chip's hit area takes at most 2px of the line above", () => {
+  it("keeps the group band a 44px target, and spaces the dialog's wrapped chip lines 8px apart so a chip's hit area takes at most 2px of the line above", () => {
     expect(find(".tessera-wi-group .astryx-collapsible-trigger")?.body).toMatch(/min-block-size:\s*var\(--spacing-11\)/);
-    expect(find(".tessera-wi-props, .tessera-wi-form-props")?.body).toMatch(/row-gap:\s*var\(--spacing-2\)/);
+    expect(find(".tessera-wi-form-props")?.body).toMatch(/row-gap:\s*var\(--spacing-2\)/);
     // The quick-add and the dialog's name input are TextInputs: the wrapper carries the hit area, the input takes no 44px box.
     expect(touch.some((block) => /\.tessera-wi-quickadd input|\.tessera-wi-field input/.test(block.prelude))).toBe(false);
   });
 
-  it("keeps the row lines 8px apart and the last chip line inside the row, and meets the checkbox's area with the key", () => {
-    // 24px chip + 10px of hit area above it, 8px between the key line and the chips: 2px of the key's area is taken.
-    const row = find(".tessera-wi-row")?.body ?? "";
-    expect(row).toMatch(/row-gap:\s*var\(--spacing-2\)/);
-    // The last chip line's 10px of hit area below it clears the next row and the quick-add button.
-    expect(row).toMatch(/padding-block-end:\s*var\(--spacing-2\)/);
-    // The checkbox's 44px input (12px each side of its 20px box) ends where the key button starts.
+  it("meets the checkbox's area with the key (the 44px input ends where the key button starts)", () => {
     expect(find(".tessera-wi-select")?.body).toMatch(/margin-inline-end:\s*var\(--spacing-2\)/);
+    // The row's own spacing is not part of the any-pointer arm any more: a phone sets it below, a tablet in its own arm.
+    expect(find(".tessera-wi-row")).toBeUndefined();
+    expect(find(".tessera-wi-props, .tessera-wi-form-props")).toBeUndefined();
+  });
+
+  it("puts the filter bar above the rows so the Advanced button's 44px hit area is whole (archived work items)", () => {
+    const bar = find(".tessera-wi-filter")?.body ?? "";
+    expect(bar).toMatch(/position:\s*relative/);
+    expect(bar).toMatch(/z-index:\s*1\b/);
+    // The bar is not sticky; the sticky bulk bar is later in the tree and stays above it.
+    expect(bar).not.toMatch(/sticky/);
+    expect(rule(bulk, ".tessera-bulk-bar")).toMatch(/position:\s*sticky/);
   });
 
   it("lowers the title's minimum so key and title share a line at 375 and 360px (the 104px start slot left no room for 14rem)", () => {
@@ -219,5 +225,36 @@ describe("bulk bar on a phone (L6)", () => {
     expect(actions?.body).toMatch(/display:\s*flex/);
     expect(actions?.body).toMatch(/flex-wrap:\s*nowrap/);
     expect(actions?.body).toMatch(/overflow-x:\s*auto/);
+  });
+});
+
+describe("phone row density (item 1) and the title gap (item 2)", () => {
+  const phone = media(items, "@media (max-width: 480px)").flatMap((block) => blocks(block.body));
+  const find = (selector: string) => phone.find((block) => norm(block.prelude) === norm(selector));
+
+  it("gaps the chips by 4px on both axes below 481px and adds no row gap or end padding of its own beyond the base 4px", () => {
+    const chips = find(".tessera-wi-row .tessera-wi-props, .tessera-wi-row .tessera-wi-chips")?.body ?? "";
+    expect(chips).toMatch(/gap:\s*var\(--spacing-1\)/);
+    const row = find(".tessera-wi-row")?.body ?? "";
+    expect(row).toMatch(/row-gap:\s*var\(--spacing-1\)/);
+    expect(row).not.toMatch(/padding-block-end/);
+    // The base rule is the same 4px row gap, and the 8px arms exist only for a coarse pointer on a wider screen.
+    expect(rule(items, ".tessera-wi-row")).toMatch(/row-gap:\s*var\(--spacing-1\)/);
+    const tablet = media(items, "@media (pointer: coarse) and (min-width: 481px)").flatMap((block) => blocks(block.body));
+    expect(tablet.find((block) => norm(block.prelude) === ".tessera-wi-row")?.body).toMatch(/padding-block-end:\s*var\(--spacing-2\)/);
+  });
+
+  it("marks the label and module clusters so the phone arm reaches their inner gap", () => {
+    const source = readFileSync(path.join(process.cwd(), "src/components/work-items/ListLayout.tsx"), "utf8");
+    expect(source.match(/key="(labels|modules)"[^>]*className="tessera-wi-chips"/g)).toHaveLength(2);
+  });
+
+  it("keeps the 8px chip gap at 1440 and gives the title 4px of the gap before the properties back from 481px", () => {
+    expect(readFileSync(path.join(process.cwd(), "src/components/work-items/ListLayout.tsx"), "utf8")).toMatch(/className="tessera-wi-props"/);
+    const wide = media(items, "@media (min-width: 481px)").flatMap((block) => blocks(block.body));
+    const title = wide.find((block) => norm(block.prelude) === ".tessera-wi-row > :has(.tessera-wi-title)")?.body ?? "";
+    expect(title).toMatch(/margin-inline-end:\s*calc\(var\(--spacing-1\) \* -1\)/);
+    // The key column does not move: only the title slot's end margin changes.
+    expect(title).not.toMatch(/margin-inline-start|padding|min-width/);
   });
 });
