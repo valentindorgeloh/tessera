@@ -42,6 +42,7 @@ function note(overrides: Partial<InboxNote> = {}): InboxNote {
     archived_at: null,
     is_snoozed: false,
     event_count: 1,
+    kind_count: 1,
     sort_at: "2026-10-22T10:00:00.000Z",
     created_at: "2026-10-22T10:00:00.000Z",
     ...overrides,

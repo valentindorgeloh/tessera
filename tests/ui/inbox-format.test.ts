@@ -4,7 +4,6 @@
  */
 import { describe, expect, it } from "vitest";
 import {
-  extraEventLabel,
   formatLocalDateTime,
   inboxHref,
   matchesInboxTab,
@@ -33,6 +32,7 @@ function note(overrides: Partial<InboxNote> & Pick<InboxNote, "uid" | "seq">): I
     archived_at: null,
     is_snoozed: false,
     event_count: 1,
+    kind_count: 1,
     sort_at: "2026-10-01T00:00:00.000Z",
     created_at: "2026-10-01T00:00:00.000Z",
     ...overrides,
@@ -48,26 +48,20 @@ describe("notificationPhrase", () => {
     expect(notificationPhrase("custom_kind")).toBe("custom kind");
   });
 
-  it("reads event_count for a coalesced comment row: 1 stays plain, 3 says 3 times", () => {
+  it("reads kind_count: 1 stays plain, 2 and 3 say N times, for every kind", () => {
     expect(notificationPhrase("commented", 1)).toBe("commented");
     expect(notificationPhrase("commented", 2)).toBe("commented 2 times");
     expect(notificationPhrase("commented", 3)).toBe("commented 3 times");
-    // Other kinds keep their phrase; the "+N" label carries their count.
-    expect(notificationPhrase("mentioned", 3)).toBe("mentioned you");
-  });
-});
-
-describe("extraEventLabel", () => {
-  it("shows how many events coalesced past the first", () => {
-    expect(extraEventLabel(1)).toBeNull();
-    expect(extraEventLabel(2)).toBe("+1");
-    expect(extraEventLabel(3)).toBe("+2");
-    expect(extraEventLabel(3, "mentioned")).toBe("+2");
+    expect(notificationPhrase("mentioned", 3)).toBe("mentioned you 3 times");
+    expect(notificationPhrase("state_changed", 2)).toBe("changed the state 2 times");
   });
 
-  it("stays silent on a commented row, whose phrase already says how many times", () => {
-    expect(extraEventLabel(2, "commented")).toBeNull();
-    expect(extraEventLabel(3, "commented")).toBeNull();
+  it("appends the events of other kinds as \"· +M more\" (event_count - kind_count)", () => {
+    expect(notificationPhrase("commented", 1, 1)).toBe("commented");
+    expect(notificationPhrase("commented", 1, 2)).toBe("commented · +1 more");
+    expect(notificationPhrase("commented", 2, 3)).toBe("commented 2 times · +1 more");
+    expect(notificationPhrase("mentioned", 1, 3)).toBe("mentioned you · +2 more");
+    expect(notificationPhrase("commented", 3, 3)).toBe("commented 3 times");
   });
 });
 

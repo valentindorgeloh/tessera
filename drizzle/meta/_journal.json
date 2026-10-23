@@ -92,6 +92,13 @@
       "when": 1793200000000,
       "tag": "0012_notification_coalesce",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1793300000000,
+      "tag": "0013_notification_kind_count",
+      "breakpoints": true
     }
   ]
 }

@@ -1,36 +1,25 @@
 # Tessera: what needs improving (2026-10-23)
 
-Reconciled on 2026-10-23 against the working tree after fix round 3 (tree = HEAD d0dc0c4, which is 198611a plus the root's Next 16.4.3 upgrade commit, plus this round's uncommitted changes; nine lanes, three fix passes, two browser verify passes on scratch copies, never :3000 or `data/tessera.db*`). Gates on that tree: the round's gate is green after fix 3, and the reconciler re-ran `tsc --noEmit` (clean), `eslint .` (clean), `vitest run` (228 files / 2880 tests pass) and `scripts/check-conventions.ts` (passed). Playwright: 88 of 88 (21 spec files) on a scratch production build of the tree after fix 2, run twice (verify 1 and verify 2, port 3800); the two fix 3 changes (project tab hit tiling, inbox label wrap) have Vitest only. Contract for the round: `docs/drafts/fix-round-2026-10-23.md`. Re-check an item before working on it.
+Reconciled on 2026-10-23 against the working tree after fix round 4 (tree = HEAD 8575fcd, which is fix round 3 committed, plus this round's uncommitted changes: four lanes (notify-wording, section-menu, small-fixes, e2e), one fix pass, one browser verify pass on scratch copies, never :3000 or `data/tessera.db*`). Gates on that tree: the round's gate is green after every fix pass, and the reconciler re-ran `tsc --noEmit` (clean), `eslint .` (clean), `vitest run` (231 files / 2921 tests pass) and `scripts/check-conventions.ts` (passed). Playwright: 100 of 100 (22 spec files) on a scratch production build of the tree after fix 1 (port 3810; the first run had 1 spec-mistake failure and 2 serial skips, fixed in `round4.spec.ts` and re-run green), plus `round4.spec.ts` 12 of 12 in a second copy (port 3734). Contract for the round: `docs/drafts/fix-round-4-2026-10-23.md`. Re-check an item before working on it.
 
 ## Open
 
 ### Features from the plan
-- Notifications: "commented N times" counts every merged event (decision 51 `event_count`), so a state change plus one comment by the same agent within 10 minutes reads "commented 2 times". Fix 1 switched to "commented +1", fix 2 restored the contract wording ("commented N times", p7-plan §6) because verify asked for it. A truthful label needs a per-kind count or a different phrase. Low; wording call.
-- Creating a work item whose description mentions the actor it also assigns gives one "mentioned +1" row (two events, one actor, decision 51 coalescing). A description save no longer does this (fix 1). Low; confirm it is wanted.
-- `[[` page search lists the current page in its own results (a self-link is dropped on save by `replacePageEmbeds`). Low.
+- An assignee set at create time gets no `assigned` notification: `createWorkItem` (`work-items/create.ts`) logs only the silent `created` verb, and only `setAssignees` logs an assignment. Found by the round 4 contract check, out of scope. Low; plan question (decision 51 rows).
 
 ### Accessibility, 375 px and visual
-Work items
-- L3 partial: the group name follows the dot (x 321 at 1440), not the title column (x 375), which would leave a 60 px gap. Design call (no lane changed it).
-- At 360 px a few rows (WEB-11, WEB-13, WEB-8, WEB-32) wrap one more chip line than at 375 (up to 28 px taller); key and title stay on one line. The baseline exists only for 375. Low; density call.
-- Project tab strip (new in fix 2, not in the contract): below 1280 px every tab but the current one folds to its icon (aria-label keeps the name; no hover tooltip, Astryx Tab omits `title`). At 480 px and narrower the folded icons' hit areas tile to their 24–28 px pitch (fix 3), not 44 px: eight 44 px targets do not fit a 347 px strip. Needs a design confirm and a `ui.md` line; the fix 3 tiling has a CSS test only, no browser re-measure.
-Shell
-- App header at 375: the Help and Account buttons (about 28 px, 4 px apart) overlap each other's 44 px hit boxes, so Help's right corners hit Account. Low.
-- Inbox rows at 375 clipped the phrase after a long agent name ("mcp:p3-acceptance com…"). Fix 3 passes a `<Text>` label so it wraps (`tests/ui/inbox-row-label.test.ts`); not checked in a browser yet.
-- Project settings: the seven-tab strip still scrolls below 1440 (the phone-fit rules now apply to workspace settings only). Low.
 Workspace and settings
-- Home Since rows at 375 truncate their label with an ellipsis (ListItem with a plain string). Passing a `<Text>` wraps them at the cost of taller rows. Low.
+- Home Since rows at 375 with a long actor name: the two-line clamp (round 4) cuts the label before the item key and title. The wording order lives in `home-format.ts` (`sinceRowLabel`; strings asserted in `home-widgets.test.ts`). Low; wording call (item first, or the title in the description).
+Shell
+- Coarse pointer at 1280 px and wider: the labelled project tabs keep the theme's 44px hit areas, which overlap between neighbours (the round 4 coarse rule covers 600–1279 only). Out of scope in round 4. Low.
+- The top-bar search field under a coarse pointer at 1440 was not checked against touch option A. Out of scope in round 4. Low.
+- At 768 under a coarse pointer the Collapse sidebar and brand hit areas abut with a sub-pixel (under 1 px) overlap that the strict 44x44 inset-1 px check does not catch (verify 1 note). Low.
 
 ### Coverage gaps (not checked this round)
-- Real devices: all touch checks are Playwright emulation (the page-tree grip now uses CDP touch events in `coverage-touch.spec.ts`).
-- Browser re-measure of the two fix 3 changes above (project tab hit tiling at 360 and 375, inbox label wrap at 375).
-- Peek focus return in a browser that does not focus a button on click (Safari): nothing is recorded, so focus falls to `<body>` on close.
-- No Vitest for the nested-dialog focus fallback in `shell/dialogs.tsx`; the e2e spec in `coverage-dialogs.spec.ts` is the only guard.
+- Real devices: all touch checks are Playwright emulation (the page-tree grip uses CDP touch events in `coverage-touch.spec.ts`).
 
 ### Docs and housekeeping
-- `docs/contracts/ui.md`: the project tab strip text ("the strip scrolls inside that row", Project frame section) predates the fold-to-icon rule and the hit tiling; the sidebar bullet still says the "Work" heading goes to `/home`; the Home "Mark as seen" trade-off below is not in "Accepted trade-offs".
-- Trade-off to record: the Home "Mark as seen" secondary button is tint-only (edge 1.27:1 Frappé, 1.12:1 Latte against the card, under the 3:1 control-edge target); it is Astryx's secondary style, owned by the theme; its label passes (6.3:1).
-- `docs/as-built/hardening.md` (E2E line): says round 3 ran only its new specs and the 2026-10-22 `collaboration.spec.ts` and `pages.spec.ts` failures were not re-run. The full suite (88, both specs included) passed twice this round.
+- `tests/e2e/round4.spec.ts` header comment (l.8-10) still says every test starts with `test.fixme(true, ...)`; verify removed those lines, so the comment is stale.
 
 ## Waiting for the user
 - Live P5 acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is built and `assistant.spec.ts` and `round-features.spec.ts` pass on it.
@@ -43,6 +32,22 @@ Workspace and settings
 - Calendar zoom Week / Month / Quarter, consistent with the gantt zoom (decision 90).
 
 ## Closed
+
+### Fix round 4 (2026-10-23)
+- Decision 51 wording: migration 0013 `kind_count` (default 1, no backfill); a state change plus a comment reads "commented · +1 more", two comments "commented 2 times", no separate "+N" text (`notificationPhrase(kind, kindCount, eventCount)`): `notifications.test.ts`, `inbox-format.test.ts`, `inbox-row-label.test.ts`; fresh scratch copy prints "No schema changes"; browser PASS at 375 and 1280/1440 in both schemes; e2e `round4.spec.ts` (a).
+- Create with an assignee and a mention of the same actor (root decision: decision 51 as intended): create logs no assignment, so it gives one "mentioned you" row; `setAssignees` then a description mention gives "mentioned you · +1 more": `mentions.test.ts`.
+- Inbox rows at 375 with a long agent name: the whole phrase is painted (Range over the last character inside label and row, no sideways scroll): browser PASS in both schemes; e2e `round4.spec.ts` (a).
+- `[[` page search no longer lists the page being edited (decision 10; `pageId` in the suggestion context, limit=9 when set): `tests/editor/suggestions.test.ts`; browser PASS on a wiki and a project page; e2e `round4.spec.ts` (e).
+- Project sections (decision 14, three bands): labels from 1280; folded icons with a name Tooltip at 600–1279 (closed again once the tab is current, fix 1), 44px hit areas at a 44px pitch under touch (tiling removed); a `SectionMenu` below 600: `section-menu.test.ts`, `project-tabs-css.test.ts`, `project-frame.test.ts`; browser PASS at 1440 down to 360, both schemes, fine and coarse; e2e `round4.spec.ts` (b).
+- Project settings: seven tabs fit with no strip scroll from 600 (the scroll was only at 768 with the sidebar docked), a "Project settings" section menu below 600, the skeleton mirrors both (fix 1): `settings-phone-css.test.ts`; browser PASS at 600, 768, 1024, 1280, 1440 and 375; e2e `round4.spec.ts` (c).
+- App header at 375 and 360: Open navigation, Assistant, Help and Account each own a 44x44 hit box (`tessera-topbar-end` 16px apart, `tessera-topbar-heading` 8px): `touch-target-css.test.ts`; browser PASS (strict check, both schemes, fine and coarse); e2e `round4.spec.ts` (d).
+- Home Since rows: one line with an ellipsis on desktop, at most two lines at 480 px and narrower (`tessera-home-since-label`): `home-touch-css.test.ts`; browser PASS at 375, 480, 481, 1440 in both schemes; e2e `round4.spec.ts` (f).
+- Peek focus return when a click does not focus the button (Safari): `useCoverFocus` records the opener on pointerdown: `peek-opener.test.ts`; Chromium with mousedown default-prevented PASS at 375 and 768. Checked in jsdom only for WebKit, which is not installed (installing it is a download; root decision).
+- Nested-dialog focus fallback in `shell/dialogs.tsx` has a Vitest (`dialog-focus-fallback.test.ts`, fails when the fallback is removed).
+- Browser re-measure of the round 3 fix 3 changes: the project tab tiling was replaced by the round 4 bands (measured above); the inbox label wrap passed at 375.
+- L3 group name follows the dot (root decision; `ui.md` l.84). At 360 px a few rows wrap one more chip line (accepted trade-off, `ui.md`). Home "Mark as seen" tint-only edge (accepted trade-off, `ui.md`).
+- Docs: `ui.md` project frame bands, sidebar "Work" heading (→ `/`), header spacing sentence, settings strip; `as-built/` (engine, hardening E2E lines, pages-collaboration, shell-detail, work-items, views-settings, workspace, planning-extras, README); `PLAN.md` decision 51, `p7-plan.md`, `schema.md`, `service-api.md`, `editor.md`; `PLAN-STATUS.md` round 4 paragraph.
+- Spec mistake found by the full run: the long client name in `round4.spec.ts` contained "name" and broke `getByLabel("Name")` in `work-items.spec.ts`; renamed, 100 of 100 pass.
 
 ### Fix round 3 (2026-10-23)
 - Decision 51 coalescing (migration 0012 `event_count`, `sort_at`; 10-minute window per recipient, item and actor; `updated` kind; decision 50 recipients): `tests/notifications.test.ts`; browser PASS (one row per agent, a second agent gets its own row, layout at 1440/768/375 both schemes); e2e `round-features.spec.ts`.

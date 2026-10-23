@@ -265,7 +265,7 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
   // The covered list is inert (decision 11): out of the tab order and the accessibility tree while the panel is on top of it.
   // The attribute goes in the same commit as the close, before the focus returns to the row (useCoverFocus).
   const isListCovered = isOpen && !isModal && isPanelCover;
-  const rememberListFocus = useCoverFocus({ isOpen, isModal, isCovering: isListCovered }, slotNode);
+  const rememberListOpener = useCoverFocus({ isOpen, isModal, isCovering: isListCovered }, slotNode);
 
   const detail = peek ? (
     peek.data ? (
@@ -292,7 +292,7 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
       <Layout
         height="fill"
         content={
-          <LayoutContent padding={0} isScrollable inert={isListCovered} onFocus={rememberListFocus}>
+          <LayoutContent padding={0} isScrollable inert={isListCovered} {...rememberListOpener}>
             {children}
           </LayoutContent>
         }

@@ -36,7 +36,7 @@ export const notificationTools = [
   defineTool({
     name: "list_notifications",
     title: "List notifications",
-    description: "Lists the caller's notifications by sort_at, newest first; event_count is how many events merged into a row. Snoozed and archived rows are included; the inbox screen hides them by tab.",
+    description: "Lists the caller's notifications by sort_at, newest first; event_count is how many events merged into a row and kind_count how many of them are of its kind (a row reads 'commented 2 times' when kind_count is 2, plus '+M more' for the other events). Snoozed and archived rows are included; the inbox screen hides them by tab.",
     input: ListInput,
     mutates: false,
     phase: "P7",

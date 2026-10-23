@@ -38,10 +38,11 @@ describe("narrow project header", () => {
   const shell = css("shell.css");
   const narrow = shell;
 
-  it("puts the tabs on a second full-width grid row below 600px", () => {
+  it("puts the section menu on a second full-width grid row below 600px, the tabs on it from 600px", () => {
     expect(shell).toContain("@media (max-width: 599px)");
     expect(narrow).toMatch(/"token title end"\s+"tabs tabs tabs"/);
     expect(narrow).toMatch(/\.tessera-project-bar \.tessera-project-tabs\s*\{[^}]*grid-area:\s*tabs/);
+    expect(narrow).toMatch(/\.tessera-project-bar \.tessera-section-menu\s*\{[^}]*grid-area:\s*tabs/);
     expect(narrow).toMatch(/\.tessera-project-bar > \.tessera-panel-bar-start\s*\{[^}]*display:\s*contents/);
   });
 });

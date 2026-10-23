@@ -236,6 +236,15 @@ describe("ProjectFrame", () => {
     }
   });
 
+  it("renders the SectionMenu beside the strip, naming the current tab (below 600px shell.css shows it instead of the strip)", async () => {
+    const el = await render(`/projects/${PROJECT}/cycles`);
+    const start = el.querySelector(".tessera-project-bar > .tessera-panel-bar-start");
+    const button = start?.querySelector<HTMLElement>(":scope > .tessera-section-menu--project .tessera-section-menu-button");
+    expect(button).not.toBeNull();
+    expect(button?.getAttribute("aria-label") ?? button?.textContent).toContain("Cycles");
+    expect(start?.querySelector(":scope > .tessera-project-tabs")).not.toBeNull();
+  });
+
   it("shows an archived project's Banner under the header row, outside it", async () => {
     const el = await render(`/projects/${PROJECT}/work-items`, { archived_at: NOW });
     expect(el.textContent).toContain("This project is archived");

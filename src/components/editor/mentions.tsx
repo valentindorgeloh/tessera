@@ -280,19 +280,28 @@ async function pageHits(params: Record<string, string>, signal: AbortSignal): Pr
  * unscoped request filtered to `project_id === null`). In the wiki: every page.
  * ASSUMPTION: a wiki page may link a project page, so the wiki search is unscoped.
  */
-async function searchPages(query: string, projectId: string | null, signal: AbortSignal): Promise<SuggestionRow[]> {
+async function searchPages(
+  query: string,
+  projectId: string | null,
+  pageId: string | null,
+  signal: AbortSignal,
+): Promise<SuggestionRow[]> {
+  // The page being edited is dropped from the hits, so ask for one extra row to keep eight (decision 10).
+  // ASSUMPTION: the wide `limit=20` wiki request already has slack for the filters and stays as it is.
+  const limit = String(pageId === null ? MAX_ROWS : MAX_ROWS + 1);
   if (projectId === null) {
-    return (await pageHits({ q: query, types: "page", limit: String(MAX_ROWS) }, signal)).slice(0, MAX_ROWS).map(rowOf);
+    const hits = await pageHits({ q: query, types: "page", limit }, signal);
+    return hits.filter((hit) => hit.id !== pageId).slice(0, MAX_ROWS).map(rowOf);
   }
   const [inProject, everywhere] = await Promise.all([
-    pageHits({ q: query, types: "page", limit: String(MAX_ROWS), scope: projectId }, signal),
+    pageHits({ q: query, types: "page", limit, scope: projectId }, signal),
     pageHits({ q: query, types: "page", limit: "20" }, signal),
   ]);
   const wiki = everywhere.filter((hit) => hit.project_id === null);
   const seen = new Set<string>();
   const rows: SuggestionRow[] = [];
   for (const hit of [...inProject, ...wiki]) {
-    if (seen.has(hit.id)) continue;
+    if (hit.id === pageId || seen.has(hit.id)) continue;
     seen.add(hit.id);
     rows.push(rowOf(hit));
   }
@@ -385,7 +394,10 @@ export function buildEditorSuggestions(): EditorSuggestions {
     debounce: 150,
     minQueryLength: 1,
     allow: outsideCode,
-    items: ({ query, editor, signal }) => searchPages(query, readSuggestionContext(editor).projectId, signal),
+    items: ({ query, editor, signal }) => {
+      const context = readSuggestionContext(editor);
+      return searchPages(query, context.projectId, context.pageId ?? null, signal);
+    },
     command: ({ editor, range, props }) => insertPageLink(editor, range, props),
     render: createRenderer("No pages match", "Pages", PAGE_SUGGEST_KEY, toMention),
   };

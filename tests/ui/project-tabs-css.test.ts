@@ -44,19 +44,32 @@ describe("project tabs on a phone and a tablet", () => {
     expect(narrow).toMatch(/\.tessera-project-tabs \.astryx-tab:not\(\[aria-current="true"\]\) > span:has\(> span\[aria-hidden="true"\]\)\s*\{[^}]*display:\s*none/);
   });
 
-  it("tightens the tab padding to 6px, then 5px, then 4px, on a phone so eight tabs fit the strip", () => {
-    const phone = media("(max-width: 480px)", "tessera-project-tab-pad");
-    expect(phone).toMatch(/--tessera-project-tab-pad:\s*calc\(var\(--spacing-1\) \* 1\.5\)/);
-    expect(phone).toMatch(/\.astryx-tab\s*\{[^}]*padding-inline:\s*var\(--tessera-project-tab-pad\)/);
-    expect(media("(max-width: 374px)", "tessera-project-tab-pad")).toMatch(/--tessera-project-tab-pad:\s*calc\(var\(--spacing-1\) \* 1\.25\)/);
-    expect(media("(max-width: 339px)", "tessera-project-tab-pad")).toMatch(/--tessera-project-tab-pad:\s*var\(--spacing-1\)/);
+  it("replaces the strip with the SectionMenu below 600px, in the second grid row, text on the 16px inset (decision 14)", () => {
+    const phone = media("(max-width: 599px)", "tessera-section-menu");
+    expect(phone).toMatch(/\.tessera-project-bar \.tessera-project-tabs\s*\{[^}]*display:\s*none/);
+    expect(phone).toMatch(/\.tessera-project-bar \.tessera-section-menu\s*\{[^}]*grid-area:\s*tabs[^}]*margin-inline-start:\s*calc\(-1 \* var\(--spacing-3\)\)/);
+    expect(phone).toMatch(/\.tessera-section-menu\s*\{[^}]*min-height:\s*calc\(var\(--size-element-md\) \+ var\(--spacing-3\)\)/);
   });
 
-  it("tiles the hit areas of the folded icon tabs on a phone (decision 14, option A)", () => {
-    const touch = media("(pointer: coarse), (max-width: 480px)", "tessera-project-tabs");
-    // Each folded icon owns its pitch (its width plus half of the 2px gap per side); the current tab keeps the theme's area.
+  it("hides the SectionMenu from 600px up, in every panel bar (the band switch is CSS only)", () => {
+    expect(media("(min-width: 600px)", "tessera-section-menu")).toMatch(/\.tessera-panel-bar \.tessera-section-menu\s*\{[^}]*display:\s*none/);
+  });
+
+  it("gives the folded tabs 44px boxes at a 44px pitch under a coarse pointer from 600 to 1279px, with no tiling", () => {
+    const touch = media("(pointer: coarse) and (min-width: 600px) and (max-width: 1279px)", "tessera-project-tabs");
+    expect(touch).toMatch(/\.tessera-project-tabs \.astryx-tab\s*\{[^}]*min-height:\s*calc\(var\(--size-element-md\) \+ var\(--spacing-3\)\)/);
     expect(touch).toMatch(
-      /\.tessera-project-tabs \.astryx-tab:not\(\[aria-current="true"\]\)::before\s*\{[^}]*inset-inline:\s*calc\(var\(--spacing-0-5\) \/ -2\)/,
+      /\.tessera-project-tabs \.astryx-tab-strip\s*\{[^}]*column-gap:\s*var\(--spacing-1-5\);[^}]*padding-inline:\s*var\(--spacing-1\);[^}]*margin-inline:\s*calc\(-1 \* var\(--spacing-1\)\)/,
     );
+  });
+
+  it("no longer tiles hit areas or tightens the tab padding on a phone: the strip is not shown there", () => {
+    expect(shell).not.toContain("tessera-project-tab-pad");
+    expect(shell).not.toMatch(/\.tessera-project-tabs \.astryx-tab:not\(\[aria-current="true"\]\)::before/);
+  });
+
+  it("force-closes a folded tab's tooltip once the tab is current or the band is not folded", () => {
+    const frame = readFileSync(path.join(process.cwd(), "src/components/work-items/ProjectFrame.tsx"), "utf8");
+    expect(frame).toMatch(/isEnabled=\{isFoldBand && tab\.key !== active\?\.key\} isOpen=\{isFoldBand && tab\.key !== active\?\.key \? undefined : false\}/);
   });
 });

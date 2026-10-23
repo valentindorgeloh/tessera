@@ -20,10 +20,13 @@ import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Icon } from "@astryxdesign/core/Icon";
+import { Tooltip } from "@astryxdesign/core/Tooltip";
+import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { Token } from "@astryxdesign/core/Token";
 import { ProjectArchivedBanner, ProjectMenu } from "@/components/planning/ProjectArchive";
 import { FavoriteButton } from "@/components/shell/FavoriteButton";
 import { PanelBar, PanelHeader, PanelTitle } from "@/components/shell/PanelHeader";
+import { SectionMenu } from "@/components/shell/SectionMenu";
 import type { Project } from "@/lib/tessera/types";
 import { ArchiveIcon, CycleIcon, GearIcon, IntakeIcon, KanbanIcon, ModuleIcon, PageIcon, ViewIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { activeProjectTab, projectTabs, type ProjectTabKey } from "./project-tabs";
@@ -67,11 +70,15 @@ export function isProjectPageDetailPath(pathname: string, projectId: string): bo
   return isDetailPath(pathname, projectId, "pages");
 }
 
+/** The widths where shell.css folds the non-current tabs to their icon (decision 14); the server renders false, so no tooltip mounts there. */
+const FOLD_BAND_QUERY = "(min-width: 600px) and (max-width: 1279px)";
+
 export function ProjectFrame({ children }: { children: ReactNode }) {
   const { bundle } = useProject();
   const pathname = usePathname();
   const { project } = bundle;
   const tabs = projectTabs(project);
+  const isFoldBand = useMediaQuery(FOLD_BAND_QUERY);
   const active = activeProjectTab(pathname, project.id, tabs);
   // A work item page and a project page own the document's h1 in their body, so the frame title steps down there.
   const titleLevel = isWorkItemPagePath(pathname, project.id) || isProjectPageDetailPath(pathname, project.id) ? 2 : 1;
@@ -87,24 +94,39 @@ export function ProjectFrame({ children }: { children: ReactNode }) {
               className="tessera-project-bar"
               start={
                 <>
-                  {/* Below 1280px the tabs take their own row and only the current tab keeps its label, so all eight fit at rest (shell.css). */}
+                  {/* 1280px and up: labelled tabs. 600 to 1279px: the bar takes two rows and only the current tab keeps its label, the others fold to their icon with a tooltip. Below 600px the SectionMenu replaces the strip (shell.css switches the two; decision 14). */}
                   <ProjectToken project={project} size="sm" className="tessera-project-frame-token" />
                   <PanelTitle className="tessera-project-frame-title" accessibilityLevel={titleLevel}>
                     {project.name}
                   </PanelTitle>
                   <Divider orientation="vertical" className="tessera-panel-bar-divider" />
+                  <SectionMenu
+                    label={`${project.name} pages`}
+                    currentKey={active?.key ?? null}
+                    className="tessera-section-menu--project"
+                    entries={tabs.map((tab) => ({
+                      key: tab.key,
+                      label: tab.label,
+                      href: `/projects/${project.id}/${tab.segment}`,
+                      icon: TAB_ICONS[tab.key],
+                      endContent: tab.key === "intake" && bundle.intake_open > 0 ? <Badge label={String(bundle.intake_open)} /> : undefined,
+                    }))}
+                  />
                   <TabList value={active?.key ?? ""} onChange={() => {}} size="sm" layout="hug" aria-label={`${project.name} pages`} className="tessera-project-tabs">
                     {tabs.map((tab) => (
-                      <Tab
-                        key={tab.key}
-                        value={tab.key}
-                        label={tab.label}
-                        icon={TAB_ICONS[tab.key]}
-                        href={`/projects/${project.id}/${tab.segment}`}
-                        // The label stays the accessible name when shell.css folds a narrow strip's other tabs to their icon (decision 14); Astryx omits `title`, so the folded icons have no hover tooltip.
-                        aria-label={tab.label}
-                        endContent={tab.key === "intake" && bundle.intake_open > 0 ? <Badge label={String(bundle.intake_open)} /> : undefined}
-                      />
+                      // focusTrigger "always": the roving strip gives the other tabs tabindex -1, which Tooltip's "auto" reads as not focusable. TabList finds a tab by [data-tab-value], so the wrapper does not matter to it.
+                      // isOpen false (not just isEnabled) when the tab is current or the band is not folded: isEnabled only stops a tooltip from opening, so one opened by keyboard on the tab that then becomes current would stay over the title. undefined keeps it uncontrolled otherwise.
+                      <Tooltip key={tab.key} content={tab.label} isEnabled={isFoldBand && tab.key !== active?.key} isOpen={isFoldBand && tab.key !== active?.key ? undefined : false} focusTrigger="always">
+                        <Tab
+                          value={tab.key}
+                          label={tab.label}
+                          icon={TAB_ICONS[tab.key]}
+                          href={`/projects/${project.id}/${tab.segment}`}
+                          // The label stays the accessible name when shell.css folds the other tabs to their icon (decision 14).
+                          aria-label={tab.label}
+                          endContent={tab.key === "intake" && bundle.intake_open > 0 ? <Badge label={String(bundle.intake_open)} /> : undefined}
+                        />
+                      </Tooltip>
                     ))}
                   </TabList>
                 </>

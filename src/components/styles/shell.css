@@ -343,20 +343,20 @@
     grid-area: end;
   }
 
-  /* The strip pulls its first tab's 12px padding onto the 16px inset (S7), like the generic tabs-below strip, and runs to the bar's right edge. */
+  /*
+   * The strip is replaced by the SectionMenu (decision 14): one button with the current section, in the
+   * second row's 44px, its text on the 16px inset (the button brings 12px of padding of its own).
+   * Both renders stay mounted and CSS picks one, so nothing flips on hydration.
+   */
   .tessera-project-bar .tessera-project-tabs {
-    grid-area: tabs;
-    align-self: end;
-    width: calc(100% + var(--spacing-3));
-    /* Astryx caps a TabList at max-width: 100%, which left the strip 12px short of the bar's inner edge. */
-    max-width: none;
-    min-width: 0;
-    margin-inline-start: calc(-1 * var(--spacing-3));
+    display: none;
   }
 
-  /* A touch target is 44px (the same height as the first row); the indicator still sits on the hairline. */
-  .tessera-project-bar .tessera-project-tabs .astryx-tab {
+  .tessera-project-bar .tessera-section-menu {
+    grid-area: tabs;
+    min-width: 0;
     min-height: calc(var(--size-element-md) + var(--spacing-3));
+    margin-inline-start: calc(-1 * var(--spacing-3));
   }
 }
 
@@ -430,43 +430,29 @@
 }
 
 /*
- * A phone strip is 347px (375px wide), 330px at 360px: the current tab's label
- * plus seven icons need about 320px with 6px of inline padding (instead of 12px)
- * and the strip runs to the panel's right edge, like the profile's tabs. Under
- * 375px the padding is 5px (the icons are 24px drawn, the WCAG 2.2 minimum, and
- * the longest label still fits a 330px strip with about 25px to spare); under
- * 340px, where the strip scrolls anyway, it is 4px.
- *
- * Hit areas of the folded icons (decision 14, option A): eight 44px-wide targets
- * do not fit a 347px strip, so each folded icon owns exactly its pitch, its own
- * width plus half of the strip's 2px gap on each side (24 to 28px wide, 44px
- * high), instead of the theme's 44px square, whose overlapping squares left the
- * first icon 12px of reach and let the later neighbour win the rest. The tabs
- * tile with no dead gap and no overlap (the rule sits in the touch block below, with
- * the other hit areas). The current tab keeps its label, wider than 44px, so the
- * theme's area is already its own box.
+ * Coarse pointer, 600 to 1279px (decision 14, option A): the folded tabs are 38px
+ * drawn and the theme's 44px hit area (::before, 3px past each side) makes each a
+ * 44px box. The strip pads 4px inline and takes 6px between tabs, so the boxes
+ * touch at a 44px pitch without overlapping, and the 44px tab height
+ * (a row of its own) keeps the indicator on the hairline. The first icon's drawn
+ * edge stays on the bar's 16px inset (the margin gives the padding back).
  */
-@media (max-width: 480px) {
-  .tessera-project-bar .tessera-project-tabs {
-    --tessera-project-tab-pad: calc(var(--spacing-1) * 1.5);
-    width: calc(100% + var(--tessera-project-tab-pad) + var(--spacing-4));
-    margin-inline-start: calc(-1 * var(--tessera-project-tab-pad));
-  }
-
+@media (pointer: coarse) and (min-width: 600px) and (max-width: 1279px) {
   .tessera-project-bar .tessera-project-tabs .astryx-tab {
-    padding-inline: var(--tessera-project-tab-pad);
+    min-height: calc(var(--size-element-md) + var(--spacing-3));
+  }
+
+  .tessera-project-bar .tessera-project-tabs .astryx-tab-strip {
+    column-gap: var(--spacing-1-5);
+    padding-inline: var(--spacing-1);
+    margin-inline: calc(-1 * var(--spacing-1));
   }
 }
 
-@media (max-width: 374px) {
-  .tessera-project-bar .tessera-project-tabs {
-    --tessera-project-tab-pad: calc(var(--spacing-1) * 1.25);
-  }
-}
-
-@media (max-width: 339px) {
-  .tessera-project-bar .tessera-project-tabs {
-    --tessera-project-tab-pad: var(--spacing-1);
+/* From 600px the tab strips are back and the SectionMenu steps aside (the band switch is CSS only; shell.css phone block above). */
+@media (min-width: 600px) {
+  .tessera-panel-bar .tessera-section-menu {
+    display: none;
   }
 }
 
@@ -671,6 +657,23 @@
   }
 
   /*
+   * Top bar icon buttons (TopBar.tsx) are 28px drawn with a 44px hit area, 4px
+   * apart, so neighbouring boxes overlapped by 12px and the Help button took
+   * half of the Account button's area. A 16px gap makes the pitch 44px: the
+   * boxes tile with no overlap. The end group keeps 12px from the viewport edge
+   * so the Account box (8px past its button) ends inside the window. The heading
+   * group (collapse button, brand) gets an 8px gap for the same reason.
+   */
+  .astryx-top-nav .tessera-topbar-end {
+    column-gap: var(--spacing-4);
+    margin-inline-end: var(--spacing-3);
+  }
+
+  .astryx-top-nav .tessera-topbar-heading {
+    column-gap: var(--spacing-2);
+  }
+
+  /*
    * Escape hatches for a control the generic area would overlap with a
    * neighbour. `tessera-hit--y` keeps the 44px block axis and the control's own
    * width (a segment, a chip flush against the next); `tessera-hit--none` drops
@@ -694,11 +697,6 @@
   .astryx-tab-strip {
     padding-block: var(--spacing-2);
     margin-block: calc(-1 * var(--spacing-2));
-  }
-
-  /* The project strip's folded icon tabs tile their hit areas (decision 14, the "Hit areas of the folded icons" note above; the 2px gap is --spacing-0-5). */
-  .tessera-project-bar .tessera-project-tabs .astryx-tab:not([aria-current="true"])::before {
-    inset-inline: calc(var(--spacing-0-5) / -2);
   }
 
   /*

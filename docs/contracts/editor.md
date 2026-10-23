@@ -232,7 +232,10 @@ Suggestion sources:
   `/api/search?q=<q>&types=page&limit=20` filtered to `project_id === null` (a scoped
   search leaves wiki pages out); rows are the project hits then the wiki hits, deduped by
   id, at most 8, `description` = the hit's `subtitle`. Without a `projectId` (a wiki page)
-  one unscoped request lists every hit, so a wiki page may link a project page.
+  one unscoped request lists every hit, so a wiki page may link a project page. The page
+  being edited is left out of the rows (a self-link is dropped on save): the editor's
+  `pageId` prop reaches the trigger through the suggestion context, and when it is set the
+  `limit=8` requests ask for `limit=9` so eight rows remain (the `limit=20` request stays).
 - `@`: `mentionActors` filtered by name prefix, max 8.
 - `/`: static list — Heading 1/2/3, Bullet list, Numbered list, Task list, Table
   (3×3), Code block, Quote, Divider; the command deletes the typed range then

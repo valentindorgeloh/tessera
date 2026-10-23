@@ -153,7 +153,9 @@ describe("header tab strips on a phone (S7)", () => {
     const pull = /width:\s*calc\(100% \+ var\(--spacing-3\)\)[^}]*margin-inline-start:\s*calc\(-1 \* var\(--spacing-3\)\)/;
     expect(block(shell, ".tessera-panel-bar-start > .astryx-tab-list:first-child {")).toMatch(/margin-inline-start:\s*calc\(-1 \* var\(--spacing-3\)\)/);
     expect(block(shell, ".tessera-panel-bar--tabs-below > .tessera-panel-bar-start > .astryx-tab-list {")).toMatch(pull);
-    expect(block(shell, ".tessera-project-bar .tessera-project-tabs {")).toMatch(pull);
+    // The 600 to 1279px strip (below 600px the SectionMenu replaces it).
+    const tablet = shell.slice(shell.indexOf("@media (min-width: 600px) and (max-width: 1279px)"));
+    expect(block(tablet, ".tessera-project-bar .tessera-project-tabs {")).toMatch(pull);
     // The inbox is a PanelBar tabsBelow like the profile and analytics: no strip rules of its own (inbox.css).
     expect(read("src/components/inbox/InboxScreen.tsx")).toMatch(/<PanelBar\s+tabsBelow\s+start=/);
   });

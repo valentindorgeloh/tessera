@@ -1,6 +1,6 @@
 # As-built map: the engine
 
-State described: the working tree after fix round 3, 2026-10-23 (HEAD `198611a` plus uncommitted lane work, including migration 0012). Line counts are tree counts. The domain modules of P4 to P11 are mapped in the newer as-built files (section 2.2 points to them); this file covers the foundations, the tool registry and its adapters, the scripts, the actions and the API routes. Written for a reworking agent: read this first, then open only the contract section you need (section 8).
+State described: the working tree after fix round 4, 2026-10-23 (HEAD `8575fcd` plus uncommitted lane work, including migration 0013). Line counts are tree counts. The domain modules of P4 to P11 are mapped in the newer as-built files (section 2.2 points to them); this file covers the foundations, the tool registry and its adapters, the scripts, the actions and the API routes. Written for a reworking agent: read this first, then open only the contract section you need (section 8).
 
 ## 1. Purpose and boundaries
 
@@ -29,7 +29,7 @@ Lives elsewhere:
 | `db/client.ts` (114) | Opens the file, applies pragmas (`busy_timeout=5000` first, then `journal_mode=WAL` (`enableWal` retries SQLITE_BUSY for 5 s, because several processes can open a fresh file together), `synchronous=NORMAL`, `foreign_keys=ON`), runs migrate under the lock, FTS setup, system actors and `ensureWorkspaceSettings` (insert-or-ignore, so processes opening a fresh file together seed one row each). Resolves the path from the module location, never from `cwd` (decision 17). | `openDatabase`, `getDb` (process singleton), `closeDb`, `resolveDbPath`, `DEFAULT_DB_PATH`, `MEMORY_DB`, `DbHandles` |
 | `db/migrate.ts` (150), `db/backups.ts` | Drizzle migrator with a lock file and a pre-migration backup (the backup code is in `db/backups.ts`, hardening.md). | `migrate`, `migrateIfNeeded`, `pendingMigrations`, `acquireLock`, `REPO_ROOT`, `MIGRATIONS_DIR` |
 | `db/fts.ts` | Standalone FTS5 tables, written by the service, no triggers (decision 25). | `ensureFtsTables`, `upsertWorkItemFts`, `deleteWorkItemFts`, `upsertPageFts`, `deletePageFts`, `rebuildFts`, `buildMatchExpression`, `searchWorkItemIds`, `searchPageIds` |
-| `drizzle/` | Thirteen migrations: `0000_init` (all tables), `0001_fts` (FTS5), `0002` (P5 `ai_proposal`, `ai_digest`), `0003` to `0007` (P8 `actor.access` and planning indexes, `last_seen_seq`, `automation_lease` run columns, export and version indexes, webhook columns), `0008_hardening`, `0009_week_start`, `0010_cycle_scope_idx`, `0011_workspace_list_idx`, `0012_notification_coalesce` (`event_count`, `sort_at`, `notification_inbox_idx`, `notification_coalesce_idx`). Migrations are hand-written SQL plus a `meta/_journal.json` entry (read at runtime, must ship) and a snapshot; never run `drizzle-kit generate` in the checkout (field guide). | |
+| `drizzle/` | Fourteen migrations: `0000_init` (all tables), `0001_fts` (FTS5), `0002` (P5 `ai_proposal`, `ai_digest`), `0003` to `0007` (P8 `actor.access` and planning indexes, `last_seen_seq`, `automation_lease` run columns, export and version indexes, webhook columns), `0008_hardening`, `0009_week_start`, `0010_cycle_scope_idx`, `0011_workspace_list_idx`, `0012_notification_coalesce` (`event_count`, `sort_at`, `notification_inbox_idx`, `notification_coalesce_idx`), `0013_notification_kind_count` (`kind_count`, default 1, no backfill). Migrations are hand-written SQL plus a `meta/_journal.json` entry (read at runtime, must ship) and a snapshot; never run `drizzle-kit generate` in the checkout (field guide). | |
 
 ### 2.2 Domain modules (`src/lib/tessera/`)
 
@@ -177,7 +177,7 @@ File budget (`scripts/file-budget.json`): only `cycles.ts` (871) and `modules.ts
 From the contracts and `docs/PLAN-STATUS.md` (P1 open items, P3 notes):
 - Deleting a state, label, cycle or module strips its id from saved views (`saved-filters.ts`). `filters.ts` still tolerates unknown ids.
 - Intake, drafts, estimates and bulk are built (planning-extras.md).
-- Notification wording: `event_count` counts every merged event, so a state change merged into a `commented` row still reads "commented N times" (marked ASSUMPTION in `inbox-format.ts`; pages-collaboration.md).
+- Notification wording (decision 51): `event_count` is every merged event, `kind_count` those of the row's current kind (migration 0013, no backfill, so an older merged row reads "+M more"). The row reads "commented 2 times · +1 more" (pages-collaboration.md).
 - FTS inside list queries is capped at 100 000 ids (P11).
 - A migration lock file left by a crash is not detected; remove `<db>.migrate.lock` by hand (P11).
 - `ModuleProgress` has no zod schema (type only). `WorkItemDetail.relations` exists since P7.

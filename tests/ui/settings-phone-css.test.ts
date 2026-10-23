@@ -45,7 +45,38 @@ describe("tab strips fit a phone", () => {
 
   it("the workspace settings strip carries the class, the project settings strip does not", () => {
     expect(read("src/components/workspace-settings/WorkspaceSettingsChrome.tsx")).toContain('className="tessera-settings-tabs tessera-settings-tabs--workspace"');
-    expect(read("src/components/project-settings/SettingsTabs.tsx")).not.toContain("--workspace");
+    const project = read("src/components/project-settings/SettingsTabs.tsx");
+    expect(project).not.toContain("--workspace");
+    expect(project).toContain('className="tessera-settings-tabs tessera-settings-tabs--project"');
+  });
+
+  it("project settings: no scrolling strip from 600px (tighter tabs to 1023px), the SectionMenu below 600px (decision 14)", () => {
+    const settings = css("project-settings.css");
+    const phone = settings.slice(settings.indexOf("@media (max-width: 599px) {"), settings.indexOf("@media (min-width: 600px) and (max-width: 1023px) {"));
+    expect(phone).toMatch(/\.tessera-settings-tabs--project\s*\{[^}]*display:\s*none/);
+    expect(phone).toMatch(/\.tessera-section-menu--settings\s*\{[^}]*margin-inline-start:\s*calc\(-1 \* var\(--spacing-3\)\)/);
+    const tablet = settings.slice(settings.indexOf("@media (min-width: 600px) and (max-width: 1023px) {"));
+    expect(tablet).toMatch(/\.tessera-settings-tabs--project \.astryx-tab\s*\{[^}]*padding-inline:\s*var\(--spacing-2\)/);
+    expect(tablet).toMatch(
+      /\.tessera-settings-tabs--project\s*\{[^}]*width:\s*calc\(100% \+ var\(--spacing-2\) \+ var\(--spacing-4\)\);[^}]*max-width:\s*none;[^}]*margin-inline-start:\s*calc\(-1 \* var\(--spacing-2\)\);[^}]*flex:\s*none/,
+    );
+  });
+
+  it("the project settings menu stands beside the strip, which stays a direct child of the start group", () => {
+    const source = read("src/components/project-settings/SettingsTabs.tsx");
+    expect(source).toContain('label="Project settings"');
+    expect(source).toContain('className="tessera-section-menu--settings"');
+    expect(source).toMatch(/<TabList[^\n]*className="tessera-settings-tabs /);
+  });
+
+  it("the loading placeholder mirrors the seven tabs and switches with the same bands", () => {
+    const layout = read("src/app/(tessera)/projects/[projectId]/settings/layout.tsx");
+    expect(layout).toMatch(/const widths = \[(\d+, ){6}\d+\];/);
+    expect(layout).toContain("tessera-settings-skeleton-menu");
+    expect(layout).toContain("tessera-settings-skeleton-tabs");
+    const source = css("project-settings.css");
+    expect(source).toMatch(/@media \(max-width: 599px\) \{\s*\.tessera-settings-skeleton-tabs\s*\{[^}]*display:\s*none/);
+    expect(source).toMatch(/@media \(min-width: 600px\) \{\s*\.tessera-settings-skeleton-menu\s*\{[^}]*display:\s*none/);
   });
 
   it("the profile strip carries the class", () => {

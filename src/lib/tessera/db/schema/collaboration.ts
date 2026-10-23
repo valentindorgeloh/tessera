@@ -116,6 +116,8 @@ export const notification = sqliteTable(
     // Coalescing (decision 51): events merged into this row, and the inbox order key.
     // SQLite's ADD COLUMN ... NOT NULL needs a constant default; the service always writes sort_at.
     event_count: integer("event_count").notNull().default(1),
+    // Events of the row's current kind (decision 51); 0013 adds it with default 1, no backfill.
+    kind_count: integer("kind_count").notNull().default(1),
     sort_at: text("sort_at").notNull().default(""),
     created_at: text("created_at").notNull(),
   },

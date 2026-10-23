@@ -79,6 +79,8 @@ export type MarkdownEditorProps = {
   mentionActors?: readonly { id: string; name: string }[];
   /** Scope of the `#` search (GET /api/search?scope=); null outside a project. */
   projectId?: string | null;
+  /** The page being edited; the `[[` search leaves it out of its results. */
+  pageId?: string | null;
   /** Click on an entity link or chip; the host navigates (work → ?peek / page). */
   onOpenEntity?: (link: EntityLink) => void;
   ref?: Ref<MarkdownEditorHandle>;
@@ -113,6 +115,7 @@ export function MarkdownEditor({
   linkSchemes = ENTITY_LINK_SCHEMES,
   mentionActors = NO_ACTORS,
   projectId = null,
+  pageId = null,
   onOpenEntity,
   ref,
 }: MarkdownEditorProps) {
@@ -284,8 +287,8 @@ export function MarkdownEditor({
 
   // `@` candidates and the `#` search scope, read by the triggers at query time.
   useEffect(() => {
-    if (editor) setSuggestionContext(editor, { actors: mentionActors, projectId });
-  }, [editor, mentionActors, projectId]);
+    if (editor) setSuggestionContext(editor, { actors: mentionActors, projectId, pageId });
+  }, [editor, mentionActors, projectId, pageId]);
 
   const isSourceFocused = useCallback(() => {
     const el = sourceRef.current;

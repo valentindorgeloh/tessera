@@ -1,6 +1,6 @@
 # As-built map: planning extras (P8): intake, drafts, estimates, bulk
 
-State described: the working tree after fix round 3, 2026-10-23 (HEAD `198611a` plus uncommitted lane work). Line counts are tree counts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Plan: docs/drafts/p8-plan.md; the cycles, modules and archives screens are in planning.md. Round 3 changed little here: the Intake bar (the assistant button is an icon button and the search shrinks first), the nested-dialog focus return, and e2e coverage.
+State described: the working tree after fix round 4, 2026-10-23 (HEAD `8575fcd` plus uncommitted lane work; round 4 changed only the dialog focus test line). Line counts are tree counts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Plan: docs/drafts/p8-plan.md; the cycles, modules and archives screens are in planning.md. Round 3 changed little here: the Intake bar (the assistant button is an icon button and the search shrinks first), the nested-dialog focus return, and e2e coverage.
 
 ## 1. Purpose and boundaries
 
@@ -92,7 +92,7 @@ Registry tools: `intake.ts` (9 tools), `drafts.ts` (6), `estimates.ts` (5), and 
 - UI: `tests/ui/{intake-format,estimate-format,estimate-rules,selection,bulk-transfer-dialog}.test.ts`.
 - Playwright: `tests/e2e/intake-drafts-bulk.spec.ts` (an MCP-created item lands in Intake and Accept moves it to Backlog; a closed create dialog saves a draft that becomes a work item; bulk priority on two rows; an estimate system and a point on an item). The 2026-10-22 run passed the intake spec.
 - Round 3 Playwright: `coverage-dialogs.spec.ts` (Mark duplicate at 375 and 768: the dialog fits the viewport, the item itself is not offered, confirm stays disabled until a row is picked, every control has a 44x44 hit box at 375, and `get_intake_item` shows status `duplicate`; "Save this draft?" at 375 saves a draft that shows in `/drafts` and `list_drafts`; Tab stays inside the New work item and Add link dialogs and Escape returns focus to the opener), `coverage-touch.spec.ts` (`/drafts` at 375 has no sideways scroll and every control's 44x44 box hits). These passed on the final tree.
-- Dialog focus has Vitest in `tests/ui/dialog-focus*.test.ts`; the nested-dialog `restoreFocus` fallback has only the Playwright spec above.
+- Dialog focus has Vitest in `tests/ui/dialog-focus*.test.ts`; the nested-dialog `restoreFocus` fallback (the "Save draft" dialog as a child, a sibling and a child mounted only while open) has `tests/ui/dialog-focus-fallback.test.ts` as well as the Playwright spec above.
 - No Vitest: `IntakeScreen`, `IntakeDetail`, `DuplicateDialog`, `DraftsScreen`, `DraftDialog`, `SaveDraftDialog`, `EstimateDialog`, `EstimatesSettings`, `BulkBar`.
 
 ## 6. Extension points

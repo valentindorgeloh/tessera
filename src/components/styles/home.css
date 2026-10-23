@@ -61,6 +61,28 @@
 }
 
 /*
+ * The Since rows' label (decision 73): one line with an ellipsis on desktop; at
+ * phone width a long "actor did something to Title" wraps to at most two lines
+ * instead of losing the item title. Not Text maxLines, which writes an inline
+ * clamp at every width.
+ */
+.tessera-home-since-label {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 480px) {
+  .tessera-home-since-label {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+  }
+}
+
+/*
  * Recents rows keep their own 8px inset, so a row's icon sat 8px right of the
  * "Recent" heading. The list reaches out by that inset, which puts the icon on
  * the heading's x (the hover and divider extend 8px either side).

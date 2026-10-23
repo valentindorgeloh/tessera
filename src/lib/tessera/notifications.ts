@@ -48,6 +48,7 @@ export type NotificationView = {
   snoozed_till: string | null;
   is_snoozed: boolean;
   event_count: number;
+  kind_count: number;
   sort_at: string;
   created_at: string;
   project_id: string | null;
@@ -193,6 +194,7 @@ export function listNotifications(ctx: TesseraContext, input: z.input<typeof Lis
     snoozed_till: row.note.snoozed_till,
     is_snoozed: row.note.snoozed_till !== null && row.note.snoozed_till > now,
     event_count: row.note.event_count,
+    kind_count: row.note.kind_count,
     sort_at: row.note.sort_at,
     created_at: row.note.created_at,
     project_id: row.note.project_id,
@@ -372,10 +374,14 @@ function writeRows(ctx: TesseraContext, recipients: string[], draft: Draft): voi
     // A row without a work item (a page mention) never coalesces.
     const target = draft.work_item_id === null ? undefined : coalesceTarget(ctx, recipient, draft.work_item_id, now);
     if (target) {
+      // A higher-ranked kind replaces the row's kind and restarts kind_count at 1; the same kind
+      // adds one; a lower-ranked kind leaves it. event_count is always the total (decision 51).
+      const newer = rankOf(draft.kind) < rankOf(target.kind);
       ctx.db
         .update(notification)
         .set({
-          kind: rankOf(draft.kind) < rankOf(target.kind) ? draft.kind : target.kind,
+          kind: newer ? draft.kind : target.kind,
+          kind_count: newer ? 1 : draft.kind === target.kind ? target.kind_count + 1 : target.kind_count,
           title: draft.title,
           snippet: draft.snippet,
           entity_type: draft.entity_type,
@@ -401,6 +407,7 @@ function writeRows(ctx: TesseraContext, recipients: string[], draft: Draft): voi
         snippet: draft.snippet,
         actor_id: ctx.actor.id,
         event_count: 1,
+        kind_count: 1,
         sort_at: now,
         created_at: now,
       })

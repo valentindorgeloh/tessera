@@ -4,11 +4,9 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 
 ## Environment
 - Prefix every node/npm/npx command with `export PATH=/opt/homebrew/bin:$PATH;`. better-sqlite3 13 needs Node >= 22.14.
-- Start the dev server from Bash: `nohup node node_modules/next/dist/bin/next dev -H 127.0.0.1 -p 3000 > <log> 2>&1 &`. preview_start by name hangs. In a swarm run, serve only from a scratch copy on another port.
-- `next dev` and `next build` share `.next`: stop the server before a build, then `rm -rf .next/dev` before restarting. A browser tab stuck reloading means a stale `.next/dev`.
+- Start the dev server from Bash: `nohup node node_modules/next/dist/bin/next dev -H 127.0.0.1 -p 3000 > <log> 2>&1 &`. preview_start by name hangs. In a swarm run, serve only from a scratch copy on another port. `next dev` and `next build` share `.next`: stop the server before a build, then `rm -rf .next/dev` before restarting. A browser tab stuck reloading means a stale `.next/dev`.
 - Never open or touch data/tessera.db* (the user's data). Phases use TESSERA_DB_PATH=data/<phase>-dev.db and a fresh data/<phase>-acceptance.db; move old copies to the scratchpad, never delete them.
 - MCP without the stdio server: `TESSERA_DB_PATH=<db> npx tsx scripts/mcp-call.ts <tool> '<json>'`. The stdio server refuses pending migrations unless started with --migrate.
-- `astryx doctor` always shows one theme-fonts warning (fonts load through next/font). It is expected.
 - Migrations are hand-written (`drizzle/NNNN_name.sql` + a `_journal.json` entry). Never run `drizzle-kit generate` in the checkout. After a schema change, run it in a scratch copy (copy `drizzle/ src/ drizzle.config.ts package.json tsconfig.json`, symlink node_modules), move the new `NNNN_snapshot.json` into `drizzle/meta/` under the journal idx of your hand-written migration, and re-run it in a fresh copy: it must say "No schema changes".
 - Only the root planner runs state-changing git. Agents never add, commit, stash, checkout or restore.
 - The /tmp scratchpad is wiped by the system (it happened on 2026-10-16). Keep drafts that must survive in docs/drafts/ in the repo.
@@ -43,7 +41,7 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 - A tooltip that can appear mid-drag uses Astryx Tooltip sibling mode (`anchorRef`, GanttLayout). Wrapping the trigger remounts it and drops pointer capture. Astryx's own sibling tooltip on a collapsed SideNavItem never attaches in 0.6.8 (RailItem wraps the row).
 - Hover-revealed controls: `opacity: 0` only. Put `pointer-events: none` under `@media (hover: none)`, or mouse and Playwright clicks miss them. Put the `:hover` reveal under `(hover: hover)` and the keyboard reveal on `:has(:focus-visible)`: a tap's own hover and focus otherwise reveal the control and it takes the tap (calendar Move button).
 - Touch targets (option A, ui.md "Theme"): the theme makes Astryx controls 44px under `(pointer: coarse)` and `(width < 481px)`; dense controls get a hit area (`tessera-hit`, `tessera-hit-x`, `tessera-row-hit`: padding or `::before` with an equal negative margin). Never give a chip, input or header control a real 44px box: that broke the row look, the top bar and the header stacks. Check with elementFromPoint at the centre and four corners of a 44x44 box. Inset the corners 0.5–1 px: elementFromPoint counts a point on the right or bottom edge as outside.
-- Neighbouring small controls: the theme's 44px squares overlap and the later sibling wins. Where 44px does not fit, tile each hit area to the control's pitch (folded project tabs, shell.css).
+- Neighbouring small controls: the theme's 44px squares overlap and the later sibling wins. Set the gap so the boxes sit at a 44px pitch (folded project tabs, 38px drawn plus 6px gap, shell.css); tile a hit area to the pitch only when 44px cannot fit.
 - A hit-area `::before` paints over a sibling input (clicks miss it): give the input `position: relative`. Astryx Token clips with `overflow: hidden`; use `overflow: clip` plus `overflow-clip-margin` (calc() is invalid there).
 - Placement ids name the neighbour's side: `before_id` is the row that ends up directly before the moved one, `after_id` the row after it. Sending the previous row as `before_id` for "Move earlier" moves nothing (src/components/stickies/reorder-math.ts).
 
@@ -55,9 +53,9 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 - Panel rows use a 16px inline inset (paddingInline={4}). Header controls are size sm. A screen inside the project frame adds no second title row.
 - Badge is for counts only. RelativeTime inside a tooltip trigger needs hasTooltip={false}.
 - Console noise to tolerate (the list in tests/e2e/tolerated.ts): Astryx Table tableContextMenu React prop warnings (`moveTo`; `start`/`cancel`), React's prerender `measure` negative-timestamp warning, Chrome's "form field should have an id or name" note, and CSS preload warnings. Every anchor carrying a `to` attribute is known (LinkProvider + next/link). Read the console on every screen; nothing else is tolerated.
-- Dialogs animate: wait 2–3 s before a screenshot.
 - A MoreMenu row with nested `items` drops `description`. A disabled reason has to be a leaf row.
 - Astryx Toast has no action prop: use `endContent` plus the dismiss fn it returns. Astryx caps a TabList at `max-width: 100%`; an edge-to-edge strip needs `max-width: none`.
+- Astryx Tooltip `isEnabled={false}` only stops it opening; one already open stays until focus leaves. Also pass `isOpen={false}` (a `key` remounts the trigger and drops focus). A Tooltip may wrap a Tab (TabList finds tabs by `[data-tab-value]`); roving tabs need `focusTrigger="always"`.
 - A wrapping PanelBar end slot needs `max-width: 100%`, and the cluster inside it must wrap, or a right-aligned row overflows off the left.
 - Several buttons with the same visible text need distinct accessible names that contain it ("Download CSV: Projects"), for label-in-name.
 - `ListItem` clips a plain string label to one line; pass a `<Text>` to wrap. `TextInput width="fill"` sets no CSS width; use `width="100%"`. A column-flex anchor centres with `justify-content`; `align-items: center` there clips the title.
@@ -68,13 +66,15 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 - Use projectIdFromPath from recents.ts, which guards /projects/archives. Never write a project-id regex of your own.
 - Dialogs from @/components/shell/dialogs restore focus to the last element focused outside a dialog or menu when the opener unmounted (row-menu dialogs, a nested dialog opened from a field of the outer one) or an autofocused field was taken as the opener. A pending, disabled submit still drops focus: refocus a field on a server error.
 - A frame screen whose own content has an h1 (work item and project page detail) sets the frame's PanelTitle `accessibilityLevel={2}` (ProjectFrame.tsx).
-- Move focus only when a surface opens or closes, never when a resize flips its layout (peek cover, useCoverFocus in peek-cover.ts).
+- Move focus only when a surface opens or closes, never when a resize flips its layout (peek cover, useCoverFocus in peek-cover.ts). Record the opener on pointerdown too: Safari does not focus a button on click. WebKit is not installed (a download), so emulate it in Chromium by preventing the mousedown default.
 
 ## Tests and browser checks
-- Browser scheme emulation does not switch the app (it defaults to Frappé). For Latte set localStorage `tessera.scheme.v1` to `light` and reload.
+- Browser scheme emulation does not switch the app (it defaults to Frappé). For Latte set localStorage `tessera.scheme.v1` to `light` and reload. Dialogs animate: wait 2–3 s before a screenshot.
 - jsdom has no layout. Test a CSS rule by reading the stylesheet text (tests/ui/*-css.test.ts, e.g. home-touch-css.test.ts).
 - Playwright: `npm run test:e2e` runs `next start` on E2E_PORT (default 3100) with data/e2e.db, so build first, and only in a scratch copy. The webServer starts before globalSetup, so DB preparation lives in the webServer command.
-- Playwright picks up any `*.test.ts` under tests/e2e. Keep Vitest files outside it (tests/e2e-tolerated.test.ts).
+- Vitest runs only `*.test.ts`; a `.test.tsx` never runs, so render with `createElement` (dialog-focus.test.ts). Playwright picks up any `*.test.ts` under tests/e2e, so keep Vitest files outside it.
 - While a route streams in, a hidden copy of an element can sit beside the live one: locators fail strict mode. Use role locators, or `:visible` plus `toHaveCount(1)` (the /drafts and gantt-bar flakes).
 - Playwright's 'Desktop Chrome' device sends a Windows user agent, so Astryx `mod` is Control in the page and `ControlOrMeta+k` (Meta on macOS) never opens Power K. Press the page's modifier (helpers-b.ts `modifierKey`).
-- Notifications from one agent on one item coalesce for 10 minutes (decision 51): give each e2e agent its own client name. scripts/mcp-call.ts always acts as `mcp:p3-acceptance`.
+- Notifications from one agent on one item coalesce for 10 minutes (decision 51): give each e2e agent its own client name (`mcp(tool, input, client)`). scripts/mcp-call.ts acts as `mcp:p3-acceptance` unless given `--client`. A client name shows as an avatar label, so a form-field word in it ("name") breaks `getByLabel("Name")` in other specs.
+- A hand-started server hides the header Assistant button until `/api/ai/status` says available: set `TESSERA_AI_FAKE=tests/e2e/fixtures/ai` (replay only). Every visit to `/` moves the last-visit marker: re-seed Since rows with fresh MCP writes before each measurement.
+- helpers-b `hitBoxMisses` is lenient in `[role="banner"]`; prove that header boxes do not overlap with helpers-c `strictHitBoxMisses`. An Astryx Tab without `aria-label` has its label twice in textContent ("GeneralGeneral"): read the accessible name.

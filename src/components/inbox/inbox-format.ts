@@ -5,9 +5,9 @@
  * of `Date.now()`.
  *
  * `InboxNote` is the slice the screen renders. The table's stable key is
- * `uid`. `event_count` is the number of events merged into the row (decision
- * 51); `sort_at` orders the list and moves to the wake time on a snooze
- * (decision 52).
+ * `uid`. `event_count` is the number of events merged into the row and
+ * `kind_count` those of its current kind (decision 51); `sort_at` orders the
+ * list and moves to the wake time on a snooze (decision 52).
  */
 import type { ActorKind } from "@/lib/tessera/types";
 
@@ -29,6 +29,7 @@ export type InboxNote = {
   archived_at: string | null;
   is_snoozed: boolean;
   event_count: number;
+  kind_count: number;
   sort_at: string;
   created_at: string;
   /** Entity the row is about. Present on rows from the engine; a page mention has no work item. */
@@ -47,25 +48,17 @@ const PHRASES: Readonly<Record<string, string>> = {
 };
 
 /**
- * The words after the actor's name. A coalesced `commented` row reads
- * "commented N times" (decision 51: `event_count` is the number of events
- * merged into the row). ASSUMPTION: the count can include a merged state
- * change or edit by the same actor; the phrase still says "times" because the
- * row is the actor's burst on one item.
+ * The words after the actor's name (decision 51). `kindCount` is the number of
+ * events of the row's current kind: above 1 the phrase gains "N times"
+ * ("commented 3 times"). `eventCount` is every event merged into the row: the
+ * ones of another kind read " · +M more" (M = eventCount - kindCount). A single
+ * event reads the plain phrase.
  */
-export function notificationPhrase(kind: string, eventCount = 1): string {
-  if (kind === "commented" && eventCount > 1) return `commented ${eventCount} times`;
-  return PHRASES[kind] ?? kind.replaceAll("_", " ");
-}
-
-/**
- * "+1" once a row has coalesced (event_count 2): the number of events merged
- * in beyond the first. Null for a single event and for `commented`, whose
- * phrase already carries the count.
- */
-export function extraEventLabel(eventCount: number, kind?: string): string | null {
-  if (kind === "commented") return null;
-  return eventCount > 1 ? `+${eventCount - 1}` : null;
+export function notificationPhrase(kind: string, kindCount = 1, eventCount = kindCount): string {
+  const base = PHRASES[kind] ?? kind.replaceAll("_", " ");
+  const times = kindCount > 1 ? ` ${kindCount} times` : "";
+  const more = eventCount > kindCount ? ` · +${eventCount - kindCount} more` : "";
+  return `${base}${times}${more}`;
 }
 
 /** "<key> <title> · <snippet>", dropping whichever parts are empty. */

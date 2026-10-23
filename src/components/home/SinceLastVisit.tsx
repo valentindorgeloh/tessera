@@ -72,7 +72,7 @@ function useHomeSeenBeacon(seq: number): void {
 function SinceRow({ entry }: { entry: SinceEntry }) {
   return (
     <ListItem
-      label={sinceRowLabel(entry)}
+      label={<Text className="tessera-home-since-label">{sinceRowLabel(entry)}</Text>}
       description={sinceDescription(entry.fields, entry.count)}
       href={entry.target.href === "" ? undefined : entry.target.href}
       startContent={<Avatar name={entry.actor.name} size="sm" tooltip={false} />}

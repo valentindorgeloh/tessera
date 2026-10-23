@@ -106,7 +106,7 @@ Deferrals:
 |---|---|
 | 49 | **Notifications derive from activity.** `logActivity` (activity.ts) calls `notifyFromActivity(ctx, row)` (notifications.ts) after the insert, so every mutation from every adapter (Server Actions, MCP, assistant Apply, automations later) notifies inside its own transaction. Only rows with a `work_item_id` notify in P7. Recipients: the item's subscribers, plus the explicit target of `assignees` added rows (the new assignee) and `mention` added rows (the mentioned actor). |
 | 50 | **Who never receives**: the causing actor (`ctx.actor`); actors of kind `system` and `assistant`; deleted actors; and, when the causing actor is `assistant`, the user too (the user clicked Apply). MCP agents (kind `agent`) do receive and read their own inbox through the notification tools. |
-| 51 | **Kinds and coalescing.** `NotificationKind` = `mentioned`, `assigned`, `commented`, `state_changed`, `updated`, `intake_received` (P8), `automation` (P10); rank in that order. A new event merges into the recipient's newest notification with the same `work_item_id` and causing `actor_id` when it is unread, not archived, not snoozed and its `sort_at` is under 10 minutes old (`COALESCE_WINDOW_MS`): `kind` becomes the higher-ranked one, `snippet` the newest event's, `event_count + 1`, `sort_at = now`. Otherwise a new row. Rows not notifying: verbs `created`, `copied`, `reacted`, `unreacted`; field `sort_order`; `mention` removed rows. |
+| 51 | **Kinds and coalescing.** `NotificationKind` = `mentioned`, `assigned`, `commented`, `state_changed`, `updated`, `intake_received` (P8), `automation` (P10); rank in that order. A new event merges into the recipient's newest notification with the same `work_item_id` and causing `actor_id` when it is unread, not archived, not snoozed and its `sort_at` is under 10 minutes old (`COALESCE_WINDOW_MS`): `kind` becomes the higher-ranked one, `snippet` the newest event's, `event_count + 1`, `sort_at = now`. `kind_count` (events of the row's current kind) follows the merge: a higher-ranked new kind sets `kind` to it and `kind_count` to 1, the same kind adds 1, a lower-ranked kind leaves it; `event_count` stays the total. The row reads the kind's phrase, with "N times" when `kind_count` > 1 and " · +M more" (M = `event_count` − `kind_count`) for the other events; a single event reads the plain phrase (migration 0013 adds `kind_count` with default 1 and no backfill, so an older merged row reads "+M more", which is always true). Otherwise a new row. Rows not notifying: verbs `created`, `copied`, `reacted`, `unreacted`; field `sort_order`; `mention` removed rows. |
 | 52 | **Read, archive, snooze.** Inbox = not archived and (`snoozed_till` null or ≤ now), ordered by `sort_at` desc. Snoozing sets `snoozed_till`, sets `sort_at = snoozed_till` and clears `read_at`, so the row comes back unread at the top when it wakes; unsnooze clears `snoozed_till` and sets `sort_at = now`. Archive keeps the read state; archived and snoozed rows are never coalescing targets. Unread count (badge) = unread, not archived, not snoozed. |
 | 53 | **Mentions are links** `[@Name](actor:<id>)` in every markdown body (work item description, comment, page). `actor` joins `ENTITY_LINK_SCHEMES`; the `@` pick inserts text with a Link mark, exactly as `#` does, so no custom node parses it. On every body save the engine replaces the entity's `mention` rows with the ids found (`extractActorMentions`); each added id logs an activity row (`verb: "added"`, `field: "mention"`) which notifies (`mentioned`) and auto-subscribes the actor for work items and comments. Plain `@Name` text stays text. Existing plain `@Name` bodies are not migrated. |
 | 54 | **Subscriptions** are added on create (creator), assign, comment (author) and mention; there is no sticky opt-out: a later comment, assignment or mention subscribes again. Unsubscribe removes the row as today. |
@@ -128,6 +128,7 @@ take the next free number).
 |---|---|---|
 | `notification` | add `sort_at text NOT NULL DEFAULT ''` (the service always writes it; SQLite's `ADD COLUMN … NOT NULL` needs a constant default) | inbox order, snooze wake-up (decision 52) |
 | `notification` | add `event_count integer NOT NULL DEFAULT 1` | coalescing (decision 51) |
+| `notification` | add `kind_count integer NOT NULL DEFAULT 1` (migration 0013, fix round 4) | wording of a merged row (decision 51) |
 | `notification` | add index `notification_inbox_idx` on (`recipient_actor_id`, `archived_at`, `sort_at`) | inbox list |
 | `notification` | add index `notification_coalesce_idx` on (`recipient_actor_id`, `work_item_id`, `actor_id`, `seq`) | coalescing lookup |
 | `work_item_relation` | replace `work_item_relation_pair_uq` with `work_item_relation_unordered_uq` = `uniqueIndex().on(sql\`min(work_item_id, related_work_item_id)\`, sql\`max(work_item_id, related_work_item_id)\`).where(DELETED_AT_IS_NULL)`; keep `work_item_relation_related_idx` and add `work_item_relation_item_idx` on (`work_item_id`) | one live row per unordered pair even under two writers (decision 55) |
@@ -394,8 +395,8 @@ area CSS files; no `<div>`/`<span>`, hex or xstyle.
   `Avatar` (actor name), `label` "<actor> <phrase>" (`inbox-format.ts`),
   `description` "<key> <title> · <snippet>", `endContent` `RelativeTime`
   (`hasTooltip={false}` when inside a tooltip trigger) and an unread `StatusDot
-  variant="accent" label="Unread"`; `isSelected` for the open item; `event_count > 1`
-  shows "+N" as text. Row `MoreMenu`: Mark read / unread, Archive / Unarchive,
+  variant="accent" label="Unread"`; `isSelected` for the open item; a coalesced
+  row says so in the label phrase ("commented 2 times · +1 more"), no separate "+N" text. Row `MoreMenu`: Mark read / unread, Archive / Unarchive,
   Snooze ▸ (1 hour, Tomorrow 09:00, Next Monday 09:00, Custom…), Unsnooze.
 - `components/inbox/SnoozeDialog.tsx`: `Dialog` with `DateTimeInput` (`min` now,
   `max` now + 90 days, `hasClear={false}`); presets computed in event handlers in
@@ -404,7 +405,7 @@ area CSS files; no `<div>`/`<span>`, hex or xstyle.
   the list when the AI status is available (**refresh before build**: DigestCard
   props).
 - `components/inbox/inbox-format.ts` (no directive, pure): `notificationPhrase(kind,
-  event_count)`, `snoozePresets(now)`, `inboxHref(tab, unread, item)`.
+  kind_count, event_count)`, `snoozePresets(now)`, `inboxHref(tab, unread, item)`.
 - Shell: `Sidebar.tsx` adds `SideNavItem` "Inbox" (`icon` `InboxIcon`, `href`
   "/inbox", `endContent` `<Badge label={String(n)} />` when n > 0) after Home;
   `ChangesPoller.tsx` takes `initialUnread` and refreshes when the polled
@@ -516,7 +517,7 @@ scratchpad, `TESSERA_DB_PATH=data/p7-acceptance.db npm run build && next start -
 | MCP agents accumulate unread notifications nobody reads | Indexed; the agent's own tools archive; retention is a P11 item |
 | Two lanes in `collaboration.css` | Sequential ownership or a split file (refresh before build) |
 | P5/P6 names differ from this plan (`DigestCard`, `digest-store`, `pages/body.ts`, registry file names) | Marked refresh before build; the contract planner re-reads them |
-| Coalescing hides an event the user cares about | Kind rank keeps the most important kind; `event_count` shows "+N"; the item timeline lists every event |
+| Coalescing hides an event the user cares about | Kind rank keeps the most important kind; `kind_count` and `event_count` put "N times" and "· +M more" in the label; the item timeline lists every event |
 
 ### 11. Open questions for the user (each with the default the plan uses)
 

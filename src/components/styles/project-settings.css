@@ -295,3 +295,50 @@
     padding-inline: var(--spacing-2);
   }
 }
+
+/*
+ * Project settings strip (SettingsTabs.tsx, decision 14). Seven tabs: below 600px
+ * the strip is hidden and the SectionMenu in the same sub-header lists them (the
+ * menu's own text sits on the 16px inset, the button brings 12px of padding).
+ * From 600px shell.css hides the menu. 600 to 1023px with the sidebar docked
+ * left the strip 17px short at 768px (it scrolled): the tabs take an 8px inline
+ * padding and the strip runs to the panel's edge (the bar's 16px inset is
+ * claimed back), the first label staying on the 16px inset. From 1024px the
+ * generic strip fits (measured at 1024, 1280 and 1440).
+ */
+@media (max-width: 599px) {
+  .tessera-settings-tabs--project {
+    display: none;
+  }
+
+  .tessera-section-menu--settings {
+    min-width: 0;
+    margin-inline-start: calc(-1 * var(--spacing-3));
+  }
+}
+
+@media (min-width: 600px) and (max-width: 1023px) {
+  .tessera-settings-tabs--project .astryx-tab {
+    padding-inline: var(--spacing-2);
+  }
+
+  .tessera-settings-tabs--project {
+    width: calc(100% + var(--spacing-2) + var(--spacing-4));
+    max-width: none;
+    margin-inline-start: calc(-1 * var(--spacing-2));
+    flex: none;
+  }
+}
+
+/* The settings strip's loading placeholder (settings/layout.tsx) follows the same band switch as the strip: seven tabs from 600px, one menu button below. */
+@media (max-width: 599px) {
+  .tessera-settings-skeleton-tabs {
+    display: none;
+  }
+}
+
+@media (min-width: 600px) {
+  .tessera-settings-skeleton-menu {
+    display: none;
+  }
+}

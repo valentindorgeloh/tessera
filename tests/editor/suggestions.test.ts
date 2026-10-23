@@ -41,12 +41,13 @@ describe("suggestion context", () => {
   it("starts empty and holds what setSuggestionContext writes, per editor", () => {
     const first = headless(false);
     const second = headless(false);
-    expect(readSuggestionContext(first)).toEqual({ actors: [], projectId: null });
-    setSuggestionContext(first, { actors: ACTORS, projectId: "p1" });
-    expect(readSuggestionContext(first)).toEqual({ actors: ACTORS, projectId: "p1" });
-    expect(readSuggestionContext(second)).toEqual({ actors: [], projectId: null });
+    expect(readSuggestionContext(first)).toEqual({ actors: [], projectId: null, pageId: null });
+    setSuggestionContext(first, { actors: ACTORS, projectId: "p1", pageId: "pg-web" });
+    expect(readSuggestionContext(first)).toEqual({ actors: ACTORS, projectId: "p1", pageId: "pg-web" });
+    expect(readSuggestionContext(second)).toEqual({ actors: [], projectId: null, pageId: null });
+    // A host that omits pageId clears it, so a recycled editor never keeps the previous page.
     setSuggestionContext(first, { actors: [], projectId: null });
-    expect(readSuggestionContext(first)).toEqual({ actors: [], projectId: null });
+    expect(readSuggestionContext(first)).toEqual({ actors: [], projectId: null, pageId: null });
   });
 
   it("the @ trigger reads the actors current at query time", async () => {
@@ -157,6 +158,41 @@ describe("the [[ page trigger (decision 10)", () => {
     const url = new URL(String(fetchMock.mock.calls[0][0]), "http://localhost");
     expect(Object.fromEntries(url.searchParams)).toEqual({ q: "o", types: "page", limit: "8" });
     expect(rows?.map((row) => row.id)).toEqual(["pg-wiki", "pg-web", "pg-ops"]);
+  });
+
+  it("leaves the page being edited out of its own results and asks for one extra row (a self-link is dropped on save)", async () => {
+    const wikiHits = Array.from({ length: 9 }, (_, i) => ({ ...WIKI_HIT, id: `w${i}`, title: `Wiki ${i}` }));
+    const fetchMock = stubSearch((url) => (url.searchParams.has("scope") ? [PROJECT_HIT, ...wikiHits.slice(0, 7)] : wikiHits));
+    const editor = headless(true);
+    const { page } = buildEditorSuggestions();
+    setSuggestionContext(editor, { actors: [], projectId: "p1", pageId: "pg-web" });
+    const rows = await page.items?.({ query: "spec", editor, signal: new AbortController().signal });
+    const urls = fetchMock.mock.calls.map((call) => new URL(String(call[0]), "http://localhost"));
+    const scoped = urls.find((url) => url.searchParams.has("scope"));
+    const unscoped = urls.find((url) => !url.searchParams.has("scope"));
+    expect(Object.fromEntries(scoped?.searchParams ?? [])).toEqual({ q: "spec", types: "page", limit: "9", scope: "p1" });
+    expect(Object.fromEntries(unscoped?.searchParams ?? [])).toEqual({ q: "spec", types: "page", limit: "20" });
+    expect(rows?.map((row) => row.id)).not.toContain("pg-web");
+    expect(rows).toHaveLength(8);
+  });
+
+  it("on a wiki page it drops the page itself and still returns eight rows", async () => {
+    const hits = [WIKI_HIT, ...Array.from({ length: 8 }, (_, i) => ({ ...WIKI_HIT, id: `w${i}`, title: `Wiki ${i}` }))];
+    const fetchMock = stubSearch(() => hits);
+    const editor = headless(true);
+    const { page } = buildEditorSuggestions();
+    setSuggestionContext(editor, { actors: [], projectId: null, pageId: "pg-wiki" });
+    const rows = await page.items?.({ query: "w", editor, signal: new AbortController().signal });
+    expect(Object.fromEntries(new URL(String(fetchMock.mock.calls[0][0]), "http://localhost").searchParams)).toEqual({ q: "w", types: "page", limit: "9" });
+    expect(rows).toHaveLength(8);
+    expect(rows?.map((row) => row.id)).not.toContain("pg-wiki");
+  });
+
+  it("the page body editor hands its page id to the editor's suggestion context", () => {
+    expect(readFileSync("src/components/pages/PageBodyEditor.tsx", "utf8")).toContain("pageId={pageId}");
+    const editor = readFileSync("src/components/editor/MarkdownEditor.tsx", "utf8");
+    expect(editor).toContain("setSuggestionContext(editor, { actors: mentionActors, projectId, pageId })");
+    expect(editor).toContain("[editor, mentionActors, projectId, pageId]");
   });
 
   it("keeps the other half of the list when one request fails, and shows nothing when both do", async () => {

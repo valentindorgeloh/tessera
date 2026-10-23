@@ -27,6 +27,7 @@ const note: InboxNote = {
   archived_at: null,
   is_snoozed: false,
   event_count: 2,
+  kind_count: 2,
   sort_at: "2026-10-22T10:00:00.000Z",
   created_at: "2026-10-22T10:00:00.000Z",
 };
@@ -54,5 +55,25 @@ describe("NotificationRow label", () => {
       }),
     );
     expect(html).toContain("mcp:p3-acceptance-agent commented 2 times");
+  });
+
+  it("renders '· +M more' in the label and no separate '+N' text in the row end", () => {
+    const noop = () => {};
+    const html = renderToString(
+      createElement(NotificationRow, {
+        note: { ...note, kind_count: 2, event_count: 3 },
+        isSelected: false,
+        onOpen: noop,
+        onMarkRead: noop,
+        onMarkUnread: noop,
+        onArchive: noop,
+        onUnarchive: noop,
+        onSnooze: noop,
+        onSnoozeCustom: noop,
+        onUnsnooze: noop,
+      }),
+    );
+    expect(html).toContain("mcp:p3-acceptance-agent commented 2 times · +1 more");
+    expect(html).not.toMatch(/>\+\d+</);
   });
 });

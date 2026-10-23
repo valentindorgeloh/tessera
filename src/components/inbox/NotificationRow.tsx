@@ -2,7 +2,8 @@
 
 /**
  * One inbox row (docs/drafts/p7-plan.md §6): who did what, the work item and
- * snippet, the time, an unread dot, and "+N" when a row other than a comment burst coalesced. The menu
+ * snippet, the time and an unread dot. A coalesced row says so in its phrase
+ * ("commented 2 times · +1 more", decision 51). The menu
  * marks read or unread, archives, and snoozes. The label is a <Text> so a long
  * actor name wraps at 375px instead of clipping "mentioned you" (a plain string
  * label is one line). Preset times are computed in
@@ -17,7 +18,7 @@ import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
 import { RelativeTime } from "@/components/detail/RelativeTime";
 import { ArchiveIcon, BellIcon, CheckIcon, ClockIcon, RestoreIcon } from "@/themes/catppuccin/icons";
-import { extraEventLabel, notificationDescription, notificationPhrase, snoozePresets, type InboxNote, type SnoozePresetId } from "./inbox-format";
+import { notificationDescription, notificationPhrase, snoozePresets, type InboxNote, type SnoozePresetId } from "./inbox-format";
 
 export type NotificationRowProps = {
   note: InboxNote;
@@ -45,8 +46,7 @@ export function NotificationRow({
   onUnsnooze,
 }: NotificationRowProps) {
   const actor = note.actor_name ?? "Someone";
-  const phrase = notificationPhrase(note.kind, note.event_count);
-  const extra = extraEventLabel(note.event_count, note.kind);
+  const phrase = notificationPhrase(note.kind, note.kind_count, note.event_count);
   const unread = note.read_at === null;
   const snooze = (id: SnoozePresetId) => {
     const preset = snoozePresets(new Date()).find((item) => item.id === id);
@@ -83,11 +83,6 @@ export function NotificationRow({
       startContent={<Avatar name={actor} size="sm" />}
       endContent={
         <HStack gap={2} vAlign="center" className="tessera-inbox-row-meta" onClick={(event) => event.stopPropagation()}>
-          {extra !== null ? (
-            <Text type="supporting" color="secondary" hasTabularNumbers>
-              {extra}
-            </Text>
-          ) : null}
           <RelativeTime value={note.sort_at || note.created_at} type="supporting" color="secondary" hasTooltip={false} />
           {/* The dot's slot stays on a read row, so the time text has one x on every row. */}
           <HStack hAlign="center" vAlign="center" className="tessera-inbox-dot">

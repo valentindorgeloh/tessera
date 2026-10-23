@@ -176,14 +176,14 @@ export function TopBar() {
     <TopNav
       label={name}
       heading={
-        <HStack gap={1} vAlign="center">
+        <HStack gap={1} vAlign="center" className="tessera-topbar-heading">
           {isMobile ? null : <SideNavCollapseButton size="sm" collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed }} />}
           <TopNavHeading heading={name} headingHref="/" logo={<NavIcon icon={<Icon icon={SquaresFourIcon} size="sm" />} />} />
         </HStack>
       }
       centerContent={<SearchTrigger onOpen={openCommandBar} />}
       endContent={
-        <HStack gap={1} vAlign="center">
+        <HStack gap={1} vAlign="center" className="tessera-topbar-end">
           <AssistantButton />
           <IconButton label="Help and keyboard shortcuts" variant="ghost" size="sm" tooltip="Keyboard shortcuts" icon={<Icon icon={QuestionIcon} />} onClick={openShortcuts} />
           <AccountMenu onShortcuts={openShortcuts} />

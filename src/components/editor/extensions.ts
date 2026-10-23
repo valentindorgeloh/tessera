@@ -57,6 +57,8 @@ export type SuggestionContext = {
   actors: readonly { id: string; name: string }[];
   /** Scope of the `#` search; null outside a project. */
   projectId: string | null;
+  /** The page being edited, left out of the `[[` results (a self-link is dropped on save); null elsewhere. */
+  pageId?: string | null;
 };
 
 declare module "@tiptap/core" {
@@ -243,7 +245,7 @@ function mentionLabel(attrs: Record<string, unknown>): string {
   return typeof label === "string" && label ? label : typeof id === "string" ? id : "";
 }
 
-const EMPTY_SUGGESTION_CONTEXT: SuggestionContext = { actors: [], projectId: null };
+const EMPTY_SUGGESTION_CONTEXT: SuggestionContext = { actors: [], projectId: null, pageId: null };
 
 /** Holds the SuggestionContext of one editor instance (no plugins, storage only). */
 const SuggestionContextExtension = Extension.create<Record<string, never>, SuggestionContext>({
@@ -264,6 +266,7 @@ export function setSuggestionContext(editor: Editor, next: SuggestionContext): v
   if (!storage) return;
   storage.actors = next.actors;
   storage.projectId = next.projectId;
+  storage.pageId = next.pageId ?? null;
 }
 
 /** Wraps one `Suggestion` plugin in an extension so it can sit in the extension list. */

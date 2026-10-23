@@ -47,14 +47,17 @@ async function Tabs({ params }: Pick<Props, "params">) {
   return <SettingsTabs projectId={projectId} />;
 }
 
+/** Mirrors SettingsTabs: seven tab placeholders from 600px, one menu-button placeholder below (project-settings.css switches the two, as for the real tabs). */
 function TabsSkeleton() {
+  const widths = [56, 64, 48, 48, 64, 48, 72];
   return (
-    <HStack gap={4} vAlign="center">
-      <Skeleton width={64} height={24} />
-      <Skeleton width={64} height={24} index={1} />
-      <Skeleton width={56} height={24} index={2} />
-      <Skeleton width={56} height={24} index={3} />
-      <Skeleton width={64} height={24} index={4} />
-    </HStack>
+    <>
+      <Skeleton width={104} height={24} className="tessera-settings-skeleton-menu" />
+      <HStack gap={4} vAlign="center" className="tessera-settings-skeleton-tabs">
+        {widths.map((width, index) => (
+          <Skeleton key={index} width={width} height={24} index={index} />
+        ))}
+      </HStack>
+    </>
   );
 }

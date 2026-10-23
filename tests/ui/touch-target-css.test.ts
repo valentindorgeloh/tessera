@@ -295,3 +295,26 @@ describe("product base layer (S5, base.css)", () => {
     expect(base).toMatch(/:where\(a\[href\][\s\S]*?time\[tabindex\][\s\S]*?\[role="button"\][\s\S]*?\):focus-visible\s*\{[^}]*outline:\s*var\(--focus-outline-width\) var\(--focus-outline-style\) var\(--focus-outline-color\)[^}]*outline-offset:\s*var\(--focus-outline-offset\)/);
   });
 });
+
+describe("top bar icon buttons keep apart under the touch query (shell.css, TopBar.tsx)", () => {
+  const shell = stripComments(read("src/components/styles/shell.css"));
+  const touch = blocks(shell).find((block) => block.prelude === TOUCH_MEDIA);
+
+  it("spaces the end group 16px apart (28px drawn buttons get a 44px pitch) and 12px from the window edge", () => {
+    expect(touch?.body).toMatch(/\.astryx-top-nav \.tessera-topbar-end\s*\{[^}]*column-gap:\s*var\(--spacing-4\);[^}]*margin-inline-end:\s*var\(--spacing-3\)/);
+  });
+
+  it("spaces the heading group (collapse button, brand) 8px apart", () => {
+    expect(touch?.body).toMatch(/\.astryx-top-nav \.tessera-topbar-heading\s*\{[^}]*column-gap:\s*var\(--spacing-2\)/);
+  });
+
+  it("TopBar.tsx carries both classes", () => {
+    const top = read("src/components/shell/TopBar.tsx");
+    expect(top).toContain('className="tessera-topbar-heading"');
+    expect(top).toContain('className="tessera-topbar-end"');
+  });
+
+  it("no longer tiles the project tab hit areas", () => {
+    expect(touch?.body).not.toContain("tessera-project-tabs");
+  });
+});

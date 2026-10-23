@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { notificationPhrase } from "@/components/inbox/inbox-format";
 import { registerActor } from "@/lib/tessera/actors";
 import { setAssignees, subscribe } from "@/lib/tessera/assignees";
 import { createComment } from "@/lib/tessera/comments";
@@ -215,6 +216,71 @@ describe("coalescing (decision 51)", () => {
     clock.at += 60_000;
     createComment(writerCtx, item.id, { body_md: "plain again" });
     expect(inbox()[0]).toMatchObject({ kind: "mentioned", event_count: 3, snippet: "plain again" });
+  });
+
+  it("counts the kind separately from the events (kind_count, decision 51)", () => {
+    const { clock, writerCtx, item, inbox } = coalesceSetup();
+    const read = () => {
+      const row = inbox()[0]!;
+      return [row.kind, row.kind_count, row.event_count, notificationPhrase(row.kind, row.kind_count, row.event_count)];
+    };
+    createComment(writerCtx, item.id, { body_md: "one" });
+    expect(read()).toEqual(["commented", 1, 1, "commented"]);
+    clock.at += 60_000;
+    createComment(writerCtx, item.id, { body_md: "two" });
+    expect(read()).toEqual(["commented", 2, 2, "commented 2 times"]);
+    // A lower-ranked event adds to event_count only.
+    clock.at += 60_000;
+    updateWorkItem(writerCtx, item.id, { priority: "high" });
+    expect(read()).toEqual(["commented", 2, 3, "commented 2 times · +1 more"]);
+  });
+
+  it("reads 'commented · +1 more' for a state change then a comment, and for a comment then a state change", () => {
+    const first = coalesceSetup();
+    const states = listStates(first.user, first.project.id);
+    const next = states.find((state) => state.id !== first.item.state_id)!;
+    updateWorkItem(first.writerCtx, first.item.id, { state_id: next.id });
+    expect(first.inbox()[0]).toMatchObject({ kind: "state_changed", kind_count: 1, event_count: 1 });
+    first.clock.at += 60_000;
+    createComment(first.writerCtx, first.item.id, { body_md: "after" });
+    const a = first.inbox()[0]!;
+    expect([a.kind, a.kind_count, a.event_count]).toEqual(["commented", 1, 2]);
+    expect(notificationPhrase(a.kind, a.kind_count, a.event_count)).toBe("commented · +1 more");
+
+    const second = coalesceSetup();
+    createComment(second.writerCtx, second.item.id, { body_md: "before" });
+    second.clock.at += 60_000;
+    const nextInSecond = listStates(second.user, second.project.id).find((state) => state.id !== second.item.state_id)!;
+    updateWorkItem(second.writerCtx, second.item.id, { state_id: nextInSecond.id });
+    const b = second.inbox()[0]!;
+    expect([b.kind, b.kind_count, b.event_count]).toEqual(["commented", 1, 2]);
+    expect(notificationPhrase(b.kind, b.kind_count, b.event_count)).toBe("commented · +1 more");
+  });
+
+  it("comment, comment, state change reads 'commented 2 times · +1 more'; comment, comment, mention reads 'mentioned you · +2 more'", () => {
+    const first = coalesceSetup();
+    const next = listStates(first.user, first.project.id).find((state) => state.id !== first.item.state_id)!;
+    createComment(first.writerCtx, first.item.id, { body_md: "a" });
+    createComment(first.writerCtx, first.item.id, { body_md: "b" });
+    updateWorkItem(first.writerCtx, first.item.id, { state_id: next.id });
+    const a = first.inbox()[0]!;
+    expect(notificationPhrase(a.kind, a.kind_count, a.event_count)).toBe("commented 2 times · +1 more");
+
+    const second = coalesceSetup();
+    createComment(second.writerCtx, second.item.id, { body_md: "a" });
+    createComment(second.writerCtx, second.item.id, { body_md: "b" });
+    createComment(second.writerCtx, second.item.id, { body_md: `ping [@Reader](actor:${second.readerId})` });
+    const b = second.inbox()[0]!;
+    expect([b.kind, b.kind_count, b.event_count]).toEqual(["mentioned", 1, 3]);
+    expect(notificationPhrase(b.kind, b.kind_count, b.event_count)).toBe("mentioned you · +2 more");
+  });
+
+  it("a row from before kind_count (default 1, event_count 3) reads 'commented · +2 more'", () => {
+    const { handles, writerCtx, item, inbox } = coalesceSetup();
+    createComment(writerCtx, item.id, { body_md: "legacy" });
+    handles.sqlite.prepare("UPDATE notification SET event_count = 3, kind_count = 1").run();
+    const row = inbox()[0]!;
+    expect(notificationPhrase(row.kind, row.kind_count, row.event_count)).toBe("commented · +2 more");
   });
 
   it("lists by sort_at then seq, newest first", () => {

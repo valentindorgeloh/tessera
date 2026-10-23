@@ -46,3 +46,27 @@ describe("home reorder touch handling", () => {
     expect(readFileSync(path.join(process.cwd(), "src/components/home/SinceLastVisit.tsx"), "utf8")).toContain('className="tessera-home-more"');
   });
 });
+
+describe("Since row labels", () => {
+  it("stay one line with an ellipsis on desktop", () => {
+    const rule = topRule(".tessera-home-since-label");
+    expect(rule).toMatch(/display:\s*block/);
+    expect(rule).toMatch(/overflow:\s*hidden/);
+    expect(rule).toMatch(/white-space:\s*nowrap/);
+    expect(rule).toMatch(/text-overflow:\s*ellipsis/);
+  });
+
+  it("wrap to at most two lines at 480px and narrower", () => {
+    const match = /@media \(max-width: 480px\)\s*\{\s*\.tessera-home-since-label\s*\{([^}]*)\}/.exec(source);
+    expect(match?.[1]).toMatch(/display:\s*-webkit-box/);
+    expect(match?.[1]).toMatch(/-webkit-box-orient:\s*vertical/);
+    expect(match?.[1]).toMatch(/-webkit-line-clamp:\s*2/);
+    expect(match?.[1]).toMatch(/white-space:\s*normal/);
+  });
+
+  it("is a Text with the class, not Text maxLines (which clamps inline at every width)", () => {
+    const row = readFileSync(path.join(process.cwd(), "src/components/home/SinceLastVisit.tsx"), "utf8");
+    expect(row).toContain('<Text className="tessera-home-since-label">{sinceRowLabel(entry)}</Text>');
+    expect(row).not.toContain("maxLines");
+  });
+});

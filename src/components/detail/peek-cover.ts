@@ -11,7 +11,7 @@
  * The threshold is a fixed container width, not the panel's current width, so
  * dragging the resize handle never flips the panel into cover mid-drag.
  */
-import { useCallback, useLayoutEffect, useRef, useState, type FocusEvent } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type FocusEvent, type PointerEvent } from "react";
 import { PEEK_MIN_WIDTH } from "./peek-prefs";
 
 /** The least width the list keeps beside the side peek. */
@@ -66,10 +66,16 @@ export type CoverFocusState = {
  * the detail stays there when the cover starts or ends on a resize. The remembered control survives resizes (a 768 to
  * 1440 to 768 round trip) and is dropped only when the peek closes. A side panel beside the list gets the same return on
  * close, because the focused Close button leaves with the detail and the focus would otherwise fall to the body.
- * The returned handler goes on the list region's `onFocus` (React's focus bubbles) and remembers that control.
+ * The returned handlers go on the list region and remember that control: `onFocus` (React's focus bubbles) and
+ * `onPointerDown`, because Safari does not focus a button on click, so no focus event names the row there; the
+ * pointer-down records the closest control under the pointer when it sits inside the region. A pointer-down that
+ * lands on no control keeps the previous opener (ASSUMPTION).
  * ASSUMPTION: opening a side peek that does not cover the list leaves focus where it is, as before.
  */
-export function useCoverFocus({ isOpen, isModal, isCovering }: CoverFocusState, detailNode: HTMLElement | null): (event: FocusEvent<HTMLElement>) => void {
+export function useCoverFocus(
+  { isOpen, isModal, isCovering }: CoverFocusState,
+  detailNode: HTMLElement | null,
+): { onFocus: (event: FocusEvent<HTMLElement>) => void; onPointerDown: (event: PointerEvent<HTMLElement>) => void } {
   const opener = useRef<HTMLElement | null>(null);
   const wasCovering = useRef(false);
   const wasOpen = useRef(false);
@@ -97,7 +103,12 @@ export function useCoverFocus({ isOpen, isModal, isCovering }: CoverFocusState, 
     const isFocusFree = active === null || active === document.body;
     if (target?.isConnected && isFocusFree) target.focus();
   }, [isOpen, isModal, isCovering, detailNode]);
-  return useCallback((event: FocusEvent<HTMLElement>) => {
+  const onFocus = useCallback((event: FocusEvent<HTMLElement>) => {
     opener.current = event.target;
   }, []);
+  const onPointerDown = useCallback((event: PointerEvent<HTMLElement>) => {
+    const control = event.target instanceof Element ? event.target.closest<HTMLElement>(TABBABLE) : null;
+    if (control !== null && event.currentTarget.contains(control)) opener.current = control;
+  }, []);
+  return { onFocus, onPointerDown };
 }

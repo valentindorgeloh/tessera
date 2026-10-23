@@ -374,6 +374,7 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
         placeholder="Write the page. Type / for blocks, # for work items, @ for people."
         mentionActors={mentionActors}
         projectId={projectId}
+        pageId={pageId}
         onOpenEntity={openEntity}
       />
       <Text type="supporting" color="secondary" aria-live="polite">
