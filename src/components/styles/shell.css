@@ -22,6 +22,26 @@
 }
 
 /*
+ * Coarse pointer, 600px and wider (decision 14, option A): the theme's 44px hit area belongs to the
+ * input (301x44 at 1440), so the 28px chip beside it (the Kbd addon) left points 8px above and
+ * below it on the top bar. The field's own box gets a block-axis-only area (the theme's block
+ * inset, no inline reach), so a tap anywhere in the field's box lands on it and opens Power K
+ * through the Stack's onClick. The input is positioned and comes later, so it still paints above.
+ */
+@media (pointer: coarse) and (min-width: 600px) {
+  .tessera-topbar-search {
+    position: relative;
+  }
+
+  .tessera-topbar-search::before {
+    content: "";
+    position: absolute;
+    inset-block: min(0px, calc((100% - var(--spacing-11)) / 2));
+    inset-inline: 0;
+  }
+}
+
+/*
  * Below 600px the field is the drawer's search: it takes the whole centre slot
  * and TopBar.tsx drops the ⌘K chip and shortens the placeholder to "Search", so
  * the placeholder no longer clips to "Search v…" in a 47px input.
@@ -449,6 +469,38 @@
   }
 }
 
+/*
+ * Coarse pointer, 1280px and wider (decision 14, option A): the eight tabs show their labels
+ * (77 to 110px wide, so the theme's inline inset is 0: each area is the tab's own width) and the
+ * strip puts 2px (--spacing-0-5) between them. Each area reaches half that gap toward a
+ * neighbour, so the areas tile with no dead point and no overlap: the inline start on every tab
+ * but the first, the inline end on every tab but the last (the scrolling strip would clip
+ * any reach outward). Tabs sit in a wrapper each (Astryx Tooltip), followed by a template and a
+ * tooltip div, so the "neighbour" is a wrapper beside the one holding the tab.
+ * The tab is 28px drawn on the bar's bottom edge: a symmetric 44px area reached 8px into the
+ * content row below, where a toolbar control's own area won the corner points. The strip pads 16px
+ * above and none below (and takes the same back), so the 44px area sits on the bar: the tab keeps
+ * its place, the area runs from 16px above the tab to its bottom edge.
+ */
+@media (pointer: coarse) and (min-width: 1280px) {
+  .tessera-project-bar .tessera-project-tabs .astryx-tab-strip {
+    padding-block: var(--spacing-4) 0;
+    margin-block: calc(-1 * var(--spacing-4)) 0;
+  }
+
+  .tessera-project-bar .tessera-project-tabs .astryx-tab::before {
+    inset-block: min(0px, calc(100% - var(--spacing-11))) 0;
+  }
+
+  .tessera-project-bar .tessera-project-tabs .astryx-tab-strip > div:not(:first-child) > .astryx-tab::before {
+    inset-inline-start: calc(-0.5 * var(--spacing-0-5));
+  }
+
+  .tessera-project-bar .tessera-project-tabs .astryx-tab-strip > div:has(~ div > .astryx-tab) > .astryx-tab::before {
+    inset-inline-end: calc(-0.5 * var(--spacing-0-5));
+  }
+}
+
 /* From 600px the tab strips are back and the SectionMenu steps aside (the band switch is CSS only; shell.css phone block above). */
 @media (min-width: 600px) {
   .tessera-panel-bar .tessera-section-menu {
@@ -671,6 +723,15 @@
 
   .astryx-top-nav .tessera-topbar-heading {
     column-gap: var(--spacing-2);
+  }
+
+  /*
+   * The project bar's Add to favorites and Project actions buttons (ProjectFrame.tsx) are 28px
+   * drawn with a 44px area, 4px apart: their areas overlapped by 12px at every width. The same
+   * 16px gap as the top bar's end group makes the pitch 44px, so the areas tile.
+   */
+  .tessera-project-bar-actions {
+    column-gap: var(--spacing-4);
   }
 
   /*

@@ -66,7 +66,25 @@ describe("Since row labels", () => {
 
   it("is a Text with the class, not Text maxLines (which clamps inline at every width)", () => {
     const row = readFileSync(path.join(process.cwd(), "src/components/home/SinceLastVisit.tsx"), "utf8");
-    expect(row).toContain('<Text className="tessera-home-since-label">{sinceRowLabel(entry)}</Text>');
+    expect(row).toContain('<Text className="tessera-home-since-label">');
+    // Astryx Text takes no `title`, so the actor run has none (no spread around the types).
+    expect(row).toContain('<Text className="tessera-home-since-actor">{actor}</Text>');
+    expect(row).not.toMatch(/title: actor|title=\{actor\}/);
+    expect(row).toContain("` ${rest}`");
+    // The work item key is its own no-wrap run (Astryx textWrap), so it never breaks at its hyphen.
+    expect(row).toContain('<Text textWrap="nowrap">{keyed.key}</Text>');
     expect(row).not.toContain("maxLines");
+    expect(row).not.toMatch(/aria-label=/);
+  });
+
+  it("truncates the actor name on its own at 480px and narrower, not on desktop", () => {
+    const match = /@media \(max-width: 480px\)\s*\{[\s\S]*?\.tessera-home-since-actor\s*\{([^}]*)\}/.exec(source);
+    expect(match?.[1]).toMatch(/display:\s*inline-block/);
+    expect(match?.[1]).toMatch(/max-inline-size:\s*min\(40%,\s*16ch\)/);
+    expect(match?.[1]).toMatch(/overflow:\s*hidden/);
+    expect(match?.[1]).toMatch(/text-overflow:\s*ellipsis/);
+    expect(match?.[1]).toMatch(/white-space:\s*nowrap/);
+    expect(match?.[1]).toMatch(/vertical-align:\s*bottom/);
+    expect(source.split(".tessera-home-since-actor").length - 1).toBe(1); // only inside the media block
   });
 });

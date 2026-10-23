@@ -37,7 +37,7 @@ import {
   resolveState,
 } from "./model";
 import { loadWorkItem } from "./hydrate";
-import { addSubscribers } from "./membership";
+import { addSubscribers, syncAssignees } from "./membership";
 
 // ---------------------------------------------------------------------------
 // Create
@@ -193,8 +193,12 @@ export function createWorkItem(ctx: TesseraContext, input: CreateWorkItemInputTy
       target_date: target,
       label_ids: labelIds,
       module_ids: moduleIds,
-      assignee_ids: assigneeIds,
+      assignee_ids: [],
     });
+    // Initial assignees are logged through the same path as a later setAssignees, so the timeline reads the same and
+    // decisions 50 and 51 notify them (a self-assignment notifies nobody). Runs before intake / mention rows so a
+    // coalesced row keeps the mention's snippet. insertWorkItem already subscribed the creator; addSubscribers skips existing rows.
+    syncAssignees(ctx, { item: row, project: projectRow }, assigneeIds);
     if (viaIntake) recordIntakeItem(ctx, projectRow, row, data.source ?? intakeSourceFor(ctx));
     // Mentions in a description given at creation (decision 53). Not the copy path (transfer.ts) and not intake.
     else if (row.description_md !== "") {

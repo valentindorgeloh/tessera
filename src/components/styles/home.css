@@ -80,6 +80,20 @@
     -webkit-line-clamp: 2;
     white-space: normal;
   }
+
+  /*
+   * The actor name is its own truncating run inside the clamp (never Text maxLines on
+   * the nested Text, which forces display: block), so a long agent name leaves room for
+   * the verb phrase and the item key + title. The full name stays in the DOM.
+   */
+  .tessera-home-since-actor {
+    display: inline-block;
+    max-inline-size: min(40%, 16ch);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
 }
 
 /*

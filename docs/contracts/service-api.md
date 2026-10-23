@@ -128,7 +128,7 @@ listChildren(ctx, id): WorkItem[]
 createWorkItem(ctx, {
   project_id, name, description_md?, state_id?, priority?, parent_id?, cycle_id?, label_ids?, module_ids?,
   assignee_ids?, estimate_point_id?, start_date?, target_date?, source?: IntakeSource
-}): WorkItem                                                             // honours agent_intake_required for agent actors
+}): WorkItem                                                             // honours agent_intake_required for agent actors; initial assignees (explicit or the project default) are logged and notified like setAssignees (decisions 50, 51)
 updateWorkItem(ctx, id, patch: Partial<{ name, state_id, priority, parent_id, cycle_id, estimate_point_id, start_date, target_date }>): WorkItem
 bulkUpdateWorkItems(ctx, ids /* 1..500 */, patch): WorkItem[]            // one transaction, same patch rules as updateWorkItem
 updateWorkItemDescription(ctx, id, { description_md, expected_description_version }): WorkItem   // CAS → CONFLICT

@@ -46,13 +46,13 @@ afterEach(async () => {
   container = null;
 });
 
-async function render(narrow: boolean) {
+async function render(narrow: boolean, onOpen: (initialQuery?: string) => void = () => {}) {
   media.narrow = narrow;
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () => {
-    root?.render(createElement(SearchTrigger, { onOpen: () => {} }));
+    root?.render(createElement(SearchTrigger, { onOpen }));
   });
   return container;
 }
@@ -63,6 +63,21 @@ describe("SearchTrigger", () => {
     expect(el.querySelector("input")?.getAttribute("placeholder")).toBe("Search work items, or type a command");
     expect(el.textContent).toMatch(/K/);
     expect(el.querySelector("kbd")).not.toBeNull();
+  });
+
+  it("opens on a click anywhere in the field's box, the chip and the Stack's own area included (touch option A: shell.css gives the Stack a ::before)", async () => {
+    const onOpen = vi.fn();
+    const el = await render(false, onOpen);
+    const stack = el.querySelector<HTMLElement>(".tessera-topbar-search");
+    const chip = el.querySelector<HTMLElement>("kbd");
+    expect(stack).not.toBeNull();
+    await act(async () => {
+      stack?.click();
+    });
+    await act(async () => {
+      chip?.click();
+    });
+    expect(onOpen).toHaveBeenCalledTimes(2);
   });
 
   it("reads \"Search\" with no chip below 600px", async () => {

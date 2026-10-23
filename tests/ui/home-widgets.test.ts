@@ -14,7 +14,9 @@ import {
   parseHomeSeenSeq,
   quickLinkLabel,
   sinceDescription,
+  sinceKeyParts,
   sinceRowLabel,
+  sinceRowParts,
   stickyColorClass,
   stickyPreview,
   stickyTitle,
@@ -49,11 +51,54 @@ describe("since rows", () => {
     expect(sinceRowLabel(entry({ verbs: ["updated", "added"], fields: ["state_id"], count: 2 }))).toBe("Ada changed the state (1 more change) Design review");
   });
 
+  it("leads with 'created' when the row created the target, whatever order the verbs came in", () => {
+    // The Since read pushes verbs newest first: a create with initial assignees logs "created" then "added".
+    const assigned = entry({ verbs: ["added", "created"], fields: ["assignees"], count: 2 });
+    expect(sinceRowLabel(assigned)).toBe("Ada created Design review (1 more change)");
+    expect(sinceRowParts(assigned).rest.startsWith("created ")).toBe(true);
+    // Verbs are distinct per row (since.ts), so extra kinds of change add up.
+    expect(sinceRowLabel(entry({ verbs: ["updated", "added", "created"], fields: ["assignees"], count: 3 }))).toBe("Ada created Design review (2 more changes)");
+    // No create in the row: the newest verb still leads.
+    expect(sinceRowLabel(entry({ verbs: ["added", "updated"], fields: ["assignees"], count: 2 }))).toBe("Ada added an assignee (1 more change) Design review");
+  });
+
   it("lists the fields and the collapsed count", () => {
     expect(sinceDescription(["state_id", "priority", "state_id"], 2)).toBe("state, priority · 2 changes");
     expect(sinceDescription([], 1)).toBe("1 change");
     expect(fieldWords("description_md")).toBe("description");
     expect(fieldWords("custom_field")).toBe("custom field");
+  });
+});
+
+describe("since row parts", () => {
+  it("splits the label at the actor and rejoins to sinceRowLabel", () => {
+    const cases = [
+      entry(),
+      entry({ verbs: ["created"], fields: [] }),
+      entry({ verbs: ["updated", "added"], fields: ["state_id"], count: 2 }),
+      entry({ actor: { id: "a", name: "mcp:p3-acceptance", kind: "agent", color: "teal" } }),
+    ];
+    for (const e of cases) {
+      const { actor, rest } = sinceRowParts(e);
+      expect(actor).toBe(e.actor.name);
+      expect(`${actor} ${rest}`).toBe(sinceRowLabel(e));
+    }
+    expect(sinceRowParts(entry())).toEqual({ actor: "Ada", rest: "changed the state Design review" });
+  });
+
+  it("splits the rest around a work item key so the key can stay on one line", () => {
+    const keyed = entry({ target: { type: "work_item", id: "item", label: "SVRF-12 Design review", href: "/browse/SVRF-12" } });
+    const { rest } = sinceRowParts(keyed);
+    const parts = sinceKeyParts(keyed, rest);
+    expect(parts).toEqual({ before: "changed the state ", key: "SVRF-12", after: " Design review" });
+    expect(`${parts?.before}${parts?.key}${parts?.after}`).toBe(rest);
+    // The target in the middle of the phrase ("created <target> (1 more change)") splits the same way.
+    const created = { ...keyed, verbs: ["added", "created"], fields: ["assignees"], count: 2 };
+    expect(sinceKeyParts(created, sinceRowParts(created).rest)).toEqual({ before: "created ", key: "SVRF-12", after: " Design review (1 more change)" });
+    // No key: a label without one, or a target that is not a work item.
+    expect(sinceKeyParts(entry(), sinceRowParts(entry()).rest)).toBeNull();
+    const page = entry({ target: { type: "page", id: "p", label: "WEB-1 notes", href: "/pages/p" } });
+    expect(sinceKeyParts(page, sinceRowParts(page).rest)).toBeNull();
   });
 });
 

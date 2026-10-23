@@ -1,25 +1,18 @@
 # Tessera: what needs improving (2026-10-23)
 
-Reconciled on 2026-10-23 against the working tree after fix round 4 (tree = HEAD 8575fcd, which is fix round 3 committed, plus this round's uncommitted changes: four lanes (notify-wording, section-menu, small-fixes, e2e), one fix pass, one browser verify pass on scratch copies, never :3000 or `data/tessera.db*`). Gates on that tree: the round's gate is green after every fix pass, and the reconciler re-ran `tsc --noEmit` (clean), `eslint .` (clean), `vitest run` (231 files / 2921 tests pass) and `scripts/check-conventions.ts` (passed). Playwright: 100 of 100 (22 spec files) on a scratch production build of the tree after fix 1 (port 3810; the first run had 1 spec-mistake failure and 2 serial skips, fixed in `round4.spec.ts` and re-run green), plus `round4.spec.ts` 12 of 12 in a second copy (port 3734). Contract for the round: `docs/drafts/fix-round-4-2026-10-23.md`. Re-check an item before working on it.
+Reconciled on 2026-10-23 against the working tree after fix round 5 (tree = HEAD 66c02f8, which is fix round 4 committed, plus this round's uncommitted changes: four lanes (engine-create, home-since, touch-shell, e2e), two fix passes, two browser verify passes on scratch copies, never :3000 or `data/tessera.db*`). Gates on that tree: the round's gate is green after both fix passes, and the reconciler re-ran `tsc --noEmit` (clean), `eslint .` (clean), `vitest run` (232 files / 2944 tests pass) and `scripts/check-conventions.ts` (passed). Playwright: 109 of 109 (23 spec files) on a scratch production build of the tree after fix 2 (port 3820, no fixme or skip; verify 1 had 108 of 109, a spec mistake in `round5.spec.ts`, fixed), plus round4 then round5 21 of 21 on a fresh DB and `round5.spec.ts` 45 of 45 repeated runs. Contract for the round: `docs/drafts/fix-round-5-2026-10-23.md`. Re-check an item before working on it.
 
 ## Open
 
 ### Features from the plan
-- An assignee set at create time gets no `assigned` notification: `createWorkItem` (`work-items/create.ts`) logs only the silent `created` verb, and only `setAssignees` logs an assignment. Found by the round 4 contract check, out of scope. Low; plan question (decision 51 rows).
+- Side effects of logging create-time assignees (round 5, reported by the engine lane, not changed): a subscribed webhook now receives `work_item.added` for a create with assignees (`operations.md` webhooks row), and the Home Since row counts the assignment as "(1 more change)". Low; plan question (decisions 50, 51): confirm both are intended.
 
 ### Accessibility, 375 px and visual
-Workspace and settings
-- Home Since rows at 375 with a long actor name: the two-line clamp (round 4) cuts the label before the item key and title. The wording order lives in `home-format.ts` (`sinceRowLabel`; strings asserted in `home-widgets.test.ts`). Low; wording call (item first, or the title in the description).
 Shell
-- Coarse pointer at 1280 px and wider: the labelled project tabs keep the theme's 44px hit areas, which overlap between neighbours (the round 4 coarse rule covers 600–1279 only). Out of scope in round 4. Low.
-- The top-bar search field under a coarse pointer at 1440 was not checked against touch option A. Out of scope in round 4. Low.
-- At 768 under a coarse pointer the Collapse sidebar and brand hit areas abut with a sub-pixel (under 1 px) overlap that the strict 44x44 inset-1 px check does not catch (verify 1 note). Low.
+- Hydration error 418 when the top-bar sidebar toggle is clicked before Home has hydrated while it shows Since rows: the toggle changes the shell context under still-dehydrated Home content, React recovers by client-rendering that part. Pre-existing at HEAD 66c02f8; `round5.spec.ts` waits with `waitForHydrated` (helpers-d). Low.
 
 ### Coverage gaps (not checked this round)
 - Real devices: all touch checks are Playwright emulation (the page-tree grip uses CDP touch events in `coverage-touch.spec.ts`).
-
-### Docs and housekeeping
-- `tests/e2e/round4.spec.ts` header comment (l.8-10) still says every test starts with `test.fixme(true, ...)`; verify removed those lines, so the comment is stale.
 
 ## Waiting for the user
 - Live P5 acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is built and `assistant.spec.ts` and `round-features.spec.ts` pass on it.
@@ -32,6 +25,22 @@ Shell
 - Calendar zoom Week / Month / Quarter, consistent with the gantt zoom (decision 90).
 
 ## Closed
+
+### Fix round 5 (2026-10-23)
+- Create-time assignees (decisions 50, 51): `createWorkItem` and `createIntakeItem` insert with no assignees, then run `syncAssignees`, so an agent's item assigned to the user gives one "assigned you" row, the user's own and the assistant's creates notify nobody, the activity shows "created" and one assignment, no duplicate subscribers; an agent intake submission assigned to the user reads "assigned you · +1 more"; a create with an assignee and a mention of the same actor now reads "mentioned you · +1 more" (supersedes the round 4 single "mentioned you" row): `notifications.test.ts` (6 new), `intake.test.ts` (3 new), `mentions.test.ts`, `work-items.test.ts`; browser PASS (UI dialog at 390 touch, MCP, intake, long client at 375/1440, both schemes); e2e `round5.spec.ts` (a).
+- Home Since rows at 375 with a long actor: the actor is its own run (`tessera-home-since-actor`, `sinceRowParts`), inline-block and ellipsized at 480 px and narrower (`min(40%, 16ch)`), full name in the DOM and the link's name (no aria-label); a row holding the create-time assignment leads with "created" (fix 1, `sinceVerbPhrase`): `home-touch-css.test.ts`, `home-widgets.test.ts`, `home-since-row.test.ts`; browser PASS at 375, 480, 481, 1440 in both schemes; e2e `round5.spec.ts` (b).
+- Root follow-ups after the reconcile:
+  - The item key in a Since row is its own `Text textWrap="nowrap"` run (`sinceKeyParts`), so "SVRF-1" no longer breaks at its hyphen at 375 (the verify 2 FAIL). Covered by `home-widgets.test.ts`, `home-since-row.test.ts` and the one-line key assertion in `round5.spec.ts` (b).
+  - The fix-2 `title` on the actor went through a spread around Astryx's Text types. That is glue, against the "follow Astryx docs" rule, so it was removed: the shortened name has no native tooltip, which a touch screen could not show anyway.
+  - The `as-built/README.md` parenthesis on which files rounds 4 and 5 touched is corrected.
+- Coarse labelled project tabs at 1280 px and wider: each `::before` reaches half the 2px strip gap toward a neighbour only and runs from 16px above the tab to its bottom edge (ui.md touch-target exceptions): `touch-target-css.test.ts`; browser PASS (1280 and 1440, docked and collapsed, DPR 1 and 2, both schemes: gaps within 0.001 px, 0 misses with the area's own probe, no strip scroll; 768/1024 and fine pointer unchanged); e2e `round5.spec.ts` (c).
+- Top-bar search field under a coarse pointer (600 px and wider): block-axis-only 44px area on the field, so the ⌘K chip is covered: `top-bar-search.test.ts`, `touch-target-css.test.ts`; browser PASS at 1440 and 768 (probes above and below the chip land on the field; taps open Power K); e2e `round5.spec.ts` (c).
+- 768 px Collapse sidebar and brand sub-pixel overlap: does not reproduce; `collapse.hitRight - brand.hitLeft` is exactly 0 at 768, 1024, 1100, 1279, 1280, 1440, DPR 1 and 2, docked and collapsed, both schemes (pinned in `touch-target-css.test.ts`, note in ui.md); e2e `round5.spec.ts` (d).
+- Project bar Add to favorites and Project actions hit areas overlapping by 12x44 px under a coarse pointer (found by review, not a regression): `tessera-project-bar-actions` 16px gap in `ProjectFrame.tsx` and `shell.css`: `touch-target-css.test.ts`; browser PASS at 375 to 1440, DPR 1 and 2 (areas tile at a 44px pitch, pairwise check of 16 header controls: 0 overlaps, 0 strict misses).
+- Touch-rule citations stay "decision 14" (root planner): kept, documented in ui.md Theme ("Touch targets (option A of decision 14)").
+- `round4.spec.ts` header comment no longer mentions fixme lines; `round5.spec.ts` has none either.
+- Spec mistakes found and fixed: `title` assertion before the actor had one (fix 1, then the title landed in fix 2); `hitAreaRects` read the right edge from the rounded computed `width` (fake 5e-5 px overlaps; now host rect minus resolved insets, -0.005 px tolerance); tab areas use `hitAreaMisses` (own rectangle), not the centred 44 box; the Assignees control is a button with an inline popup above 8 actors; the 768 toggle test waits for hydration.
+- Docs: `service-api.md` createWorkItem line, ui.md touch-target exceptions and header icon buttons bullet; `as-built/` (README, engine, operations, pages-collaboration, planning-extras, shell-detail, work-items, workspace); `PLAN-STATUS.md` round 5 paragraph.
 
 ### Fix round 4 (2026-10-23)
 - Decision 51 wording: migration 0013 `kind_count` (default 1, no backfill); a state change plus a comment reads "commented · +1 more", two comments "commented 2 times", no separate "+N" text (`notificationPhrase(kind, kindCount, eventCount)`): `notifications.test.ts`, `inbox-format.test.ts`, `inbox-row-label.test.ts`; fresh scratch copy prints "No schema changes"; browser PASS at 375 and 1280/1440 in both schemes; e2e `round4.spec.ts` (a).

@@ -180,6 +180,8 @@ describe("shell.css touch rules", () => {
   it("has no touch-only rule outside that query", () => {
     for (const block of top) {
       if (block.prelude === TOUCH_MEDIA) continue;
+      // A coarse-pointer-only query with a width floor (the 600px search area, the 1280px tab reach) is a touch rule too.
+      if (block.prelude.startsWith("@media (pointer: coarse) and (min-width:")) continue;
       expect(`${block.prelude} {${block.body}}`, block.prelude).not.toMatch(touchOnly);
     }
   });
@@ -316,5 +318,68 @@ describe("top bar icon buttons keep apart under the touch query (shell.css, TopB
 
   it("no longer tiles the project tab hit areas", () => {
     expect(touch?.body).not.toContain("tessera-project-tabs");
+  });
+});
+
+describe("touch-shell hit areas at 600px and wider (fix round 5, decision 14; shell.css, catppuccin.css)", () => {
+  const shell = stripComments(read("src/components/styles/shell.css"));
+  const theme = stripComments(read("src/themes/catppuccin/catppuccin.css"));
+  const wideTabs = blocks(shell).find((block) => block.prelude === "@media (pointer: coarse) and (min-width: 1280px)");
+  const search = blocks(shell).find((block) => block.prelude === "@media (pointer: coarse) and (min-width: 600px)");
+  const rule = (media: Block | undefined, selector: string) => blocks(media?.body ?? "").find((block) => block.prelude === selector);
+
+  it("reaches each labelled project tab half the 2px strip gap toward a neighbour, and only toward one (1280px and wider)", () => {
+    expect(wideTabs, "coarse pointer from 1280px").toBeDefined();
+    const strip = ".tessera-project-bar .tessera-project-tabs .astryx-tab-strip";
+    const first = rule(wideTabs, `${strip} > div:not(:first-child) > .astryx-tab::before`);
+    const last = rule(wideTabs, `${strip} > div:has(~ div > .astryx-tab) > .astryx-tab::before`);
+    expect(first?.body, "every tab but the first").toMatch(/inset-inline-start:\s*calc\(-0\.5 \* var\(--spacing-0-5\)\)/);
+    expect(last?.body, "every tab but the last").toMatch(/inset-inline-end:\s*calc\(-0\.5 \* var\(--spacing-0-5\)\)/);
+    // Neither rule touches the other side: the scrolling strip would clip an outward reach (or scroll 1px).
+    expect(first?.body).not.toContain("inset-inline-end");
+    expect(last?.body).not.toContain("inset-inline-start");
+  });
+
+  it("keeps the tab area on the bar: 44px tall from 16px above the tab to its bottom edge, not 8px into the content row", () => {
+    const strip = rule(wideTabs, ".tessera-project-bar .tessera-project-tabs .astryx-tab-strip");
+    expect(strip?.body).toMatch(/padding-block:\s*var\(--spacing-4\) 0/);
+    expect(strip?.body).toMatch(/margin-block:\s*calc\(-1 \* var\(--spacing-4\)\) 0/);
+    const tab = rule(wideTabs, ".tessera-project-bar .tessera-project-tabs .astryx-tab::before");
+    expect(tab?.body).toMatch(/inset-block:\s*min\(0px, calc\(100% - var\(--spacing-11\)\)\) 0/);
+    // The 600 to 1279px coarse rule (folded tabs at a 44px pitch) is untouched.
+    const folded = blocks(shell).find((block) => block.prelude === "@media (pointer: coarse) and (min-width: 600px) and (max-width: 1279px)");
+    expect(folded?.body).toContain("column-gap: var(--spacing-1-5)");
+  });
+
+  it("gives the top bar's search field a block-axis area of its own (coarse pointer, 600px and wider), under the input", () => {
+    expect(search, "coarse pointer from 600px").toBeDefined();
+    expect(rule(search, ".tessera-topbar-search")?.body).toMatch(/position:\s*relative/);
+    const before = rule(search, ".tessera-topbar-search::before");
+    expect(before?.body).toMatch(/content:\s*"";[^}]*position:\s*absolute;[^}]*inset-block:\s*min\(0px, calc\(\(100% - var\(--spacing-11\)\) \/ 2\)\);[^}]*inset-inline:\s*0;/);
+    // The area belongs to the Stack (its onClick opens Power K), so it adds no handler and no z-index above the input.
+    expect(before?.body).not.toContain("z-index");
+    expect(read("src/components/shell/TopBar.tsx")).toMatch(/<Stack className="tessera-topbar-search" onClick=\{\(\) => onOpen\(\)\}>/);
+  });
+
+  it("tiles the collapse button and the brand exactly at the shared edge: the 8px gap equals the 28px button's reach (item 3, no overlap at 768)", () => {
+    // Collapse: 28px drawn, 8px reach each side (theme formula); brand: a link at least 44px wide, inline inset 0.
+    const heading = /\.astryx-top-nav-heading::before\s*\{[^}]*inset-inline:\s*min\(0px, calc\(\(100% - var\(--spacing-11\)\) \/ 2\)\);/;
+    expect(theme).toMatch(heading);
+    const touch = blocks(shell).find((block) => block.prelude === TOUCH_MEDIA);
+    expect(touch?.body).toMatch(/\.astryx-top-nav \.tessera-topbar-heading\s*\{[^}]*column-gap:\s*var\(--spacing-2\)/);
+  });
+
+  it("spaces the project bar's favourite and menu buttons 16px apart (28px drawn, 44px pitch: the areas overlapped by 12px)", () => {
+    const touch = blocks(shell).find((block) => block.prelude === TOUCH_MEDIA);
+    expect(touch?.body).toMatch(/\.tessera-project-bar-actions\s*\{[^}]*column-gap:\s*var\(--spacing-4\)/);
+    expect(read("src/components/work-items/ProjectFrame.tsx")).toMatch(/<HStack className="tessera-project-bar-actions" gap=\{1\}/);
+  });
+
+  it("documents the exceptions on the ui.md touch-target line", () => {
+    const ui = read("docs/contracts/ui.md");
+    const line = ui.split("\n").find((text) => text.includes("Touch-target exceptions")) ?? "";
+    expect(line).toContain("Labelled project tabs (coarse pointer, 1280px and wider)");
+    expect(line).toContain("the first tab does not reach outward at its start");
+    expect(line).toContain("The top bar's search field (coarse pointer, 600px and wider)");
   });
 });

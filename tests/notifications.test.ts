@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { notificationPhrase } from "@/components/inbox/inbox-format";
-import { registerActor } from "@/lib/tessera/actors";
+import { registerActor, USER_ACTOR_ID } from "@/lib/tessera/actors";
 import { setAssignees, subscribe } from "@/lib/tessera/assignees";
 import { createComment } from "@/lib/tessera/comments";
 import { logActivity } from "@/lib/tessera/activity";
 import { ASSISTANT_ACTOR_ID } from "@/lib/tessera/actors";
+import { activity } from "@/lib/tessera/db/schema";
+import { eq } from "drizzle-orm";
 import { withTx } from "@/lib/tessera/core/tx";
 import { createContext, type TesseraContext } from "@/lib/tessera/core/context";
 import {
@@ -18,9 +20,9 @@ import {
   snoozeNotifications,
   unsnoozeNotifications,
 } from "@/lib/tessera/notifications";
-import { createProject } from "@/lib/tessera/projects";
+import { createProject, updateProject } from "@/lib/tessera/projects";
 import { listStates } from "@/lib/tessera/states";
-import { createWorkItem, updateWorkItem } from "@/lib/tessera/work-items";
+import { createWorkItem, getWorkItem, updateWorkItem } from "@/lib/tessera/work-items";
 import { createTestContext, createTestDb, type DbHandles } from "./helpers/db";
 
 describe("notifications", () => {
@@ -414,5 +416,73 @@ describe("read, archive and snooze (decision 52)", () => {
     snoozeNotifications(readerCtx, { ids: [inbox()[0]!.uid], until: "2099-01-01T00:00:00.000Z" });
     expect(markNotificationsRead(readerCtx, { ids: [], all: true }).updated).toBe(0);
     expect(inbox()[0]?.read_at).toBeNull();
+  });
+});
+
+describe("assignees set at create time (decisions 50, 51)", () => {
+  function createSetup() {
+    const handles = createTestDb();
+    const user = createTestContext(handles);
+    const project = createProject(user, { name: "Web", identifier: "WEB" });
+    const agent = registerActor(user, { kind: "agent", name: "mcp:creator" });
+    const agentCtx = createTestContext(handles, agent.id);
+    const assignments = (ctx: TesseraContext) => listNotifications(ctx).filter((note) => note.kind === "assigned");
+    return { handles, user, project, agent, agentCtx, assignments };
+  }
+
+  it("an agent creating an item assigned to the user gives the user one assigned row", () => {
+    const { user, project, agentCtx, assignments } = createSetup();
+    const item = createWorkItem(agentCtx, { project_id: project.id, name: "From agent", assignee_ids: [USER_ACTOR_ID] });
+    const rows = assignments(user);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ work_item_id: item.id, kind_count: 1, event_count: 1 });
+    expect(notificationPhrase(rows[0]!.kind, rows[0]!.kind_count, rows[0]!.event_count)).toBe("assigned you");
+  });
+
+  it("the user creating an item assigned to an agent gives the agent an assigned row, and the user none", () => {
+    const { user, project, agent, agentCtx, assignments } = createSetup();
+    const item = createWorkItem(user, { project_id: project.id, name: "For agent", assignee_ids: [agent.id] });
+    expect(assignments(agentCtx).map((note) => note.work_item_id)).toEqual([item.id]);
+    expect(listNotifications(user)).toHaveLength(0);
+  });
+
+  it("a self-assignment notifies nobody", () => {
+    const { user, project, agentCtx, assignments } = createSetup();
+    createWorkItem(user, { project_id: project.id, name: "Mine", assignee_ids: [USER_ACTOR_ID] });
+    createWorkItem(agentCtx, { project_id: project.id, name: "Mine too", assignee_ids: [agentCtx.actor.id] });
+    expect(listNotifications(user)).toHaveLength(0);
+    expect(assignments(agentCtx)).toHaveLength(0);
+  });
+
+  it("the project default assignee is notified like an explicit one", () => {
+    const { user, project, agent, agentCtx, assignments } = createSetup();
+    updateProject(user, project.id, { default_assignee_id: agent.id });
+    const item = createWorkItem(user, { project_id: project.id, name: "Defaulted" });
+    expect(getWorkItem(user, item.id).assignee_ids).toEqual([agent.id]);
+    expect(assignments(agentCtx).map((note) => note.work_item_id)).toEqual([item.id]);
+  });
+
+  it("the assistant creating an item assigned to the user gives the user no row (decision 50)", () => {
+    const { handles, user, project } = createSetup();
+    const assistant = createTestContext(handles, ASSISTANT_ACTOR_ID);
+    const item = createWorkItem(assistant, { project_id: project.id, name: "Assistant made", assignee_ids: [USER_ACTOR_ID] });
+    expect(getWorkItem(user, item.id).assignee_ids).toEqual([USER_ACTOR_ID]);
+    expect(listNotifications(user)).toHaveLength(0);
+  });
+
+  it("the new item's feed shows the assignment once, as a later setAssignees would, and subscribers have no duplicates", () => {
+    const { handles, project, agent, agentCtx, user } = createSetup();
+    const item = createWorkItem(agentCtx, { project_id: project.id, name: "Feed", assignee_ids: [USER_ACTOR_ID, agent.id] });
+    const rows = handles.db.select().from(activity).where(eq(activity.entity_id, item.id)).orderBy(activity.seq).all();
+    const assigned = rows.filter((row) => row.field === "assignees");
+    expect(assigned.map((row) => [row.verb, row.new_value, row.new_identifier])).toEqual([
+      ["added", USER_ACTOR_ID, "You"],
+      ["added", agent.id, "mcp:creator"],
+    ]);
+    expect(rows.filter((row) => row.verb === "created")).toHaveLength(1);
+    expect(rows.filter((row) => row.field === "subscribers")).toHaveLength(0);
+    const subscribers = getWorkItem(user, item.id).subscriber_ids;
+    expect([...subscribers].sort()).toEqual([USER_ACTOR_ID, agent.id].sort());
+    expect(new Set(subscribers).size).toBe(subscribers.length);
   });
 });

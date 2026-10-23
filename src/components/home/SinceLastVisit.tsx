@@ -20,7 +20,7 @@ import { DigestCard } from "@/components/ai/DigestCard";
 import { useAiStatus } from "@/components/ai/AiStatusProvider";
 import { RelativeTime } from "@/components/detail/RelativeTime";
 import type { DigestView } from "@/lib/tessera/types";
-import { isIsoTimestamp, sinceDescription, sinceRowLabel, type SinceEntry, type SinceLastVisit as SinceData } from "./home-format";
+import { isIsoTimestamp, sinceDescription, sinceKeyParts, sinceRowParts, type SinceEntry, type SinceLastVisit as SinceData } from "./home-format";
 
 export type SinceLastVisitProps = {
   since: SinceData;
@@ -70,9 +70,29 @@ function useHomeSeenBeacon(seq: number): void {
 }
 
 function SinceRow({ entry }: { entry: SinceEntry }) {
+  const { actor, rest } = sinceRowParts(entry);
+  const keyed = sinceKeyParts(entry, rest);
   return (
     <ListItem
-      label={<Text className="tessera-home-since-label">{sinceRowLabel(entry)}</Text>}
+      // The actor is its own truncating span at 480px and narrower (home.css), so a long
+      // agent name cannot fill the two-line clamp. The full name stays in the DOM text,
+      // so the link's accessible name keeps it (label-in-name); no aria-label here.
+      // Astryx Text takes no `title`, so the shortened name has no native tooltip.
+      // The work item key is a no-wrap run, so the clamp never breaks it at its hyphen.
+      label={
+        <Text className="tessera-home-since-label">
+          <Text className="tessera-home-since-actor">{actor}</Text>
+          {keyed === null ? (
+            ` ${rest}`
+          ) : (
+            <>
+              {` ${keyed.before}`}
+              <Text textWrap="nowrap">{keyed.key}</Text>
+              {keyed.after}
+            </>
+          )}
+        </Text>
+      }
       description={sinceDescription(entry.fields, entry.count)}
       href={entry.target.href === "" ? undefined : entry.target.href}
       startContent={<Avatar name={entry.actor.name} size="sm" tooltip={false} />}

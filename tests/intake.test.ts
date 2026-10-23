@@ -5,6 +5,7 @@ import { TrackerError } from "@/lib/tessera/core/errors";
 import { createProject, updateProjectFeatures, type Project } from "@/lib/tessera/projects";
 import { listStates } from "@/lib/tessera/states";
 import type { StateRow } from "@/lib/tessera/types";
+import { notificationPhrase } from "@/components/inbox/inbox-format";
 import { listNotifications } from "@/lib/tessera/notifications";
 import { listRelations } from "@/lib/tessera/relations";
 import { createWorkItem, getWorkItem, listWorkItems } from "@/lib/tessera/work-items";
@@ -115,5 +116,42 @@ describe("intake", () => {
     expect(listIntakeItems(ctx, { project_id: project.id }).counts).toEqual({ open: 0, snoozed: 0, closed: 0 });
     updateProjectFeatures(ctx, project.id, { intake_enabled: false });
     expect(ruleOf(() => createIntakeItem(ctx, { project_id: project.id, name: "Nope" }))).toBe("feature_disabled");
+  });
+});
+
+describe("createIntakeItem assignees (decisions 50, 51)", () => {
+  it("gives an agent assignee an assigned row, subscribes creator and assignee once, and logs the assignment once", () => {
+    const { ctx, project } = setup();
+    const agent = registerActor(ctx, { kind: "agent", name: "mcp:assignee" });
+    const view = createIntakeItem(ctx, { project_id: project.id, name: "Triage me", assignee_ids: [agent.id] });
+    const agentCtx = createContext({ db: ctx.db, sqlite: ctx.sqlite, actorId: agent.id });
+    const rows = listNotifications(agentCtx).filter((note) => note.kind === "assigned");
+    expect(rows.map((note) => note.work_item_id)).toEqual([view.work_item_id]);
+    const detail = getWorkItem(ctx, view.work_item_id);
+    expect([...detail.subscriber_ids].sort()).toEqual([USER_ACTOR_ID, agent.id].sort());
+    expect(detail.assignee_ids).toEqual([agent.id]);
+    const logged = ctx.sqlite
+      .prepare<[string], { verb: string }>("SELECT verb FROM activity WHERE work_item_id = ? AND field = 'assignees'")
+      .all(view.work_item_id);
+    expect(logged).toEqual([{ verb: "added" }]);
+  });
+
+  it("an agent's submission assigned to the user is one row, 'assigned you · +1 more' (assigned outranks intake_received)", () => {
+    const { ctx, project } = setup();
+    updateProjectFeatures(ctx, project.id, { agent_intake_required: true });
+    const agent = registerActor(ctx, { kind: "agent", name: "mcp:bot" });
+    const agentCtx = createContext({ db: ctx.db, sqlite: ctx.sqlite, actorId: agent.id });
+    createIntakeItem(agentCtx, { project_id: project.id, name: "For you", assignee_ids: [USER_ACTOR_ID] });
+    const rows = listNotifications(ctx);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ kind: "assigned", event_count: 2 });
+    expect(notificationPhrase(rows[0]!.kind, rows[0]!.kind_count, rows[0]!.event_count)).toBe("assigned you · +1 more");
+  });
+
+  it("the assistant's submission assigned to the user gives the user no row (decision 50)", () => {
+    const { ctx, project } = setup();
+    const assistant = createContext({ db: ctx.db, sqlite: ctx.sqlite, actorId: ASSISTANT_ACTOR_ID });
+    createIntakeItem(assistant, { project_id: project.id, name: "From assistant", assignee_ids: [USER_ACTOR_ID] });
+    expect(listNotifications(ctx)).toHaveLength(0);
   });
 });

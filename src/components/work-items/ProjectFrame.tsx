@@ -132,7 +132,8 @@ export function ProjectFrame({ children }: { children: ReactNode }) {
                 </>
               }
               end={
-                <HStack gap={1} vAlign="center">
+                // The class lets shell.css space the two 28px buttons to a 44px pitch under a coarse pointer (decision 14, option A).
+                <HStack className="tessera-project-bar-actions" gap={1} vAlign="center">
                   <FavoriteButton entityType="project" entityId={project.id} />
                   <ProjectMenu project={project} />
                 </HStack>

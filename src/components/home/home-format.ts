@@ -71,10 +71,13 @@ export function fieldWords(field: string): string {
 
 /** The activity fragment after the actor's name, from the detail wording. */
 export function sinceVerbPhrase(entry: Pick<SinceEntry, "verbs" | "fields" | "count" | "target">): string {
+  // The Since read lists verbs newest first. A row that created the target leads with "created": what the actor
+  // added at creation (assignees, labels) is part of the same story, so it counts as "1 more change", not the headline.
+  const created = entry.verbs.includes("created");
   const phrase = describeActivity({
     entity_type: entry.target.type,
-    verb: entry.verbs[0] ?? "updated",
-    field: entry.fields[0] ?? null,
+    verb: created ? "created" : (entry.verbs[0] ?? "updated"),
+    field: created ? null : (entry.fields[0] ?? null),
     old_value: null,
     new_value: null,
     old_identifier: null,
@@ -87,12 +90,32 @@ export function sinceVerbPhrase(entry: Pick<SinceEntry, "verbs" | "fields" | "co
   return `${phrase} (${more})`;
 }
 
-/** "<actor> <verb phrase> <target>", with "this work item" replaced by the target's name. */
-export function sinceRowLabel(entry: SinceEntry): string {
+/**
+ * The row label split at the actor's name: `actor` is the full name, `rest` the
+ * verb phrase and target, with "this work item" replaced by the target's name.
+ */
+export function sinceRowParts(entry: SinceEntry): { actor: string; rest: string } {
   const phrase = sinceVerbPhrase(entry);
   const named = phrase.split("this work item").join(entry.target.label);
-  if (named !== phrase) return `${entry.actor.name} ${named}`;
-  return `${entry.actor.name} ${phrase} ${entry.target.label}`;
+  return { actor: entry.actor.name, rest: named !== phrase ? named : `${phrase} ${entry.target.label}` };
+}
+
+/**
+ * `rest` of sinceRowParts split around the work item key, so the row can keep the key on one
+ * line (at 375 px "WEB-12" otherwise breaks at its hyphen). Null when the target has no key.
+ */
+export function sinceKeyParts(entry: Pick<SinceEntry, "target">, rest: string): { before: string; key: string; after: string } | null {
+  if (entry.target.type !== "work_item") return null;
+  const key = /^[A-Z][A-Z0-9]{1,11}-\d+(?= |$)/.exec(entry.target.label)?.[0];
+  const at = key === undefined ? -1 : rest.indexOf(entry.target.label);
+  if (key === undefined || at < 0) return null;
+  return { before: rest.slice(0, at), key, after: rest.slice(at + key.length) };
+}
+
+/** "<actor> <verb phrase> <target>", always `${actor} ${rest}` of sinceRowParts. */
+export function sinceRowLabel(entry: SinceEntry): string {
+  const { actor, rest } = sinceRowParts(entry);
+  return `${actor} ${rest}`;
 }
 
 /** Fields that changed, then how many rows collapsed into the entry. */

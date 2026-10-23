@@ -1,6 +1,6 @@
 # As-built map: planning extras (P8): intake, drafts, estimates, bulk
 
-State described: the working tree after fix round 4, 2026-10-23 (HEAD `8575fcd` plus uncommitted lane work; round 4 changed only the dialog focus test line). Line counts are tree counts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Plan: docs/drafts/p8-plan.md; the cycles, modules and archives screens are in planning.md. Round 3 changed little here: the Intake bar (the assistant button is an icon button and the search shrinks first), the nested-dialog focus return, and e2e coverage.
+State described: the working tree after fix round 5, 2026-10-23 (HEAD `66c02f8` plus uncommitted lane work; round 4 changed only the dialog focus test line; round 5 changed only `createIntakeItem`, which now logs and notifies its initial assignees through `syncAssignees`, rows below). Line counts are tree counts. Decision numbers are rows of the "Resolved design decisions" table in docs/PLAN.md. Plan: docs/drafts/p8-plan.md; the cycles, modules and archives screens are in planning.md. Round 3 changed little here: the Intake bar (the assistant button is an icon button and the search shrinks first), the nested-dialog focus return, and e2e coverage.
 
 ## 1. Purpose and boundaries
 
@@ -22,7 +22,7 @@ Lives elsewhere (this area only calls it):
 
 | File | Responsibility | Key exports |
 |---|---|---|
-| `intake.ts` (418) | One live `intake_item` per work item. Status moves pending, snoozed, accepted, declined, duplicate; accepted is final. A snoozed item whose time has passed counts as Open at read time (no job writes it back). | `listIntakeItems`, `getIntakeItem`, `getIntakeItemForWorkItem`, `countOpenIntake`, `createIntakeItem`, `acceptIntakeItem`, `declineIntakeItem`, `snoozeIntakeItem`, `unsnoozeIntakeItem`, `markIntakeDuplicate`, `deleteIntakeItem` |
+| `intake.ts` (421) | One live `intake_item` per work item. Status moves pending, snoozed, accepted, declined, duplicate; accepted is final. A snoozed item whose time has passed counts as Open at read time (no job writes it back). | `listIntakeItems`, `getIntakeItem`, `getIntakeItemForWorkItem`, `countOpenIntake`, `createIntakeItem`, `acceptIntakeItem`, `declineIntakeItem`, `snoozeIntakeItem`, `unsnoozeIntakeItem`, `markIntakeDuplicate`, `deleteIntakeItem` |
 | `intake-policy.ts` (104) | Decides where an actor's create lands: agents go to triage when the project requires it, and an agent with `intake` access always does. Notifies the user of a new item from anyone but the user or the assistant. | `intakeRequired`, `intakeSourceFor`, `recordIntakeItem`, `ensureDefaultIntake` |
 | `drafts.ts` (302) | Drafts; project-scoped fields need a project and are checked with the create rules; changing `project_id` clears them. `moveDraftToProject` creates the work item and soft-deletes the draft in one transaction. | `listDrafts`, `getDraft`, `countDrafts`, `createDraft`, `updateDraft`, `deleteDraft`, `moveDraftToProject` |
 | `estimates.ts` (291), `estimate-points.ts` (29) | Estimate systems; two to six values (`ESTIMATE_POINTS_MIN/MAX`); replacing a system keeps item points whose value matches (same type only) and clears the rest; removing a used point needs a remap. `activeEstimateId` returns an id only for type `points`. | `createEstimate`, `updateEstimate`, `deleteEstimate`, `getActiveEstimate`, `validateEstimateValues`, `activeEstimateId` |
@@ -75,6 +75,7 @@ Registry tools: `intake.ts` (9 tools), `drafts.ts` (6), `estimates.ts` (5), and 
 |---|---|---|---|
 | Intake status machine; accepted is final (`intake_closed`); snooze must be in the future; duplicate target must not be pending | 61 | `intake.ts` | `tests/intake.test.ts` |
 | Intake off refuses `create_intake_item` (`feature_disabled`); agent creates land in triage when required | 27, 62, 64 | `intake.ts`, `intake-policy.ts` | `tests/intake.test.ts`, `tests/intake-policy.test.ts` |
+| `createIntakeItem` inserts with no assignees, then `syncAssignees`: an assignee gets one `assigned` row and one logged assignment, subscribers are the creator plus the assignee without duplicates, an agent submission assigned to the user is one row reading "assigned you · +1 more" (the `intake_received` event merges into it and `assigned` outranks it), the assistant as actor notifies nobody | 50, 51 | `intake.ts` | `tests/intake.test.ts` ("createIntakeItem assignees", 3) |
 | A new intake item from anyone but user or assistant notifies the user | 62 | `intake-policy.ts` | `tests/intake.test.ts` |
 | Per-agent write permission (`access` read, intake, write) is checked once before a tool runs | 63 | `tools/registry/access.ts` | `tests/actor-access.test.ts` |
 | Copy and move refuse an item with an open intake item (`intake_pending`); move to the same project refused | 69 | `work-items/transfer.ts` | `tests/work-items.test.ts` (update and bulk update refuse `intake_pending`), `tests/bulk-transfer.test.ts` |

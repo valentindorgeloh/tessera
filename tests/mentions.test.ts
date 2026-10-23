@@ -113,13 +113,13 @@ describe("syncMentions through the saves", () => {
     expect(listNotifications(targetCtx).map((note) => [note.kind, note.event_count])).toEqual([["mentioned", 1]]);
   });
 
-  it("creating an item that mentions and assigns the same actor is one 'mentioned you' row (createWorkItem logs only the silent created verb)", () => {
+  it("creating an item that mentions and assigns the same actor is one 'mentioned you · +1 more' row (decision 51)", () => {
     const { writerCtx, targetCtx, project, target } = setup();
     createWorkItem(writerCtx, { project_id: project.id, name: "Both", description_md: `ping ${link("Target", target.id)}`, assignee_ids: [target.id] });
     const rows = listNotifications(targetCtx);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ kind: "mentioned", kind_count: 1, event_count: 1 });
-    expect(notificationPhrase(rows[0]!.kind, rows[0]!.kind_count, rows[0]!.event_count)).toBe("mentioned you");
+    expect(rows[0]).toMatchObject({ kind: "mentioned", kind_count: 1, event_count: 2 });
+    expect(notificationPhrase(rows[0]!.kind, rows[0]!.kind_count, rows[0]!.event_count)).toBe("mentioned you · +1 more");
   });
 
   it("an assignment then a mention of the same actor within ten minutes reads 'mentioned you · +1 more' (decision 51)", () => {

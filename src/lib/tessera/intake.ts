@@ -31,6 +31,7 @@ import {
   resolveState,
 } from "./work-items/model";
 import { insertWorkItem } from "./work-items/create";
+import { syncAssignees } from "./work-items/membership";
 import { intakeSourceFor, recordIntakeItem } from "./intake-policy";
 import type { ProjectRow, WorkItemRow } from "./types";
 
@@ -156,8 +157,10 @@ export function createIntakeItem(ctx: TesseraContext, input: z.input<typeof Crea
       target_date: data.target_date ?? null,
       label_ids: labelIds,
       module_ids: [],
-      assignee_ids: assigneeIds,
+      assignee_ids: [],
     });
+    // Same path as createWorkItem: log the initial assignees like a later setAssignees (decisions 50 and 51).
+    syncAssignees(ctx, { item: row, project: projectRow }, assigneeIds);
     recordIntakeItem(ctx, projectRow, row, intakeSourceFor(ctx));
     return mustView(ctx, row.id);
   });

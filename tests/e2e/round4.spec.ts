@@ -5,11 +5,11 @@ import { horizontalOverflow, inboxRows, waitForTooltipsClosed } from "./helpers-
 import { lastCharVisible, strictHitBoxMisses } from "./helpers-c";
 
 /**
- * Browser checks for the features of fix round 4 (2026-10-23). HEAD does not
- * have them yet, so every test starts with `test.fixme(true, ...)`; the verify
- * phase switches them on by removing that line. Each test uses its own MCP
- * client name (decision 51 coalesces one agent's notifications on one item
- * for 10 minutes, and scripts/mcp-call.ts defaults to `mcp:p3-acceptance`).
+ * Browser checks for the features of fix round 4 (2026-10-23). The features
+ * have landed, so every test here runs; none is marked fixme. Each test uses
+ * its own MCP client name (decision 51 coalesces one agent's notifications on
+ * one item for 10 minutes, and scripts/mcp-call.ts defaults to
+ * `mcp:p3-acceptance`).
  *
  *   a  inbox wording     decision 51: "commented · +1 more" for a state change plus a comment
  *   b  project sections  a section menu at 375, folded tabs with tooltips at 768, labels at 1440

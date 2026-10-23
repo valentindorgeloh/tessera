@@ -1231,6 +1231,7 @@ describe("setLabels, setModules, setAssignees", () => {
     expect(subscriberIds(ctx, item.id)).toContain(USER_ACTOR_ID);
     const rows = activityRows(ctx, item.id).filter((r) => r.field === "assignees");
     expect(rows.map((r) => [r.verb, r.old_identifier ?? r.new_identifier])).toEqual([
+      ["added", "You"], // the create-time assignment (decision 50), logged like a later one
       ["removed", "You"],
       ["added", "Assistant"],
     ]);
