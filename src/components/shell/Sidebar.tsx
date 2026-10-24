@@ -3,7 +3,6 @@
 import { startTransition, useEffect, useOptimistic, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
-import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { SideNav, SideNavHeading, SideNavSection } from "@astryxdesign/core/SideNav";
@@ -16,7 +15,7 @@ import type { Project } from "@/lib/tessera/types";
 import { AgentIcon, BellIcon, BurndownIcon, CycleIcon, DraftIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, TableIcon, UserIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { FavoritesSection } from "./FavoritesSection";
 import { ProjectMenu, projectMove } from "./ProjectMenu";
-import { ExpandedOnly, RailItem, RowActions } from "./RailParts";
+import { ExpandedOnly, NewItemButton, RailItem, RowActions } from "./RailParts";
 import { projectIdFromPath } from "./recents";
 import { formatKeys, SHORTCUT_BY_ID } from "./shortcuts";
 import { useShell } from "./TesseraShell";
@@ -144,8 +143,10 @@ export function useSidebarResize(): { key: string; resizable: { defaultWidth: nu
  * Your work, Drafts, Wiki, Favourites, the projects, and Workspace views,
  * Active cycles, Analytics and Agents. A project's own pages are the tabs
  * in its panel header (`ProjectFrame`), not children here. Collapse state
- * comes from the shell (`mod+b`, the top bar's toggle); the width and the
- * last visited project are remembered in localStorage.
+ * comes from the shell (`mod+b`, the top bar's toggle) and reaches the rows
+ * and the button through Astryx's collapse context (RailParts.tsx), which the
+ * mobile drawer does not provide; the width and the last visited project are
+ * remembered in localStorage.
  */
 export function Sidebar({ projects, unreadCount, draftCount, favorites }: { projects: Project[]; unreadCount: number; draftCount: number; favorites: FavoritesTree }) {
   const pathname = usePathname();
@@ -198,31 +199,7 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
       collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed, hasButton: false }}
       resizable={resize.resizable}
       header={<SideNavHeading heading="Work" headingHref="/" />}
-      topContent={
-        isNavCollapsed ? (
-          <IconButton
-            label="New work item"
-            variant="secondary"
-            size="sm"
-            icon={<Icon icon={PlusIcon} />}
-            isDisabled={createTarget === null}
-            tooltip={createTooltip}
-            onClick={openCreate}
-          />
-        ) : (
-          <Button
-            label="New work item"
-            variant="secondary"
-            size="sm"
-            width="100%"
-            className="tessera-sidebar-new"
-            icon={<Icon icon={PlusIcon} />}
-            isDisabled={createTarget === null}
-            tooltip={createTooltip}
-            onClick={openCreate}
-          />
-        )
-      }
+      topContent={<NewItemButton label="New work item" tooltip={createTooltip} isDisabled={createTarget === null} onClick={openCreate} />}
     >
       <SideNavSection title="Workspace" isHeaderHidden>
         <RailItem label="Home" icon={HouseIcon} href="/" isSelected={pathname === "/"} />

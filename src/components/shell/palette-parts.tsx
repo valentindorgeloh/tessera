@@ -46,12 +46,26 @@ export function PaletteInput({
   const palette = useCommandPaletteContext();
   // An id for the combobox input, so the browser can tell the form field apart (DevTools flags fields with neither id nor name).
   const inputId = useId();
-  // The palette remounts per opening (`session`), so this seeds each opening's query once.
+  // The palette remounts per opening (`session`), so this seeds each opening's query once. The seed
+  // waits one task: Astryx's palette runs its empty-query bootstrap in its own mount effect, which
+  // runs after this child's effects in the same commit and would reset a query set synchronously
+  // here (the first letter typed into the top bar's field was lost). A key typed into the dialog
+  // before that task runs is kept after the seeded letter. Astryx's modal Dialog keeps this input
+  // mounted after a close, and the palette context changes then (it carries `isOpen`), so this
+  // effect runs again on close: the cleanup clears a pending seed and a closed palette arms none,
+  // or the seed would search the closed palette and announce its results over the next dialog.
   const seeded = useRef(false);
+  const typedBeforeSeed = useRef("");
   useEffect(() => {
-    if (seeded.current || !palette) return;
-    seeded.current = true;
-    if (initialQuery) palette.setSearch(initialQuery);
+    typedBeforeSeed.current = palette?.search ?? "";
+  });
+  useEffect(() => {
+    if (seeded.current || !palette?.isOpen || !initialQuery) return;
+    const timer = window.setTimeout(() => {
+      seeded.current = true;
+      palette.setSearch(initialQuery + typedBeforeSeed.current);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [initialQuery, palette]);
   // Enter pressed while the debounced search is still running: open the
   // first result once it lands instead of the stale list on screen.

@@ -6,10 +6,43 @@
  * context, so they stay right inside the mobile drawer too, which is never a rail.
  */
 import type { ComponentProps, ReactNode } from "react";
+import { Button } from "@astryxdesign/core/Button";
+import { Icon } from "@astryxdesign/core/Icon";
+import { IconButton } from "@astryxdesign/core/IconButton";
 import { HStack, Stack } from "@astryxdesign/core/Stack";
 import { SideNavItem, useSideNavCollapse } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
+import { PlusIcon } from "@/themes/catppuccin/icons";
+
+/**
+ * The sidebar's "New work item" button (its `topContent`): icon only in a
+ * collapsed rail, the full-width labelled button otherwise. It reads the same
+ * collapse context as the rows, not the shell flag: below md the sidebar is
+ * the top bar's drawer, where Astryx gives no collapse context, so the rows
+ * are expanded there whatever the flag says (collapse at 1440 and narrow the
+ * window, or `mod+b` on a phone), and the button must be too. In the rail the
+ * context carries the flag the Sidebar passes to `collapsible`, so it
+ * hydrates against the server's value like the rest of the boundary.
+ */
+export function NewItemButton({ label, tooltip, isDisabled, onClick }: { label: string; tooltip: string; isDisabled: boolean; onClick: () => void }) {
+  const { isCollapsed } = useSideNavCollapse();
+  const icon = <Icon icon={PlusIcon} />;
+  if (isCollapsed) return <IconButton label={label} variant="secondary" size="sm" icon={icon} isDisabled={isDisabled} tooltip={tooltip} onClick={onClick} />;
+  return (
+    <Button
+      label={label}
+      variant="secondary"
+      size="sm"
+      width="100%"
+      className="tessera-sidebar-new"
+      icon={icon}
+      isDisabled={isDisabled}
+      tooltip={tooltip}
+      onClick={onClick}
+    />
+  );
+}
 
 /**
  * A section's end buttons ("New folder", "Create project"), rendered only while

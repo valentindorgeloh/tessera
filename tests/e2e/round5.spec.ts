@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { createProjectViaMcp, expect, mcp, openWorkItems, test, waitForDialog } from "./fixtures";
 import { horizontalOverflow, inboxRows } from "./helpers-b";
 import { strictHitBoxMisses } from "./helpers-c";
-import { hitAreaMisses, hitAreaRects, lineCount, searchAddonBoxMisses, substringVisible, waitForHydrated } from "./helpers-d";
+import { hitAreaMisses, hitAreaRects, lineCount, searchAddonBoxMisses, substringVisible } from "./helpers-d";
 
 /**
  * Browser checks for the features of fix round 5 (2026-10-23). The features
@@ -19,13 +19,6 @@ import { hitAreaMisses, hitAreaRects, lineCount, searchAddonBoxMisses, substring
  *
  * Coarse pointer means the context option pair `hasTouch` + `isMobile`, which makes
  * `(pointer: coarse)` match; each coarse test asserts that first.
- *
- * The page's server HTML paints before React has hydrated it. A click in that
- * gap on the top-bar toggle changes the shell context while the Home content is
- * still dehydrated, and React reports hydration error 418 (pre-existing at HEAD,
- * only with Since rows). A test that clicks right after the heading shows
- * therefore calls `waitForHydrated` first. The hydrated Since time alone is not
- * enough: other parts of the page can still be dehydrated when it appears.
  */
 
 type Actor = { id: string; kind: string; name: string };
@@ -190,14 +183,15 @@ test.describe("coarse pointer top-bar heading (touch option A)", () => {
       test.use({ deviceScaleFactor: scale });
 
       test(`at 768 px the sidebar toggle and the brand areas do not overlap, docked and collapsed`, async ({ page }) => {
-        // A fresh Since row (visiting Home moves the anchor, so rows from earlier tests may be gone) makes the
-        // Home content big enough to hydrate late: the case that exposed the early-click hydration error.
+        // A fresh Since row (visiting Home moves the anchor, so rows from earlier tests may be gone) gives Home its
+        // heaviest content. This test checks the layout. Its click lands once the top bar has hydrated, which can be
+        // before the streamed sidebar has, so it may toggle in the early gap (at round 5 it raised error 418 there,
+        // fixed in round 6); round6.spec.ts is the test that forces the gap.
         const project = await createProjectViaMcp();
         await mcp("create_work_item", { project_id: project.id, name: `Toggle row ${scale}` }, `round5-toggle-agent-${scale}`);
         await page.setViewportSize({ width: 768, height: 900 });
         await page.goto("/");
         await expect(page.getByRole("heading", { name: "Home" }).first()).toBeVisible();
-        await waitForHydrated(page);
         await expectCoarsePointer(page);
 
         const brand = page.locator(".tessera-topbar-heading a.astryx-top-nav-heading");

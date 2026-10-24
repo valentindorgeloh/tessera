@@ -10,6 +10,8 @@ import { createProject } from "@/lib/tessera/projects";
 import { getHomeSummary, getWorkspaceSettings, sinceLastVisit } from "@/lib/tessera/workspace";
 import { setHomeSeen } from "@/lib/tessera/workspace/home-seen";
 import { createWorkItem, updateWorkItem } from "@/lib/tessera/work-items";
+import { registerActor } from "@/lib/tessera/actors";
+import { sinceDescription, sinceRowLabel } from "@/components/home/home-format";
 import { createTestDb, type DbHandles } from "../helpers/db";
 
 const TODAY = "2026-10-18";
@@ -66,5 +68,44 @@ describe("home", () => {
     expect(summary.your_work.by_state_group).toEqual(assigned.by_state_group);
     expect(summary.digest).toBeNull();
     expect(addDays(TODAY, -7)).toBe("2026-10-11");
+  });
+
+  it("an agent's create with an assignee reads as one created row with 1 more change (decisions 50, 51)", () => {
+    const handles = createTestDb();
+    const user = context(handles, USER_ACTOR_ID, "2026-10-18T10:00:00.000Z");
+    const project = createProject(user, { name: "Web", identifier: "WEB" });
+    // The project has no default assignee, so the plain twin adds nobody. The creator is never the user.
+    expect(project.default_assignee_id).toBeNull();
+    const agent = registerActor(user, { kind: "agent", name: "mcp:creator" });
+    const creator = context(handles, agent.id, "2026-10-18T11:00:00.000Z");
+    expect(agent.id).not.toBe(USER_ACTOR_ID);
+
+    createWorkItem(creator, { project_id: project.id, name: "Do it", assignee_ids: [USER_ACTOR_ID] });
+    const assigned = sinceLastVisit(user, null).entries;
+    expect(assigned).toHaveLength(1);
+    const [row] = assigned;
+    expect(row.verbs).toEqual(["added", "created"]);
+    expect(row.fields).toEqual(["assignees"]);
+    expect(row.count).toBe(2);
+    expect(row.target.label).toBe("WEB-1 Do it");
+    expect(sinceRowLabel(row)).toBe("mcp:creator created WEB-1 Do it (1 more change)");
+    expect(sinceDescription(row.fields, row.count)).toBe("assignees · 2 changes");
+  });
+
+  it("a twin create without assignees reads as one created row and 1 change (decisions 50, 51)", () => {
+    const handles = createTestDb();
+    const user = context(handles, USER_ACTOR_ID, "2026-10-18T10:00:00.000Z");
+    const project = createProject(user, { name: "Web", identifier: "WEB" });
+    expect(project.default_assignee_id).toBeNull();
+    const agent = registerActor(user, { kind: "agent", name: "mcp:creator" });
+    createWorkItem(context(handles, agent.id, "2026-10-18T11:00:00.000Z"), { project_id: project.id, name: "Do it" });
+    const entries = sinceLastVisit(user, null).entries;
+    expect(entries).toHaveLength(1);
+    const [row] = entries;
+    expect(row.verbs).toEqual(["created"]);
+    expect(row.fields).toEqual([]);
+    expect(row.count).toBe(1);
+    expect(sinceRowLabel(row)).toBe("mcp:creator created WEB-1 Do it");
+    expect(sinceDescription(row.fields, row.count)).toBe("1 change");
   });
 });

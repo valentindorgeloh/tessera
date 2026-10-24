@@ -64,17 +64,32 @@ export async function mcp<T = Record<string, unknown>>(tool: string, input: Reco
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 let counter = 0;
+const issuedIdentifiers = new Set<string>();
 
-/** A project identifier no other spec uses: a letter prefix plus a process-unique suffix, all upper-case letters. */
+/**
+ * A project identifier no other spec uses: a letter prefix plus a process-unique suffix, all upper-case letters.
+ * Only unique within the worker process: Playwright replaces the worker after a failing test, and the new one
+ * starts with an empty set against the same data/e2e.db, so the project helpers below draw again on a CONFLICT.
+ */
 export function uniqueIdentifier(prefix = "E"): string {
-  counter += 1;
-  const tail = Array.from({ length: 3 }, () => LETTERS[Math.floor(Math.random() * LETTERS.length)]).join("");
-  return `${prefix}${tail}${LETTERS[counter % 26]}`;
+  // The random tail alone collided about once in ten 280-project runs (birthday bound), so a taken identifier is drawn again.
+  for (;;) {
+    counter += 1;
+    const tail = Array.from({ length: 3 }, () => LETTERS[Math.floor(Math.random() * LETTERS.length)]).join("");
+    const identifier = `${prefix}${tail}${LETTERS[counter % 26]}`;
+    if (!issuedIdentifiers.has(identifier)) {
+      issuedIdentifiers.add(identifier);
+      return identifier;
+    }
+  }
 }
 
 export type CreatedProject = { id: string; name: string; identifier: string };
 
 const PROJECT_PATH = /\/projects\/([0-9a-f-]{20,})\/work-items/;
+
+/** How many identifiers a project helper draws before a CONFLICT fails it. A caller's own identifier is never replaced. */
+const IDENTIFIER_DRAWS = 5;
 
 /** The id of the project whose pages are open. */
 export function projectIdOf(page: Page): string {
@@ -83,25 +98,52 @@ export function projectIdOf(page: Page): string {
   return match![1]!;
 }
 
-/** Creates a project through the sidebar dialog and lands on its work items. */
-export async function createProjectViaUi(page: Page, identifier = uniqueIdentifier()): Promise<CreatedProject> {
-  const name = `Project ${identifier}`;
+/**
+ * Creates a project through the sidebar dialog and lands on its work items. Without an `identifier` it draws one,
+ * and draws again while the dialog says it (or the name made from it) is taken, at most `IDENTIFIER_DRAWS` times.
+ */
+export async function createProjectViaUi(page: Page, identifier?: string): Promise<CreatedProject> {
   await page.goto("/");
   await page.getByRole("button", { name: "Create project" }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
   await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Name").fill(name);
-  await dialog.getByLabel("Identifier").fill(identifier);
-  await dialog.getByRole("button", { name: "Create project" }).click();
-  await page.waitForURL(PROJECT_PATH, { timeout: 30_000 });
-  return { id: projectIdOf(page), name, identifier };
+  for (let draw = 1; ; draw += 1) {
+    const candidate = identifier ?? uniqueIdentifier();
+    const name = `Project ${candidate}`;
+    await dialog.getByLabel("Name").fill(name);
+    await dialog.getByLabel("Identifier").fill(candidate);
+    await dialog.getByRole("button", { name: "Create project" }).click();
+    // The dialog's inline CONFLICT texts name the candidate ("Identifier <id> is already used by project ...", "A project
+    // named "Project <id>" already exists"), so the error left from the previous draw does not count for this one.
+    const taken = dialog.getByText(new RegExp(`${candidate}.*(is already used|already exists)`));
+    await expect
+      .poll(async () => PROJECT_PATH.test(page.url()) || (await taken.count()) > 0, { message: `project ${candidate} created or refused`, timeout: 30_000 })
+      .toBe(true);
+    if (PROJECT_PATH.test(page.url())) {
+      await page.waitForURL(PROJECT_PATH, { timeout: 30_000 });
+      return { id: projectIdOf(page), name, identifier: candidate };
+    }
+    if (identifier !== undefined || draw >= IDENTIFIER_DRAWS) throw new Error(`createProjectViaUi: ${await taken.first().textContent()}`);
+  }
 }
 
-/** Creates a project over MCP: faster than the dialog and with no page needed. */
-export async function createProjectViaMcp(identifier = uniqueIdentifier(), extra: Record<string, unknown> = {}): Promise<CreatedProject> {
-  const name = `Project ${identifier}`;
-  const project = await mcp<{ id: string }>("create_project", { name, identifier, ...extra });
-  return { id: project.id, name, identifier };
+/**
+ * Creates a project over MCP: faster than the dialog and with no page needed. Without an `identifier` it draws one,
+ * and draws again when `create_project` answers CONFLICT for it, at most `IDENTIFIER_DRAWS` times.
+ */
+export async function createProjectViaMcp(identifier?: string, extra: Record<string, unknown> = {}): Promise<CreatedProject> {
+  for (let draw = 1; ; draw += 1) {
+    const candidate = identifier ?? uniqueIdentifier();
+    const name = `Project ${candidate}`;
+    try {
+      const project = await mcp<{ id: string }>("create_project", { name, identifier: candidate, ...extra });
+      return { id: project.id, name, identifier: candidate };
+    } catch (error) {
+      // mcp() carries the tool's text: "CONFLICT: Identifier <id> is already used ..." or "CONFLICT: A project named "Project <id>" already exists".
+      const taken = error instanceof Error && error.message.includes("CONFLICT: ") && error.message.includes(candidate);
+      if (identifier !== undefined || !taken || draw >= IDENTIFIER_DRAWS) throw error;
+    }
+  }
 }
 
 /** Dialogs animate: let the open animation finish before the next step (field guide, 2 to 3 s). */

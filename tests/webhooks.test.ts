@@ -96,6 +96,31 @@ describe("webhooks", () => {
     expect(deliveries[0].status).toBe("pending");
   });
 
+  it("a create with assignees emits work_item.created then work_item.added, a create without only work_item.created (decisions 50, 51)", () => {
+    const handles = createTestDb();
+    const user = createTestContext(handles);
+    const project = createProject(user, { name: "Web", identifier: "WEB" });
+    const agent = registerActor(user, { kind: "agent", name: "mcp:creator" });
+    const creator = createTestContext(handles, agent.id);
+    const hook = createWebhook(user, { name: "Items", url: "http://127.0.0.1:9/hook", events: ["work_item.*"] });
+    const eventsSince = (seen: Set<string>) =>
+      listWebhookDeliveries(user, { webhook_id: hook.id })
+        .filter((delivery) => !seen.has(delivery.id))
+        .sort((a, b) => (a.activity_seq ?? 0) - (b.activity_seq ?? 0));
+
+    // A plain create: one delivery. The project has no default assignee, so nothing is added.
+    createWorkItem(creator, { project_id: project.id, name: "Plain" });
+    expect(enqueueDeliveries(user, user.now())).toBe(1);
+    const first = eventsSince(new Set());
+    expect(first.map((delivery) => delivery.event)).toEqual(["work_item.created"]);
+
+    // A create with an assignee: created, then added, in activity order (list order is not sequence order).
+    createWorkItem(creator, { project_id: project.id, name: "Assigned", assignee_ids: [agent.id] });
+    expect(enqueueDeliveries(user, user.now())).toBe(2);
+    const second = eventsSince(new Set(first.map((delivery) => delivery.id)));
+    expect(second.map((delivery) => delivery.event)).toEqual(["work_item.created", "work_item.added"]);
+  });
+
   it("never enqueues webhook.* activity", () => {
     const ctx = createTestContext(createTestDb());
     const hook = createWebhook(ctx, {

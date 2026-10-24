@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from "react";
 import { AppShell } from "@astryxdesign/core/AppShell";
 import { Card } from "@astryxdesign/core/Card";
 import { useHotkeys } from "@astryxdesign/core/hooks";
@@ -10,6 +10,7 @@ import { AiStatusProvider } from "@/components/ai/AiStatusProvider";
 import { AssistantPanel } from "@/components/ai/AssistantPanel";
 import { AssistantProvider, useAssistant } from "@/components/ai/AssistantProvider";
 import { CommandBar, type CommandBarHandle } from "./CommandBar";
+import { setNavCollapsed, toggleNavCollapsed, useNavCollapsed } from "./nav-collapse-store";
 import { TopBar } from "./TopBar";
 
 export type ShellContextValue = {
@@ -23,13 +24,25 @@ export type ShellContextValue = {
   openCreateProject: () => void;
 };
 
-const ShellContext = createContext<ShellContextValue | null>(null);
+/** What the context carries: stable callbacks only, so it never changes after mount. */
+type ShellContextActions = Omit<ShellContextValue, "isNavCollapsed">;
 
-/** Shell state shared between the frame, the top bar and the sidebar. */
+const ShellContext = createContext<ShellContextActions | null>(null);
+
+/**
+ * Shell state shared between the frame, the top bar and the sidebar. The
+ * collapse flag is not in the context: each consumer reads it from the
+ * collapse store (`useSyncExternalStore` with a server snapshot), so a toggle
+ * before the streamed sidebar has hydrated cannot make that boundary hydrate
+ * against a value its server HTML was not rendered with (see
+ * `nav-collapse-store.ts`; React 19.3 gives the dehydrated boundary the new
+ * context value, so it throws error 418).
+ */
 export function useShell(): ShellContextValue {
-  const value = useContext(ShellContext);
-  if (!value) throw new Error("useShell must be used inside TesseraShell");
-  return value;
+  const actions = useContext(ShellContext);
+  const isNavCollapsed = useNavCollapsed();
+  if (!actions) throw new Error("useShell must be used inside TesseraShell");
+  return { isNavCollapsed, ...actions };
 }
 
 /** The content panel, with the assistant in the Layout end slot while it is open. */
@@ -56,13 +69,12 @@ function ShellFrame({ sideNav, children }: { sideNav: ReactNode; children: React
  * touches the database.
  */
 export function TesseraShell({ sideNav, children }: { sideNav: ReactNode; children: ReactNode }) {
-  const [isNavCollapsed, setNavCollapsed] = useState(false);
   const commandBar = useRef<CommandBarHandle>(null);
 
   useHotkeys([
     {
       keys: "mod+b",
-      onPress: () => setNavCollapsed((collapsed) => !collapsed),
+      onPress: toggleNavCollapsed,
       allowInInputs: true,
     },
   ]);
@@ -72,9 +84,9 @@ export function TesseraShell({ sideNav, children }: { sideNav: ReactNode; childr
   const openShortcuts = useCallback(() => commandBar.current?.openHelp(), []);
   const openCreateProject = useCallback(() => commandBar.current?.openCreateProject(), []);
 
-  const value = useMemo<ShellContextValue>(
-    () => ({ isNavCollapsed, setNavCollapsed, openCommandBar, openShortcuts, openCreateProject }),
-    [isNavCollapsed, openCommandBar, openShortcuts, openCreateProject],
+  const value = useMemo<ShellContextActions>(
+    () => ({ setNavCollapsed, openCommandBar, openShortcuts, openCreateProject }),
+    [openCommandBar, openShortcuts, openCreateProject],
   );
 
   return (
