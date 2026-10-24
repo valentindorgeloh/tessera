@@ -1,0 +1,339 @@
+--- src/components/work-items/ListLayout.tsx	2026-10-23 17:30:50
++++ /private/tmp/claude-501/-Users-valentindorgeloh-Documents-Github-tessera/8acb4a38-4ac2-4215-9929-95e79d18c45f/scratchpad/perf-research/react/tree/src/components/work-items/ListLayout.tsx	2026-10-24 01:10:36
+@@ -12,7 +12,7 @@
+  * the detail page and, in P2b, the peek panel. Quick-add placeholders
+  * (./optimistic.ts) render as inert rows until the server item replaces them.
+  */
+-import { useMemo, useRef, useState, type ReactNode } from "react";
++import { memo, useMemo, useRef, useState, type ReactNode } from "react";
+ import { Avatar } from "@astryxdesign/core/Avatar";
+ import { Badge } from "@astryxdesign/core/Badge";
+ import { Button } from "@astryxdesign/core/Button";
+@@ -127,7 +127,9 @@
+   onOpen: (id: string) => void;
+   /** Archived project: every property control is read-only (F3.4). */
+   readOnly?: boolean;
+-  selection?: LayoutProps["selection"];
++  /** undefined: no selection column; otherwise whether this row is ticked. */
++  selected?: boolean;
++  onToggle?: (id: string, shift: boolean) => void;
+ };
+ 
+ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowProps, "onOpen"> & { readOnly?: boolean }) {
+@@ -254,7 +256,7 @@
+   );
+ }
+ 
+-function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, selection }: RowProps) {
++const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, selected, onToggle }: RowProps) {
+   // The key button owns the row's action: surface clicks delegate to it and it is the row's only tab stop.
+   const openRef = useRef<HTMLButtonElement>(null);
+   if (isOptimisticId(item.id)) {
+@@ -280,18 +282,18 @@
+     <ListItem
+       label={<RowTitle name={item.name} />}
+       className="tessera-wi-row"
+-      data-selected={selection?.selected.has(item.id) ? "" : undefined}
++      data-selected={selected ? "" : undefined}
+       interactiveRef={openRef}
+       startContent={
+         <HStack gap={1} vAlign="center">
+-          {selection ? (
++          {selected !== undefined && onToggle ? (
+             <CheckboxInput
+               className="tessera-wi-select"
+               size="sm"
+               isLabelHidden
+               label={`Select ${item.key}`}
+-              value={selection.selected.has(item.id)}
+-              onChange={(_checked, event) => selection.onToggle(item.id, "shiftKey" in event.nativeEvent && event.nativeEvent.shiftKey === true)}
++              value={selected}
++              onChange={(_checked, event) => onToggle(item.id, "shiftKey" in event.nativeEvent && event.nativeEvent.shiftKey === true)}
+             />
+           ) : null}
+           <Button
+@@ -312,7 +314,7 @@
+       }
+     />
+   );
+-}
++});
+ 
+ // ---------------------------------------------------------------------------
+ // Groups
+@@ -356,7 +358,7 @@
+       {items.length > 0 ? (
+         <List density="compact" hasDividers>
+           {items.map((item) => (
+-            <WorkItemRow key={item.id} item={item} display={display} onUpdate={onUpdate} onOpen={onOpen} readOnly={readOnly} selection={selection} />
++            <WorkItemRow key={item.id} item={item} display={display} onUpdate={onUpdate} onOpen={onOpen} readOnly={readOnly} selected={selection ? selection.selected.has(item.id) : undefined} onToggle={selection?.onToggle} />
+           ))}
+         </List>
+       ) : null}
+--- src/components/work-items/WorkItemsScreen.tsx	2026-10-23 13:45:21
++++ /private/tmp/claude-501/-Users-valentindorgeloh-Documents-Github-tessera/8acb4a38-4ac2-4215-9929-95e79d18c45f/scratchpad/perf-research/react/tree/src/components/work-items/WorkItemsScreen.tsx	2026-10-24 01:46:15
+@@ -19,7 +19,7 @@
+  * way to create an item. The sub-header's title and count are props too
+  * (default "Work items" and the list's total).
+  */
+-import { startTransition, useEffect, useMemo, useOptimistic, useState, type ReactNode } from "react";
++import { startTransition, useEffect, useMemo, useOptimistic, useRef, useState, type ReactNode } from "react";
+ import { usePathname, useRouter, useSearchParams } from "next/navigation";
+ import { Badge } from "@astryxdesign/core/Badge";
+ import { Button } from "@astryxdesign/core/Button";
+@@ -60,6 +60,7 @@
+ import type { LayoutProps, MoveInput, QuickAddGroup, ScopeDefaults, SettingsScope, UpdateWorkItemPatch } from "./types";
+ import { decodeUrlState, encodeUrlState } from "./url-state";
+ import { usePagedList } from "./use-paged-list";
++import { firstDiff, useShared, useStableCallback } from "./stable";
+ 
+ export type WorkItemsScreenProps = {
+   projectId: string;
+@@ -129,7 +130,7 @@
+   projectId,
+   listScope: listScopeProp,
+   result,
+-  display,
++  display: displayProp,
+   filters,
+   createOnOpen: createRequested,
+   settingsScope: settingsScopeProp,
+@@ -150,12 +151,18 @@
+   richFilters,
+   exportScope,
+ }: WorkItemsScreenProps) {
++  const display = useShared(displayProp, "display");
+   const router = useRouter();
+   const pathname = usePathname();
+   const searchParams = useSearchParams();
+   const toast = useToast();
+   const { bundle, statesById, firstStateByGroup } = useProject();
+   const bundles = useBundles();
++  const prevBundle = useRef(bundle);
++  if (prevBundle.current !== bundle) {
++    console.log("[useShared screen bundle changed]", firstDiff(prevBundle.current, bundle, ""));
++    prevBundle.current = bundle;
++  }
+   const urlState = decodeUrlState(searchParams.get("q"));
+   const settingsScope: SettingsScope | null = settingsScopeProp === undefined ? { scope_type: "project", scope_id: projectId } : settingsScopeProp;
+   // An archived project is read-only: no create, no drag, no inline edit (P3 leftover).
+@@ -215,14 +222,14 @@
+ 
+   const fail = (what: string, message: string) => toast({ type: "error", body: `${what}: ${message}` });
+ 
+-  const onUpdate = (id: string, patch: UpdateWorkItemPatch) => {
++  const onUpdate = useStableCallback((id: string, patch: UpdateWorkItemPatch) => {
+     if (readOnly || isOptimisticId(id)) return;
+     startTransition(async () => {
+       applyOptimistic({ type: "update", id, patch });
+       const result = await updateWorkItemAction({ work_item_id: id, ...patch });
+       if (!result.ok) fail("Could not update the work item", result.message);
+     });
+-  };
++  });
+ 
+   const onMove = (input: MoveInput) => {
+     if (readOnly || isOptimisticId(input.id)) return;
+@@ -300,7 +307,7 @@
+     });
+   };
+ 
+-  const onOpen = (id: string) => {
++  const onOpen = useStableCallback((id: string) => {
+     if (isOptimisticId(id)) return;
+     if (openMode === "page") {
+       router.push(`/work-items/${id}`);
+@@ -311,7 +318,7 @@
+     const href = peekHref(pathname, searchParams, id);
+     notePeekPush(currentHref(pathname, searchParams), href);
+     router.push(href, { scroll: false });
+-  };
++  });
+ 
+   const orderedIds = useMemo(() => {
+     const ids = display.group_by && optimistic.groups ? optimistic.groups.flatMap((group) => group.item_ids) : optimistic.items.map((item) => item.id);
+--- src/components/work-items/use-selection.ts	2026-10-18 12:10:18
++++ /private/tmp/claude-501/-Users-valentindorgeloh-Documents-Github-tessera/8acb4a38-4ac2-4215-9929-95e79d18c45f/scratchpad/perf-research/react/tree/src/components/work-items/use-selection.ts	2026-10-24 01:10:36
+@@ -8,6 +8,7 @@
+ import { usePathname } from "next/navigation";
+ import { useHotkeys } from "@astryxdesign/core/hooks";
+ import { prune, selectRange, toggle, type Selection } from "./selection";
++import { useStableCallback } from "./stable";
+ 
+ const EMPTY: Selection = new Set();
+ 
+@@ -37,11 +38,11 @@
+     },
+   ]);
+ 
+-  const toggleId = (id: string, shift: boolean) => {
++  const toggleId = useStableCallback((id: string, shift: boolean) => {
+     if (!enabled) return;
+     setSelected((current) => (shift && anchorId ? selectRange(current, orderedIds, anchorId, id) : toggle(current, id)));
+     setAnchorId(id);
+-  };
++  });
+ 
+   const toggleIds = (ids: readonly string[], on: boolean) => {
+     if (!enabled) return;
+--- src/components/work-items/use-paged-list.ts	2026-10-19 17:13:48
++++ /private/tmp/claude-501/-Users-valentindorgeloh-Documents-Github-tessera/8acb4a38-4ac2-4215-9929-95e79d18c45f/scratchpad/perf-research/react/tree/src/components/work-items/use-paged-list.ts	2026-10-24 01:10:36
+@@ -14,6 +14,7 @@
+ import { listWorkItemsAction } from "@/app/actions/work-items";
+ import { groupLimitKey } from "@/lib/tessera/core/group";
+ import type { Display, Filters, ListScope, RichFilters, WorkItemListResult } from "@/lib/tessera/types";
++import { shareStructure } from "./stable";
+ import { UNGROUPED_KEY, ganttListExtras, keepLoaded, loadMoreSize, mergeGroupPage, mergeRowsPage, pageSizeFor, pagesByGroup, refetchPlan } from "./paging";
+ 
+ export type UsePagedListArgs = {
+@@ -45,7 +46,7 @@
+   // A new query (filters, display, scope) starts over from the server's first page.
+   if (seen.server !== server || seen.queryKey !== queryKey) {
+     setSeen({ server, queryKey });
+-    setResult(seen.queryKey === queryKey ? keepLoaded(server, result, display) : server);
++    setResult(shareStructure(result, seen.queryKey === queryKey ? keepLoaded(server, result, display) : server));
+   }
+   const query = useCallback(
+     () => ({
+@@ -77,7 +78,7 @@
+     void (async () => {
+       const page = await listWorkItemsAction({ ...query(), ...(plan.group_limits ? pageSizeFor(display) : {}), ...plan });
+       if (generation.current !== mine || !page.ok) return;
+-      setResult(page.data);
++      setResult((current) => shareStructure(current, page.data));
+     })();
+     // Only a new server result (or query) re-requests; the display is read through the key.
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+--- src/components/work-items/project-provider.tsx	2026-10-18 13:32:49
++++ /private/tmp/claude-501/-Users-valentindorgeloh-Documents-Github-tessera/8acb4a38-4ac2-4215-9929-95e79d18c45f/scratchpad/perf-research/react/tree/src/components/work-items/project-provider.tsx	2026-10-24 01:51:25
+@@ -10,9 +10,10 @@
+  * (`tessera.lastProject.v1`) so the sidebar's "New work item" button targets
+  * the project the user looked at last.
+  */
+-import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
++import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
+ import type { ActorRow, Cycle, Label, Module, State, StateGroup } from "@/lib/tessera/types";
+ import type { ProjectBundle } from "./types";
++import { useShared, firstDiff } from "./stable";
+ 
+ /** Same key the sidebar reads (src/components/shell/Sidebar.tsx). */
+ export const LAST_PROJECT_STORAGE_KEY = "tessera.lastProject.v1";
+@@ -57,7 +58,19 @@
+ 
+ /** Project context without remembering the project. A cross-project row uses this so the host list does not overwrite the last-opened project. */
+ export function ProjectScope({ bundle, children }: { bundle: ProjectBundle; children: ReactNode }) {
+-  const value = useMemo(() => buildProjectContext(bundle), [bundle]);
++  const noCursor = useMemo(() => ({ ...bundle, cursor: 0, project: { ...bundle.project, counts: null as never }, cycles: bundle.cycles.map((cycle) => ({ ...cycle, progress: null as never, open_count: 0 })), modules: bundle.modules.map((mod) => ({ ...mod, progress: null as never })), actors: bundle.actors.map((actor) => ({ ...actor, last_seen_at: null, updated_at: "" })) }), [bundle]);
++  const prevRaw = useRef(noCursor);
++  if (prevRaw.current !== noCursor) {
++    console.log("[useShared raw]", firstDiff(prevRaw.current, noCursor, ""));
++    prevRaw.current = noCursor;
++  }
++  const shared = useShared(noCursor, "bundle");
++  const value = useMemo(() => buildProjectContext(shared), [shared]);
++  const prevValue = useRef(value);
++  if (prevValue.current !== value) {
++    console.log("[useShared value changed] shared stable?", prevValue.current.bundle === shared);
++    prevValue.current = value;
++  }
+   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
+ }
+ 
+--- src/components/work-items/properties/DateControl.tsx	2026-10-22 03:19:54
++++ /private/tmp/claude-501/-Users-valentindorgeloh-Documents-Github-tessera/8acb4a38-4ac2-4215-9929-95e79d18c45f/scratchpad/perf-research/react/tree/src/components/work-items/properties/DateControl.tsx	2026-10-24 01:24:03
+@@ -70,7 +70,7 @@
+   if (!compact) return picker;
+   const short = label.replace(/ date$/i, "");
+   return (
+-    <Popover isOpen={isOpen} onOpenChange={setOpen} content={<VStack padding={3}>{picker}</VStack>} label={label} placement="below" alignment="start" hasAutoFocus>
++    <Popover isOpen={isOpen} onOpenChange={setOpen} content={isOpen ? <VStack padding={3}>{picker}</VStack> : <></>} label={label} placement="below" alignment="start" hasAutoFocus>
+       <Button
+         variant="ghost"
+         size="sm"
+--- src/components/workspace-settings/workspace-settings-store.tsx	2026-10-18 18:48:21
++++ /private/tmp/claude-501/-Users-valentindorgeloh-Documents-Github-tessera/8acb4a38-4ac2-4215-9929-95e79d18c45f/scratchpad/perf-research/react/tree/src/components/workspace-settings/workspace-settings-store.tsx	2026-10-24 01:31:20
+@@ -95,8 +95,13 @@
+  * first client render; after that the store wins, being the freshest value.
+  */
+ export function useWeekStart(fromServer?: number): WeekStart {
+-  const current = useSyncExternalStore(subscribe, readState, serverState);
+-  return toWeekStart(current.isPublished || fromServer === undefined ? current.week_start : fromServer);
++  // A primitive snapshot: the first publish changes the store object but not this number, so no consumer re-renders for it.
++  const weekStart = useSyncExternalStore(
++    subscribe,
++    () => (state.isPublished || fromServer === undefined ? state.week_start : fromServer),
++    () => (fromServer === undefined ? DEFAULT_STATE.week_start : fromServer),
++  );
++  return toWeekStart(weekStart);
+ }
+ 
+ /**
+--- /dev/null	2026-10-24 01:54:38
++++ /private/tmp/claude-501/-Users-valentindorgeloh-Documents-Github-tessera/8acb4a38-4ac2-4215-9929-95e79d18c45f/scratchpad/perf-research/react/tree/src/components/work-items/stable.ts	2026-10-24 01:44:58
+@@ -0,0 +1,66 @@
++import { useCallback, useLayoutEffect, useRef, useState } from "react";
++
++/** A callback with a fixed identity that always calls the latest closure (so memoized children never see a new function). */
++export function useStableCallback<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
++  const ref = useRef(fn);
++  useLayoutEffect(() => {
++    ref.current = fn;
++  });
++  return useCallback((...args: A) => ref.current(...args), []);
++}
++
++function isPlain(value: unknown): value is Record<string, unknown> {
++  if (typeof value !== "object" || value === null) return false;
++  const proto = Object.getPrototypeOf(value);
++  return proto === Object.prototype || proto === null;
++}
++
++/** Returns `prev` when it equals `next` deeply; otherwise a copy of `next` that reuses every deeply-equal subtree of `prev`. */
++export function shareStructure<T>(prev: unknown, next: T): T {
++  if (prev === next) return next;
++  if (Array.isArray(prev) && Array.isArray(next)) {
++    let same = prev.length === next.length;
++    const out = next.map((item, index) => {
++      const shared = index < prev.length ? shareStructure(prev[index], item) : item;
++      if (shared !== prev[index]) same = false;
++      return shared;
++    });
++    return (same ? prev : out) as T;
++  }
++  if (isPlain(prev) && isPlain(next)) {
++    const keys = Object.keys(next);
++    let same = Object.keys(prev).length === keys.length;
++    const out: Record<string, unknown> = {};
++    for (const key of keys) {
++      const shared = key in prev ? shareStructure(prev[key], next[key]) : next[key];
++      out[key] = shared;
++      if (shared !== prev[key]) same = false;
++    }
++    return (same ? prev : out) as T;
++  }
++  return next;
++}
++
++/** `value` with the identity of the previous render's value whenever the two are deeply equal (RSC props arrive as fresh objects after every refresh). */
++export function firstDiff(a: unknown, b: unknown, path: string): string | null {
++  if (a === b) return null;
++  if (typeof a === "object" && typeof b === "object" && a && b) {
++    const keys = new Set([...Object.keys(a as object), ...Object.keys(b as object)]);
++    for (const k of keys) {
++      const d = firstDiff((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k], `${path}.${k}`);
++      if (d) return d;
++    }
++    return null;
++  }
++  return `${path}: ${String(a)} -> ${String(b)}`;
++}
++
++export function useShared<T>(value: T, tag = "?"): T {
++  const [kept, setKept] = useState(value);
++  const shared = shareStructure(kept, value);
++  if (shared !== kept) {
++    console.log("[useShared changed]", tag, firstDiff(kept, value, ""));
++    setKept(shared);
++  }
++  return shared;
++}

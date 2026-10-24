@@ -1,0 +1,50 @@
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
+
+/** A callback with a fixed identity that always calls the latest closure (so memoized children never see a new function). */
+export function useStableCallback<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
+  const ref = useRef(fn);
+  useLayoutEffect(() => {
+    ref.current = fn;
+  });
+  return useCallback((...args: A) => ref.current(...args), []);
+}
+
+function isPlain(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/** Returns `prev` when it equals `next` deeply; otherwise a copy of `next` that reuses every deeply-equal subtree of `prev`. */
+export function shareStructure<T>(prev: unknown, next: T): T {
+  if (prev === next) return next;
+  if (Array.isArray(prev) && Array.isArray(next)) {
+    let same = prev.length === next.length;
+    const out = next.map((item, index) => {
+      const shared = index < prev.length ? shareStructure(prev[index], item) : item;
+      if (shared !== prev[index]) same = false;
+      return shared;
+    });
+    return (same ? prev : out) as T;
+  }
+  if (isPlain(prev) && isPlain(next)) {
+    const keys = Object.keys(next);
+    let same = Object.keys(prev).length === keys.length;
+    const out: Record<string, unknown> = {};
+    for (const key of keys) {
+      const shared = key in prev ? shareStructure(prev[key], next[key]) : next[key];
+      out[key] = shared;
+      if (shared !== prev[key]) same = false;
+    }
+    return (same ? prev : out) as T;
+  }
+  return next;
+}
+
+/** `value` with the identity of the previous render's value whenever the two are deeply equal (RSC props arrive as fresh objects after every refresh). */
+export function useShared<T>(value: T): T {
+  const [kept, setKept] = useState(value);
+  const shared = shareStructure(kept, value);
+  if (shared !== kept) setKept(shared);
+  return shared;
+}

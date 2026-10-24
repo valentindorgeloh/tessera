@@ -86,6 +86,8 @@ const eslintConfig = defineConfig([
     "data/**",
     // Agent worktrees (other branches, their own .next builds) live here.
     ".claude/**",
+    // Archived measurement probes that a later round re-runs from a scratch copy; not product code.
+    "docs/drafts/**",
   ]),
 ]);
 
