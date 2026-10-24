@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "tessera",
-      "runtimeExecutable": "/opt/homebrew/bin/node",
-      "runtimeArgs": ["node_modules/next/dist/bin/next", "dev", "-H", "127.0.0.1", "-p", "3000"],
-      "port": 3000
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": ["-c", "PATH=/opt/homebrew/bin:$PATH exec npm run dev"],
+      "port": 3001
     }
   ]
 }

@@ -16,8 +16,9 @@
 /test-results/
 /playwright-report/
 
-# next.js
+# next.js (/.next-*/: live and probe builds, TESSERA_DIST_DIR in next.config.ts)
 /.next/
+/.next-*/
 /out/
 
 # production

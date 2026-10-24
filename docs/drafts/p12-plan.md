@@ -1049,7 +1049,7 @@ Nothing else. Motion is WAAPI plus CSS, the floating sidebar is CSS on Astryx el
 
 Setup:
 - Never use `data/tessera.db*` or port 3000.
-- If a `next dev` is running in this checkout, run the build and acceptance from a scratch copy, because they share `.next` (field guide).
+- If a `next dev` is running in this checkout, run the build and acceptance from a scratch copy, because other lanes edit the checkout.
 - Move any `data/p12-acceptance.db*` to the scratchpad.
 - Run `npm run build`.
 - Start the server: `TESSERA_DB_PATH=data/p12-acceptance.db npx next start -H 127.0.0.1 -p 3300 > <scratchpad>/p12.log 2>&1 &`.

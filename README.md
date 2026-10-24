@@ -25,17 +25,34 @@ npm install
 cp .env.example .env.local
 ```
 
+## Run
+
+Daily use is the live app: a production build of the last commit on http://127.0.0.1:3000, against `data/tessera.db`. The first start builds it (one to two minutes); later starts take about a second. It keeps running when you close the terminal.
+
+```bash
+npm run live
+```
+
+After new commits, build and switch (the old version serves until the switch, which takes under a second):
+
+```bash
+npm run live:update
+```
+
+To see uncommitted work, run the dev server on http://127.0.0.1:3001. It uses its own database, `data/dev/tessera.db`, created on first use, so its backups stay in `data/dev/`.
+
 ```bash
 npm run dev
 ```
 
-The app listens on http://127.0.0.1:3000. The assistant appears only when an Anthropic credential resolves (`ANTHROPIC_API_KEY` in `.env.local`, or `ant auth login` once).
+The full runbook (status, rollback, stop, exit codes, migrations): [docs/process/live.md](docs/process/live.md). The assistant appears only when an Anthropic credential resolves (`ANTHROPIC_API_KEY` in `.env.local`, or `ant auth login` once).
 
 ## Scripts
 
 | Script | What it does |
 |---|---|
-| `npm run dev` | Next dev server bound to loopback |
+| `npm run live` / `live:update` / `live:rollback` / `live:stop` / `live:status` | the live app on 127.0.0.1:3000 (`scripts/live.sh`, docs/process/live.md) |
+| `npm run dev` | Next dev server on 127.0.0.1:3001 with `data/dev/tessera.db`; `PORT` and `TESSERA_DB_PATH` override |
 | `npm run check` | typecheck, lint, tests, convention gate, licence gate (the merge gate) |
 | `npm run test` / `test:watch` | Vitest |
 | `npm run db:generate` / `db:migrate` / `db:seed` / `db:backup` / `db:fts-rebuild` | database lifecycle (from P1) |
@@ -50,7 +67,7 @@ The app listens on http://127.0.0.1:3000. The assistant appears only when an Ant
 src/lib/tessera/      engine: schema, service layer, tool registry, MCP and AI adapters
 src/components/       UI by area (shell, work-items, detail, editor, planning, views, pages, ...)
 src/app/(tessera)/    routes
-scripts/              gates and database scripts
+scripts/              gates, database scripts and the live app (live.sh)
 drizzle/              migrations
 docs/contracts/       the contracts every lane codes against (schema, service API, tools, AI, owners)
 docs/PLAN.md          the plan; docs/PLAN-STATUS.md the status

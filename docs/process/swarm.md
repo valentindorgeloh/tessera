@@ -68,6 +68,8 @@ The models are pinned per role in each workflow script through `agent(..., { mod
 6. Reconcile: the reconciler does a final cross-lane pass and updates the field guide and `docs/PLAN-STATUS.md`.
 7. Commit: the root planner commits.
 
+Live update (decision 140): the user's daily Tessera is the live app on port 3000, a production build of the last commit (docs/process/live.md). After each merged batch whose gate is green, the reconciler runs `npm run live:update` once for that commit and says so in chat, because the user's open tab reloads on its next click. Only the reconciler, or the agent the user asks, runs it; no other agent starts, stops or kills anything on port 3000. The reconciler runs it from a plain shell: without `nice` (the server would keep the nice level, so a niced shell is refused), outside the sandbox (the detached server would keep it), and with a 600 s timeout or `run_in_background` (the build takes one to two minutes; a killed update stops its build and changes nothing). A zsh `&` job runs at nice 5 and is refused. The script gives the server a clean environment, so the agent session's own settings never reach the user's app. Edits to `next.config.ts` change the live build, so a lane batches them and the reconciler announces them before the update.
+
 ## Economics
 
 - The goal: frontier models spend their tokens only on contracts, adjudication and reconciliation, and workers carry most of the tokens.

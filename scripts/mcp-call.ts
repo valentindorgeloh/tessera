@@ -9,9 +9,11 @@
  * `"confirm": true`, as for any MCP client.
  *
  * It spawns `npx tsx scripts/mcp-stdio.ts` from the repo root with no `--db`
- * and no `--migrate`, so the server opens exactly the database the dev server
- * resolves (TESSERA_DB_PATH, from the calling shell or .env.local, else
- * data/tessera.db) and refuses pending migrations instead of migrating it.
+ * and no `--migrate`, so the server opens the database TESSERA_DB_PATH names
+ * (from the calling shell or .env.local), else data/tessera.db, the user's
+ * live database: `npm run dev` uses data/dev/tessera.db (decision 140), so
+ * pass the dev server's TESSERA_DB_PATH. It refuses pending migrations
+ * instead of migrating.
  * The client is named `p3-acceptance`, so calls run as the agent
  * `mcp:p3-acceptance`.
  *

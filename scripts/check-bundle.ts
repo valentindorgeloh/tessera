@@ -15,7 +15,7 @@ const DEFAULT_DIR = ".next/static";
 function main(): number {
   const dir = path.resolve(REPO_ROOT, process.argv[2] ?? DEFAULT_DIR);
   if (!fs.existsSync(dir)) {
-    console.error(`${dir} does not exist. Run \`npm run build\` first (not while \`next dev\` uses .next).`);
+    console.error(`${dir} does not exist. Run \`npm run build\` first (a build writes .next; dev uses .next/dev).`);
     return 2;
   }
   const { files, findings } = scanBundle(dir);

@@ -78,6 +78,8 @@ const eslintConfig = defineConfig([
   },
   globalIgnores([
     ".next/**",
+    // Builds in their own folder (decision 140: TESSERA_DIST_DIR, e.g. .next-probe or .next-build).
+    ".next-*/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
