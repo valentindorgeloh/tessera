@@ -5,7 +5,7 @@ import { Selector, type SelectorOptionData } from "@astryxdesign/core/Selector";
 import { StatusDot, type StatusDotProps } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
 import type { State, StateGroup } from "@/lib/tessera/types";
-import { useProject } from "../project-provider";
+import { useProjectRow } from "../project-provider";
 
 export type StateControlProps = {
   /** State id. */
@@ -62,7 +62,7 @@ export function StateLabel({ state, group, name }: { state?: State; group?: Stat
 
 /** Ghost selector over the project's states; rows show the group's StatusDot. */
 export function StateControl({ value, onChange, compact = false, readOnly = false, label = "State", disabledMessage }: StateControlProps) {
-  const { bundle, statesById } = useProject();
+  const { bundle, statesById } = useProjectRow();
   const options: SelectorOptionData[] = bundle.states
     .filter((state) => state.state_group !== "triage" || state.id === value)
     .map((state) => ({ value: state.id, label: state.name }));

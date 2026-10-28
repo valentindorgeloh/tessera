@@ -1,0 +1,118 @@
+{
+ "at": "2026-10-28T19:18:13.984Z",
+ "db": "small",
+ "delay": 2000,
+ "n": 5,
+ "load": "2.4 2.8 4.1",
+ "A": {
+  "clicks": 1,
+  "clickToEditorMs": 226,
+  "scriptsAfterPress": 1,
+  "scriptKBAfterPress": 1
+ },
+ "B": {
+  "clicks": 1,
+  "clickToEditorMs": 491,
+  "scriptsAfterPress": 2,
+  "scriptKBAfterPress": 2
+ },
+ "samplesA": [
+  {
+   "clicks": 1,
+   "clickToEditorMs": 229,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 226,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 232,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 221,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 221,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  }
+ ],
+ "samplesB": [
+  {
+   "clicks": 1,
+   "clickToEditorMs": 487,
+   "scriptsAfterPress": 2,
+   "scriptKBAfterPress": 2,
+   "urls": [
+    "0oaqy6-ljr2ji.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 494,
+   "scriptsAfterPress": 2,
+   "scriptKBAfterPress": 2,
+   "urls": [
+    "0oaqy6-ljr2ji.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 498,
+   "scriptsAfterPress": 2,
+   "scriptKBAfterPress": 2,
+   "urls": [
+    "0oaqy6-ljr2ji.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 488,
+   "scriptsAfterPress": 2,
+   "scriptKBAfterPress": 2,
+   "urls": [
+    "0oaqy6-ljr2ji.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 491,
+   "scriptsAfterPress": 2,
+   "scriptKBAfterPress": 2,
+   "urls": [
+    "0oaqy6-ljr2ji.js",
+    "166bq7-wyz4kn.js"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,148 @@
+{
+ "at": "2026-10-28T19:18:32.015Z",
+ "db": "small",
+ "delay": 300,
+ "n": 5,
+ "load": "2.8 2.9 4.1",
+ "A": {
+  "clicks": 1,
+  "clickToEditorMs": 233,
+  "scriptsAfterPress": 5,
+  "scriptKBAfterPress": 12
+ },
+ "B": {
+  "clicks": 1,
+  "clickToEditorMs": 527,
+  "scriptsAfterPress": 4,
+  "scriptKBAfterPress": 4
+ },
+ "samplesA": [
+  {
+   "clicks": 1,
+   "clickToEditorMs": 234,
+   "scriptsAfterPress": 5,
+   "scriptKBAfterPress": 12,
+   "urls": [
+    "18rog-5lfcksi.js",
+    "31qfhe5xaw5zr.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 231,
+   "scriptsAfterPress": 5,
+   "scriptKBAfterPress": 12,
+   "urls": [
+    "18rog-5lfcksi.js",
+    "31qfhe5xaw5zr.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 234,
+   "scriptsAfterPress": 5,
+   "scriptKBAfterPress": 12,
+   "urls": [
+    "18rog-5lfcksi.js",
+    "31qfhe5xaw5zr.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 228,
+   "scriptsAfterPress": 7,
+   "scriptKBAfterPress": 25,
+   "urls": [
+    "2ywx5-714hpz-.js",
+    "3xl0w8q6vfzp6.js",
+    "18rog-5lfcksi.js",
+    "31qfhe5xaw5zr.js",
+    "166bq7-wyz4kn.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 233,
+   "scriptsAfterPress": 7,
+   "scriptKBAfterPress": 25,
+   "urls": [
+    "2ywx5-714hpz-.js",
+    "3xl0w8q6vfzp6.js",
+    "18rog-5lfcksi.js",
+    "31qfhe5xaw5zr.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  }
+ ],
+ "samplesB": [
+  {
+   "clicks": 1,
+   "clickToEditorMs": 538,
+   "scriptsAfterPress": 4,
+   "scriptKBAfterPress": 4,
+   "urls": [
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "0oaqy6-ljr2ji.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 527,
+   "scriptsAfterPress": 2,
+   "scriptKBAfterPress": 2,
+   "urls": [
+    "0oaqy6-ljr2ji.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 492,
+   "scriptsAfterPress": 4,
+   "scriptKBAfterPress": 10,
+   "urls": [
+    "18rog-5lfcksi.js",
+    "09w9n8owufyfl.js",
+    "0oaqy6-ljr2ji.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 487,
+   "scriptsAfterPress": 4,
+   "scriptKBAfterPress": 4,
+   "urls": [
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "0oaqy6-ljr2ji.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 530,
+   "scriptsAfterPress": 2,
+   "scriptKBAfterPress": 2,
+   "urls": [
+    "0oaqy6-ljr2ji.js",
+    "166bq7-wyz4kn.js"
+   ]
+  }
+ ]
+}

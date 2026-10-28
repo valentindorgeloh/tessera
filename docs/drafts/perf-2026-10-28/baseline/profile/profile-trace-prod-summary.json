@@ -1,0 +1,474 @@
+[
+ {
+  "tag": "trace-prod-large-d-list",
+  "n": 3,
+  "ready": 849,
+  "longestMs": 595,
+  "longestStart": 193,
+  "longestGroups": {
+   "script-call": 345,
+   "evaluate-script": 0,
+   "compile": 0,
+   "style": 188,
+   "layout": 34,
+   "paint-commit": 0,
+   "parse": 0,
+   "gc": 32,
+   "other": 0
+  },
+  "windowGroups": {
+   "script-call": 416,
+   "evaluate-script": 10,
+   "compile": 19,
+   "style": 345,
+   "layout": 65,
+   "paint-commit": 32,
+   "parse": 20,
+   "gc": 38,
+   "other": 55
+  },
+  "taskTotal": 1005,
+  "over50": 3,
+  "topNames": {
+   "FunctionCall": 339,
+   "UpdateLayoutTree": 188,
+   "Layout": 34,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": 23,
+   "V8.GC_SCAVENGER_SCAVENGE_ROOTS": 2
+  }
+ },
+ {
+  "tag": "trace-prod-large-d-nav-list",
+  "n": 3,
+  "ready": 941,
+  "longestMs": 432,
+  "longestStart": 443,
+  "longestGroups": {
+   "script-call": 211,
+   "evaluate-script": 0,
+   "compile": 0,
+   "style": 190,
+   "layout": 15,
+   "paint-commit": 0,
+   "parse": 0,
+   "gc": 15,
+   "other": 0
+  },
+  "windowGroups": {
+   "script-call": 389,
+   "evaluate-script": 3,
+   "compile": 0,
+   "style": 241,
+   "layout": 36,
+   "paint-commit": 21,
+   "parse": 0,
+   "gc": 45,
+   "other": 52
+  },
+  "taskTotal": 789,
+  "over50": 2,
+  "topNames": {
+   "FunctionCall": 207,
+   "UpdateLayoutTree": 188,
+   "Layout": 13,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": 11
+  }
+ },
+ {
+  "tag": "trace-prod-large-d-table",
+  "n": 3,
+  "ready": 1481,
+  "longestMs": 1174,
+  "longestStart": 240,
+  "longestGroups": {
+   "script-call": 394,
+   "evaluate-script": 0,
+   "compile": 0,
+   "style": 643,
+   "layout": 102,
+   "paint-commit": 0,
+   "parse": 0,
+   "gc": 42,
+   "other": 0
+  },
+  "windowGroups": {
+   "script-call": 489,
+   "evaluate-script": 11,
+   "compile": 20,
+   "style": 780,
+   "layout": 152,
+   "paint-commit": 53,
+   "parse": 24,
+   "gc": 54,
+   "other": 87
+  },
+  "taskTotal": 1685,
+  "over50": 4,
+  "topNames": {
+   "UpdateLayoutTree": 643,
+   "FunctionCall": 364,
+   "Layout": 102,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": 31,
+   "V8.GC_SCAVENGER_SCAVENGE_ROOTS": 2
+  }
+ },
+ {
+  "tag": "trace-prod-large-m-list",
+  "n": 3,
+  "ready": 3660,
+  "longestMs": 2931,
+  "longestStart": 1382,
+  "longestGroups": {
+   "script-call": 1406,
+   "evaluate-script": 0,
+   "compile": 0,
+   "style": 1356,
+   "layout": 133,
+   "paint-commit": 0,
+   "parse": 0,
+   "gc": 55,
+   "other": 0
+  },
+  "windowGroups": {
+   "script-call": 1692,
+   "evaluate-script": 39,
+   "compile": 78,
+   "style": 1735,
+   "layout": 187,
+   "paint-commit": 64,
+   "parse": 82,
+   "gc": 68,
+   "other": 123
+  },
+  "taskTotal": 4101,
+  "over50": 4,
+  "topNames": {
+   "FunctionCall": 1439,
+   "UpdateLayoutTree": 1382,
+   "Layout": 134,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": 25,
+   "V8.GC_SCAVENGER_SCAVENGE_ROOTS": 8,
+   "V8.GC_SCAVENGER_SCAVENGE": 4,
+   "V8.GC_SCAVENGER_FREE_REMEMBERED_SET": 4,
+   "V8.GC_SCAVENGER_SCAVENGE_FINALIZE": 3,
+   "V8.GC_SCAVENGER_SCAVENGE_COLLECT_OLD_TO_NEW_PAGES": 3,
+   "V8.GC_SCAVENGER_TRACED_HANDLES_COMPUTE_WEAKNESS_PARALLEL": 3,
+   "MinorGC": 2
+  }
+ },
+ {
+  "tag": "trace-prod-large-m-nav-list",
+  "n": 3,
+  "ready": 3559,
+  "longestMs": 2419,
+  "longestStart": 1530,
+  "longestGroups": {
+   "script-call": 896,
+   "evaluate-script": 0,
+   "compile": 0,
+   "style": 1344,
+   "layout": 140,
+   "paint-commit": 0,
+   "parse": 0,
+   "gc": 46,
+   "other": 0
+  },
+  "windowGroups": {
+   "script-call": 1600,
+   "evaluate-script": 10,
+   "compile": 5,
+   "style": 1633,
+   "layout": 330,
+   "paint-commit": 91,
+   "parse": 0,
+   "gc": 88,
+   "other": 388
+  },
+  "taskTotal": 4138,
+  "over50": 5,
+  "topNames": {
+   "UpdateLayoutTree": 1348,
+   "FunctionCall": 941,
+   "Layout": 136,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": 8,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL": 7,
+   "V8.GC_MC_INCREMENTAL_EMBEDDER_TRACING": 4,
+   "V8.GC_MC_EVACUATE_COPY_PARALLEL": 3,
+   "MinorGC": 2,
+   "V8.GC_SCAVENGER_TRACED_HANDLES_COMPUTE_WEAKNESS_PARALLEL": 2,
+   "V8.GC_SCAVENGER_SCAVENGE_ROOTS": 2
+  }
+ },
+ {
+  "tag": "trace-prod-large-m-table",
+  "n": 3,
+  "ready": 5698,
+  "longestMs": 5174,
+  "longestStart": 1464,
+  "longestGroups": {
+   "script-call": 1651,
+   "evaluate-script": 0,
+   "compile": 0,
+   "style": 3126,
+   "layout": 326,
+   "paint-commit": 0,
+   "parse": 0,
+   "gc": 76,
+   "other": 0
+  },
+  "windowGroups": {
+   "script-call": 1963,
+   "evaluate-script": 47,
+   "compile": 77,
+   "style": 3224,
+   "layout": 407,
+   "paint-commit": 98,
+   "parse": 99,
+   "gc": 87,
+   "other": 152
+  },
+  "taskTotal": 6152,
+  "over50": 5,
+  "topNames": {
+   "UpdateLayoutTree": 3126,
+   "FunctionCall": 1674,
+   "Layout": 326,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": 28,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL": 16,
+   "V8.GC_SCAVENGER_SCAVENGE": 8,
+   "V8.GC_SCAVENGER_SCAVENGE_COLLECT_OLD_TO_NEW_PAGES": 6,
+   "V8.GC_SCAVENGER_TRACED_HANDLES_COMPUTE_WEAKNESS_PARALLEL": 5,
+   "V8.GC_SCAVENGER_SCAVENGE_FINALIZE": 5,
+   "V8.GC_SCAVENGER_SCAVENGE_ROOTS": 4,
+   "V8.GC_SCAVENGER_FREE_REMEMBERED_SET": 3
+  }
+ },
+ {
+  "tag": "trace-prod-small-d-list",
+  "n": 3,
+  "ready": 276,
+  "longestMs": 154,
+  "longestStart": 114,
+  "longestGroups": {
+   "script-call": 108,
+   "evaluate-script": 0,
+   "compile": 0,
+   "style": 29,
+   "layout": 10,
+   "paint-commit": 0,
+   "parse": 0,
+   "gc": 7,
+   "other": 0
+  },
+  "windowGroups": {
+   "script-call": 143,
+   "evaluate-script": 10,
+   "compile": 29,
+   "style": 82,
+   "layout": 20,
+   "paint-commit": 15,
+   "parse": 8,
+   "gc": 13,
+   "other": 26
+  },
+  "taskTotal": 346,
+  "over50": 1,
+  "topNames": {
+   "FunctionCall": 108,
+   "UpdateLayoutTree": 29,
+   "Layout": 10,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": 5
+  }
+ },
+ {
+  "tag": "trace-prod-small-d-nav-list",
+  "n": 3,
+  "ready": 549,
+  "longestMs": 95,
+  "longestStart": 440,
+  "longestGroups": {
+   "script-call": 57,
+   "evaluate-script": 0,
+   "compile": 0,
+   "style": 33,
+   "layout": 4,
+   "paint-commit": 0,
+   "parse": 0,
+   "gc": 3,
+   "other": 0
+  },
+  "windowGroups": {
+   "script-call": 171,
+   "evaluate-script": 4,
+   "compile": 0,
+   "style": 47,
+   "layout": 10,
+   "paint-commit": 8,
+   "parse": 0,
+   "gc": 20,
+   "other": 39
+  },
+  "taskTotal": 304,
+  "over50": 1,
+  "topNames": {
+   "FunctionCall": 61,
+   "UpdateLayoutTree": 42,
+   "Layout": 5,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": 3
+  }
+ },
+ {
+  "tag": "trace-prod-small-d-table",
+  "n": 3,
+  "ready": 431,
+  "longestMs": 300,
+  "longestStart": 126,
+  "longestGroups": {
+   "script-call": 129,
+   "evaluate-script": 0,
+   "compile": 0,
+   "style": 130,
+   "layout": 27,
+   "paint-commit": 0,
+   "parse": 0,
+   "gc": 13,
+   "other": 0
+  },
+  "windowGroups": {
+   "script-call": 164,
+   "evaluate-script": 10,
+   "compile": 30,
+   "style": 182,
+   "layout": 41,
+   "paint-commit": 22,
+   "parse": 10,
+   "gc": 32,
+   "other": 39
+  },
+  "taskTotal": 534,
+  "over50": 1,
+  "topNames": {
+   "UpdateLayoutTree": 130,
+   "FunctionCall": 129,
+   "Layout": 27,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": 9
+  }
+ },
+ {
+  "tag": "trace-prod-small-m-list",
+  "n": 3,
+  "ready": 1131,
+  "longestMs": 754,
+  "longestStart": 283,
+  "longestGroups": {
+   "script-call": 488,
+   "evaluate-script": 0,
+   "compile": 0,
+   "style": 204,
+   "layout": 42,
+   "paint-commit": 0,
+   "parse": 0,
+   "gc": 19,
+   "other": 0
+  },
+  "windowGroups": {
+   "script-call": 617,
+   "evaluate-script": 38,
+   "compile": 115,
+   "style": 302,
+   "layout": 68,
+   "paint-commit": 31,
+   "parse": 34,
+   "gc": 19,
+   "other": 54
+  },
+  "taskTotal": 1306,
+  "over50": 3,
+  "topNames": {
+   "FunctionCall": 488,
+   "UpdateLayoutTree": 205,
+   "Layout": 42,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": 8,
+   "V8.GC_SCAVENGER_SCAVENGE_ROOTS": 3,
+   "V8.GC_SCAVENGER_SCAVENGE_FINALIZE": 2,
+   "V8.GC_SCAVENGER_SCAVENGE": 2
+  }
+ },
+ {
+  "tag": "trace-prod-small-m-nav-list",
+  "n": 3,
+  "ready": 1116,
+  "longestMs": 517,
+  "longestStart": 1305,
+  "longestGroups": {
+   "script-call": 269,
+   "evaluate-script": 0,
+   "compile": 0,
+   "style": 198,
+   "layout": 38,
+   "paint-commit": 0,
+   "parse": 0,
+   "gc": 6,
+   "other": 0
+  },
+  "windowGroups": {
+   "script-call": 767,
+   "evaluate-script": 12,
+   "compile": 6,
+   "style": 333,
+   "layout": 70,
+   "paint-commit": 62,
+   "parse": 0,
+   "gc": 45,
+   "other": 169
+  },
+  "taskTotal": 1482,
+  "over50": 4,
+  "topNames": {
+   "FunctionCall": 266,
+   "UpdateLayoutTree": 203,
+   "Layout": 40,
+   "V8.GC_MC_SWEEP": 3,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": 2,
+   "V8.GC_MC_INCREMENTAL_EMBEDDER_TRACING": 2
+  }
+ },
+ {
+  "tag": "trace-prod-small-m-table",
+  "n": 3,
+  "ready": 1563,
+  "longestMs": 1221,
+  "longestStart": 274,
+  "longestGroups": {
+   "script-call": 620,
+   "evaluate-script": 0,
+   "compile": 0,
+   "style": 500,
+   "layout": 80,
+   "paint-commit": 0,
+   "parse": 0,
+   "gc": 19,
+   "other": 0
+  },
+  "windowGroups": {
+   "script-call": 743,
+   "evaluate-script": 41,
+   "compile": 77,
+   "style": 537,
+   "layout": 120,
+   "paint-commit": 64,
+   "parse": 41,
+   "gc": 26,
+   "other": 58
+  },
+  "taskTotal": 1711,
+  "over50": 2,
+  "topNames": {
+   "UpdateLayoutTree": 542,
+   "FunctionCall": 537,
+   "Layout": 93,
+   "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": 10,
+   "V8.GC_SCAVENGER_SCAVENGE": 3
+  }
+ }
+]

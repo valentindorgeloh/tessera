@@ -1,0 +1,286 @@
+{
+ "small/list": {
+  "total": 7,
+  "groups": [
+   [
+    "nav DIV astryx-tab-strip",
+    2
+   ],
+   [
+    "nav NAV astryx-tab-list tessera-cmd-tabs",
+    1
+   ],
+   [
+    "main-other H4 astryx-heading tessera-project-frame-title",
+    1
+   ],
+   [
+    "main-other SPAN astryx-text",
+    1
+   ],
+   [
+    "main-other DIV ",
+    1
+   ],
+   [
+    "nav NAV astryx-tab-list tessera-project-tabs",
+    1
+   ]
+  ],
+  "sample": [
+   {
+    "tag": "DIV",
+    "cls": "astryx-tab-strip",
+    "text": "SearchSearch",
+    "inMain": false,
+    "inNav": true,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   },
+   {
+    "tag": "NAV",
+    "cls": "astryx-tab-list tessera-cmd-tabs",
+    "text": "SearchSearch",
+    "inMain": false,
+    "inNav": true,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   },
+   {
+    "tag": "H4",
+    "cls": "astryx-heading tessera-project-frame-title",
+    "text": "Website",
+    "inMain": true,
+    "inNav": false,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   },
+   {
+    "tag": "DIV",
+    "cls": "astryx-tab-strip",
+    "text": "Work itemsWork itemsCyclesCycl",
+    "inMain": true,
+    "inNav": true,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   }
+  ]
+ },
+ "large/list": {
+  "total": 7,
+  "groups": [
+   [
+    "nav DIV astryx-tab-strip",
+    2
+   ],
+   [
+    "nav NAV astryx-tab-list tessera-cmd-tabs",
+    1
+   ],
+   [
+    "main-other H4 astryx-heading tessera-project-frame-title",
+    1
+   ],
+   [
+    "nav NAV astryx-tab-list tessera-project-tabs",
+    1
+   ],
+   [
+    "main-other SPAN astryx-text",
+    1
+   ],
+   [
+    "main-other DIV ",
+    1
+   ]
+  ],
+  "sample": [
+   {
+    "tag": "DIV",
+    "cls": "astryx-tab-strip",
+    "text": "SearchSearch",
+    "inMain": false,
+    "inNav": true,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   },
+   {
+    "tag": "NAV",
+    "cls": "astryx-tab-list tessera-cmd-tabs",
+    "text": "SearchSearch",
+    "inMain": false,
+    "inNav": true,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   },
+   {
+    "tag": "H4",
+    "cls": "astryx-heading tessera-project-frame-title",
+    "text": "Performance",
+    "inMain": true,
+    "inNav": false,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   },
+   {
+    "tag": "DIV",
+    "cls": "astryx-tab-strip",
+    "text": "Work itemsWork itemsCyclesCycl",
+    "inMain": true,
+    "inNav": true,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   }
+  ]
+ },
+ "large/table": {
+  "total": 11,
+  "groups": [
+   [
+    "nav DIV astryx-tab-strip",
+    2
+   ],
+   [
+    "main-other DIV ",
+    2
+   ],
+   [
+    "main-other DIV astryx-table-scroll-wrapper",
+    2
+   ],
+   [
+    "nav NAV astryx-tab-list tessera-cmd-tabs",
+    1
+   ],
+   [
+    "main-other H4 astryx-heading tessera-project-frame-title",
+    1
+   ],
+   [
+    "nav NAV astryx-tab-list tessera-project-tabs",
+    1
+   ],
+   [
+    "main-other SPAN astryx-text",
+    1
+   ],
+   [
+    "main-other TABLE astryx-table astryx-base-table tessera-table",
+    1
+   ]
+  ],
+  "sample": [
+   {
+    "tag": "DIV",
+    "cls": "astryx-tab-strip",
+    "text": "SearchSearch",
+    "inMain": false,
+    "inNav": true,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   },
+   {
+    "tag": "NAV",
+    "cls": "astryx-tab-list tessera-cmd-tabs",
+    "text": "SearchSearch",
+    "inMain": false,
+    "inNav": true,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   },
+   {
+    "tag": "H4",
+    "cls": "astryx-heading tessera-project-frame-title",
+    "text": "Performance",
+    "inMain": true,
+    "inNav": false,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   },
+   {
+    "tag": "DIV",
+    "cls": "astryx-tab-strip",
+    "text": "Work itemsWork itemsCyclesCycl",
+    "inMain": true,
+    "inNav": true,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   }
+  ]
+ },
+ "small/inbox": {
+  "total": 5,
+  "groups": [
+   [
+    "nav DIV astryx-tab-strip",
+    2
+   ],
+   [
+    "nav NAV astryx-tab-list tessera-cmd-tabs",
+    1
+   ],
+   [
+    "main-other H4 astryx-heading",
+    1
+   ],
+   [
+    "nav NAV astryx-tab-list tessera-inbox-tabs",
+    1
+   ]
+  ],
+  "sample": [
+   {
+    "tag": "DIV",
+    "cls": "astryx-tab-strip",
+    "text": "SearchSearch",
+    "inMain": false,
+    "inNav": true,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   },
+   {
+    "tag": "NAV",
+    "cls": "astryx-tab-list tessera-cmd-tabs",
+    "text": "SearchSearch",
+    "inMain": false,
+    "inNav": true,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   },
+   {
+    "tag": "H4",
+    "cls": "astryx-heading",
+    "text": "Inbox",
+    "inMain": true,
+    "inNav": false,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   },
+   {
+    "tag": "DIV",
+    "cls": "astryx-tab-strip",
+    "text": "AllAllMentionsMentionsSnoozedS",
+    "inMain": true,
+    "inNav": true,
+    "inHeader": false,
+    "row": false,
+    "td": false
+   }
+  ]
+ }
+}

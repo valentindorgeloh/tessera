@@ -1,0 +1,61 @@
+
+> tessera@0.1.0 check:bundle
+> tsx scripts/check-bundle.ts
+
+Bundle check passed: 135 files in .next/static contain none of ANTHROPIC, sk-ant-, better-sqlite3, drizzle-orm/better-sqlite3, TESSERA_DB_PATH, server-only.
+route                                          first-load gz     baseline   change  status
+/projects/[projectId]/intake                        898.1 KB     897.5 KB    +0.1%  ok
+/inbox                                              892.1 KB     891.5 KB    +0.1%  ok
+/projects/[projectId]/work-items/[workItemId]       878.9 KB     878.4 KB    +0.1%  ok
+/work-items/[workItemId]                            874.7 KB     874.1 KB    +0.1%  ok
+/projects/[projectId]/pages/[pageId]                869.7 KB     869.1 KB    +0.1%  ok
+/pages/[pageId]                                     865.0 KB     864.4 KB    +0.1%  ok
+/stickies                                           820.3 KB     819.7 KB    +0.1%  ok
+/projects/[projectId]/cycles/[cycleId]              793.3 KB     792.5 KB    +0.1%  ok
+/projects/[projectId]/cycles                        704.8 KB     704.2 KB    +0.1%  ok
+/active-cycles                                      696.9 KB     696.3 KB    +0.1%  ok
+/analytics/[tab]                                    686.0 KB     685.5 KB    +0.1%  ok
+/projects/[projectId]/modules/[moduleId]            684.4 KB     683.7 KB    +0.1%  ok
+/projects/[projectId]/archives/work-items           673.3 KB     672.5 KB    +0.1%  ok
+/projects/[projectId]/views/[viewId]                671.9 KB     671.1 KB    +0.1%  ok
+/projects/[projectId]/work-items                    669.3 KB     668.6 KB    +0.1%  ok
+/agents/[actorId]/[tab]                             667.0 KB     666.3 KB    +0.1%  ok
+/your-work/[tab]                                    667.0 KB     666.3 KB    +0.1%  ok
+/workspace-views/[viewId]                           660.5 KB     659.7 KB    +0.1%  ok
+/projects/[projectId]/pages                         596.4 KB     595.8 KB    +0.1%  ok
+/wiki                                               591.7 KB     591.1 KB    +0.1%  ok
+/projects/[projectId]/modules                       591.5 KB     590.9 KB    +0.1%  ok
+/                                                   590.2 KB     589.6 KB    +0.1%  ok
+/projects/[projectId]/settings/states               583.2 KB     582.6 KB    +0.1%  ok
+/drafts                                             579.0 KB     578.5 KB    +0.1%  ok
+/projects/[projectId]/settings/estimates            554.8 KB     554.3 KB    +0.1%  ok
+/projects/[projectId]/views                         553.6 KB     553.0 KB    +0.1%  ok
+/projects/[projectId]/archives/modules              552.5 KB     551.9 KB    +0.1%  ok
+/projects/[projectId]/settings/agents               552.3 KB     551.7 KB    +0.1%  ok
+/projects/[projectId]/archives/cycles               552.3 KB     551.7 KB    +0.1%  ok
+/projects/[projectId]/settings/automations          551.0 KB     550.4 KB    +0.1%  ok
+/projects/[projectId]/settings/labels               550.8 KB     550.3 KB    +0.1%  ok
+/settings/webhooks/[webhookId]                      550.1 KB     549.5 KB    +0.1%  ok
+/projects                                           549.2 KB     548.7 KB    +0.1%  ok
+/projects/archives                                  549.2 KB     548.6 KB    +0.1%  ok
+/projects/[projectId]/settings/general              548.4 KB     547.8 KB    +0.1%  ok
+/workspace-views                                    548.1 KB     547.5 KB    +0.1%  ok
+/settings/exports                                   547.6 KB     547.0 KB    +0.1%  ok
+/projects/[projectId]/settings/features             547.5 KB     546.9 KB    +0.1%  ok
+/settings/backups                                   547.1 KB     546.5 KB    +0.1%  ok
+/projects/[projectId]/settings                      546.4 KB     545.8 KB    +0.1%  ok
+/projects/[projectId]/archives                      546.3 KB     545.7 KB    +0.1%  ok
+/agents                                             545.8 KB     545.3 KB    +0.1%  ok
+/projects/[projectId]                               545.8 KB     545.2 KB    +0.1%  ok
+/settings/webhooks                                  545.2 KB     544.6 KB    +0.1%  ok
+/settings/[tab]                                     543.4 KB     542.8 KB    +0.1%  ok
+/agents/[actorId]                                   541.5 KB     540.9 KB    +0.1%  ok
+/analytics                                          541.5 KB     540.9 KB    +0.1%  ok
+/browse/[key]                                       541.5 KB     540.9 KB    +0.1%  ok
+/cycles/[cycleId]                                   541.5 KB     540.9 KB    +0.1%  ok
+/modules/[moduleId]                                 541.5 KB     540.9 KB    +0.1%  ok
+/settings                                           541.5 KB     540.9 KB    +0.1%  ok
+/your-work                                          541.5 KB     540.9 KB    +0.1%  ok
+/_not-found                                         277.3 KB     277.3 KB    +0.0%  ok
+First-load budget passed: 53 routes within 5% of scripts/bundle-baseline.json.
+BUNDLE EXIT 0

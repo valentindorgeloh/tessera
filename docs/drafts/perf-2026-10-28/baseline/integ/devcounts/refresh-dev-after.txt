@@ -1,0 +1,4 @@
+load 3.56 2.69 1.95
+external-write 0 {"commits":11,"worked":10091,"cpuReady":620,"top":"Stack=819 HStack=791 Icon=668 CheckIndicator=633 Text=565 IconBase=495"}
+external-write 1 {"commits":6,"worked":2723,"cpuReady":230,"top":"Item=205 Stack=174 HStack=146 IconBase=119 Icon=117 AreaProvider=90"}
+external-write 2 {"commits":6,"worked":2723,"cpuReady":228,"top":"Item=205 Stack=174 HStack=146 IconBase=119 Icon=117 AreaProvider=90"}

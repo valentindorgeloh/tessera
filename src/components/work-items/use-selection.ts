@@ -8,6 +8,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useHotkeys } from "@astryxdesign/core/hooks";
 import { prune, selectRange, toggle, type Selection } from "./selection";
+import { useStableCallback } from "./stable";
 
 const EMPTY: Selection = new Set();
 
@@ -37,11 +38,12 @@ export function useSelection(orderedIds: readonly string[], enabled: boolean) {
     },
   ]);
 
-  const toggleId = (id: string, shift: boolean) => {
+  // A fixed identity: every memoized row gets it as its `onToggle`, so a tick redraws the ticked row, not the list (decision 141).
+  const toggleId = useStableCallback((id: string, shift: boolean) => {
     if (!enabled) return;
     setSelected((current) => (shift && anchorId ? selectRange(current, orderedIds, anchorId, id) : toggle(current, id)));
     setAnchorId(id);
-  };
+  });
 
   const toggleIds = (ids: readonly string[], on: boolean) => {
     if (!enabled) return;

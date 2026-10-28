@@ -263,8 +263,12 @@
   }
 }
 
-/* Focus scrolled into view stays clear of the sticky band (40px, plus the key button's inset). */
-.tessera-wi-scroller:has(.tessera-wi-group) {
+/*
+ * Focus scrolled into view stays clear of the sticky band (40px, plus the key button's inset). WorkItemsScreen adds
+ * the class while the list draws group bands (listShowsGroups): a class, not `:has(.tessera-wi-group)`, because the
+ * browser re-checked the whole scroller subtree for that selector (decision 141).
+ */
+.tessera-wi-scroller--grouped {
   scroll-padding-block-start: calc(var(--size-element-md) + var(--spacing-4));
 }
 
@@ -422,7 +426,7 @@
     min-block-size: var(--spacing-11);
   }
 
-  .tessera-wi-scroller:has(.tessera-wi-group) {
+  .tessera-wi-scroller--grouped {
     scroll-padding-block-start: calc(var(--spacing-11) + var(--spacing-4));
   }
 

@@ -1,0 +1,196 @@
+22:05  up 6 days, 22:44, 1 user, load averages: 1.63 1.52 1.66
+ 0
+
+> tessera@0.1.0 check
+> npm run typecheck && npm run lint && npm run test && npm run check:conventions && npm run check:licenses && npm run check:theme
+
+
+> tessera@0.1.0 typecheck
+> tsc --noEmit
+
+
+> tessera@0.1.0 lint
+> eslint
+
+
+> tessera@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 /private/tmp/claude-501/-Users-valentindorgeloh-Documents-Github-tessera/8acb4a38-4ac2-4215-9929-95e79d18c45f/scratchpad/perf/bc/after
+
+
+ Test Files  254 passed (254)
+      Tests  3119 passed (3119)
+   Start at  22:06:21
+   Duration  37.34s (tests 51%, import 34%, environment 10%, transform 5%)
+
+     Import  807 modules were evaluated 3677 times · 123.58s total, 34% of tracked time
+             ~2.37s faster with isolate: false — shared modules are evaluated once per worker instead of once per file
+             learn more: https://vitest.dev/guide/improving-performance#test-isolation
+
+
+> tessera@0.1.0 check:conventions
+> tsx scripts/check-conventions.ts
+
+Convention gate passed.
+
+> tessera@0.1.0 check:licenses
+> tsx scripts/check-licenses.ts
+
+Licence gate passed: 632 packages scanned, 7 reviewed exception(s) applied.
+
+> tessera@0.1.0 check:theme
+> npm run astryx -- theme build --check src/themes/catppuccin/catppuccinTheme.ts && npm run astryx -- doctor
+
+
+> tessera@0.1.0 astryx
+> node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs theme build --check src/themes/catppuccin/catppuccinTheme.ts
+
+
+Building theme from src/themes/catppuccin/catppuccinTheme.ts...
+
+[ok] Theme outputs are up to date with src/themes/catppuccin/catppuccinTheme.ts.
+
+> tessera@0.1.0 astryx
+> node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs doctor
+
+astryx doctor - diagnosing your setup
+
+id:      node-version
+status:  [ok]
+label:   Node.js version
+message: Node v22.23.3 meets the minimum (>=22.13.0).
+
+id:      core-installed
+status:  [ok]
+label:   @astryxdesign/core installed
+message: @astryxdesign/core resolved (v0.6.8).
+
+id:      version-alignment
+status:  [ok]
+label:   @astryxdesign/core <-> @astryxdesign/cli alignment
+message: @astryxdesign/core v0.6.8 is in step with @astryxdesign/cli v0.6.8.
+
+id:      themes
+status:  [warn]
+label:   Theme packages
+message: One theme check needs attention: theme-fonts.
+fix:     Follow the fix on the theme-fonts check.
+
+id:      theme-owners
+status:  [ok]
+label:   Theme owners and built imports
+message: 1 added theme resolve to built modules and stylesheets, and every built module loads.
+
+id:      theme-module
+status:  [ok]
+label:   Generated theme module
+message: src/astryx-themes.ts has the generated marker and exactly matches its record.
+
+id:      theme-module-import
+status:  [ok]
+label:   App imports the theme module
+message: Project source imports src/astryx-themes.ts.
+
+id:      theme-stylesheet-imports
+status:  [ok]
+label:   Built theme stylesheet imports
+message: Every added built module import is paired with its stylesheet import.
+
+id:      theme-local-builds
+status:  [ok]
+label:   Local theme build freshness
+message: Every added local theme output matches its source.
+
+id:      theme-private-variables
+status:  [ok]
+label:   Private theme variables
+message: No added theme input sets a private --_* variable directly.
+
+id:      theme-core-peers
+status:  [ok]
+label:   Theme Core peer compatibility
+message: Every added package theme accepts the installed @astryxdesign/core version.
+
+id:      theme-default
+status:  [ok]
+label:   Default added theme
+message: Default theme "catppuccin" is added.
+
+id:      theme-fonts
+status:  [warn]
+label:   Theme font loading
+message: Added themes name font families but import no font stylesheet (catppuccin: Source Sans 3, Source Sans Pro, Source Code Pro (font stylesheet is not imported)).
+fix:     Add <slug>.fonts.css beside each built local theme output, then npx astryx theme add catppuccin --import.
+
+id:      theme-global-rules
+status:  [ok]
+label:   Cross-theme global CSS rules
+message: No added themes write different rules for the same selector outside their own scope.
+
+id:      config
+status:  [info]
+label:   astryx.config.mjs
+message: No astryx.config.mjs found - using defaults.
+
+id:      implicit-integrations
+status:  [info]
+label:   Implicitly linked integrations
+message: None - no installed dependency ships an astryx.integration.* manifest.
+
+id:      provider-identity
+status:  [info]
+label:   Integration provider identity
+message: None - no loaded integration has a provider identity.
+
+id:      integration-issues
+status:  [info]
+label:   Integration contributions
+message: No integration is loaded, so there are no integration contributions to check.
+
+id:      agent-docs
+status:  [ok]
+label:   AI agent docs
+message: Astryx agent docs section present in AGENTS.md.
+
+id:      peer-deps
+status:  [ok]
+label:   @astryxdesign/core peer dependencies
+message: All peer dependencies satisfied (@stylexjs/stylex, react, react-dom).
+
+id:      package-manager
+status:  [info]
+label:   Package manager
+message: Detected package manager: npm.
+
+id:      authoring-docs
+status:  [ok]
+label:   Authoring docs
+message: All 18 authoring schemas are readable in `astryx docs authoring`.
+
+id:      cli-docs
+status:  [ok]
+label:   CLI docs
+message: All 104 CLI docs are readable: 86 in the `astryx docs cli` tree and 18 in `astryx docs authoring`.
+
+id:      docs-tree
+status:  [ok]
+label:   Docs tree
+message: The docs tree has 185 docs in 29 sections (9 at the top), each at one route.
+
+id:      docs-progressive-disclosure
+status:  [ok]
+label:   Documentation navigation and size
+message: 99 topics: every section index and section fits in one 32 KB read.
+
+summary
+
+pass: 18
+warn: 2
+fail: 0
+info: 5
+
+No failures - but review the [warn] warnings above when you can.
+EXIT 0
+22:07  up 6 days, 22:45, 1 user, load averages: 10.85 4.11 2.61

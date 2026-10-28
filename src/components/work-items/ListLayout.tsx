@@ -12,7 +12,7 @@
  * the detail page and, in P2b, the peek panel. Quick-add placeholders
  * (./optimistic.ts) render as inert rows until the server item replaces them.
  */
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useMemo, useRef, useState, type ReactNode } from "react";
 import { Avatar } from "@astryxdesign/core/Avatar";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
@@ -28,8 +28,9 @@ import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { formatEstimateValue } from "@/components/estimates/estimate-format";
 import { groupLimitKey } from "@/lib/tessera/core/group";
 import type { Display, Group, StateGroup, WorkItem } from "@/lib/tessera/types";
+import { visibleGroups, nothingMatches } from "./list-groups";
 import { isOptimisticId } from "./optimistic";
-import { useProject } from "./project-provider";
+import { useProjectRow } from "./project-provider";
 import { RowProject } from "./row-project";
 import { ActorLabel, CycleControl, DateControl, PriorityControl, PriorityLabel, StateControl, StateLabel, paletteTokenColor } from "./properties";
 import { isOverdue } from "./properties/date-format";
@@ -58,7 +59,7 @@ function dayOf(value: string | null): string {
 // ---------------------------------------------------------------------------
 
 function GroupMarker({ group }: { group: Group }) {
-  const { statesById } = useProject();
+  const { statesById } = useProjectRow();
   if (group.id === NONE_GROUP_ID) {
     return (
       <Text type="inherit" color="secondary" className="tessera-wi-label-text">
@@ -128,11 +129,14 @@ type RowProps = {
   onOpen: (id: string) => void;
   /** Archived project: every property control is read-only (F3.4). */
   readOnly?: boolean;
-  selection?: LayoutProps["selection"];
+  /** Absent: the list has no selection column. Otherwise whether this row is ticked. */
+  selected?: boolean;
+  /** The selection hook's fixed-identity toggle (use-selection.ts); present exactly when `selected` is. */
+  onToggle?: (id: string, shift: boolean) => void;
 };
 
-function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowProps, "onOpen"> & { readOnly?: boolean }) {
-  const { bundle, labelsById, actorsById, modulesById, statesById } = useProject();
+function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowProps, "item" | "display" | "onUpdate" | "readOnly">) {
+  const { bundle, labelsById, actorsById, modulesById, statesById } = useProjectRow();
   const props = display.properties;
   const nodes: ReactNode[] = [];
   if (props.state) {
@@ -257,7 +261,12 @@ function RowTitle({ name }: { name: string }) {
   );
 }
 
-function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, selection }: RowProps) {
+/**
+ * Memoized (decision 141): a row redraws only when its own item, the display, its tick or the read-only flag changed
+ * (the handlers keep one identity, WorkItemsScreen and use-selection.ts). Everything else it reads comes through
+ * `useProjectRow()`, which does not change on a write that leaves the row alone.
+ */
+const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, selected, onToggle }: RowProps) {
   // The key button owns the row's action: surface clicks delegate to it and it is the row's only tab stop.
   const openRef = useRef<HTMLButtonElement>(null);
   if (isOptimisticId(item.id)) {
@@ -283,18 +292,18 @@ function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, select
     <ListItem
       label={<RowTitle name={item.name} />}
       className="tessera-wi-row"
-      data-selected={selection?.selected.has(item.id) ? "" : undefined}
+      data-selected={selected ? "" : undefined}
       interactiveRef={openRef}
       startContent={
         <HStack gap={1} vAlign="center">
-          {selection ? (
+          {selected !== undefined && onToggle ? (
             <CheckboxInput
               className="tessera-wi-select"
               size="sm"
               isLabelHidden
               label={`Select ${item.key}`}
-              value={selection.selected.has(item.id)}
-              onChange={(_checked, event) => selection.onToggle(item.id, "shiftKey" in event.nativeEvent && event.nativeEvent.shiftKey === true)}
+              value={selected}
+              onChange={(_checked, event) => onToggle(item.id, "shiftKey" in event.nativeEvent && event.nativeEvent.shiftKey === true)}
             />
           ) : null}
           <Button
@@ -315,7 +324,7 @@ function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, select
       }
     />
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Groups
@@ -359,7 +368,16 @@ function GroupSection({
       {items.length > 0 ? (
         <List density="compact" hasDividers>
           {items.map((item) => (
-            <WorkItemRow key={item.id} item={item} display={display} onUpdate={onUpdate} onOpen={onOpen} readOnly={readOnly} selection={selection} />
+            <WorkItemRow
+              key={item.id}
+              item={item}
+              display={display}
+              onUpdate={onUpdate}
+              onOpen={onOpen}
+              readOnly={readOnly}
+              selected={selection ? selection.selected.has(item.id) : undefined}
+              onToggle={selection?.onToggle}
+            />
           ))}
         </List>
       ) : null}
@@ -410,7 +428,7 @@ export function ListLayout({
     hasCaretGuard: true,
   });
 
-  const groups = display.group_by && result.groups ? result.groups.filter((group) => display.show_empty_groups || group.count > 0) : null;
+  const groups = visibleGroups(result, display);
 
   const toggle = (id: string, isOpen: boolean) => {
     setCollapsed((previous) => {
@@ -423,9 +441,7 @@ export function ListLayout({
 
   const hasNoItems = result.items.length === 0;
   const isEmpty = hasNoItems && (groups === null || groups.length === 0);
-  // While a filter applies and nothing matches, every group is empty too ("show empty groups" lists them with a quick-add
-  // row each): the list shows the same no-results state as the flat list instead.
-  const hasNoMatches = hasNoItems && onClearFilters !== undefined && (groups === null || groups.every((group) => group.count === 0));
+  const hasNoMatches = nothingMatches(result, groups, onClearFilters !== undefined);
 
   return (
     <VStack

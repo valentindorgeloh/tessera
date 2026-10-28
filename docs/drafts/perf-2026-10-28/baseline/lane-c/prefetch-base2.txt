@@ -1,0 +1,64 @@
+
+## load /inbox + 3 s idle (viewport prefetches)
+  GET /api/ai/status pf=null seg=null act=false 200 0.3kB 4ms
+  GET / pf=1 seg=/_tree act=false 200 0.8kB 2ms
+  GET / pf=1 seg=/!KHRlc3NlcmEp/__PAGE__ act=false 200 3.1kB 3ms
+  GET /your-work pf=1 seg=/_tree act=false 200 0.8kB 5ms
+  GET /drafts pf=1 seg=/_tree act=false 200 0.8kB 5ms
+  GET /wiki pf=1 seg=/_tree act=false 200 0.8kB 5ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles/01a160df-6439-75b4-ab0b-dff5f4ebf05b pf=1 seg=/_tree act=false 200 0.8kB 10ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items pf=1 seg=/_tree act=false 200 0.8kB 7ms
+  GET /pages/01a160e1-a734-77fe-9508-7447bb0db4b3 pf=1 seg=/_tree act=false 200 0.8kB 6ms
+  GET /projects pf=1 seg=/_tree act=false 200 0.8kB 7ms
+  GET /projects/01a160e1-a709-755b-a399-36d96ed7a9f1/work-items pf=1 seg=/_tree act=false 200 0.8kB 5ms
+  GET /projects/01a160e1-a71c-72b6-91ee-f1aa444cc70f/work-items pf=1 seg=/_tree act=false 200 0.8kB 5ms
+  GET /workspace-views pf=1 seg=/_tree act=false 200 0.8kB 4ms
+  GET /active-cycles pf=1 seg=/_tree act=false 200 0.8kB 5ms
+  GET /analytics pf=1 seg=/_tree act=false 200 0.8kB 4ms
+  GET /agents pf=1 seg=/_tree act=false 200 0.8kB 4ms
+  GET /your-work pf=1 seg=/!KHRlc3NlcmEp/your-work/__PAGE__ act=false 200 2.4kB 4ms
+  GET /drafts pf=1 seg=/!KHRlc3NlcmEp/drafts/__PAGE__ act=false 200 2.8kB 4ms
+  GET /wiki pf=1 seg=/!KHRlc3NlcmEp/wiki/__PAGE__ act=false 200 2.8kB 4ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles/01a160df-6439-75b4-ab0b-dff5f4ebf05b pf=1 seg=/!KHRlc3NlcmEp/projects/$d$projectId/cycles/$d$cycleId/__PAGE__ act=false 200 3kB 4ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items pf=1 seg=/!KHRlc3NlcmEp/projects/$d$projectId/work-items/__PAGE__ act=false 200 3kB 4ms
+  GET /pages/01a160e1-a734-77fe-9508-7447bb0db4b3 pf=1 seg=/!KHRlc3NlcmEp/pages/$d$pageId/__PAGE__ act=false 200 2.8kB 5ms
+  GET /projects pf=1 seg=/!KHRlc3NlcmEp/projects/__PAGE__ act=false 200 3.1kB 5ms
+  GET /workspace-views pf=1 seg=/!KHRlc3NlcmEp/workspace-views/__PAGE__ act=false 200 2.7kB 4ms
+  GET /active-cycles pf=1 seg=/!KHRlc3NlcmEp/active-cycles/__PAGE__ act=false 200 2.8kB 5ms
+  GET /analytics pf=1 seg=/!KHRlc3NlcmEp/analytics/__PAGE__ act=false 200 2.4kB 4ms
+  GET /agents pf=1 seg=/!KHRlc3NlcmEp/agents/__PAGE__ act=false 200 2.7kB 3ms
+
+## hover nav Analytics
+
+## click nav Analytics (/analytics -> redirect)  url 56 ms, skeleton 67 ms, ready 411 ms
+  GET /analytics/overview pf=null seg=null act=false 200 4.9kB 12ms
+
+## click nav Inbox (revisit via Link)  url 32 ms, skeleton 32 ms, ready 32 ms
+  GET /inbox pf=null seg=null act=false 200 6.1kB 9ms
+
+## browser back to /analytics/overview  wall 48 ms
+
+## click nav project Work items (from /analytics/overview)  url 35 ms, skeleton 35 ms, ready 442 ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items pf=null seg=null act=false 200 nullkB nullms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles pf=1 seg=/_tree act=false 200 0.8kB 8ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/modules pf=1 seg=/_tree act=false 200 0.8kB 8ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/views pf=1 seg=/_tree act=false 200 0.8kB 9ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/pages pf=1 seg=/_tree act=false 200 0.8kB 9ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/intake pf=1 seg=/_tree act=false 200 0.8kB 11ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/archives pf=1 seg=/_tree act=false 200 0.8kB 11ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/settings pf=1 seg=/_tree act=false 200 0.8kB 11ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles pf=1 seg=/!KHRlc3NlcmEp/projects/$d$projectId/cycles/__PAGE__ act=false 200 2.9kB 12ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/modules pf=1 seg=/!KHRlc3NlcmEp/projects/$d$projectId/modules/__PAGE__ act=false 200 2.9kB 5ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/views pf=1 seg=/!KHRlc3NlcmEp/projects/$d$projectId/views/__PAGE__ act=false 200 2.9kB 5ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/pages pf=1 seg=/!KHRlc3NlcmEp/projects/$d$projectId/pages/__PAGE__ act=false 200 2.9kB 5ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/intake pf=1 seg=/!KHRlc3NlcmEp/projects/$d$projectId/intake/__PAGE__ act=false 200 3kB 5ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/archives pf=1 seg=/!KHRlc3NlcmEp/projects/$d$projectId/archives/__PAGE__ act=false 200 3.1kB 3ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/settings pf=1 seg=/!KHRlc3NlcmEp/projects/$d$projectId/settings/__PAGE__ act=false 200 3.2kB 3ms
+
+## click project tab Cycles (sibling in project layout)  url 39 ms, skeleton 39 ms, ready 350 ms
+  GET /projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles pf=null seg=null act=false 200 nullkB nullms
+
+## 9 s idle on page
+  GET /api/changes pf=null seg=null act=false 200 0.3kB 3ms
+  GET /api/changes pf=null seg=null act=false 200 0.3kB 2ms
+load 3.67 3.64 4.50 -> 4.69 3.87 4.55

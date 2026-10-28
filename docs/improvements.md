@@ -1,8 +1,10 @@
-# Tessera: what needs improving (2026-10-28)
+# Tessera: what needs improving (2026-10-29)
 
 Reconciled on 2026-10-24 against the working tree after fix round 6 (tree = HEAD 157c687, which has fix round 5 committed as d3ffeb9 plus the demo seed, performance plan and live-app commits, plus this round's uncommitted changes: three lanes (shell-collapse, pins, e2e), two fix passes, two browser verify passes on scratch copies, never :3000 or `data/tessera.db*`). Gates on that tree: the round's gate is green after both fix passes; verify 2 ran `vitest run` from an un-niced shell (240 files / 3000 tests pass, including `live-build` and `live-script`, which refuse a niced shell), and the reconciler re-ran `tsc --noEmit` (clean), `eslint .` (clean), `scripts/check-conventions.ts` (passed) and the five round 6 Vitest files (23 tests pass). Playwright: 138 of 138 (24 spec files) on a scratch production build of the tree after fix 2 (port 3690, no fixme or skip), and `round6.spec.ts` 280 of 280 with `--repeat-each=10` (verify 1 had 279 of 280, a project-identifier collision in the spec helpers, fixed). The root then ran its own gate and two review passes over the tree; their fixes are the "Root close-out" entries under Closed, and the final gate on a fresh scratch copy of the tree after them was green: `next build`, `check:bundle`, `npm run check`, then two more `vitest run` (241 files / 3011 tests each time), Playwright 138 of 138 and `round6.spec.ts` 84 of 84 with `--repeat-each=3` (every early action landed in the gap on its first attempt), plus browser checks of the Power K seed and the drawer button. Contract for the round: `docs/drafts/fix-round-6-2026-10-23.md`. Re-check an item before working on it.
 
 Updated on 2026-10-28 with the performance round (commit after 21f8ae3): its open follow-ups are under "Performance", "Operations" and "Waiting for the user", its results under "Closed".
+
+Updated on 2026-10-29 with performance round 2 (roadmap lanes B and C, decisions 141 and 142, commit after 6331186): "Performance" is rewritten from its profile and review, its results are under "Closed".
 
 ## Open
 
@@ -13,10 +15,17 @@ Work items
 - On the board a long state name in a column header overlaps the column's Add button: the StateLabel HStack in `.tessera-board-column-title` has no `min-width: 0` (found by the performance round, 2026-10-28). Low.
 - At 375 px the open Assignees MultiSelector cuts a very long actor name at the listbox edge with no ellipsis (same round). Low.
 
-### Performance (after the round of 2026-10-28)
-- Decision 115's budget is still missed on 10k items: list p95 1,121 ms, table p95 1,996 ms (n=20, `tests/e2e/perf.spec.ts`). Next: roadmap lanes B (decision 141, memoised rows and stable identities) and C (decision 142, lazy peek and editor, sidebar links, bundle budget) in docs/drafts/perf-roadmap-2026-10-24.md, then Astryx lazy layers upstream (docs/drafts/astryx-upstream-2026-10-24.md).
-- The perf spec's board time is bimodal before and after the round (about 0.25 s, or 1.0 to 1.35 s when the reveal waits behind start-up long tasks); its cause is not traced.
-- The ProjectFrame heading and the "Work items" Text in `WorkItemsScreen` still use `Text maxLines`: 115 to 119 ms of `checkTruncation` in a dev 10k table load. Low.
+### Performance (after round 2, 2026-10-29)
+Source: docs/drafts/perf-report-2026-10-28.md (sections 1, 5 and 6) and its profile data in docs/drafts/perf-2026-10-28/baseline/profile/.
+- Decision 115's budget is still missed on 10k items: list p95 902 / 915 ms, table p95 1,653 / 1,643 ms (n=20, `tests/e2e/perf.spec.ts`, two runs). A page-size sweep with that spec gives the list about 105 ms + 3.3 ms per row and the table about 90 ms + 6 ms per row, so 300 ms holds about 58 to 60 list rows and 34 to 35 table rows at CPU 1x (none measured at 4x). P12's windowing therefore has to start near 50 list rows, not at decision 135's 250; the table also needs a lower per-row cost. Medium.
+- Closed popovers are the largest per-row cost: about 8.5 per row (Selector listboxes with every option, tooltips, date dialogs), 63% of the DOM on a 200-row list. Lazy listbox and popover content per row is the next app-side lever, together with windowing. Medium.
+- Astryx `useLayer` reads `getComputedStyle` twice per layer (`readPortalWritingContext`) and then mounts a second render pass; stubbing it saved 133 ms on the 10k list, 259 ms on the 10k table and 1.3 s on the 10k list at CPU 4x. Upstream fix (lazy closed layers), already in the Astryx draft under "Waiting for the user". Medium.
+- React 19.3 holds a revealed Suspense fallback for 300 ms (`FALLBACK_THROTTLE_MS`), so the first visit of a route in a session sits idle for about 250 ms after its code arrived: small list navigation 560 → 283 ms and Analytics first visit 474 → 179 ms when the hold is removed in a counterfactual. Needs a design that avoids the fallback on first visits; no app fix tried. Medium.
+- The board's p95 is bimodal (about 0.25 s, or 1.0 to 1.3 s): the first paint of the server HTML races a hydration task of about 1 s, and when the HTML arrives in several pieces nothing paints until hydration ends. Yielding before hydration would remove the slow tail. Low.
+- Every peek open, switch or close refetches nearly the whole list's RSC payload (225 to 232 KB on 10k, 62 to 70 KB on about 50 items). Low.
+- Only the list's `WorkItemRow` is memoised; table, board, calendar and gantt rows are not, and `RowProject` is rebuilt on every row render (docs/as-built/work-items.md). Low.
+- The list routes' first-load JavaScript dropped by 27 to 30% (work-items 669 KB gzip) but missed the roadmap's 560 KB target; the 553 KB estimate could not be reproduced. Low.
+- The ProjectFrame heading and the "Work items" Text in `WorkItemsScreen` still use `Text maxLines`: up to 64 ms at CPU 1x on a 10k list (about 300 ms at 4x, upper bound). Low.
 - Per-row popovers were made lazy in the list, table, gantt and modules timeline only; other popovers with heavy closed content are not audited. Low.
 
 ### Operations
@@ -50,6 +59,13 @@ The `npm run db:demo` run (about 70 routes at 1440 and 375 in both schemes on a 
 - Calendar zoom Week / Month / Quarter, consistent with the gantt zoom (decision 90).
 
 ## Closed
+
+### Performance round 2 (2026-10-29)
+Roadmap lanes B (decision 141, render identity) and C (decision 142, load less up front), integrated, gated, reviewed twice and fixed on scratch copies of 6331186 (docs/drafts/perf-report-2026-10-28.md). List rows are memoised and read a lean `useProjectRow()` context; refreshed data, the display and the row handlers keep their identity while unchanged (`src/components/work-items/stable.ts`), so a click or an agent write redraws the rows it changed, not the list. The peek's detail and editor load as a separate chunk, preloaded when the browser is idle or the pointer reaches a row. The sidebar and Power K go straight to `/your-work/summary` and `/analytics/overview`. `npm run check:bundle` now also fails a route whose first-load JavaScript grows more than 5% over `scripts/bundle-baseline.json`. Measured interleaved, production, n=5 per side:
+- 10k items: tick a row 265 → 94 ms (longest task 219 → 0), state pick 237 → 58 ms, peek open 697 → 472 ms and close 548 → 209 ms, agent write 40,720 → 2,787 components redrawn and browser CPU 1,484 → 792 ms, list 927 → 793 ms, table 1,552 → 1,403 ms, sidebar to list 945 → 842 ms.
+- About 50 items: list 354 → 316 ms, table 522 → 481 ms, peek 250 → 186 ms; with 4× CPU throttling list 1,404 → 1,148 ms.
+- First-load JavaScript of the work-items list 960 → 669 KB gzip (the editor left the five list routes); Analytics skeleton 94 → 56 ms.
+- The review fixes: `shareStructure` compares with `Object.is` and copies on a missing key, the bundle gate runs through a symlinked path, the `g j` / `g a` chords skip the redirect too. A reviewer asked to revert the grouped scroller class; measuring showed `:has()` cost about 95 ms on the ungrouped list and table, so it stays.
 
 ### Performance round (2026-10-28)
 The work-item views were slow in the browser, not on the server (a 10k list read takes 5 ms). Every row mounted closed Astryx date-picker calendars (61,892 of 113,464 DOM nodes on a 10k list page), and every row title and label ran Astryx `Text maxLines`, which forces a layout per Text on mount. Fixed: the date chips and the gantt and modules date popovers mount their pickers only while open; row text is cut by a CSS one-line class, and `OneLineText` keeps the overflow tooltip by measuring only on hover. Measured interleaved, production, n=5 (docs/drafts/perf-report-2026-10-24.md):

@@ -1,0 +1,14 @@
+// Integrator: first-load gz per route, BEFORE build vs AFTER build, with AFTER's check-bundle helpers.
+// Usage: npx tsx bundle-compare.ts <afterRepo> <beforeRepo> <out.json>
+import fs from "node:fs";
+import path from "node:path";
+const [afterRepo, beforeRepo, out] = process.argv.slice(2);
+const mod = await import(path.join(afterRepo, "scripts/check-bundle.ts"));
+const sizes = (repo: string) => {
+  const dist = path.join(repo, ".next");
+  return mod.routeSizes(mod.readRouteStats(dist), repo) as Record<string, number>;
+};
+const A = sizes(afterRepo), B = sizes(beforeRepo);
+const rows = Object.keys(A).sort((x, y) => (B[y] ?? 0) - (B[x] ?? 0)).map((r) => ({ route: r, beforeKB: +((B[r] ?? 0) / 1024).toFixed(1), afterKB: +(A[r] / 1024).toFixed(1), pct: B[r] ? Math.round(((A[r] - B[r]) / B[r]) * 1000) / 10 : null }));
+fs.writeFileSync(out, JSON.stringify(rows, null, 1));
+for (const r of rows) console.log(r.route.padEnd(48), String(r.beforeKB).padStart(8), String(r.afterKB).padStart(8), `${r.pct}%`);

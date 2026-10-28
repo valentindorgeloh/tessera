@@ -1,0 +1,10 @@
+{"round":1,"variant":"A","load":"1.12 1.06 1.15","sample":{"rate":1,"row":4,"openMs":128,"ltOpen":0,"commitMs":412,"settleMs":605,"ltAfterPick":294,"lt6s":294,"requests6s":["action@373","changes@686","changes@4690"]}}
+{"round":1,"variant":"B","load":"1.09 1.06 1.15","sample":{"rate":1,"row":4,"openMs":121,"ltOpen":0,"commitMs":254,"settleMs":209,"ltAfterPick":67,"lt6s":67,"requests6s":["action@209","changes@728","changes@4730"]}}
+{"round":2,"variant":"A","load":"0.92 1.03 1.13","sample":{"rate":1,"row":4,"openMs":129,"ltOpen":0,"commitMs":410,"settleMs":600,"ltAfterPick":297,"lt6s":297,"requests6s":["action@368","changes@684","changes@4688"]}}
+{"round":2,"variant":"B","load":"0.94 1.02 1.13","sample":{"rate":1,"row":4,"openMs":116,"ltOpen":0,"commitMs":368,"settleMs":321,"ltAfterPick":77,"lt6s":77,"requests6s":["action@321","changes@744","changes@4745"]}}
+{"round":3,"variant":"A","load":"0.95 1.02 1.13","sample":{"rate":1,"row":4,"openMs":126,"ltOpen":0,"commitMs":405,"settleMs":593,"ltAfterPick":291,"lt6s":291,"requests6s":["action@368","changes@695","changes@4700"]}}
+{"round":3,"variant":"B","load":"0.96 1.02 1.12","sample":{"rate":1,"row":4,"openMs":124,"ltOpen":0,"commitMs":366,"settleMs":318,"ltAfterPick":75,"lt6s":75,"requests6s":["changes@164","action@319","changes@4167"]}}
+{"round":4,"variant":"A","load":"0.81 0.99 1.11","sample":{"rate":1,"row":4,"openMs":126,"ltOpen":0,"commitMs":413,"settleMs":604,"ltAfterPick":297,"lt6s":297,"requests6s":["action@372","changes@696","changes@4701"]}}
+{"round":4,"variant":"B","load":"0.84 0.99 1.11","sample":{"rate":1,"row":4,"openMs":118,"ltOpen":0,"commitMs":249,"settleMs":0,"ltAfterPick":0,"lt6s":0,"requests6s":["action@205","changes@727","changes@4730"]}}
+{"round":5,"variant":"A","load":"1.84 1.19 1.18","sample":{"rate":1,"row":4,"openMs":116,"ltOpen":0,"commitMs":411,"settleMs":599,"ltAfterPick":291,"lt6s":291,"requests6s":["action@372","changes@718","changes@4721"]}}
+{"round":5,"variant":"B","load":"1.71 1.18 1.17","sample":{"rate":1,"row":4,"openMs":121,"ltOpen":0,"commitMs":367,"settleMs":320,"ltAfterPick":74,"lt6s":74,"requests6s":["changes@157","action@320","changes@4160"]}}

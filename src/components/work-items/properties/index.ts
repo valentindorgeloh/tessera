@@ -2,7 +2,7 @@
  * Property controls (docs/contracts/ui.md): ghost selectors and date inputs
  * reused by the list, table, board, detail panel and bulk bar. Each takes
  * `{ value, onChange, compact?, readOnly? }` and reads its options from
- * `useProject()`.
+ * `useProjectRow()`.
  */
 export { StateControl, StateLabel, stateGroupLabel, stateGroupVariant, type StateControlProps } from "./StateControl";
 export { PriorityControl, PriorityLabel, PRIORITY_OPTIONS, isPriority, priorityOption, type PriorityControlProps } from "./PriorityControl";

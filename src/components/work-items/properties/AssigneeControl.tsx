@@ -4,7 +4,7 @@ import { Avatar } from "@astryxdesign/core/Avatar";
 import { MultiSelector, type MultiSelectorOptionData } from "@astryxdesign/core/MultiSelector";
 import { HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
-import { useProject } from "../project-provider";
+import { useProjectRow } from "../project-provider";
 
 export type AssigneeControlProps = {
   /** Actor ids. */
@@ -29,7 +29,7 @@ export function ActorLabel({ name }: { name: string }) {
 
 /** Ghost multi-selector over the live actors (the user, the assistant and registered agents). */
 export function AssigneeControl({ value, onChange, compact = false, readOnly = false, label = "Assignees" }: AssigneeControlProps) {
-  const { bundle, actorsById } = useProject();
+  const { bundle, actorsById } = useProjectRow();
   const options: MultiSelectorOptionData[] = bundle.actors
     .filter((actor) => actor.deleted_at === null || value.includes(actor.id))
     .map((actor) => ({ value: actor.id, label: actor.name }));

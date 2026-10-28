@@ -7,7 +7,7 @@ import { Popover } from "@astryxdesign/core/Popover";
 import { VStack } from "@astryxdesign/core/Stack";
 import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import { CalendarIcon } from "@/themes/catppuccin/icons";
-import { useProject } from "../project-provider";
+import { useProjectRow } from "../project-provider";
 import { formatShortDate } from "./date-format";
 
 // Moved to the directive-free date-format.ts (P3); re-exported so current importers keep working.
@@ -45,7 +45,7 @@ function asIsoDate(value: string | null | undefined): IsoDate {
 /** Date picker for start or target dates; clearing sends null so the field is unset. */
 export function DateControl({ value, onChange, compact = false, readOnly = false, label = "Date", min, max, isOverdue = false, hasEmptyLabel = false }: DateControlProps) {
   const [isOpen, setOpen] = useState(false);
-  const { bundle } = useProject();
+  const { bundle } = useProjectRow();
   const weekStartsOn = useWeekStart(bundle.week_start);
   const picker = (
     <DateInput

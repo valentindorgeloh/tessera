@@ -1,0 +1,113 @@
+{
+ "at": "2026-10-28T19:20:45.924Z",
+ "db": "small",
+ "delay": 2000,
+ "n": 5,
+ "load": "3.4 3.1 4.0",
+ "A": {
+  "clicks": 1,
+  "clickToEditorMs": 217,
+  "scriptsAfterPress": 1,
+  "scriptKBAfterPress": 1
+ },
+ "B": {
+  "clicks": 1,
+  "clickToEditorMs": 219,
+  "scriptsAfterPress": 1,
+  "scriptKBAfterPress": 1
+ },
+ "samplesA": [
+  {
+   "clicks": 1,
+   "clickToEditorMs": 217,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 219,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 217,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 216,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 222,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  }
+ ],
+ "samplesB": [
+  {
+   "clicks": 1,
+   "clickToEditorMs": 217,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 219,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 222,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 219,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 229,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  }
+ ]
+}

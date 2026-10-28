@@ -1,0 +1,139 @@
+{
+ "at": "2026-10-28T19:39:22.822Z",
+ "db": "small",
+ "delay": 300,
+ "n": 5,
+ "load": "3.6 3.6 4.5",
+ "A": {
+  "clicks": 1,
+  "clickToEditorMs": 232,
+  "scriptsAfterPress": 5,
+  "scriptKBAfterPress": 12
+ },
+ "B": {
+  "clicks": 1,
+  "clickToEditorMs": 272,
+  "scriptsAfterPress": 3,
+  "scriptKBAfterPress": 4
+ },
+ "samplesA": [
+  {
+   "clicks": 1,
+   "clickToEditorMs": 232,
+   "scriptsAfterPress": 5,
+   "scriptKBAfterPress": 12,
+   "urls": [
+    "18rog-5lfcksi.js",
+    "31qfhe5xaw5zr.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 235,
+   "scriptsAfterPress": 5,
+   "scriptKBAfterPress": 12,
+   "urls": [
+    "18rog-5lfcksi.js",
+    "31qfhe5xaw5zr.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 238,
+   "scriptsAfterPress": 5,
+   "scriptKBAfterPress": 12,
+   "urls": [
+    "18rog-5lfcksi.js",
+    "31qfhe5xaw5zr.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 226,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 224,
+   "scriptsAfterPress": 1,
+   "scriptKBAfterPress": 1,
+   "urls": [
+    "166bq7-wyz4kn.js"
+   ]
+  }
+ ],
+ "samplesB": [
+  {
+   "clicks": 1,
+   "clickToEditorMs": 275,
+   "scriptsAfterPress": 5,
+   "scriptKBAfterPress": 12,
+   "urls": [
+    "18rog-5lfcksi.js",
+    "2ddgy5yy3g7s4.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 263,
+   "scriptsAfterPress": 3,
+   "scriptKBAfterPress": 4,
+   "urls": [
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 272,
+   "scriptsAfterPress": 5,
+   "scriptKBAfterPress": 12,
+   "urls": [
+    "18rog-5lfcksi.js",
+    "2ddgy5yy3g7s4.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 259,
+   "scriptsAfterPress": 3,
+   "scriptKBAfterPress": 4,
+   "urls": [
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 273,
+   "scriptsAfterPress": 3,
+   "scriptKBAfterPress": 4,
+   "urls": [
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  }
+ ]
+}

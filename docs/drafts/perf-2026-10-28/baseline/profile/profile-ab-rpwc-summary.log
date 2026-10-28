@@ -1,0 +1,15 @@
+ab-rpwc small-d-list
+A n=8 ready 289 [289,286,287,293,288,288,293,291] ltMax 160 script 161 style 48 styleCount 316 layout 19 task 311 el 13148 loads 1.69,1.64,1.59,1.54,2.22,2.04,1.95,1.88
+B n=8 ready 278 [268,280,271,278,272,278,281,277] ltMax 149 script 157 style 40 styleCount 18 layout 19 task 299 el 13148 loads 1.69,1.59,1.54,2.22,2.04,2.03,1.95,1.88
+ab-rpwc large-d-table
+A n=5 ready 1455 [1374,1455,1459,1489,1412] ltMax 1190 script 529 style 639 styleCount 1038 layout 148 task 1489 el 56040 loads 1.80,1.68,1.58,1.41,1.36
+B n=5 ready 1196 [1196,1190,1196,1205,1207] ltMax 940 script 541 style 399 styleCount 22 layout 150 task 1257 el 56040 loads 1.74,1.63,1.45,1.30,1.33
+ab-rpwc small-d-table
+A n=5 ready 433 [435,433,431,435,429] ltMax 295 script 196 style 135 styleCount 345 layout 40 task 476 el 15628 loads 1.30,1.28,1.49,1.71,1.73
+B n=5 ready 412 [411,400,412,416,415] ltMax 275 script 193 style 118 styleCount 20 layout 40 task 463 el 15628 loads 1.28,1.49,1.77,1.71,1.68
+ab-rpwc small-m-list
+A n=5 ready 1099 [1115,1085,1056,1099,1103] ltMax 776 script 684 style 278 styleCount 305 layout 67 task 1290 el 12743 loads 1.68,1.57,2.74,2.39,2.18
+B n=5 ready 960 [957,993,941,960,996] ltMax 581 script 571 style 189 styleCount 18 layout 55 task 1133 el 12743 loads 1.62,2.89,2.60,2.20,2.41
+ab-rpwc large-m-list
+A n=4 ready 3804 [3513,3801,3891,3804] ltMax 2772 script 1638 style 1653 styleCount 1241 layout 147 task 4176 el 52718 loads 2.11,1.79,1.79,1.84
+B n=4 ready 2499 [2499,2497,2499,2504] ltMax 1885 script 1681 style 685 styleCount 18 layout 177 task 2896 el 52728 loads 1.86,1.68,1.82,1.86

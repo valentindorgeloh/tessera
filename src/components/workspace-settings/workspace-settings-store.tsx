@@ -93,10 +93,17 @@ export function useWorkspaceSettings(): WorkspaceSettingsSnapshot {
  * is the value the server rendered into the page (`bundle.week_start`): it
  * answers until the store has real values, which covers server HTML and the
  * first client render; after that the store wins, being the freshest value.
+ *
+ * The snapshot is the number, not the store object: the publisher's first
+ * write replaces the object even when the weekday is the one the page already
+ * rendered, and an object snapshot re-rendered every subscriber (the date
+ * control of every list row) right after hydration. A number that did not
+ * change re-renders nobody.
  */
 export function useWeekStart(fromServer?: number): WeekStart {
-  const current = useSyncExternalStore(subscribe, readState, serverState);
-  return toWeekStart(current.isPublished || fromServer === undefined ? current.week_start : fromServer);
+  const getSnapshot = () => (state.isPublished || fromServer === undefined ? state.week_start : fromServer);
+  const getServerSnapshot = () => fromServer ?? DEFAULT_STATE.week_start;
+  return toWeekStart(useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot));
 }
 
 /**

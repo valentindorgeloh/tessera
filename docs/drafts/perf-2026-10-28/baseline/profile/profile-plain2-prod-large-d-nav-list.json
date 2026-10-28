@@ -1,0 +1,482 @@
+{
+ "patch": null,
+ "mode": "plain",
+ "variant": "prod",
+ "set": "large",
+ "vp": "d",
+ "viewport": {
+  "width": 1440,
+  "height": 900
+ },
+ "cpuRate": 1,
+ "scenario": "nav-list",
+ "n": 7,
+ "tag": "plain2-prod-large-d-nav-list",
+ "rows": [
+  {
+   "i": 0,
+   "load": "1.20 1.64 1.95",
+   "ready": 932,
+   "hydrated": 933,
+   "fcp": 60,
+   "lcp": 60,
+   "ttfb": 2,
+   "respEnd": 25,
+   "ltCount": 2,
+   "ltMax": 427,
+   "ltSum": 522,
+   "lt": [
+    [
+     1639,
+     427
+    ],
+    [
+     2067,
+     95
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 757,
+    "ScriptDuration": 402,
+    "LayoutDuration": 38,
+    "RecalcStyleDuration": 245,
+    "LayoutCount": 8,
+    "RecalcStyleCount": 1235,
+    "JSHeapUsedSize": 123139672,
+    "Nodes": 60155
+   },
+   "census": {
+    "el": 53166,
+    "rows": 200,
+    "tableRows": 0,
+    "listbox": 590,
+    "tooltip": 705,
+    "popover": 1712,
+    "dialog": 16,
+    "menu": 9,
+    "combobox": 607,
+    "button": 1692,
+    "svg": 2966,
+    "cssRulesAfter": null
+   },
+   "clickToReadyAbs": 932,
+   "net": {
+    "requests": 21,
+    "rscNonPrefetch": [
+     {
+      "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/work-items?_rsc=vFQt3ay",
+      "waitMs": 32,
+      "totalMs": 37,
+      "startAtMs": 0,
+      "bytes": 29703
+     }
+    ],
+    "scripts": 8,
+    "scriptBytes": 103904,
+    "scriptsFromCache": 0,
+    "scriptSpanMs": 95,
+    "scriptStartAtMs": 37,
+    "scriptEndAtMs": 132,
+    "other": []
+   }
+  },
+  {
+   "i": 1,
+   "load": "1.20 1.64 1.95",
+   "ready": 934,
+   "hydrated": 935,
+   "fcp": 56,
+   "lcp": 56,
+   "ttfb": 2,
+   "respEnd": 21,
+   "ltCount": 2,
+   "ltMax": 428,
+   "ltSum": 524,
+   "lt": [
+    [
+     1639,
+     428
+    ],
+    [
+     2068,
+     96
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 761,
+    "ScriptDuration": 408,
+    "LayoutDuration": 39,
+    "RecalcStyleDuration": 243,
+    "LayoutCount": 8,
+    "RecalcStyleCount": 1235,
+    "JSHeapUsedSize": 123295656,
+    "Nodes": 60155
+   },
+   "census": {
+    "el": 53166,
+    "rows": 200,
+    "tableRows": 0,
+    "listbox": 590,
+    "tooltip": 705,
+    "popover": 1712,
+    "dialog": 16,
+    "menu": 9,
+    "combobox": 607,
+    "button": 1692,
+    "svg": 2966,
+    "cssRulesAfter": null
+   },
+   "clickToReadyAbs": 934,
+   "net": {
+    "requests": 21,
+    "rscNonPrefetch": [],
+    "scripts": 8,
+    "scriptBytes": 103904,
+    "scriptsFromCache": 0,
+    "scriptSpanMs": 94,
+    "scriptStartAtMs": 37,
+    "scriptEndAtMs": 132,
+    "other": []
+   }
+  },
+  {
+   "i": 2,
+   "load": "1.10 1.61 1.94",
+   "ready": 935,
+   "hydrated": 936,
+   "fcp": 60,
+   "lcp": 60,
+   "ttfb": 2,
+   "respEnd": 22,
+   "ltCount": 2,
+   "ltMax": 424,
+   "ltSum": 521,
+   "lt": [
+    [
+     1642,
+     424
+    ],
+    [
+     2066,
+     97
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 757,
+    "ScriptDuration": 403,
+    "LayoutDuration": 39,
+    "RecalcStyleDuration": 242,
+    "LayoutCount": 8,
+    "RecalcStyleCount": 1235,
+    "JSHeapUsedSize": 123297360,
+    "Nodes": 60155
+   },
+   "census": {
+    "el": 53166,
+    "rows": 200,
+    "tableRows": 0,
+    "listbox": 590,
+    "tooltip": 705,
+    "popover": 1712,
+    "dialog": 16,
+    "menu": 9,
+    "combobox": 607,
+    "button": 1692,
+    "svg": 2966,
+    "cssRulesAfter": null
+   },
+   "clickToReadyAbs": 935,
+   "net": {
+    "requests": 21,
+    "rscNonPrefetch": [],
+    "scripts": 8,
+    "scriptBytes": 103904,
+    "scriptsFromCache": 0,
+    "scriptSpanMs": 94,
+    "scriptStartAtMs": 41,
+    "scriptEndAtMs": 134,
+    "other": []
+   }
+  },
+  {
+   "i": 3,
+   "load": "1.10 1.61 1.94",
+   "ready": 943,
+   "hydrated": 944,
+   "fcp": 56,
+   "lcp": 56,
+   "ttfb": 2,
+   "respEnd": 21,
+   "ltCount": 2,
+   "ltMax": 428,
+   "ltSum": 524,
+   "lt": [
+    [
+     1640,
+     428
+    ],
+    [
+     2068,
+     96
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 759,
+    "ScriptDuration": 404,
+    "LayoutDuration": 39,
+    "RecalcStyleDuration": 244,
+    "LayoutCount": 8,
+    "RecalcStyleCount": 1235,
+    "JSHeapUsedSize": 123315664,
+    "Nodes": 60155
+   },
+   "census": {
+    "el": 53166,
+    "rows": 200,
+    "tableRows": 0,
+    "listbox": 590,
+    "tooltip": 705,
+    "popover": 1712,
+    "dialog": 16,
+    "menu": 9,
+    "combobox": 607,
+    "button": 1692,
+    "svg": 2966,
+    "cssRulesAfter": null
+   },
+   "clickToReadyAbs": 943,
+   "net": {
+    "requests": 21,
+    "rscNonPrefetch": [],
+    "scripts": 8,
+    "scriptBytes": 103904,
+    "scriptsFromCache": 0,
+    "scriptSpanMs": 94,
+    "scriptStartAtMs": 39,
+    "scriptEndAtMs": 133,
+    "other": []
+   }
+  },
+  {
+   "i": 4,
+   "load": "1.26 1.63 1.95",
+   "ready": 934,
+   "hydrated": 935,
+   "fcp": 60,
+   "lcp": 60,
+   "ttfb": 2,
+   "respEnd": 22,
+   "ltCount": 2,
+   "ltMax": 428,
+   "ltSum": 524,
+   "lt": [
+    [
+     1639,
+     428
+    ],
+    [
+     2068,
+     96
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 761,
+    "ScriptDuration": 403,
+    "LayoutDuration": 39,
+    "RecalcStyleDuration": 245,
+    "LayoutCount": 8,
+    "RecalcStyleCount": 1235,
+    "JSHeapUsedSize": 123283320,
+    "Nodes": 60155
+   },
+   "census": {
+    "el": 53166,
+    "rows": 200,
+    "tableRows": 0,
+    "listbox": 590,
+    "tooltip": 705,
+    "popover": 1712,
+    "dialog": 16,
+    "menu": 9,
+    "combobox": 607,
+    "button": 1692,
+    "svg": 2966,
+    "cssRulesAfter": null
+   },
+   "clickToReadyAbs": 934,
+   "net": {
+    "requests": 21,
+    "rscNonPrefetch": [],
+    "scripts": 8,
+    "scriptBytes": 103904,
+    "scriptsFromCache": 0,
+    "scriptSpanMs": 94,
+    "scriptStartAtMs": 38,
+    "scriptEndAtMs": 132,
+    "other": []
+   }
+  },
+  {
+   "i": 5,
+   "load": "1.26 1.63 1.95",
+   "ready": 936,
+   "hydrated": 937,
+   "fcp": 60,
+   "lcp": 60,
+   "ttfb": 2,
+   "respEnd": 22,
+   "ltCount": 2,
+   "ltMax": 423,
+   "ltSum": 519,
+   "lt": [
+    [
+     1640,
+     423
+    ],
+    [
+     2064,
+     96
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 758,
+    "ScriptDuration": 403,
+    "LayoutDuration": 38,
+    "RecalcStyleDuration": 243,
+    "LayoutCount": 8,
+    "RecalcStyleCount": 1235,
+    "JSHeapUsedSize": 123367048,
+    "Nodes": 60155
+   },
+   "census": {
+    "el": 53166,
+    "rows": 200,
+    "tableRows": 0,
+    "listbox": 590,
+    "tooltip": 705,
+    "popover": 1712,
+    "dialog": 16,
+    "menu": 9,
+    "combobox": 607,
+    "button": 1692,
+    "svg": 2966,
+    "cssRulesAfter": null
+   },
+   "clickToReadyAbs": 936,
+   "net": {
+    "requests": 21,
+    "rscNonPrefetch": [],
+    "scripts": 8,
+    "scriptBytes": 103904,
+    "scriptsFromCache": 0,
+    "scriptSpanMs": 95,
+    "scriptStartAtMs": 38,
+    "scriptEndAtMs": 133,
+    "other": []
+   }
+  },
+  {
+   "i": 6,
+   "load": "1.24 1.62 1.94",
+   "ready": 934,
+   "hydrated": 935,
+   "fcp": 56,
+   "lcp": 56,
+   "ttfb": 2,
+   "respEnd": 19,
+   "ltCount": 2,
+   "ltMax": 427,
+   "ltSum": 523,
+   "lt": [
+    [
+     1639,
+     427
+    ],
+    [
+     2066,
+     96
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 759,
+    "ScriptDuration": 399,
+    "LayoutDuration": 39,
+    "RecalcStyleDuration": 246,
+    "LayoutCount": 8,
+    "RecalcStyleCount": 1235,
+    "JSHeapUsedSize": 123312576,
+    "Nodes": 60155
+   },
+   "census": {
+    "el": 53166,
+    "rows": 200,
+    "tableRows": 0,
+    "listbox": 590,
+    "tooltip": 705,
+    "popover": 1712,
+    "dialog": 16,
+    "menu": 9,
+    "combobox": 607,
+    "button": 1692,
+    "svg": 2966,
+    "cssRulesAfter": null
+   },
+   "clickToReadyAbs": 934,
+   "net": {
+    "requests": 21,
+    "rscNonPrefetch": [],
+    "scripts": 8,
+    "scriptBytes": 103904,
+    "scriptsFromCache": 0,
+    "scriptSpanMs": 94,
+    "scriptStartAtMs": 39,
+    "scriptEndAtMs": 133,
+    "other": []
+   }
+  }
+ ],
+ "loadStart": "1.22 1.65 1.96",
+ "startedAt": "2026-10-28T20:53:45.754Z",
+ "loadEnd": "1.24 1.62 1.94",
+ "summary": {
+  "n": 7,
+  "ready": {
+   "median": 934,
+   "p95": 943,
+   "min": 932,
+   "max": 943
+  },
+  "hydrated": 935,
+  "fcp": 60,
+  "ltMax": 427,
+  "ltSum": 523,
+  "cdp": {
+   "TaskDuration": 759,
+   "ScriptDuration": 403,
+   "LayoutDuration": 39,
+   "RecalcStyleDuration": 244,
+   "LayoutCount": 8,
+   "RecalcStyleCount": 1235,
+   "JSHeapUsedSize": 123297360,
+   "Nodes": 60155
+  },
+  "census": {
+   "el": 53166,
+   "rows": 200,
+   "tableRows": 0,
+   "listbox": 590,
+   "tooltip": 705,
+   "popover": 1712,
+   "dialog": 16,
+   "menu": 9,
+   "combobox": 607,
+   "button": 1692,
+   "svg": 2966,
+   "cssRulesAfter": null
+  },
+  "load": [
+   "1.22 1.65 1.96",
+   "1.24 1.62 1.94"
+  ]
+ }
+}

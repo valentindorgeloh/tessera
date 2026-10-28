@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { listWorkItemsAction } from "@/app/actions/work-items";
 import { groupLimitKey } from "@/lib/tessera/core/group";
 import type { Display, Filters, ListScope, RichFilters, WorkItemListResult } from "@/lib/tessera/types";
+import { shareStructure } from "./stable";
 import { UNGROUPED_KEY, ganttListExtras, keepLoaded, loadMoreSize, mergeGroupPage, mergeRowsPage, pageSizeFor, pagesByGroup, refetchPlan } from "./paging";
 
 export type UsePagedListArgs = {
@@ -45,7 +46,8 @@ export function usePagedList({ scope, display, filters, richFilters, server }: U
   // A new query (filters, display, scope) starts over from the server's first page.
   if (seen.server !== server || seen.queryKey !== queryKey) {
     setSeen({ server, queryKey });
-    setResult(seen.queryKey === queryKey ? keepLoaded(server, result, display) : server);
+    // The new result keeps the identity of every row (and group) that did not change, so memoized rows skip their render (decision 141).
+    setResult(shareStructure(result, seen.queryKey === queryKey ? keepLoaded(server, result, display) : server));
   }
   const query = useCallback(
     () => ({
@@ -77,7 +79,7 @@ export function usePagedList({ scope, display, filters, richFilters, server }: U
     void (async () => {
       const page = await listWorkItemsAction({ ...query(), ...(plan.group_limits ? pageSizeFor(display) : {}), ...plan });
       if (generation.current !== mine || !page.ok) return;
-      setResult(page.data);
+      setResult((current) => shareStructure(current, page.data));
     })();
     // Only a new server result (or query) re-requests; the display is read through the key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,7 +101,7 @@ export function usePagedList({ scope, display, filters, richFilters, server }: U
           return next;
         });
         if (generation.current !== mine || !page.ok) return;
-        setResult((current) => merge(current, page.data));
+        setResult((current) => shareStructure(current, merge(current, page.data)));
       })();
     },
     [query],

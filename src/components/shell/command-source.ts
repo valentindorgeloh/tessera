@@ -218,11 +218,11 @@ export const NEW_DRAFT_ID = "create.draft";
 
 /** Palette destinations that are not chords. `g j` and `g a` stay on the shortcut rows. */
 const GO_PATHS = {
-  "go.yourWork": "/your-work",
+  "go.yourWork": "/your-work/summary",
   "go.agents": "/agents",
   "go.workspaceViews": "/workspace-views",
   "go.activeCycles": "/active-cycles",
-  "go.analytics": "/analytics",
+  "go.analytics": "/analytics/overview",
   "go.stickies": "/stickies",
   "go.workspaceSettings": "/settings",
   "go.newSticky": "/stickies?create=1",

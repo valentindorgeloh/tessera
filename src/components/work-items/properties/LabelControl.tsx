@@ -3,7 +3,7 @@
 import { MultiSelector, type MultiSelectorOptionData } from "@astryxdesign/core/MultiSelector";
 import { Token } from "@astryxdesign/core/Token";
 import type { PaletteColor } from "@/lib/tessera/types";
-import { useProject } from "../project-provider";
+import { useProjectRow } from "../project-provider";
 import { summarizeNames } from "./membership-rules";
 
 export type LabelControlProps = {
@@ -22,7 +22,7 @@ export function paletteTokenColor(color: PaletteColor | null | undefined): Palet
 
 /** Ghost multi-selector over the project's labels; rows and headers show the label as a coloured Token. */
 export function LabelControl({ value, onChange, compact = false, readOnly = false, label = "Labels" }: LabelControlProps) {
-  const { bundle, labelsById } = useProject();
+  const { bundle, labelsById } = useProjectRow();
   const options: MultiSelectorOptionData[] = bundle.labels.map((row) => ({ value: row.id, label: row.name }));
   return (
     <MultiSelector

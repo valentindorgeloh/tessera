@@ -1,0 +1,189 @@
+{
+ "at": "2026-10-28T22:23:34.004Z",
+ "db": "large",
+ "delay": 300,
+ "n": 5,
+ "load": "1.7 1.6 1.4",
+ "A": {
+  "clicks": 1,
+  "clickToEditorMs": 588,
+  "scriptsAfterPress": 7,
+  "scriptKBAfterPress": 25
+ },
+ "B": {
+  "clicks": 1,
+  "clickToEditorMs": 414,
+  "scriptsAfterPress": 11,
+  "scriptKBAfterPress": 328
+ },
+ "samplesA": [
+  {
+   "clicks": 1,
+   "clickToEditorMs": 610,
+   "scriptsAfterPress": 7,
+   "scriptKBAfterPress": 25,
+   "urls": [
+    "2ywx5-714hpz-.js",
+    "43ru2yg5j9jum.js",
+    "18rog-5lfcksi.js",
+    "2nsdpz3s1rjit.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 574,
+   "scriptsAfterPress": 5,
+   "scriptKBAfterPress": 12,
+   "urls": [
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "18rog-5lfcksi.js",
+    "2nsdpz3s1rjit.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 575,
+   "scriptsAfterPress": 5,
+   "scriptKBAfterPress": 12,
+   "urls": [
+    "18rog-5lfcksi.js",
+    "2nsdpz3s1rjit.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 588,
+   "scriptsAfterPress": 7,
+   "scriptKBAfterPress": 25,
+   "urls": [
+    "2ywx5-714hpz-.js",
+    "43ru2yg5j9jum.js",
+    "18rog-5lfcksi.js",
+    "2nsdpz3s1rjit.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 589,
+   "scriptsAfterPress": 7,
+   "scriptKBAfterPress": 25,
+   "urls": [
+    "2ywx5-714hpz-.js",
+    "43ru2yg5j9jum.js",
+    "18rog-5lfcksi.js",
+    "2nsdpz3s1rjit.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js",
+    "166bq7-wyz4kn.js"
+   ]
+  }
+ ],
+ "samplesB": [
+  {
+   "clicks": 1,
+   "clickToEditorMs": 414,
+   "scriptsAfterPress": 11,
+   "scriptKBAfterPress": 328,
+   "urls": [
+    "2ywx5-714hpz-.js",
+    "3c2kun1zxm74f.js",
+    "1m3pdgyh2ded3.js",
+    "3bk1fj39nw6jp.js",
+    "17ucdkpker8xk.js",
+    "219yfa7cooxdn.js",
+    "166bq7-wyz4kn.js",
+    "18rog-5lfcksi.js",
+    "1sw3ekntw76rf.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 411,
+   "scriptsAfterPress": 11,
+   "scriptKBAfterPress": 328,
+   "urls": [
+    "2ywx5-714hpz-.js",
+    "3c2kun1zxm74f.js",
+    "1m3pdgyh2ded3.js",
+    "3bk1fj39nw6jp.js",
+    "17ucdkpker8xk.js",
+    "219yfa7cooxdn.js",
+    "18rog-5lfcksi.js",
+    "1sw3ekntw76rf.js",
+    "166bq7-wyz4kn.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 411,
+   "scriptsAfterPress": 11,
+   "scriptKBAfterPress": 328,
+   "urls": [
+    "2ywx5-714hpz-.js",
+    "3c2kun1zxm74f.js",
+    "1m3pdgyh2ded3.js",
+    "3bk1fj39nw6jp.js",
+    "17ucdkpker8xk.js",
+    "219yfa7cooxdn.js",
+    "18rog-5lfcksi.js",
+    "1sw3ekntw76rf.js",
+    "166bq7-wyz4kn.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 434,
+   "scriptsAfterPress": 11,
+   "scriptKBAfterPress": 328,
+   "urls": [
+    "2ywx5-714hpz-.js",
+    "3c2kun1zxm74f.js",
+    "1m3pdgyh2ded3.js",
+    "3bk1fj39nw6jp.js",
+    "17ucdkpker8xk.js",
+    "219yfa7cooxdn.js",
+    "166bq7-wyz4kn.js",
+    "18rog-5lfcksi.js",
+    "1sw3ekntw76rf.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js"
+   ]
+  },
+  {
+   "clicks": 1,
+   "clickToEditorMs": 424,
+   "scriptsAfterPress": 11,
+   "scriptKBAfterPress": 328,
+   "urls": [
+    "2ywx5-714hpz-.js",
+    "3c2kun1zxm74f.js",
+    "1m3pdgyh2ded3.js",
+    "3bk1fj39nw6jp.js",
+    "17ucdkpker8xk.js",
+    "219yfa7cooxdn.js",
+    "18rog-5lfcksi.js",
+    "1sw3ekntw76rf.js",
+    "166bq7-wyz4kn.js",
+    "1t1dqdviifchn.js",
+    "1oskzm49l9byv.js"
+   ]
+  }
+ ]
+}

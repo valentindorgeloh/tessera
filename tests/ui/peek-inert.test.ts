@@ -99,6 +99,8 @@ describe("covering peek", () => {
 
     await act(async () => root?.render(await host(peek)));
     expect(list()?.hasAttribute("inert")).toBe(true);
+    // The detail is a lazy chunk (peek-detail-lazy.tsx): the skeleton has no control, so focus moves in once the detail has mounted.
+    await act(async () => vi.dynamicImportSettled());
     expect(document.activeElement).toBe(document.querySelector('button[aria-label="Close"]'));
   });
 

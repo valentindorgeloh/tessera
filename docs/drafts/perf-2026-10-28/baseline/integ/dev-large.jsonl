@@ -1,0 +1,10 @@
+{"round":1,"variant":"before","load":"4.16 2.03 1.58","sample":{"wi":{"load":{"ready":2181,"hydrated":2182,"fcp":288,"lcp":2220,"lt":1899,"ltMax":1596,"nodes":53064},"nav":{"urlMs":530,"readyMs":1836}}}}
+{"round":1,"variant":"after","load":"4.06 2.08 1.61","sample":{"wi":{"load":{"ready":2072,"hydrated":2073,"fcp":288,"lcp":2104,"lt":1651,"ltMax":1504,"nodes":53063},"nav":{"urlMs":498,"readyMs":1493}}}}
+{"round":2,"variant":"before","load":"3.81 2.06 1.60","sample":{"wi":{"load":{"ready":2218,"hydrated":2219,"fcp":284,"lcp":2256,"lt":1926,"ltMax":1624,"nodes":53064},"nav":{"urlMs":519,"readyMs":1815}}}}
+{"round":2,"variant":"after","load":"3.82 2.12 1.63","sample":{"wi":{"load":{"ready":2058,"hydrated":2058,"fcp":272,"lcp":2088,"lt":1653,"ltMax":1506,"nodes":53063},"nav":{"urlMs":508,"readyMs":1505}}}}
+{"round":3,"variant":"before","load":"3.62 2.13 1.64","sample":{"wi":{"load":{"ready":1894,"hydrated":1894,"fcp":276,"lcp":1920,"lt":1644,"ltMax":1344,"nodes":53064},"nav":{"urlMs":521,"readyMs":1821}}}}
+{"round":3,"variant":"after","load":"3.41 2.11 1.63","sample":{"wi":{"load":{"ready":2082,"hydrated":2083,"fcp":280,"lcp":2120,"lt":1667,"ltMax":1520,"nodes":53063},"nav":{"urlMs":500,"readyMs":1510}}}}
+{"round":4,"variant":"before","load":"3.35 2.14 1.65","sample":{"wi":{"load":{"ready":2225,"hydrated":2226,"fcp":288,"lcp":2256,"lt":1930,"ltMax":1610,"nodes":53064},"nav":{"urlMs":528,"readyMs":1827}}}}
+{"round":4,"variant":"after","load":"3.08 2.11 1.64","sample":{"wi":{"load":{"ready":2078,"hydrated":2079,"fcp":284,"lcp":2104,"lt":1664,"ltMax":1511,"nodes":53063},"nav":{"urlMs":495,"readyMs":1492}}}}
+{"round":5,"variant":"before","load":"2.76 2.07 1.63","sample":{"wi":{"load":{"ready":2194,"hydrated":2195,"fcp":288,"lcp":2236,"lt":1919,"ltMax":1608,"nodes":53064},"nav":{"urlMs":527,"readyMs":1833}}}}
+{"round":5,"variant":"after","load":"3.18 2.17 1.67","sample":{"wi":{"load":{"ready":2083,"hydrated":2084,"fcp":276,"lcp":2120,"lt":1670,"ltMax":1521,"nodes":53063},"nav":{"urlMs":516,"readyMs":1530}}}}

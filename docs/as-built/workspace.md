@@ -85,6 +85,7 @@ Registry tools (`tools/registry/workspace.ts`, `analytics.ts`): `get_home_summar
 | Workspace name and AI settings; `digest_enabled: false` hides Summarise | 84 | `settings.ts` | `tests/workspace/workspace-settings.test.ts` |
 | Reorder by pointer drag with a menu path on every surface | 14, 105 | the components above | `tests/ui/{stickies-reorder,quick-links-reorder,widgets-reorder,reorder-math,drag-math}.test.ts`, `tests/workspace/sticky-quick-link-moves.test.ts` |
 | Week start 0 to 6 drives calendars and date pickers | 101 | `workspace-settings-store.tsx` | `tests/ui/week-start-store.test.ts`, `week-start-pickers.test.ts` |
+| `useWeekStart` subscribes with the week start as a number (the page's `fromServer` value until the store is published, `fromServer ?? Monday` on the server). The publisher's first write replaces the store object, so an object snapshot re-rendered every date control right after hydration; a number that did not change re-renders nobody. `useWorkspaceSettings` keeps the object snapshot | 142 | `workspace-settings-store.tsx` | `tests/ui/week-start-snapshot.test.ts` |
 | Chart data tables and plain tables export CSV client-side with BOM and CRLF | 100 | `csv-download.tsx` | `tests/ui/analytics-csv.test.ts` |
 
 ## 5. Tests that guard this area

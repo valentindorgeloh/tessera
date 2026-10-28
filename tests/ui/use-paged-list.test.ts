@@ -96,6 +96,35 @@ describe("usePagedList", () => {
     expect(seenRef.current?.isLoading("high")).toBe(false);
   });
 
+  it("keeps the identity of every row (and the result) across a refresh with equal data", async () => {
+    await mount({ scope: SCOPE, display, filters: {}, server: listOf(30, 30) });
+    const before = seenRef.current?.result;
+    const items = before?.items;
+    await update({ scope: SCOPE, display, filters: {}, server: JSON.parse(JSON.stringify(listOf(30, 30))) as WorkItemListResult });
+    expect(seenRef.current?.result).toBe(before);
+    expect(seenRef.current?.result.items).toBe(items);
+    // One changed row: the other rows keep their identity (decision 141: a memoized list row then renders once).
+    const changed = JSON.parse(JSON.stringify(listOf(30, 30))) as WorkItemListResult;
+    changed.items[4]!.name = "renamed";
+    await update({ scope: SCOPE, display, filters: {}, server: changed });
+    const after = seenRef.current?.result;
+    expect(after?.items[4]?.name).toBe("renamed");
+    expect(after?.items[3]).toBe(items?.[3]);
+    expect(after?.items[5]).toBe(items?.[5]);
+    expect(after?.items[4]).not.toBe(items?.[4]);
+  });
+
+  it("keeps the identity of the loaded rows when a page merges in", async () => {
+    listWorkItemsAction.mockResolvedValue(ok(listOf(50, 120, 51)));
+    await mount({ scope: SCOPE, display, filters: {}, server: listOf(50, 120) });
+    const first = seenRef.current?.result.items[0];
+    await act(async () => {
+      seenRef.current?.loadMore("high");
+    });
+    expect(rowsOf()).toBe(100);
+    expect(seenRef.current?.result.items[0]).toBe(first);
+  });
+
   it("does nothing for a group that has no more rows", async () => {
     await mount({ scope: SCOPE, display, filters: {}, server: listOf(30, 30) });
     await act(async () => {

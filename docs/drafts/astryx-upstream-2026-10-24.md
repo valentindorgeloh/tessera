@@ -244,6 +244,7 @@ Evidence (the same 10 000-item list):
 - Closed layers inside the list: 593 Selector listboxes holding 29,967 DOM nodes, and 699 tooltips holding 1,398.
 - That is with the app's date-picker Popover content already rendered only when open. Before that change, 400 closed date popovers held another 61,892 nodes, and the document had 113,464 nodes instead of 54,770.
 - `readPortalWritingContext` took 433 ms of self time in the development navigation profile above (333 ms after the `Text` change).
+- Production build, 200-row list (Tessera's profile of 2026-10-29, docs/drafts/perf-report-2026-10-28.md): the two reads account for 282 of 384 ms of forced style recalculation, and the context mount that follows renders a second pass of about 33,000 components. Stubbing the reads in an interleaved A/B (n=5 per side) saved 133 ms (−15%) on the list load, 259 ms (−18%) on a table of the same rows, and 1.3 s (−34%) on the list with 4× CPU throttling.
 
 Proposal:
 1. Pass `lazyMount` from `Tooltip` (the content is text and needs nothing while closed), from the `Selector` listbox, and from `Popover`, as the default or behind a documented prop such as `isContentMountedWhenClosed`.

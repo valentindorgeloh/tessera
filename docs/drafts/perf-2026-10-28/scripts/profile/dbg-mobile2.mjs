@@ -1,0 +1,17 @@
+import { chromium } from "playwright";
+import { SETS } from "./common.mjs";
+import { INIT } from "./init.mjs";
+const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 375, height: 812 } }); const page = await ctx.newPage();
+const cdp = await ctx.newCDPSession(page); await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+await page.addInitScript(INIT, { readySel: `[role="main"] [role="tab"]`, readyText: "Mentions", withHook: false });
+const t = Date.now(); const log = (m) => console.log(Date.now() - t, m);
+await page.goto(`http://127.0.0.1:${SETS.small.port}/`, { waitUntil: "load" }); log("loaded");
+await page.waitForSelector('[role="main"] h4'); log("h4");
+await page.evaluate(() => window.__settle(1000, 60000)); log("settled");
+const btn = page.getByRole("button", { name: /navigation|menu|sidebar/i }).first(); log("btn count " + await btn.count()); await btn.click(); log("clicked drawer"); await page.waitForTimeout(600);
+const link = page.locator('a[href="/inbox"]').filter({ visible: true }).first(); await link.waitFor({ state: "visible", timeout: 15000 }); log("link visible");
+await page.evaluate(() => { window.__rearm(`[role="main"] [role="tab"]`); }); log("rearmed");
+await link.click(); log("clicked link");
+await page.waitForFunction(() => window.__perf.ready !== null, null, { timeout: 20000 }).catch((e) => log("ready timeout " + e.message.slice(0, 80))); log("ready " + (await page.evaluate(() => window.__perf.ready)));
+log(await page.url());
+await b.close();

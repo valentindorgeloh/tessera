@@ -31,6 +31,12 @@
  * so opening and closing the peek leaves no duplicate history entry. While
  * mounted, the host is counted in ./peek-hosts.ts, which Power K reads before
  * it opens a work item hit as a peek.
+ *
+ * The detail is a separate chunk (./peek-detail-lazy.tsx, decision 142): the
+ * editor stays out of the list routes' first load. The chunk is fetched when
+ * the browser is idle or on the first pointer or focus contact with a list
+ * row, and at once when the URL already names a peek; a peek opened before it
+ * arrives shows the same skeleton as the slot before its mount node exists.
  */
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -43,12 +49,11 @@ import { useHotkeys } from "@astryxdesign/core/hooks";
 import { LayerDepthProvider } from "@astryxdesign/core/Layer";
 import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
-import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { VStack } from "@astryxdesign/core/Stack";
 import { recordVisit } from "@/components/shell/recents-store";
 import { IdSchema } from "@/lib/tessera/schemas";
 import { workItemPath } from "./DetailHeader";
-import { WorkItemDetail } from "./WorkItemDetail";
+import { PeekDetail, PeekSkeleton, preloadPeekDetail, schedulePreload } from "./peek-detail-lazy";
 import type { DetailHost, WorkItemDetailData } from "./types";
 import { clearPeekPush, movePeekPush, readPeekPush, stampPeekPush } from "./peek-history";
 import { registerPeekHost } from "./peek-hosts";
@@ -103,15 +108,7 @@ function PeekSlot({ node }: { node: HTMLElement | null }) {
     },
     [node],
   );
-  if (node === null) {
-    return (
-      <VStack gap={3} padding={4}>
-        <Skeleton width="40%" height={20} />
-        <Skeleton width="80%" height={32} index={1} />
-        <Skeleton width="100%" height={160} index={2} />
-      </VStack>
-    );
-  }
+  if (node === null) return <PeekSkeleton />;
   return <VStack ref={adopt} className="tessera-peek-slot" />;
 }
 
@@ -172,6 +169,13 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
   useEffect(() => {
     loadPeekPrefs();
   }, []);
+
+  // The detail (editor included) is a separate chunk (./peek-detail-lazy.tsx): fetch it when idle or on the first row contact, so the
+  // first peek finds it loaded. A peek already named by the URL (a deep link, a reload) needs it now.
+  useEffect(() => schedulePreload(window, preloadPeekDetail), []);
+  useEffect(() => {
+    if (isOpen) preloadPeekDetail();
+  }, [isOpen]);
 
   // Power K opens a work item of this project as a peek only while a host is mounted (./peek-hosts.ts).
   useEffect(() => registerPeekHost(projectId), [projectId]);
@@ -265,11 +269,14 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
   // The covered list is inert (decision 11): out of the tab order and the accessibility tree while the panel is on top of it.
   // The attribute goes in the same commit as the close, before the focus returns to the row (useCoverFocus).
   const isListCovered = isOpen && !isModal && isPanelCover;
-  const rememberListOpener = useCoverFocus({ isOpen, isModal, isCovering: isListCovered }, slotNode);
+  // Focus moves into the detail once it has controls: the loaded detail (./peek-detail-lazy.tsx) or the not-found panel, not the skeleton.
+  const [isDetailMounted, setDetailMounted] = useState(false);
+  const hasFocusTarget = isDetailMounted || (peek !== null && peek.data === null);
+  const rememberListOpener = useCoverFocus({ isOpen, isModal, isCovering: isListCovered }, hasFocusTarget ? slotNode : null);
 
   const detail = peek ? (
     peek.data ? (
-      <WorkItemDetail key={peek.id} data={peek.data} host={isModal ? "modal" : "peek"} onClose={close} onHostChange={changeHost} onOpenItem={openItem} />
+      <PeekDetail key={peek.id} data={peek.data} host={isModal ? "modal" : "peek"} onClose={close} onHostChange={changeHost} onOpenItem={openItem} onMountedChange={setDetailMounted} />
     ) : (
       <PeekNotFound key={peek.id} id={peek.id} onClose={close} />
     )

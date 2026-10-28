@@ -1,0 +1,650 @@
+{
+ "react-prof-large-d-list": {
+  "n": 3,
+  "ready": 1120,
+  "ltMax": 736,
+  "totalSelfMs": 228.9,
+  "totalRenders": 55988,
+  "totalMounts": 42425,
+  "commits": 18,
+  "bigCommits": "7.7ms/573c 111.9ms/15203c 163.1ms/33305c 36.4ms/5427c",
+  "top": [
+   "Selector 51.7ms n1193/m605",
+   "PeekHost 37.6ms n2/m1",
+   "Button 26.6ms n2343/m1075",
+   "Popover 16.6ms n1202/m401",
+   "Item 14.2ms n2004/m1829",
+   "Avatar 10.6ms n434/m216",
+   "DateControl 9.1ms n800/m400",
+   "Text 7.7ms n2717/m2437",
+   "Stack 7.2ms n3619/m3068",
+   "IconFromRegistry 5.5ms n1668/m1047",
+   "LayerContentBoundary 5.4ms n2562/m1724",
+   "WorkItemsScreen 4.6ms n1/m1",
+   "TesseraShell 3.3ms n1/m1",
+   "Icon 2.5ms n3225/m2321"
+  ],
+  "fam": {
+   "layers": {
+    "n": 6517,
+    "mount": 3801,
+    "ms": 75.7
+   },
+   "rowShell": {
+    "n": 2975,
+    "mount": 2683,
+    "ms": 15.4
+   },
+   "controls": {
+    "n": 9994,
+    "mount": 6133,
+    "ms": 106.4
+   },
+   "layout": {
+    "n": 17467,
+    "mount": 13099,
+    "ms": 26.7
+   },
+   "table": {
+    "n": 2111,
+    "mount": 1857,
+    "ms": 0.9
+   }
+  },
+  "hookMs": 11
+ },
+ "react-prof-large-d-nav-list": {
+  "n": 3,
+  "ready": 1176,
+  "ltMax": 596,
+  "totalSelfMs": 223.5,
+  "totalRenders": 49974,
+  "totalMounts": 41145,
+  "commits": 9,
+  "bigCommits": "7.3ms/1146c 155.7ms/14624c 148.6ms/32727c",
+  "top": [
+   "Selector 57.5ms n1193/m605",
+   "PeekHost 38.5ms n2/m1",
+   "Button 22.3ms n1528/m1054",
+   "Item 13.8ms n1920/m1746",
+   "Avatar 11.5ms n431/m215",
+   "Popover 9.6ms n802/m401",
+   "Text 8.2ms n2671/m2404",
+   "Stack 7.7ms n3396/m2941",
+   "DateControl 4.8ms n400/m400",
+   "WorkItemsScreen 4.7ms n1/m1",
+   "Icon 4ms n3199/m2253",
+   "FieldLabel 3.1ms n1416/m824",
+   "IconFromRegistry 2.9ms n1661/m1044",
+   "Field 2.7ms n1198/m608"
+  ],
+  "fam": {
+   "layers": {
+    "n": 4894,
+    "mount": 3755,
+    "ms": 71.6
+   },
+   "rowShell": {
+    "n": 2814,
+    "mount": 2561,
+    "ms": 15.6
+   },
+   "controls": {
+    "n": 8768,
+    "mount": 6108,
+    "ms": 107.5
+   },
+   "layout": {
+    "n": 15994,
+    "mount": 12660,
+    "ms": 25.4
+   },
+   "table": {
+    "n": 2111,
+    "mount": 1855,
+    "ms": 0.9
+   }
+  },
+  "hookMs": 10
+ },
+ "react-prof-large-d-table": {
+  "n": 3,
+  "ready": 1752,
+  "ltMax": 1359,
+  "totalSelfMs": 281.6,
+  "totalRenders": 59092,
+  "totalMounts": 45769,
+  "commits": 18,
+  "bigCommits": "8.7ms/573c 154.8ms/18799c 128.8ms/32802c 32.4ms/5427c",
+  "top": [
+   "Selector 52.5ms n1193/m605",
+   "PeekHost 38.1ms n2/m1",
+   "Button 34.4ms n2343/m1075",
+   "MultiSelector 34ms n600/m600",
+   "Item 19.3ms n1804/m1629",
+   "Popover 15.2ms n1202/m401",
+   "Text 10.3ms n2718/m2438",
+   "DateControl 8.8ms n800/m400",
+   "TableCell 6.7ms n2200/m2200",
+   "Stack 6.2ms n2904/m2353",
+   "WorkItemsScreen 4.9ms n1/m1",
+   "LayerContentBoundary 4.1ms n2316/m1473",
+   "IconFromRegistry 3.8ms n1673/m1052",
+   "FieldLabel 3.6ms n2022/m1427"
+  ],
+  "fam": {
+   "layers": {
+    "n": 6188,
+    "mount": 3509,
+    "ms": 73.5
+   },
+   "rowShell": {
+    "n": 2773,
+    "mount": 2481,
+    "ms": 19.6
+   },
+   "controls": {
+    "n": 10379,
+    "mount": 6733,
+    "ms": 106.1
+   },
+   "layout": {
+    "n": 16647,
+    "mount": 12279,
+    "ms": 26.8
+   },
+   "table": {
+    "n": 4730,
+    "mount": 4474,
+    "ms": 11.2
+   }
+  },
+  "hookMs": 12
+ },
+ "react-prof-large-m-list": {
+  "n": 3,
+  "ready": 4918,
+  "ltMax": 3334,
+  "totalSelfMs": 704.8,
+  "totalRenders": 54526,
+  "totalMounts": 42174,
+  "commits": 21,
+  "bigCommits": "33.4ms/573c 358.9ms/15128c 488.3ms/32722c 8.7ms/565c 10.5ms/361c 111.8ms/4809c",
+  "top": [
+   "Selector 178.9ms n1193/m605",
+   "Button 99.6ms n2323/m1079",
+   "Popover 58ms n1202/m401",
+   "Item 48.6ms n1885/m1789",
+   "DateControl 37.1ms n800/m400",
+   "Stack 32.3ms n3493/m3072",
+   "Text 27.7ms n2685/m2437",
+   "Avatar 25.5ms n435/m217",
+   "PeekHost 19ms n2/m1",
+   "TesseraShell 14ms n1/m1",
+   "LayerContentBoundary 13.5ms n2531/m1713",
+   "FieldLabel 12.8ms n1418/m827",
+   "IconFromRegistry 11.9ms n1666/m1049",
+   "IconBase 9.5ms n3335/m2717"
+  ],
+  "fam": {
+   "layers": {
+    "n": 6461,
+    "mount": 3787,
+    "ms": 257.1
+   },
+   "rowShell": {
+    "n": 2817,
+    "mount": 2643,
+    "ms": 55.8
+   },
+   "controls": {
+    "n": 9970,
+    "mount": 6140,
+    "ms": 379.5
+   },
+   "layout": {
+    "n": 16995,
+    "mount": 13079,
+    "ms": 92.9
+   },
+   "table": {
+    "n": 2109,
+    "mount": 1857,
+    "ms": 4.1
+   }
+  },
+  "hookMs": 31
+ },
+ "react-prof-large-m-nav-list": {
+  "n": 3,
+  "ready": 4668,
+  "ltMax": 2964,
+  "totalSelfMs": 860.1,
+  "totalRenders": 50616,
+  "totalMounts": 41462,
+  "commits": 13,
+  "bigCommits": "17.2ms/614c 5.5ms/330c 8.8ms/528c 10.1ms/564c 602ms/14625c 516.7ms/32727c 5ms/195c 19.6ms/729c",
+  "top": [
+   "Selector 203.2ms n1193/m605",
+   "PeekHost 150.2ms n2/m1",
+   "Button 82.7ms n1542/m1054",
+   "Item 64.3ms n1968/m1786",
+   "Popover 37.9ms n802/m401",
+   "Stack 28.3ms n3403/m2941",
+   "Avatar 27.8ms n433/m215",
+   "Text 25.5ms n2671/m2404",
+   "DateControl 22ms n400/m400",
+   "WorkItemsScreen 18.4ms n1/m1",
+   "IconFromRegistry 14.7ms n1665/m1044",
+   "Icon 10.5ms n3273/m2293",
+   "LayerContentBoundary 10.4ms n1771/m1710",
+   "IconBase 10.3ms n3077/m2718"
+  ],
+  "fam": {
+   "layers": {
+    "n": 4929,
+    "mount": 3772,
+    "ms": 260.1
+   },
+   "rowShell": {
+    "n": 2862,
+    "mount": 2601,
+    "ms": 72
+   },
+   "controls": {
+    "n": 8786,
+    "mount": 6108,
+    "ms": 378.9
+   },
+   "layout": {
+    "n": 16101,
+    "mount": 12700,
+    "ms": 89.7
+   },
+   "table": {
+    "n": 2113,
+    "mount": 1855,
+    "ms": 5.3
+   }
+  },
+  "hookMs": 36
+ },
+ "react-prof-large-m-table": {
+  "n": 3,
+  "ready": 6533,
+  "ltMax": 5445,
+  "totalSelfMs": 980.5,
+  "totalRenders": 57630,
+  "totalMounts": 45518,
+  "commits": 21,
+  "bigCommits": "35.5ms/573c 675.3ms/18724c 466.4ms/32219c 7.3ms/565c 11.7ms/361c 105.8ms/4809c",
+  "top": [
+   "Selector 170.1ms n1193/m605",
+   "PeekHost 151.9ms n2/m1",
+   "MultiSelector 128.2ms n600/m600",
+   "Button 102.5ms n2323/m1079",
+   "Popover 54.5ms n1202/m401",
+   "Item 45.4ms n1685/m1589",
+   "DateControl 41.1ms n800/m400",
+   "Text 30.9ms n2686/m2438",
+   "Stack 24.1ms n2778/m2357",
+   "WorkItemsScreen 19.6ms n1/m1",
+   "TesseraShell 14ms n1/m1",
+   "FieldLabel 13.7ms n2019/m1428",
+   "Field 12.3ms n1799/m1210",
+   "TableCell 12ms n2200/m2200"
+  ],
+  "fam": {
+   "layers": {
+    "n": 6132,
+    "mount": 3495,
+    "ms": 237.2
+   },
+   "rowShell": {
+    "n": 2615,
+    "mount": 2441,
+    "ms": 46.2
+   },
+   "controls": {
+    "n": 10355,
+    "mount": 6740,
+    "ms": 356.4
+   },
+   "layout": {
+    "n": 16175,
+    "mount": 12259,
+    "ms": 88.2
+   },
+   "table": {
+    "n": 4728,
+    "mount": 4474,
+    "ms": 28.1
+   }
+  },
+  "hookMs": 38
+ },
+ "react-prof-small-d-list": {
+  "n": 3,
+  "ready": 364,
+  "ltMax": 201,
+  "totalSelfMs": 88.1,
+  "totalRenders": 16171,
+  "totalMounts": 11024,
+  "commits": 18,
+  "bigCommits": "7.4ms/573c 46.6ms/4503c 38.7ms/7825c 11ms/1796c",
+  "top": [
+   "PeekHost 16.6ms n2/m1",
+   "Selector 15.1ms n296/m149",
+   "Button 10ms n658/m307",
+   "Popover 3.9ms n290/m97",
+   "Item 3.7ms n497/m318",
+   "TesseraShell 3.2ms n1/m1",
+   "Stack 3.1ms n1264/m863",
+   "DateControl 3.1ms n192/m96",
+   "Text 2.3ms n733/m609",
+   "Avatar 1.4ms n68/m33",
+   "Icon 1.3ms n939/m643",
+   "FieldLabel 1.1ms n373/m219",
+   "DropdownMenuPopover 1ms n31/m10",
+   "IconFromRegistry 1ms n472/m294"
+  ],
+  "fam": {
+   "layers": {
+    "n": 1718,
+    "mount": 992,
+    "ms": 21.1
+   },
+   "rowShell": {
+    "n": 861,
+    "mount": 565,
+    "ms": 4.2
+   },
+   "controls": {
+    "n": 2533,
+    "mount": 1549,
+    "ms": 33.1
+   },
+   "layout": {
+    "n": 5591,
+    "mount": 3647,
+    "ms": 9.8
+   },
+   "table": {
+    "n": 563,
+    "mount": 475,
+    "ms": 0.1
+   }
+  },
+  "hookMs": 4
+ },
+ "react-prof-small-d-nav-list": {
+  "n": 3,
+  "ready": 654,
+  "ltMax": 145,
+  "totalSelfMs": 73.8,
+  "totalRenders": 14415,
+  "totalMounts": 9710,
+  "commits": 12,
+  "bigCommits": "6.2ms/1172c 5.2ms/1222c 38.1ms/3759c 35.2ms/7125c 7.6ms/641c",
+  "top": [
+   "Selector 14.5ms n296/m149",
+   "Button 8.5ms n460/m287",
+   "Item 5.2ms n506/m226",
+   "WorkItemsScreen 5ms n1/m1",
+   "Stack 3ms n1063/m734",
+   "Popover 2.4ms n194/m97",
+   "Text 2.1ms n709/m580",
+   "DateControl 1.7ms n96/m96",
+   "Avatar 1.6ms n76/m32",
+   "DropdownMenuPopover 1.3ms n33/m2",
+   "IconFromRegistry 1.3ms n476/m287",
+   "LayerContentBoundary 1.2ms n535/m421",
+   "Icon 1.1ms n957/m584",
+   "Timestamp 1.1ms n11/m0"
+  ],
+  "fam": {
+   "layers": {
+    "n": 1379,
+    "mount": 934,
+    "ms": 20
+   },
+   "rowShell": {
+    "n": 803,
+    "mount": 434,
+    "ms": 5.9
+   },
+   "controls": {
+    "n": 2248,
+    "mount": 1523,
+    "ms": 30
+   },
+   "layout": {
+    "n": 4856,
+    "mount": 3214,
+    "ms": 9.1
+   },
+   "table": {
+    "n": 563,
+    "mount": 473,
+    "ms": 0.2
+   }
+  },
+  "hookMs": 2
+ },
+ "react-prof-small-d-table": {
+  "n": 3,
+  "ready": 522,
+  "ltMax": 348,
+  "totalSelfMs": 109.1,
+  "totalRenders": 18222,
+  "totalMounts": 12804,
+  "commits": 18,
+  "bigCommits": "7.3ms/573c 59.4ms/5930c 40.4ms/8436c 15.5ms/1796c 6.2ms/287c",
+  "top": [
+   "Selector 22.7ms n392/m197",
+   "PeekHost 16.4ms n2/m1",
+   "Button 11.4ms n676/m316",
+   "MultiSelector 4.6ms n144/m144",
+   "Item 4ms n449/m270",
+   "Popover 3.5ms n290/m97",
+   "TesseraShell 3.2ms n1/m1",
+   "Stack 2.8ms n1082/m681",
+   "DateControl 2.8ms n192/m96",
+   "Text 2ms n733/m609",
+   "DropdownMenuPopover 1.8ms n31/m10",
+   "LayerContentBoundary 1.6ms n725/m485",
+   "IconFromRegistry 1.5ms n601/m366",
+   "FieldLabel 1.3ms n614/m412"
+  ],
+  "fam": {
+   "layers": {
+    "n": 1895,
+    "mount": 1117,
+    "ms": 30.1
+   },
+   "rowShell": {
+    "n": 811,
+    "mount": 515,
+    "ms": 4.2
+   },
+   "controls": {
+    "n": 2973,
+    "mount": 1868,
+    "ms": 40.6
+   },
+   "layout": {
+    "n": 5646,
+    "mount": 3579,
+    "ms": 9.4
+   },
+   "table": {
+    "n": 1255,
+    "mount": 1165,
+    "ms": 2.1
+   }
+  },
+  "hookMs": 6
+ },
+ "react-prof-small-m-list": {
+  "n": 3,
+  "ready": 1391,
+  "ltMax": 816,
+  "totalSelfMs": 262.7,
+  "totalRenders": 14735,
+  "totalMounts": 10767,
+  "commits": 21,
+  "bigCommits": "31.4ms/573c 278.8ms/4458c 128.2ms/7811c 5.4ms/242c 14ms/565c 12.6ms/386c 26.6ms/1161c",
+  "top": [
+   "Selector 42.2ms n296/m149",
+   "Button 31.1ms n637/m311",
+   "Popover 17.2ms n290/m97",
+   "Item 13.6ms n366/m269",
+   "TesseraShell 13.4ms n1/m1",
+   "DateControl 12.9ms n192/m96",
+   "Stack 12.3ms n1136/m867",
+   "PeekHost 10.1ms n2/m1",
+   "Text 9.2ms n705/m609",
+   "Avatar 5.3ms n69/m34",
+   "IconFromRegistry 4.2ms n463/m293",
+   "FieldLabel 3.3ms n370/m220",
+   "SideNavItem 2.9ms n17/m17",
+   "HStack 2.8ms n1097/m841"
+  ],
+  "fam": {
+   "layers": {
+    "n": 1642,
+    "mount": 968,
+    "ms": 64.2
+   },
+   "rowShell": {
+    "n": 691,
+    "mount": 516,
+    "ms": 16.4
+   },
+   "controls": {
+    "n": 2506,
+    "mount": 1556,
+    "ms": 100.3
+   },
+   "layout": {
+    "n": 5133,
+    "mount": 3637,
+    "ms": 35.1
+   },
+   "table": {
+    "n": 561,
+    "mount": 475,
+    "ms": 1.3
+   }
+  },
+  "hookMs": 10
+ },
+ "react-prof-small-m-nav-list": {
+  "n": 3,
+  "ready": 1382,
+  "ltMax": 622,
+  "totalSelfMs": 434.8,
+  "totalRenders": 15018,
+  "totalMounts": 10033,
+  "commits": 12,
+  "bigCommits": "5.5ms/242c 14.7ms/631c 5.6ms/287c 12.2ms/528c 10.7ms/564c 316.9ms/3925c 137.8ms/7247c 5.2ms/207c 45.9ms/1312c",
+  "top": [
+   "PeekHost 151.5ms n2/m1",
+   "Selector 58.2ms n296/m149",
+   "Button 25.5ms n475/m287",
+   "Item 19.9ms n557/m275",
+   "WorkItemsScreen 18.8ms n1/m1",
+   "Stack 17.2ms n1070/m734",
+   "Popover 11.4ms n194/m97",
+   "Text 7.8ms n709/m580",
+   "Avatar 7ms n78/m32",
+   "DateControl 6.4ms n96/m96",
+   "Icon 5.8ms n1021/m611",
+   "CheckboxInput 5.4ms n62/m62",
+   "IconFromRegistry 5ms n484/m290",
+   "DropdownMenuPopover 4.6ms n42/m2"
+  ],
+  "fam": {
+   "layers": {
+    "n": 1421,
+    "mount": 961,
+    "ms": 80
+   },
+   "rowShell": {
+    "n": 854,
+    "mount": 483,
+    "ms": 22.6
+   },
+   "controls": {
+    "n": 2267,
+    "mount": 1523,
+    "ms": 111.4
+   },
+   "layout": {
+    "n": 4958,
+    "mount": 3244,
+    "ms": 41.3
+   },
+   "table": {
+    "n": 565,
+    "mount": 473,
+    "ms": 1.1
+   }
+  },
+  "hookMs": 10
+ },
+ "react-prof-small-m-table": {
+  "n": 3,
+  "ready": 1927,
+  "ltMax": 1459,
+  "totalSelfMs": 477.5,
+  "totalRenders": 17291,
+  "totalMounts": 12547,
+  "commits": 17,
+  "bigCommits": "32.2ms/573c 167ms/5857c 144.2ms/7847c 5.3ms/186c 8.9ms/565c 11.5ms/386c 27.1ms/1161c",
+  "top": [
+   "PeekHost 150.9ms n2/m1",
+   "Selector 63.6ms n392/m197",
+   "Button 39ms n655/m320",
+   "MultiSelector 21.3ms n144/m144",
+   "WorkItemsScreen 18.9ms n1/m1",
+   "Popover 14.9ms n290/m97",
+   "TesseraShell 13.8ms n1/m1",
+   "Item 12.2ms n357/m221",
+   "DateControl 11.4ms n192/m96",
+   "Stack 8.6ms n1064/m685",
+   "Text 8.3ms n727/m609",
+   "Field 5.3ms n542/m346",
+   "Icon 5.2ms n992/m693",
+   "FieldLabel 4.8ms n612/m413"
+  ],
+  "fam": {
+   "layers": {
+    "n": 1825,
+    "mount": 1093,
+    "ms": 86.3
+   },
+   "rowShell": {
+    "n": 719,
+    "mount": 466,
+    "ms": 13.6
+   },
+   "controls": {
+    "n": 2947,
+    "mount": 1875,
+    "ms": 130.9
+   },
+   "layout": {
+    "n": 5506,
+    "mount": 3569,
+    "ms": 34.5
+   },
+   "table": {
+    "n": 1253,
+    "mount": 1165,
+    "ms": 10
+   }
+  },
+  "hookMs": 19
+ }
+}

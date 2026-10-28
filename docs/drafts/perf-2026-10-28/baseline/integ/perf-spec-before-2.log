@@ -1,0 +1,129 @@
+START Wed Oct 28 22:22:50 CET 2026 load 2.15 2.14 2.27
+
+Running 1 test using 1 worker
+
+[perf] round 0 (warm-up) list 1354 ms
+[perf] round 0 (warm-up) board 1109 ms
+[perf] round 0 (warm-up) table 1800 ms
+[perf] round 1 (warm-up) list 877 ms
+[perf] round 1 (warm-up) board 1002 ms
+[perf] round 1 (warm-up) table 1780 ms
+[perf] round 2 list 854 ms
+[perf] round 2 board 1012 ms
+[perf] round 2 table 1775 ms
+[perf] round 3 list 867 ms
+[perf] round 3 board 1031 ms
+[perf] round 3 table 1819 ms
+[perf] round 4 list 886 ms
+[perf] round 4 board 999 ms
+[perf] round 4 table 1743 ms
+[perf] round 5 list 918 ms
+[perf] round 5 board 248 ms
+[perf] round 5 table 1789 ms
+[perf] round 6 list 861 ms
+[perf] round 6 board 1026 ms
+[perf] round 6 table 1821 ms
+[perf] round 7 list 907 ms
+[perf] round 7 board 236 ms
+[perf] round 7 table 1817 ms
+[perf] round 8 list 881 ms
+[perf] round 8 board 1045 ms
+[perf] round 8 table 1852 ms
+[perf] round 9 list 915 ms
+[perf] round 9 board 253 ms
+[perf] round 9 table 1810 ms
+[perf] round 10 list 908 ms
+[perf] round 10 board 1014 ms
+[perf] round 10 table 1827 ms
+[perf] round 11 list 919 ms
+[perf] round 11 board 262 ms
+[perf] round 11 table 1870 ms
+[perf] round 12 list 933 ms
+[perf] round 12 board 254 ms
+[perf] round 12 table 1816 ms
+[perf] round 13 list 920 ms
+[perf] round 13 board 272 ms
+[perf] round 13 table 1852 ms
+[perf] round 14 list 930 ms
+[perf] round 14 board 248 ms
+[perf] round 14 table 1799 ms
+[perf] round 15 list 918 ms
+[perf] round 15 board 263 ms
+[perf] round 15 table 1889 ms
+[perf] round 16 list 972 ms
+[perf] round 16 board 251 ms
+[perf] round 16 table 1827 ms
+[perf] round 17 list 933 ms
+[perf] round 17 board 276 ms
+[perf] round 17 table 1898 ms
+[perf] round 18 list 1050 ms
+[perf] round 18 board 251 ms
+[perf] round 18 table 1843 ms
+[perf] round 19 list 940 ms
+[perf] round 19 board 1072 ms
+[perf] round 19 table 1880 ms
+[perf] round 20 list 924 ms
+[perf] round 20 board 255 ms
+[perf] round 20 table 1823 ms
+[perf] round 21 list 934 ms
+[perf] round 21 board 268 ms
+[perf] round 21 table 1853 ms
+decision 115 [data-list-ready] (ms): list p50 918 p95 972; board p50 263 p95 1045; table p50 1823 p95 1889
+  ✘  1 tests/e2e/perf.spec.ts:52:5 › list, board and table reach [data-list-ready] within 300 ms at p95 on 10 000 items (2.2m)
+
+
+  1) tests/e2e/perf.spec.ts:52:5 › list, board and table reach [data-list-ready] within 300 ms at p95 on 10 000 items 
+
+    Error: list: p95 of 20 runs to [data-list-ready] (runs: 854, 867, 886, 918, 861, 907, 881, 915, 908, 919, 933, 920, 930, 918, 972, 933, 1050, 940, 924, 934)
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 300
+    Received:    972
+
+      104 |
+      105 |   for (const layout of LAYOUTS) {
+    > 106 |     expect.soft(summary[layout]!.p95, `${layout}: p95 of ${RUNS} runs to [data-list-ready] (runs: ${times[layout].join(", ")})`).toBeLessThanOrEqual(BUDGET_MS);
+          |                                                                                                                                  ^
+      107 |   }
+      108 | });
+      109 |
+        at /private/tmp/claude-501/-Users-valentindorgeloh-Documents-Github-tessera/8acb4a38-4ac2-4215-9929-95e79d18c45f/scratchpad/perf/bc/before/tests/e2e/perf.spec.ts:106:130
+
+    Error: board: p95 of 20 runs to [data-list-ready] (runs: 1012, 1031, 999, 248, 1026, 236, 1045, 253, 1014, 262, 254, 272, 248, 263, 251, 276, 251, 1072, 255, 268)
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 300
+    Received:    1045
+
+      104 |
+      105 |   for (const layout of LAYOUTS) {
+    > 106 |     expect.soft(summary[layout]!.p95, `${layout}: p95 of ${RUNS} runs to [data-list-ready] (runs: ${times[layout].join(", ")})`).toBeLessThanOrEqual(BUDGET_MS);
+          |                                                                                                                                  ^
+      107 |   }
+      108 | });
+      109 |
+        at /private/tmp/claude-501/-Users-valentindorgeloh-Documents-Github-tessera/8acb4a38-4ac2-4215-9929-95e79d18c45f/scratchpad/perf/bc/before/tests/e2e/perf.spec.ts:106:130
+
+    Error: table: p95 of 20 runs to [data-list-ready] (runs: 1775, 1819, 1743, 1789, 1821, 1817, 1852, 1810, 1827, 1870, 1816, 1852, 1799, 1889, 1827, 1898, 1843, 1880, 1823, 1853)
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 300
+    Received:    1889
+
+      104 |
+      105 |   for (const layout of LAYOUTS) {
+    > 106 |     expect.soft(summary[layout]!.p95, `${layout}: p95 of ${RUNS} runs to [data-list-ready] (runs: ${times[layout].join(", ")})`).toBeLessThanOrEqual(BUDGET_MS);
+          |                                                                                                                                  ^
+      107 |   }
+      108 | });
+      109 |
+        at /private/tmp/claude-501/-Users-valentindorgeloh-Documents-Github-tessera/8acb4a38-4ac2-4215-9929-95e79d18c45f/scratchpad/perf/bc/before/tests/e2e/perf.spec.ts:106:130
+
+    Error Context: test-results/perf/perf-list-board-and-table--dfb74-0-ms-at-p95-on-10-000-items/error-context.md
+
+  1 failed
+    tests/e2e/perf.spec.ts:52:5 › list, board and table reach [data-list-ready] within 300 ms at p95 on 10 000 items 
+EXIT 1 after 137 s; END Wed Oct 28 22:25:07 CET 2026 load 2.33 2.29 2.31

@@ -1,0 +1,10 @@
+1 A 5.90 4.70 4.71 {"mode":"has","removed":0,"kept":71,"readyMs":930,"lt":563,"rows":250}
+1 B 5.23 4.59 4.67 {"mode":"has","removed":0,"kept":69,"readyMs":960,"lt":565,"rows":250}
+2 A 4.89 4.54 4.65 {"mode":"has","removed":0,"kept":71,"readyMs":938,"lt":538,"rows":250}
+2 B 4.52 4.47 4.63 {"mode":"has","removed":0,"kept":69,"readyMs":935,"lt":538,"rows":250}
+3 A 4.13 4.39 4.59 {"mode":"has","removed":0,"kept":71,"readyMs":948,"lt":564,"rows":250}
+3 B 3.96 4.35 4.58 {"mode":"has","removed":0,"kept":69,"readyMs":934,"lt":558,"rows":250}
+4 A 4.78 4.50 4.63 {"mode":"has","removed":0,"kept":71,"readyMs":975,"lt":594,"rows":250}
+4 B 5.23 4.62 4.67 {"mode":"has","removed":0,"kept":69,"readyMs":1017,"lt":613,"rows":250}
+5 A 5.84 4.77 4.72 {"mode":"has","removed":0,"kept":71,"readyMs":949,"lt":573,"rows":250}
+5 B 5.57 4.75 4.72 {"mode":"has","removed":0,"kept":69,"readyMs":941,"lt":566,"rows":250}

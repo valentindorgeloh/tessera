@@ -1,0 +1,4 @@
+{"client":"perf-agent-1","load":"1.51 3.00 3.18","r":{"first-write":{"dt":2023,"worked":37937,"commits":2,"ltTotal":63,"cpuTotal":778},"second-write":{"dt":3647,"worked":2787,"commits":2,"ltTotal":0,"cpuTotal":814}}}
+{"client":"react-probe","load":"2.03 3.03 3.19","r":{"first-write":{"dt":2115,"worked":37937,"commits":2,"ltTotal":62,"cpuTotal":785},"second-write":{"dt":3675,"worked":2787,"commits":2,"ltTotal":0,"cpuTotal":773}}}
+{"client":"perf-agent-1","load":"1.65 2.90 3.14","r":{"first-write":{"dt":2128,"worked":37937,"commits":2,"ltTotal":63,"cpuTotal":850},"second-write":{"dt":3670,"worked":2787,"commits":2,"ltTotal":0,"cpuTotal":818}}}
+{"client":"react-probe","load":"1.47 2.77 3.08","r":{"first-write":{"dt":2150,"worked":37937,"commits":2,"ltTotal":66,"cpuTotal":816},"second-write":{"dt":3658,"worked":2787,"commits":2,"ltTotal":0,"cpuTotal":787}}}

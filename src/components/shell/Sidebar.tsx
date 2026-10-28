@@ -210,7 +210,7 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
           isSelected={pathname === "/inbox"}
           endContent={unreadCount > 0 ? <Badge label={String(unreadCount)} /> : undefined}
         />
-        <RailItem label="Your work" icon={UserIcon} href="/your-work" isSelected={pathname === "/your-work" || pathname.startsWith("/your-work/")} />
+        <RailItem label="Your work" icon={UserIcon} href="/your-work/summary" isSelected={pathname === "/your-work" || pathname.startsWith("/your-work/")} />
         <RailItem
           label="Drafts"
           icon={DraftIcon}
@@ -267,7 +267,7 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
       <SideNavSection title="Workspace" isHeaderHidden className="tessera-sidebar-last">
         <RailItem label="Workspace views" icon={TableIcon} href="/workspace-views" isSelected={pathname === "/workspace-views" || pathname.startsWith("/workspace-views/")} />
         <RailItem label="Active cycles" icon={CycleIcon} href="/active-cycles" isSelected={pathname === "/active-cycles" || pathname.startsWith("/active-cycles/")} />
-        <RailItem label="Analytics" icon={BurndownIcon} href="/analytics" isSelected={pathname === "/analytics" || pathname.startsWith("/analytics/")} />
+        <RailItem label="Analytics" icon={BurndownIcon} href="/analytics/overview" isSelected={pathname === "/analytics" || pathname.startsWith("/analytics/")} />
         <RailItem label="Agents" icon={AgentIcon} href="/agents" isSelected={pathname === "/agents" || pathname.startsWith("/agents/")} />
       </SideNavSection>
     </SideNav>

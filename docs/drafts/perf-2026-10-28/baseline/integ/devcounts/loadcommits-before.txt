@@ -1,0 +1,8 @@
+load 3.70 2.43 1.79
+322 582 "Stack=112 HStack=105 Kbd=65 ListItem=39 Item=39 ShortcutKeys=39 Text=23 AreaProvider=20 Icon=7 IconBase=7 VStack=6 VisuallyHidden=5 MagnifyingGlassIcon=5 Dialog=5"
+613 4525 "Stack=364 HStack=350 IconBase=342 Icon=230 FieldLabel=200 VisuallyHidden=196 CalendarBlankIcon=194 Button=193 IconFromRegistry=169 Field=150 Selector=147 CaretDownIcon=147 Text=123 Popover=97"
+752 7286 "CheckIndicator=604 Icon=579 Stack=530 HStack=529 Text=529 IconBase=424 LayerContentBoundary=414 StateLabel=288 StatusDot=288 IconFromRegistry=282 LayerDepthProvider=247 PriorityLabel=240 Button=220 VisuallyHidden=220"
+819 357 "IconBase=28 Icon=21 VisuallyHidden=18 SideNavItem=17 NavItemElement=17 SafeLink(LinkComponent)=17 LinkComponent=17 Stack=17 RailItem=16 Button=16 AreaProvider=15 FolderIcon=8 RowActions=7 HStack=7"
+861 1805 "LayerContentBoundary=215 VisuallyHidden=211 Button=209 CalendarBlankIcon=192 IconBase=160 LayerDepthProvider=108 DateControl=96 Popover=96 Icon=49 Item=43 DropdownMenuItem=40 SafeLink(LinkComponent)=29 LinkComponent=29 SideNavItem=17"
+1055 592 "Stack=112 HStack=105 Kbd=68 Item=43 ListItem=39 ShortcutKeys=39 Text=23 AreaProvider=20 Icon=11 LayerContentBoundary=8 IconBase=8 VStack=6 VisuallyHidden=5 Dialog=5"
+1080 592 "Stack=112 HStack=105 Kbd=68 Item=43 ListItem=39 ShortcutKeys=39 Text=23 AreaProvider=20 Icon=11 LayerContentBoundary=8 IconBase=8 VStack=6 VisuallyHidden=5 Dialog=5"

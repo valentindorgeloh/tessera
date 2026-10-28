@@ -1,7 +1,7 @@
 "use client";
 
 import { Selector, type SelectorOptionData } from "@astryxdesign/core/Selector";
-import { useProject } from "../project-provider";
+import { useProjectRow } from "../project-provider";
 import { cycleControlModel } from "./membership-rules";
 
 export type CycleControlProps = {
@@ -20,7 +20,7 @@ export type CycleControlProps = {
  * move the item out of it (./membership-rules.ts).
  */
 export function CycleControl({ value, onChange, compact = false, readOnly = false, label = "Cycle" }: CycleControlProps) {
-  const { bundle } = useProject();
+  const { bundle } = useProjectRow();
   const model = cycleControlModel(value, bundle.cycles);
   const options: SelectorOptionData[] = model.options;
   return (

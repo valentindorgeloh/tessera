@@ -48,12 +48,14 @@ import { FilterBar } from "./FilterBar";
 import { GanttLayout } from "./GanttLayout";
 import { hrefWithLayout, layoutFromParam, LAYOUT_PARAM } from "./layout-param";
 import { ListLayout } from "./ListLayout";
+import { listShowsGroups } from "./list-groups";
 import { toEngineMove } from "./moves";
 import { isOptimisticId, optimisticId } from "./optimistic";
 import { effectiveRichFilters } from "./paging";
 import { realNeighbour, reduceOptimisticList, type OptimisticAction, type StateGroupOf } from "./optimistic-list";
 import { firstStateByGroupOf, useProject } from "./project-provider";
 import { useBundles } from "./row-project";
+import { useShared, useStableCallback } from "./stable";
 import { useSelection } from "./use-selection";
 import { createDefaultsFromScope, openMemberships, quickAddAllowed, quickAddInput, withScopeDefaults, type QuickAddContext } from "./quick-add";
 import { TableLayout } from "./TableLayout";
@@ -129,7 +131,7 @@ export function WorkItemsScreen({
   projectId,
   listScope: listScopeProp,
   result,
-  display,
+  display: displayProp,
   filters,
   createOnOpen: createRequested,
   settingsScope: settingsScopeProp,
@@ -150,6 +152,9 @@ export function WorkItemsScreen({
   richFilters,
   exportScope,
 }: WorkItemsScreenProps) {
+  // Every refresh hands in a fresh copy of the display; the shared copy keeps the rows' `display` prop (and the
+  // paging query) unchanged until a setting really changes (decision 141).
+  const display = useShared(displayProp);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -215,14 +220,15 @@ export function WorkItemsScreen({
 
   const fail = (what: string, message: string) => toast({ type: "error", body: `${what}: ${message}` });
 
-  const onUpdate = (id: string, patch: UpdateWorkItemPatch) => {
+  // The two handlers that reach every row keep one identity (a memoized row sees no new function) and call the latest closure.
+  const onUpdate = useStableCallback((id: string, patch: UpdateWorkItemPatch) => {
     if (readOnly || isOptimisticId(id)) return;
     startTransition(async () => {
       applyOptimistic({ type: "update", id, patch });
       const result = await updateWorkItemAction({ work_item_id: id, ...patch });
       if (!result.ok) fail("Could not update the work item", result.message);
     });
-  };
+  });
 
   const onMove = (input: MoveInput) => {
     if (readOnly || isOptimisticId(input.id)) return;
@@ -300,7 +306,7 @@ export function WorkItemsScreen({
     });
   };
 
-  const onOpen = (id: string) => {
+  const onOpen = useStableCallback((id: string) => {
     if (isOptimisticId(id)) return;
     if (openMode === "page") {
       router.push(`/work-items/${id}`);
@@ -311,7 +317,7 @@ export function WorkItemsScreen({
     const href = peekHref(pathname, searchParams, id);
     notePeekPush(currentHref(pathname, searchParams), href);
     router.push(href, { scroll: false });
-  };
+  });
 
   const orderedIds = useMemo(() => {
     const ids = display.group_by && optimistic.groups ? optimistic.groups.flatMap((group) => group.item_ids) : optimistic.items.map((item) => item.id);
@@ -327,6 +333,8 @@ export function WorkItemsScreen({
   const onClearFilters = hasActiveFilters(filters, activeRich)
     ? () => router.replace(withSearchParam(pathname, searchParams, "q", encodeUrlState(clearedUrlState(urlState, filters, activeRich)) || null), { scroll: false })
     : undefined;
+  // Set exactly when the list draws group bands: work-items.css keys the scroll padding for sticky bands on it.
+  const scrollerClass = display.layout === "list" && listShowsGroups(optimistic, display, onClearFilters !== undefined) ? "tessera-wi-scroller tessera-wi-scroller--grouped" : "tessera-wi-scroller";
   const layoutProps: LayoutProps = {
     result: optimistic,
     display,
@@ -394,7 +402,7 @@ export function WorkItemsScreen({
           </PanelHeader>
         }
         content={
-          <LayoutContent padding={0} isScrollable label={`${title} list`} className="tessera-wi-scroller">
+          <LayoutContent padding={0} isScrollable label={`${title} list`} className={scrollerClass}>
             {display.layout === "list" ? (
               <ListLayout {...layoutProps} />
             ) : display.layout === "board" ? (

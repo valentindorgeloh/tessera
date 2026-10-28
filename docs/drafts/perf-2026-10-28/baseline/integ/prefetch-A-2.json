@@ -1,0 +1,528 @@
+{
+  "port": "3835",
+  "load_before": "1.31 1.50 1.39",
+  "steps": [
+    {
+      "step": "load /inbox + 3 s idle (viewport prefetches)",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/api/ai/status",
+          "prefetch": null,
+          "segment": null,
+          "action": false,
+          "status": 200,
+          "kb": 0.3,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 3.1,
+          "ms": 1
+        },
+        {
+          "method": "GET",
+          "path": "/your-work",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 5
+        },
+        {
+          "method": "GET",
+          "path": "/drafts",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 5
+        },
+        {
+          "method": "GET",
+          "path": "/wiki",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 5
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles/01a160df-6439-75b4-ab0b-dff5f4ebf05b",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 5
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 3
+        },
+        {
+          "method": "GET",
+          "path": "/pages/01a160e1-a734-77fe-9508-7447bb0db4b3",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 3
+        },
+        {
+          "method": "GET",
+          "path": "/projects",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 3
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160e1-a709-755b-a399-36d96ed7a9f1/work-items",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 3
+        },
+        {
+          "method": "GET",
+          "path": "/workspace-views",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/active-cycles",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/analytics",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/agents",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/your-work",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/your-work/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 2.4,
+          "ms": 3
+        },
+        {
+          "method": "GET",
+          "path": "/drafts",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/drafts/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 2.8,
+          "ms": 3
+        },
+        {
+          "method": "GET",
+          "path": "/wiki",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/wiki/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 2.8,
+          "ms": 3
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles/01a160df-6439-75b4-ab0b-dff5f4ebf05b",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/projects/$d$projectId/cycles/$d$cycleId/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 3,
+          "ms": 3
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/projects/$d$projectId/work-items/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 3,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/pages/01a160e1-a734-77fe-9508-7447bb0db4b3",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/pages/$d$pageId/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 2.8,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/projects",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/projects/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 3.1,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/workspace-views",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/workspace-views/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 2.7,
+          "ms": 1
+        },
+        {
+          "method": "GET",
+          "path": "/active-cycles",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/active-cycles/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 2.8,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/analytics",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/analytics/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 2.4,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/agents",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/agents/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 2.7,
+          "ms": 2
+        }
+      ]
+    },
+    {
+      "step": "hover nav Analytics",
+      "requests": []
+    },
+    {
+      "step": "click nav Analytics (/analytics -> redirect)",
+      "url_ms": 66,
+      "skeleton_ms": 95,
+      "ready_ms": 450,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/analytics/overview",
+          "prefetch": null,
+          "segment": null,
+          "action": false,
+          "status": 200,
+          "kb": 4.9,
+          "ms": 14
+        }
+      ]
+    },
+    {
+      "step": "click nav Inbox (revisit via Link)",
+      "url_ms": 55,
+      "skeleton_ms": null,
+      "ready_ms": 55,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/inbox",
+          "prefetch": null,
+          "segment": null,
+          "action": false,
+          "status": 200,
+          "kb": 6.1,
+          "ms": 15
+        }
+      ]
+    },
+    {
+      "step": "browser back to /analytics/overview",
+      "wall_ms": 67,
+      "requests": []
+    },
+    {
+      "step": "click nav project Work items (from /analytics/overview)",
+      "url_ms": 43,
+      "skeleton_ms": 43,
+      "ready_ms": 475,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items",
+          "prefetch": null,
+          "segment": null,
+          "action": false,
+          "status": 200,
+          "kb": null,
+          "ms": null
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 4
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/modules",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 4
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/views",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 4
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/pages",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 4
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/intake",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 3
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/archives",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 3
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/settings",
+          "prefetch": "1",
+          "segment": "/_tree",
+          "action": false,
+          "status": 200,
+          "kb": 0.8,
+          "ms": 3
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/projects/$d$projectId/cycles/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 2.9,
+          "ms": 3
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/modules",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/projects/$d$projectId/modules/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 2.9,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/views",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/projects/$d$projectId/views/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 2.9,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/pages",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/projects/$d$projectId/pages/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 2.9,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/intake",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/projects/$d$projectId/intake/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 3,
+          "ms": 2
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/archives",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/projects/$d$projectId/archives/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 3.1,
+          "ms": 1
+        },
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/settings",
+          "prefetch": "1",
+          "segment": "/!KHRlc3NlcmEp/projects/$d$projectId/settings/__PAGE__",
+          "action": false,
+          "status": 200,
+          "kb": 3.2,
+          "ms": 1
+        }
+      ]
+    },
+    {
+      "step": "click project tab Cycles (sibling in project layout)",
+      "url_ms": 44,
+      "skeleton_ms": 44,
+      "ready_ms": 65,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles",
+          "prefetch": null,
+          "segment": null,
+          "action": false,
+          "status": 200,
+          "kb": 5.1,
+          "ms": 12
+        }
+      ]
+    },
+    {
+      "step": "9 s idle on page",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/api/changes",
+          "prefetch": null,
+          "segment": null,
+          "action": false,
+          "status": 200,
+          "kb": 0.3,
+          "ms": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/changes",
+          "prefetch": null,
+          "segment": null,
+          "action": false,
+          "status": 200,
+          "kb": 0.3,
+          "ms": 12
+        },
+        {
+          "method": "GET",
+          "path": "/api/changes",
+          "prefetch": null,
+          "segment": null,
+          "action": false,
+          "status": 200,
+          "kb": 0.3,
+          "ms": 11
+        }
+      ]
+    }
+  ],
+  "load_after": "1.29 1.49 1.38"
+}

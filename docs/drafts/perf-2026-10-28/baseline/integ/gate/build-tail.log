@@ -1,0 +1,25 @@
+├ ◐ /settings
+├   /settings/[tab]
+│ └ ◐ /settings/[tab]
+├ ◐ /settings/backups
+├ ◐ /settings/exports
+├ ◐ /settings/webhooks
+├   /settings/webhooks/[webhookId]
+│ └ ◐ /settings/webhooks/[webhookId]
+├ ◐ /stickies
+├ ◐ /wiki
+├   /work-items/[workItemId]
+│ └ ◐ /work-items/[workItemId]
+├ ◐ /workspace-views
+├   /workspace-views/[viewId]
+│ └ ◐ /workspace-views/[viewId]
+├ ◐ /your-work
+└   /your-work/[tab]
+  └ ◐ /your-work/[tab]
+
+
+○  (Static)             prerendered as static content
+◐  (Partial Prerender)  prerendered as static HTML with dynamic server-streamed content
+ƒ  (Dynamic)            server-rendered on demand
+
+EXIT 0

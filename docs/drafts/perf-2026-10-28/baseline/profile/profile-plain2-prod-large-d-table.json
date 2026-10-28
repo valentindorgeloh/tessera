@@ -1,0 +1,390 @@
+{
+ "patch": null,
+ "mode": "plain",
+ "variant": "prod",
+ "set": "large",
+ "vp": "d",
+ "viewport": {
+  "width": 1440,
+  "height": 900
+ },
+ "cpuRate": 1,
+ "scenario": "table",
+ "n": 7,
+ "tag": "plain2-prod-large-d-table",
+ "rows": [
+  {
+   "i": 0,
+   "load": "1.99 1.84 2.04",
+   "ready": 1450,
+   "hydrated": 1451,
+   "fcp": 184,
+   "lcp": 1488,
+   "ttfb": 4,
+   "respEnd": 228,
+   "ltCount": 2,
+   "ltMax": 1188,
+   "ltSum": 1244,
+   "lt": [
+    [
+     239,
+     1188
+    ],
+    [
+     1427,
+     56
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 1499,
+    "ScriptDuration": 539,
+    "LayoutDuration": 150,
+    "RecalcStyleDuration": 642,
+    "LayoutCount": 15,
+    "RecalcStyleCount": 1039,
+    "JSHeapUsedSize": 350955264,
+    "Nodes": 158636
+   },
+   "census": {
+    "el": 56040,
+    "rows": 0,
+    "tableRows": 200,
+    "listbox": 590,
+    "tooltip": 447,
+    "popover": 1457,
+    "dialog": 16,
+    "menu": 13,
+    "combobox": 1207,
+    "button": 2295,
+    "svg": 2970,
+    "cssRulesAfter": null
+   }
+  },
+  {
+   "i": 1,
+   "load": "1.83 1.81 2.03",
+   "ready": 1457,
+   "hydrated": 1457,
+   "fcp": 184,
+   "lcp": 1492,
+   "ttfb": 4,
+   "respEnd": 217,
+   "ltCount": 2,
+   "ltMax": 1205,
+   "ltSum": 1262,
+   "lt": [
+    [
+     227,
+     1205
+    ],
+    [
+     1433,
+     57
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 1519,
+    "ScriptDuration": 543,
+    "LayoutDuration": 155,
+    "RecalcStyleDuration": 654,
+    "LayoutCount": 15,
+    "RecalcStyleCount": 1037,
+    "JSHeapUsedSize": 350376880,
+    "Nodes": 158636
+   },
+   "census": {
+    "el": 56040,
+    "rows": 0,
+    "tableRows": 200,
+    "listbox": 590,
+    "tooltip": 447,
+    "popover": 1457,
+    "dialog": 16,
+    "menu": 13,
+    "combobox": 1207,
+    "button": 2295,
+    "svg": 2970,
+    "cssRulesAfter": null
+   }
+  },
+  {
+   "i": 2,
+   "load": "1.77 1.80 2.03",
+   "ready": 1387,
+   "hydrated": 1388,
+   "fcp": 192,
+   "lcp": 1420,
+   "ttfb": 4,
+   "respEnd": 230,
+   "ltCount": 2,
+   "ltMax": 1112,
+   "ltSum": 1166,
+   "lt": [
+    [
+     254,
+     1112
+    ],
+    [
+     1367,
+     54
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 1481,
+    "ScriptDuration": 462,
+    "LayoutDuration": 141,
+    "RecalcStyleDuration": 637,
+    "LayoutCount": 15,
+    "RecalcStyleCount": 1037,
+    "JSHeapUsedSize": 324673764,
+    "Nodes": 132806
+   },
+   "census": {
+    "el": 56040,
+    "rows": 0,
+    "tableRows": 200,
+    "listbox": 590,
+    "tooltip": 447,
+    "popover": 1457,
+    "dialog": 16,
+    "menu": 13,
+    "combobox": 1207,
+    "button": 2295,
+    "svg": 2970,
+    "cssRulesAfter": null
+   }
+  },
+  {
+   "i": 3,
+   "load": "1.70 1.78 2.02",
+   "ready": 1439,
+   "hydrated": 1439,
+   "fcp": 184,
+   "lcp": 1472,
+   "ttfb": 4,
+   "respEnd": 214,
+   "ltCount": 2,
+   "ltMax": 1191,
+   "ltSum": 1247,
+   "lt": [
+    [
+     224,
+     1191
+    ],
+    [
+     1416,
+     56
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 1509,
+    "ScriptDuration": 541,
+    "LayoutDuration": 150,
+    "RecalcStyleDuration": 645,
+    "LayoutCount": 15,
+    "RecalcStyleCount": 1037,
+    "JSHeapUsedSize": 340899512,
+    "Nodes": 158636
+   },
+   "census": {
+    "el": 56040,
+    "rows": 0,
+    "tableRows": 200,
+    "listbox": 590,
+    "tooltip": 447,
+    "popover": 1457,
+    "dialog": 16,
+    "menu": 13,
+    "combobox": 1207,
+    "button": 2295,
+    "svg": 2970,
+    "cssRulesAfter": null
+   }
+  },
+  {
+   "i": 4,
+   "load": "1.65 1.77 2.01",
+   "ready": 1370,
+   "hydrated": 1371,
+   "fcp": 180,
+   "lcp": 1404,
+   "ttfb": 4,
+   "respEnd": 221,
+   "ltCount": 2,
+   "ltMax": 1110,
+   "ltSum": 1165,
+   "lt": [
+    [
+     239,
+     1110
+    ],
+    [
+     1349,
+     55
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 1412,
+    "ScriptDuration": 474,
+    "LayoutDuration": 141,
+    "RecalcStyleDuration": 638,
+    "LayoutCount": 15,
+    "RecalcStyleCount": 1038,
+    "JSHeapUsedSize": 348691692,
+    "Nodes": 185830
+   },
+   "census": {
+    "el": 56040,
+    "rows": 0,
+    "tableRows": 200,
+    "listbox": 590,
+    "tooltip": 447,
+    "popover": 1457,
+    "dialog": 16,
+    "menu": 13,
+    "combobox": 1207,
+    "button": 2295,
+    "svg": 2970,
+    "cssRulesAfter": null
+   }
+  },
+  {
+   "i": 5,
+   "load": "1.51 1.74 2.00",
+   "ready": 1372,
+   "hydrated": 1372,
+   "fcp": 168,
+   "lcp": 1408,
+   "ttfb": 2,
+   "respEnd": 200,
+   "ltCount": 2,
+   "ltMax": 1140,
+   "ltSum": 1195,
+   "lt": [
+    [
+     210,
+     1140
+    ],
+    [
+     1351,
+     55
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 1430,
+    "ScriptDuration": 500,
+    "LayoutDuration": 140,
+    "RecalcStyleDuration": 641,
+    "LayoutCount": 15,
+    "RecalcStyleCount": 1037,
+    "JSHeapUsedSize": 347352756,
+    "Nodes": 185806
+   },
+   "census": {
+    "el": 56040,
+    "rows": 0,
+    "tableRows": 200,
+    "listbox": 590,
+    "tooltip": 447,
+    "popover": 1457,
+    "dialog": 16,
+    "menu": 13,
+    "combobox": 1207,
+    "button": 2295,
+    "svg": 2970,
+    "cssRulesAfter": null
+   }
+  },
+  {
+   "i": 6,
+   "load": "1.39 1.71 1.99",
+   "ready": 1378,
+   "hydrated": 1378,
+   "fcp": 180,
+   "lcp": 1416,
+   "ttfb": 4,
+   "respEnd": 211,
+   "ltCount": 2,
+   "ltMax": 1136,
+   "ltSum": 1191,
+   "lt": [
+    [
+     221,
+     1136
+    ],
+    [
+     1357,
+     55
+    ]
+   ],
+   "cdp": {
+    "TaskDuration": 1427,
+    "ScriptDuration": 497,
+    "LayoutDuration": 140,
+    "RecalcStyleDuration": 639,
+    "LayoutCount": 15,
+    "RecalcStyleCount": 1037,
+    "JSHeapUsedSize": 347312880,
+    "Nodes": 185806
+   },
+   "census": {
+    "el": 56040,
+    "rows": 0,
+    "tableRows": 200,
+    "listbox": 590,
+    "tooltip": 447,
+    "popover": 1457,
+    "dialog": 16,
+    "menu": 13,
+    "combobox": 1207,
+    "button": 2295,
+    "svg": 2970,
+    "cssRulesAfter": null
+   }
+  }
+ ],
+ "loadStart": "1.99 1.84 2.04",
+ "startedAt": "2026-10-28T20:52:52.230Z",
+ "loadEnd": "1.28 1.68 1.98",
+ "summary": {
+  "n": 7,
+  "ready": {
+   "median": 1387,
+   "p95": 1457,
+   "min": 1370,
+   "max": 1457
+  },
+  "hydrated": 1388,
+  "fcp": 184,
+  "ltMax": 1140,
+  "ltSum": 1195,
+  "cdp": {
+   "TaskDuration": 1481,
+   "ScriptDuration": 500,
+   "LayoutDuration": 141,
+   "RecalcStyleDuration": 641,
+   "LayoutCount": 15,
+   "RecalcStyleCount": 1037,
+   "JSHeapUsedSize": 347352756,
+   "Nodes": 158636
+  },
+  "census": {
+   "el": 56040,
+   "rows": 0,
+   "tableRows": 200,
+   "listbox": 590,
+   "tooltip": 447,
+   "popover": 1457,
+   "dialog": 16,
+   "menu": 13,
+   "combobox": 1207,
+   "button": 2295,
+   "svg": 2970,
+   "cssRulesAfter": null
+  },
+  "load": [
+   "1.99 1.84 2.04",
+   "1.28 1.68 1.98"
+  ]
+ }
+}

@@ -218,10 +218,10 @@ function runShortcut(id: ShortcutId, options: ShortcutDispatchOptions, context: 
       options.push("/inbox");
       return;
     case "nav.yourWork":
-      options.push("/your-work");
+      options.push("/your-work/summary");
       return;
     case "nav.analytics":
-      options.push("/analytics");
+      options.push("/analytics/overview");
       return;
     case "nav.drafts":
       options.push("/drafts");

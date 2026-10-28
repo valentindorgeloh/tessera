@@ -3,7 +3,7 @@
 import { MultiSelector, type MultiSelectorOptionData } from "@astryxdesign/core/MultiSelector";
 import { HStack } from "@astryxdesign/core/Stack";
 import { Token } from "@astryxdesign/core/Token";
-import { useProject } from "../project-provider";
+import { useProjectRow } from "../project-provider";
 import { archivedModulesLabel, mergeModuleChange, moduleControlOptions, splitModuleValue } from "./membership-rules";
 
 export type ModuleControlProps = {
@@ -22,7 +22,7 @@ export type ModuleControlProps = {
  * drops them, and show as a read-only count (./membership-rules.ts).
  */
 export function ModuleControl({ value, onChange, compact = false, readOnly = false, label = "Modules" }: ModuleControlProps) {
-  const { bundle } = useProject();
+  const { bundle } = useProjectRow();
   const options: MultiSelectorOptionData[] = moduleControlOptions(bundle.modules);
   const { editable, kept } = splitModuleValue(value, bundle.modules);
   const selector = (

@@ -1,0 +1,13 @@
+import { newPage, gotoReady } from "./lib.mjs";
+const [port, PID] = process.argv.slice(2);
+const { browser, page } = await newPage({ cpu: 1 });
+await gotoReady(page, `http://127.0.0.1:${port}/projects/${PID}/work-items`);
+await page.waitForTimeout(6000);
+await page.locator('nav[aria-label=Work] a[href="/inbox"]').click();
+await page.waitForTimeout(4000);
+await page.evaluate(() => window.__arm({ sel: "[data-list-ready]", text: "" }));
+await page.locator('nav[aria-label=Work] a[aria-label="Website 48"]').click();
+await page.waitForTimeout(6000);
+const r = await page.evaluate(() => window.__collect());
+console.log(JSON.stringify({ commits: r.commits, worked: r.worked, top: r.topTypes.slice(0, 30), log: r.log.map((l) => [l[1]]) }));
+await browser.close();

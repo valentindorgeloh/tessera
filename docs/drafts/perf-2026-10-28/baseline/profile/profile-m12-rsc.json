@@ -1,0 +1,480 @@
+{
+ "load": "2.19 5.43 5.65",
+ "runs": [
+  {
+   "set": "small",
+   "label": "nav inbox -> list (click sidebar)",
+   "requests": [
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items?_rsc=uSKVw90V44Dyz7AR",
+     "prefetch": false,
+     "seg": null,
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 14609,
+     "ms": 13,
+     "bytes": 80212,
+     "gz": 11590,
+     "lines": 201
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles?_rsc=qSELbb5DOojpct3A",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 802,
+     "ms": 4,
+     "bytes": 977,
+     "gz": 427,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/modules?_rsc=qSELbb5DOojpct3A",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 804,
+     "ms": 4,
+     "bytes": 978,
+     "gz": 428,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/views?_rsc=qSELbb5DOojpct3A",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 802,
+     "ms": 4,
+     "bytes": 976,
+     "gz": 426,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/pages?_rsc=qSELbb5DOojpct3A",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 802,
+     "ms": 4,
+     "bytes": 976,
+     "gz": 426,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/intake?_rsc=qSELbb5DOojpct3A",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 801,
+     "ms": 3,
+     "bytes": 977,
+     "gz": 425,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/archives?_rsc=qSELbb5DOojpct3A",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 800,
+     "ms": 3,
+     "bytes": 979,
+     "gz": 424,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/settings?_rsc=qSELbb5DOojpct3A",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 804,
+     "ms": 3,
+     "bytes": 979,
+     "gz": 428,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles?_rsc=Py0f_XPGVzhrhrnG",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/cycles/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 3008,
+     "ms": 3,
+     "bytes": 12540,
+     "gz": 2649,
+     "lines": 86
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/modules?_rsc=qGW4u3DxREAnMqZP",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/modules/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 2978,
+     "ms": 4,
+     "bytes": 12178,
+     "gz": 2621,
+     "lines": 86
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/views?_rsc=2KBmIy6xR3i-e59r",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/views/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 2936,
+     "ms": 4,
+     "bytes": 12103,
+     "gz": 2576,
+     "lines": 86
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/pages?_rsc=KLqxH6Uxv0zUdaSA",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/pages/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 2999,
+     "ms": 4,
+     "bytes": 12277,
+     "gz": 2638,
+     "lines": 86
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/intake?_rsc=9cY-B14vnAyCLtEu",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/intake/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 3063,
+     "ms": 3,
+     "bytes": 11903,
+     "gz": 2703,
+     "lines": 86
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/archives?_rsc=0ODnHr-6sx0uO0BH",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/archives/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 3158,
+     "ms": 2,
+     "bytes": 13183,
+     "gz": 2800,
+     "lines": 92
+    },
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/settings?_rsc=7T2k1Od0T1UI4JIF",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/settings/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 3294,
+     "ms": 2,
+     "bytes": 14796,
+     "gz": 2932,
+     "lines": 92
+    }
+   ]
+  },
+  {
+   "set": "small",
+   "label": "peek open (row 1 key)",
+   "requests": [
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items?peek=01a160df-6442-775f-b555-26c15ae4ca67&_rsc=wmZXWky3bapZAeUm",
+     "prefetch": false,
+     "seg": null,
+     "status": 200,
+     "fromCache": false,
+     "failed": "net::ERR_ABORTED canceled"
+    }
+   ]
+  },
+  {
+   "set": "small",
+   "label": "peek switch (row 4 key)",
+   "requests": [
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items?peek=01a160df-6447-76cd-83f4-42e1c353bd59&_rsc=wmZXWky3bapZAeUm",
+     "prefetch": false,
+     "seg": null,
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 10961,
+     "ms": 13,
+     "bytes": 65716,
+     "gz": 9727,
+     "lines": 159
+    }
+   ]
+  },
+  {
+   "set": "small",
+   "label": "peek close (Escape)",
+   "requests": [
+    {
+     "url": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items?_rsc=wmZXWky3bapZAeUm",
+     "prefetch": false,
+     "seg": null,
+     "status": 200,
+     "fromCache": false,
+     "failed": "net::ERR_ABORTED canceled"
+    }
+   ]
+  },
+  {
+   "set": "large",
+   "label": "nav inbox -> list (click sidebar)",
+   "requests": [
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/work-items?_rsc=vFQt3ayiMKojJw0t",
+     "prefetch": false,
+     "seg": null,
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 29704,
+     "ms": 31,
+     "bytes": 273853,
+     "gz": 27260,
+     "lines": 147
+    },
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/cycles?_rsc=b1M698CCIUIN4UK9",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 802,
+     "ms": 4,
+     "bytes": 977,
+     "gz": 427,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/modules?_rsc=b1M698CCIUIN4UK9",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 804,
+     "ms": 4,
+     "bytes": 978,
+     "gz": 428,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/views?_rsc=b1M698CCIUIN4UK9",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 802,
+     "ms": 4,
+     "bytes": 976,
+     "gz": 426,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/pages?_rsc=b1M698CCIUIN4UK9",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 802,
+     "ms": 4,
+     "bytes": 976,
+     "gz": 426,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/archives?_rsc=b1M698CCIUIN4UK9",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 800,
+     "ms": 3,
+     "bytes": 979,
+     "gz": 424,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/settings?_rsc=b1M698CCIUIN4UK9",
+     "prefetch": true,
+     "seg": "/_tree",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 804,
+     "ms": 3,
+     "bytes": 979,
+     "gz": 428,
+     "lines": 16
+    },
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/cycles?_rsc=4nNvXCmelbKaSyYp",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/cycles/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 3008,
+     "ms": 3,
+     "bytes": 12540,
+     "gz": 2649,
+     "lines": 86
+    },
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/modules?_rsc=Hf1RP_wsiqYLDCb1",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/modules/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 2978,
+     "ms": 3,
+     "bytes": 12178,
+     "gz": 2621,
+     "lines": 86
+    },
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/views?_rsc=uKFqT3Pi8NajJckD",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/views/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 2936,
+     "ms": 2,
+     "bytes": 12103,
+     "gz": 2576,
+     "lines": 86
+    },
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/pages?_rsc=Td47lKR5zBkFTJSz",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/pages/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 2999,
+     "ms": 2,
+     "bytes": 12277,
+     "gz": 2638,
+     "lines": 86
+    },
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/archives?_rsc=GUmbgguOSUhXFbsu",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/archives/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 3158,
+     "ms": 2,
+     "bytes": 13183,
+     "gz": 2800,
+     "lines": 92
+    },
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/settings?_rsc=_6_XsLqetVlKGdqh",
+     "prefetch": true,
+     "seg": "/!KHRlc3NlcmEp/projects/$d$projectId/settings/__PAGE__",
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 3294,
+     "ms": 1,
+     "bytes": 14796,
+     "gz": 2932,
+     "lines": 92
+    }
+   ]
+  },
+  {
+   "set": "large",
+   "label": "peek open (row 1 key)",
+   "requests": [
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/work-items?peek=01a16ad8-6e4e-7608-a668-b8fe28aba5f1&_rsc=6ZbTdvfpvEQyeLwv",
+     "prefetch": false,
+     "seg": null,
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 24435,
+     "ms": 17,
+     "bytes": 231741,
+     "gz": 22423,
+     "lines": 106
+    }
+   ]
+  },
+  {
+   "set": "large",
+   "label": "peek switch (row 4 key)",
+   "requests": [
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/work-items?peek=01a16ad8-6e53-74f0-a277-8dd0dada3ad0&_rsc=6ZbTdvfpvEQyeLwv",
+     "prefetch": false,
+     "seg": null,
+     "status": 200,
+     "fromCache": false,
+     "done": true,
+     "enc": 24267,
+     "ms": 16,
+     "bytes": 229834,
+     "gz": 22267,
+     "lines": 106
+    }
+   ]
+  },
+  {
+   "set": "large",
+   "label": "peek close (Escape)",
+   "requests": [
+    {
+     "url": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/work-items?_rsc=6ZbTdvfpvEQyeLwv",
+     "prefetch": false,
+     "seg": null,
+     "status": 200,
+     "fromCache": false,
+     "failed": "net::ERR_ABORTED canceled"
+    }
+   ]
+  }
+ ]
+}

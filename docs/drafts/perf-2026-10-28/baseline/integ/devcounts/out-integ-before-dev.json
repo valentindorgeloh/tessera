@@ -1,0 +1,6661 @@
+{
+ "tag": "integ-before-dev",
+ "port": "3835",
+ "cpu": 1,
+ "scenarios": {
+  "load": {
+   "commits": 28,
+   "worked": 16708,
+   "nodes": 13137,
+   "rows": 48,
+   "hist": [
+    [
+     "Stack",
+     1264
+    ],
+    [
+     "HStack",
+     1208
+    ],
+    [
+     "IconBase",
+     1035
+    ],
+    [
+     "Icon",
+     974
+    ],
+    [
+     "Text",
+     733
+    ],
+    [
+     "LayerContentBoundary",
+     716
+    ],
+    [
+     "VisuallyHidden",
+     682
+    ],
+    [
+     "Button",
+     672
+    ],
+    [
+     "CheckIndicator",
+     633
+    ],
+    [
+     "Item",
+     554
+    ],
+    [
+     "IconFromRegistry",
+     475
+    ],
+    [
+     "LayerDepthProvider",
+     401
+    ],
+    [
+     "CalendarBlankIcon",
+     386
+    ],
+    [
+     "FieldLabel",
+     373
+    ],
+    [
+     "StateLabel",
+     336
+    ],
+    [
+     "StatusDot",
+     336
+    ],
+    [
+     "Field",
+     304
+    ],
+    [
+     "Selector",
+     296
+    ],
+    [
+     "Popover",
+     290
+    ],
+    [
+     "Kbd",
+     279
+    ],
+    [
+     "PriorityLabel",
+     240
+    ],
+    [
+     "ListItem",
+     218
+    ],
+    [
+     "DateControl",
+     192
+    ],
+    [
+     "CellSignalMediumIcon",
+     164
+    ],
+    [
+     "DropdownMenuItem",
+     159
+    ],
+    [
+     "ShortcutKeys",
+     156
+    ],
+    [
+     "AreaProvider",
+     155
+    ],
+    [
+     "CaretDownIcon",
+     154
+    ],
+    [
+     "DefaultOption",
+     153
+    ],
+    [
+     "SelectorOption",
+     153
+    ],
+    [
+     "CellSignalHighIcon",
+     144
+    ],
+    [
+     "CellSignalLowIcon",
+     136
+    ],
+    [
+     "CheckIcon",
+     121
+    ],
+    [
+     "ProhibitIcon",
+     116
+    ],
+    [
+     "CellSignalFullIcon",
+     112
+    ],
+    [
+     "SafeLink(LinkComponent)",
+     100
+    ],
+    [
+     "LinkComponent",
+     100
+    ],
+    [
+     "Token",
+     88
+    ],
+    [
+     "Avatar",
+     70
+    ],
+    [
+     "CheckboxInput",
+     62
+    ]
+   ],
+   "log": [
+    [
+     204,
+     8,
+     null
+    ],
+    [
+     252,
+     27,
+     null
+    ],
+    [
+     256,
+     1,
+     null
+    ],
+    [
+     256,
+     6,
+     null
+    ],
+    [
+     256,
+     0,
+     null
+    ],
+    [
+     307,
+     6,
+     null
+    ],
+    [
+     322,
+     582,
+     [
+      [
+       "Stack",
+       112
+      ],
+      [
+       "HStack",
+       105
+      ],
+      [
+       "Kbd",
+       65
+      ],
+      [
+       "ListItem",
+       39
+      ],
+      [
+       "Item",
+       39
+      ],
+      [
+       "ShortcutKeys",
+       39
+      ],
+      [
+       "Text",
+       23
+      ],
+      [
+       "AreaProvider",
+       20
+      ],
+      [
+       "Icon",
+       7
+      ],
+      [
+       "IconBase",
+       7
+      ],
+      [
+       "VStack",
+       6
+      ],
+      [
+       "VisuallyHidden",
+       5
+      ],
+      [
+       "MagnifyingGlassIcon",
+       5
+      ],
+      [
+       "Dialog",
+       5
+      ]
+     ]
+    ],
+    [
+     330,
+     1,
+     null
+    ],
+    [
+     382,
+     19,
+     null
+    ],
+    [
+     414,
+     14,
+     null
+    ],
+    [
+     421,
+     0,
+     null
+    ],
+    [
+     612,
+     4525,
+     [
+      [
+       "Stack",
+       364
+      ],
+      [
+       "HStack",
+       350
+      ],
+      [
+       "IconBase",
+       342
+      ],
+      [
+       "Icon",
+       230
+      ],
+      [
+       "FieldLabel",
+       200
+      ],
+      [
+       "VisuallyHidden",
+       196
+      ],
+      [
+       "CalendarBlankIcon",
+       194
+      ],
+      [
+       "Button",
+       193
+      ],
+      [
+       "IconFromRegistry",
+       169
+      ],
+      [
+       "Field",
+       150
+      ],
+      [
+       "Selector",
+       147
+      ],
+      [
+       "CaretDownIcon",
+       147
+      ],
+      [
+       "Text",
+       123
+      ],
+      [
+       "Popover",
+       97
+      ]
+     ]
+    ],
+    [
+     750,
+     7286,
+     [
+      [
+       "CheckIndicator",
+       604
+      ],
+      [
+       "Icon",
+       579
+      ],
+      [
+       "Stack",
+       530
+      ],
+      [
+       "HStack",
+       529
+      ],
+      [
+       "Text",
+       529
+      ],
+      [
+       "IconBase",
+       424
+      ],
+      [
+       "LayerContentBoundary",
+       414
+      ],
+      [
+       "StateLabel",
+       288
+      ],
+      [
+       "StatusDot",
+       288
+      ],
+      [
+       "IconFromRegistry",
+       282
+      ],
+      [
+       "LayerDepthProvider",
+       247
+      ],
+      [
+       "PriorityLabel",
+       240
+      ],
+      [
+       "Button",
+       220
+      ],
+      [
+       "VisuallyHidden",
+       220
+      ]
+     ]
+    ],
+    [
+     769,
+     207,
+     null
+    ],
+    [
+     794,
+     6,
+     null
+    ],
+    [
+     795,
+     0,
+     null
+    ],
+    [
+     802,
+     17,
+     null
+    ],
+    [
+     802,
+     0,
+     null
+    ],
+    [
+     807,
+     45,
+     null
+    ],
+    [
+     818,
+     357,
+     [
+      [
+       "IconBase",
+       28
+      ],
+      [
+       "Icon",
+       21
+      ],
+      [
+       "VisuallyHidden",
+       18
+      ],
+      [
+       "SideNavItem",
+       17
+      ],
+      [
+       "NavItemElement",
+       17
+      ],
+      [
+       "SafeLink(LinkComponent)",
+       17
+      ],
+      [
+       "LinkComponent",
+       17
+      ],
+      [
+       "Stack",
+       17
+      ],
+      [
+       "RailItem",
+       16
+      ],
+      [
+       "Button",
+       16
+      ],
+      [
+       "AreaProvider",
+       15
+      ],
+      [
+       "FolderIcon",
+       8
+      ],
+      [
+       "RowActions",
+       7
+      ],
+      [
+       "HStack",
+       7
+      ]
+     ]
+    ],
+    [
+     861,
+     1805,
+     [
+      [
+       "LayerContentBoundary",
+       215
+      ],
+      [
+       "VisuallyHidden",
+       211
+      ],
+      [
+       "Button",
+       209
+      ],
+      [
+       "CalendarBlankIcon",
+       192
+      ],
+      [
+       "IconBase",
+       160
+      ],
+      [
+       "LayerDepthProvider",
+       108
+      ],
+      [
+       "DateControl",
+       96
+      ],
+      [
+       "Popover",
+       96
+      ],
+      [
+       "Icon",
+       49
+      ],
+      [
+       "Item",
+       43
+      ],
+      [
+       "DropdownMenuItem",
+       40
+      ],
+      [
+       "SafeLink(LinkComponent)",
+       29
+      ],
+      [
+       "LinkComponent",
+       29
+      ],
+      [
+       "SideNavItem",
+       17
+      ]
+     ]
+    ],
+    [
+     870,
+     287,
+     null
+    ],
+    [
+     884,
+     296,
+     null
+    ],
+    [
+     885,
+     1,
+     null
+    ],
+    [
+     1008,
+     14,
+     null
+    ],
+    [
+     1035,
+     592,
+     [
+      [
+       "Stack",
+       112
+      ],
+      [
+       "HStack",
+       105
+      ],
+      [
+       "Kbd",
+       68
+      ],
+      [
+       "Item",
+       43
+      ],
+      [
+       "ListItem",
+       39
+      ],
+      [
+       "ShortcutKeys",
+       39
+      ],
+      [
+       "Text",
+       23
+      ],
+      [
+       "AreaProvider",
+       20
+      ],
+      [
+       "Icon",
+       11
+      ],
+      [
+       "LayerContentBoundary",
+       8
+      ],
+      [
+       "IconBase",
+       8
+      ],
+      [
+       "VStack",
+       6
+      ],
+      [
+       "VisuallyHidden",
+       5
+      ],
+      [
+       "Dialog",
+       5
+      ]
+     ]
+    ],
+    [
+     1060,
+     592,
+     [
+      [
+       "Stack",
+       112
+      ],
+      [
+       "HStack",
+       105
+      ],
+      [
+       "Kbd",
+       68
+      ],
+      [
+       "Item",
+       43
+      ],
+      [
+       "ListItem",
+       39
+      ],
+      [
+       "ShortcutKeys",
+       39
+      ],
+      [
+       "Text",
+       23
+      ],
+      [
+       "AreaProvider",
+       20
+      ],
+      [
+       "Icon",
+       11
+      ],
+      [
+       "LayerContentBoundary",
+       8
+      ],
+      [
+       "IconBase",
+       8
+      ],
+      [
+       "VStack",
+       6
+      ],
+      [
+       "VisuallyHidden",
+       5
+      ],
+      [
+       "Dialog",
+       5
+      ]
+     ]
+    ],
+    [
+     1066,
+     14,
+     null
+    ]
+   ],
+   "lt": [
+    [
+     318,
+     451
+    ],
+    [
+     817,
+     53
+    ]
+   ],
+   "wallMs": 2644,
+   "cpuMs": 1413
+  },
+  "select": [
+   {
+    "dt": 269,
+    "commits": 3,
+    "worked": 9227,
+    "topTypes": [
+     [
+      "Stack",
+      744
+     ],
+     [
+      "HStack",
+      736
+     ],
+     [
+      "CheckIndicator",
+      650
+     ],
+     [
+      "Icon",
+      603
+     ],
+     [
+      "Text",
+      593
+     ],
+     [
+      "LayerContentBoundary",
+      421
+     ],
+     [
+      "IconBase",
+      417
+     ],
+     [
+      "VisuallyHidden",
+      306
+     ],
+     [
+      "IconFromRegistry",
+      306
+     ],
+     [
+      "Button",
+      304
+     ],
+     [
+      "StateLabel",
+      295
+     ],
+     [
+      "StatusDot",
+      295
+     ],
+     [
+      "LayerDepthProvider",
+      264
+     ],
+     [
+      "PriorityLabel",
+      245
+     ],
+     [
+      "Item",
+      239
+     ],
+     [
+      "FieldLabel",
+      225
+     ],
+     [
+      "CalendarBlankIcon",
+      198
+     ],
+     [
+      "Field",
+      160
+     ],
+     [
+      "Selector",
+      157
+     ],
+     [
+      "DefaultOption",
+      155
+     ],
+     [
+      "SelectorOption",
+      155
+     ],
+     [
+      "CellSignalMediumIcon",
+      132
+     ],
+     [
+      "CellSignalHighIcon",
+      126
+     ],
+     [
+      "CellSignalLowIcon",
+      118
+     ],
+     [
+      "ProhibitIcon",
+      108
+     ],
+     [
+      "CellSignalFullIcon",
+      106
+     ],
+     [
+      "Popover",
+      101
+     ],
+     [
+      "DateControl",
+      98
+     ],
+     [
+      "Token",
+      87
+     ],
+     [
+      "CheckboxIndicator",
+      84
+     ],
+     [
+      "ListItem",
+      62
+     ],
+     [
+      "CheckboxInput",
+      62
+     ],
+     [
+      "CycleControl",
+      49
+     ],
+     [
+      "PriorityControl",
+      49
+     ],
+     [
+      "StateControl",
+      49
+     ],
+     [
+      "WorkItemRow",
+      48
+     ],
+     [
+      "RowProject",
+      48
+     ],
+     [
+      "RowProperties",
+      48
+     ],
+     [
+      "RowTitle",
+      48
+     ],
+     [
+      "OneLineText",
+      48
+     ],
+     [
+      "Avatar",
+      32
+     ],
+     [
+      "AreaProvider",
+      30
+     ],
+     [
+      "DropdownMenuCheckboxItem",
+      22
+     ],
+     [
+      "InternalInputClearButton",
+      18
+     ],
+     [
+      "CheckboxListItem",
+      14
+     ],
+     [
+      "DescribedCheckboxInput",
+      14
+     ],
+     [
+      "Dialog",
+      10
+     ],
+     [
+      "SegmentedControlItem",
+      9
+     ],
+     [
+      "DropdownMenuPopover",
+      9
+     ],
+     [
+      "CaretDownIcon",
+      7
+     ],
+     [
+      "Layout",
+      6
+     ],
+     [
+      "LayoutContent",
+      6
+     ],
+     [
+      "VStack",
+      6
+     ],
+     [
+      "Kbd",
+      6
+     ],
+     [
+      "Badge",
+      6
+     ],
+     [
+      "LayoutFooter",
+      5
+     ],
+     [
+      "Heading",
+      5
+     ],
+     [
+      "LayoutHeader",
+      4
+     ],
+     [
+      "AlertDialog",
+      4
+     ],
+     [
+      "TrashIcon",
+      4
+     ]
+    ],
+    "longTasks": [
+     238
+    ],
+    "ltTotal": 238,
+    "events": [
+     {
+      "type": "pointerover",
+      "start": 2653,
+      "dur": 272,
+      "delay": 8,
+      "proc": 1,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "pointerenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 264
+     },
+     {
+      "type": "mouseover",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 263
+     },
+     {
+      "type": "mouseenter",
+      "start": 2653,
+      "dur": 272,
+      "delay": 9,
+      "proc": 0,
+      "present": 263
+     },
+     {
+      "type": "pointerdown",
+      "start": 2654,
+      "dur": 272,
+      "delay": 11,
+      "proc": 0,
+      "present": 261
+     },
+     {
+      "type": "mousedown",
+      "start": 2654,
+      "dur": 272,
+      "delay": 11,
+      "proc": 0,
+      "present": 261
+     },
+     {
+      "type": "pointerup",
+      "start": 2654,
+      "dur": 272,
+      "delay": 14,
+      "proc": 0,
+      "present": 258
+     },
+     {
+      "type": "mouseup",
+      "start": 2654,
+      "dur": 272,
+      "delay": 14,
+      "proc": 0,
+      "present": 258
+     },
+     {
+      "type": "click",
+      "start": 2654,
+      "dur": 272,
+      "delay": 14,
+      "proc": 222,
+      "present": 36
+     }
+    ],
+    "log": [
+     [
+      2866,
+      8970,
+      [
+       [
+        "Stack",
+        733
+       ],
+       [
+        "HStack",
+        725
+       ],
+       [
+        "CheckIndicator",
+        633
+       ],
+       [
+        "Icon",
+        585
+       ],
+       [
+        "Text",
+        582
+       ],
+       [
+        "IconBase",
+        409
+       ],
+       [
+        "LayerContentBoundary",
+        407
+       ],
+       [
+        "VisuallyHidden",
+        296
+       ],
+       [
+        "Button",
+        294
+       ],
+       [
+        "IconFromRegistry",
+        294
+       ],
+       [
+        "StateLabel",
+        289
+       ],
+       [
+        "StatusDot",
+        289
+       ],
+       [
+        "LayerDepthProvider",
+        252
+       ],
+       [
+        "PriorityLabel",
+        240
+       ]
+      ]
+     ],
+     [
+      2888,
+      203,
+      null
+     ],
+     [
+      2889,
+      54,
+      null
+     ]
+    ],
+    "cpuToReadyMs": 363,
+    "cpuTotalMs": 378,
+    "load": "2.97 2.19 1.69"
+   },
+   {
+    "dt": 248,
+    "commits": 3,
+    "worked": 9227,
+    "topTypes": [
+     [
+      "Stack",
+      744
+     ],
+     [
+      "HStack",
+      736
+     ],
+     [
+      "CheckIndicator",
+      650
+     ],
+     [
+      "Icon",
+      603
+     ],
+     [
+      "Text",
+      593
+     ],
+     [
+      "LayerContentBoundary",
+      421
+     ],
+     [
+      "IconBase",
+      417
+     ],
+     [
+      "VisuallyHidden",
+      306
+     ],
+     [
+      "IconFromRegistry",
+      306
+     ],
+     [
+      "Button",
+      304
+     ],
+     [
+      "StateLabel",
+      295
+     ],
+     [
+      "StatusDot",
+      295
+     ],
+     [
+      "LayerDepthProvider",
+      264
+     ],
+     [
+      "PriorityLabel",
+      245
+     ],
+     [
+      "Item",
+      239
+     ],
+     [
+      "FieldLabel",
+      225
+     ],
+     [
+      "CalendarBlankIcon",
+      198
+     ],
+     [
+      "Field",
+      160
+     ],
+     [
+      "Selector",
+      157
+     ],
+     [
+      "DefaultOption",
+      155
+     ],
+     [
+      "SelectorOption",
+      155
+     ],
+     [
+      "CellSignalMediumIcon",
+      132
+     ],
+     [
+      "CellSignalHighIcon",
+      126
+     ],
+     [
+      "CellSignalLowIcon",
+      118
+     ],
+     [
+      "ProhibitIcon",
+      108
+     ],
+     [
+      "CellSignalFullIcon",
+      106
+     ],
+     [
+      "Popover",
+      101
+     ],
+     [
+      "DateControl",
+      98
+     ],
+     [
+      "Token",
+      87
+     ],
+     [
+      "CheckboxIndicator",
+      84
+     ],
+     [
+      "ListItem",
+      62
+     ],
+     [
+      "CheckboxInput",
+      62
+     ],
+     [
+      "CycleControl",
+      49
+     ],
+     [
+      "PriorityControl",
+      49
+     ],
+     [
+      "StateControl",
+      49
+     ],
+     [
+      "WorkItemRow",
+      48
+     ],
+     [
+      "RowProject",
+      48
+     ],
+     [
+      "RowProperties",
+      48
+     ],
+     [
+      "RowTitle",
+      48
+     ],
+     [
+      "OneLineText",
+      48
+     ],
+     [
+      "Avatar",
+      32
+     ],
+     [
+      "AreaProvider",
+      30
+     ],
+     [
+      "DropdownMenuCheckboxItem",
+      22
+     ],
+     [
+      "InternalInputClearButton",
+      18
+     ],
+     [
+      "CheckboxListItem",
+      14
+     ],
+     [
+      "DescribedCheckboxInput",
+      14
+     ],
+     [
+      "Dialog",
+      10
+     ],
+     [
+      "SegmentedControlItem",
+      9
+     ],
+     [
+      "DropdownMenuPopover",
+      9
+     ],
+     [
+      "CaretDownIcon",
+      7
+     ],
+     [
+      "Layout",
+      6
+     ],
+     [
+      "LayoutContent",
+      6
+     ],
+     [
+      "VStack",
+      6
+     ],
+     [
+      "Kbd",
+      6
+     ],
+     [
+      "Badge",
+      6
+     ],
+     [
+      "LayoutFooter",
+      5
+     ],
+     [
+      "Heading",
+      5
+     ],
+     [
+      "LayoutHeader",
+      4
+     ],
+     [
+      "AlertDialog",
+      4
+     ],
+     [
+      "TrashIcon",
+      4
+     ]
+    ],
+    "longTasks": [
+     229
+    ],
+    "ltTotal": 229,
+    "events": [
+     {
+      "type": "pointerout",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "pointerleave",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "pointerover",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "pointerenter",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "pointerenter",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "pointerenter",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "pointerenter",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "pointerenter",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "pointerenter",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "pointerenter",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "mouseout",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "mouseover",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "mouseenter",
+      "start": 19475,
+      "dur": 248,
+      "delay": 9,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "pointerdown",
+      "start": 19475,
+      "dur": 248,
+      "delay": 12,
+      "proc": 0,
+      "present": 236
+     },
+     {
+      "type": "mousedown",
+      "start": 19475,
+      "dur": 248,
+      "delay": 12,
+      "proc": 0,
+      "present": 236
+     },
+     {
+      "type": "pointerup",
+      "start": 19475,
+      "dur": 248,
+      "delay": 20,
+      "proc": 0,
+      "present": 228
+     },
+     {
+      "type": "mouseup",
+      "start": 19475,
+      "dur": 248,
+      "delay": 20,
+      "proc": 0,
+      "present": 228
+     },
+     {
+      "type": "click",
+      "start": 19475,
+      "dur": 248,
+      "delay": 20,
+      "proc": 206,
+      "present": 22
+     }
+    ],
+    "log": [
+     [
+      19687,
+      8970,
+      [
+       [
+        "Stack",
+        733
+       ],
+       [
+        "HStack",
+        725
+       ],
+       [
+        "CheckIndicator",
+        633
+       ],
+       [
+        "Icon",
+        585
+       ],
+       [
+        "Text",
+        582
+       ],
+       [
+        "IconBase",
+        409
+       ],
+       [
+        "LayerContentBoundary",
+        407
+       ],
+       [
+        "VisuallyHidden",
+        296
+       ],
+       [
+        "Button",
+        294
+       ],
+       [
+        "IconFromRegistry",
+        294
+       ],
+       [
+        "StateLabel",
+        289
+       ],
+       [
+        "StatusDot",
+        289
+       ],
+       [
+        "LayerDepthProvider",
+        252
+       ],
+       [
+        "PriorityLabel",
+        240
+       ]
+      ]
+     ],
+     [
+      19700,
+      203,
+      null
+     ],
+     [
+      19701,
+      54,
+      null
+     ]
+    ],
+    "cpuToReadyMs": 516,
+    "cpuTotalMs": 544,
+    "load": "2.81 2.19 1.70"
+   }
+  ],
+  "deselect": [
+   {
+    "dt": 197,
+    "commits": 4,
+    "worked": 8866,
+    "topTypes": [
+     [
+      "Stack",
+      728
+     ],
+     [
+      "HStack",
+      721
+     ],
+     [
+      "CheckIndicator",
+      633
+     ],
+     [
+      "Text",
+      579
+     ],
+     [
+      "Icon",
+      577
+     ],
+     [
+      "LayerContentBoundary",
+      406
+     ],
+     [
+      "IconBase",
+      395
+     ],
+     [
+      "StateLabel",
+      288
+     ],
+     [
+      "StatusDot",
+      288
+     ],
+     [
+      "IconFromRegistry",
+      287
+     ],
+     [
+      "VisuallyHidden",
+      284
+     ],
+     [
+      "Button",
+      282
+     ],
+     [
+      "LayerDepthProvider",
+      251
+     ],
+     [
+      "PriorityLabel",
+      240
+     ],
+     [
+      "FieldLabel",
+      217
+     ],
+     [
+      "Item",
+      215
+     ],
+     [
+      "CalendarBlankIcon",
+      194
+     ],
+     [
+      "DefaultOption",
+      153
+     ],
+     [
+      "SelectorOption",
+      153
+     ],
+     [
+      "Field",
+      152
+     ],
+     [
+      "Selector",
+      149
+     ],
+     [
+      "CellSignalMediumIcon",
+      130
+     ],
+     [
+      "CellSignalHighIcon",
+      120
+     ],
+     [
+      "CellSignalLowIcon",
+      116
+     ],
+     [
+      "ProhibitIcon",
+      106
+     ],
+     [
+      "CellSignalFullIcon",
+      104
+     ],
+     [
+      "Popover",
+      97
+     ],
+     [
+      "DateControl",
+      96
+     ],
+     [
+      "Token",
+      87
+     ],
+     [
+      "ListItem",
+      62
+     ],
+     [
+      "CheckboxInput",
+      62
+     ],
+     [
+      "CheckboxIndicator",
+      62
+     ],
+     [
+      "WorkItemRow",
+      48
+     ],
+     [
+      "RowProject",
+      48
+     ],
+     [
+      "RowProperties",
+      48
+     ],
+     [
+      "CycleControl",
+      48
+     ],
+     [
+      "PriorityControl",
+      48
+     ],
+     [
+      "StateControl",
+      48
+     ],
+     [
+      "RowTitle",
+      48
+     ],
+     [
+      "OneLineText",
+      48
+     ],
+     [
+      "Avatar",
+      32
+     ],
+     [
+      "AreaProvider",
+      25
+     ],
+     [
+      "InternalInputClearButton",
+      18
+     ],
+     [
+      "CheckboxListItem",
+      14
+     ],
+     [
+      "DescribedCheckboxInput",
+      14
+     ],
+     [
+      "Dialog",
+      9
+     ],
+     [
+      "SegmentedControlItem",
+      9
+     ],
+     [
+      "lx",
+      8
+     ],
+     [
+      "VStack",
+      6
+     ],
+     [
+      "Kbd",
+      6
+     ],
+     [
+      "Badge",
+      6
+     ],
+     [
+      "Layout",
+      5
+     ],
+     [
+      "LayoutContent",
+      5
+     ],
+     [
+      "LayoutFooter",
+      4
+     ],
+     [
+      "LayoutHeader",
+      4
+     ],
+     [
+      "Heading",
+      4
+     ],
+     [
+      "PlusIcon",
+      4
+     ],
+     [
+      "Switch",
+      3
+     ],
+     [
+      "SegmentedControl",
+      3
+     ],
+     [
+      "DialogHeader",
+      3
+     ]
+    ],
+    "longTasks": [
+     193
+    ],
+    "ltTotal": 193,
+    "events": [
+     {
+      "type": "pointerdown",
+      "start": 4583,
+      "dur": 200,
+      "delay": 1,
+      "proc": 0,
+      "present": 199
+     },
+     {
+      "type": "mousedown",
+      "start": 4583,
+      "dur": 200,
+      "delay": 1,
+      "proc": 0,
+      "present": 199
+     },
+     {
+      "type": "pointerup",
+      "start": 4583,
+      "dur": 200,
+      "delay": 2,
+      "proc": 0,
+      "present": 198
+     },
+     {
+      "type": "mouseup",
+      "start": 4583,
+      "dur": 200,
+      "delay": 2,
+      "proc": 0,
+      "present": 198
+     },
+     {
+      "type": "click",
+      "start": 4583,
+      "dur": 200,
+      "delay": 2,
+      "proc": 182,
+      "present": 17
+     }
+    ],
+    "log": [
+     [
+      4757,
+      8838,
+      [
+       [
+        "Stack",
+        728
+       ],
+       [
+        "HStack",
+        721
+       ],
+       [
+        "CheckIndicator",
+        633
+       ],
+       [
+        "Text",
+        579
+       ],
+       [
+        "Icon",
+        577
+       ],
+       [
+        "LayerContentBoundary",
+        406
+       ],
+       [
+        "IconBase",
+        395
+       ],
+       [
+        "StateLabel",
+        288
+       ],
+       [
+        "StatusDot",
+        288
+       ],
+       [
+        "IconFromRegistry",
+        287
+       ],
+       [
+        "VisuallyHidden",
+        284
+       ],
+       [
+        "Button",
+        282
+       ],
+       [
+        "LayerDepthProvider",
+        251
+       ],
+       [
+        "PriorityLabel",
+        240
+       ]
+      ]
+     ],
+     [
+      4766,
+      0,
+      null
+     ],
+     [
+      4925,
+      14,
+      null
+     ],
+     [
+      5116,
+      14,
+      null
+     ]
+    ],
+    "cpuToReadyMs": 257,
+    "cpuTotalMs": 274,
+    "load": "2.97 2.19 1.69"
+   },
+   {
+    "dt": 210,
+    "commits": 2,
+    "worked": 8838,
+    "topTypes": [
+     [
+      "Stack",
+      728
+     ],
+     [
+      "HStack",
+      721
+     ],
+     [
+      "CheckIndicator",
+      633
+     ],
+     [
+      "Text",
+      579
+     ],
+     [
+      "Icon",
+      577
+     ],
+     [
+      "LayerContentBoundary",
+      406
+     ],
+     [
+      "IconBase",
+      395
+     ],
+     [
+      "StateLabel",
+      288
+     ],
+     [
+      "StatusDot",
+      288
+     ],
+     [
+      "IconFromRegistry",
+      287
+     ],
+     [
+      "VisuallyHidden",
+      284
+     ],
+     [
+      "Button",
+      282
+     ],
+     [
+      "LayerDepthProvider",
+      251
+     ],
+     [
+      "PriorityLabel",
+      240
+     ],
+     [
+      "FieldLabel",
+      217
+     ],
+     [
+      "Item",
+      215
+     ],
+     [
+      "CalendarBlankIcon",
+      194
+     ],
+     [
+      "DefaultOption",
+      153
+     ],
+     [
+      "SelectorOption",
+      153
+     ],
+     [
+      "Field",
+      152
+     ],
+     [
+      "Selector",
+      149
+     ],
+     [
+      "CellSignalMediumIcon",
+      130
+     ],
+     [
+      "CellSignalHighIcon",
+      120
+     ],
+     [
+      "CellSignalLowIcon",
+      116
+     ],
+     [
+      "ProhibitIcon",
+      106
+     ],
+     [
+      "CellSignalFullIcon",
+      104
+     ],
+     [
+      "Popover",
+      97
+     ],
+     [
+      "DateControl",
+      96
+     ],
+     [
+      "Token",
+      87
+     ],
+     [
+      "ListItem",
+      62
+     ],
+     [
+      "CheckboxInput",
+      62
+     ],
+     [
+      "CheckboxIndicator",
+      62
+     ],
+     [
+      "WorkItemRow",
+      48
+     ],
+     [
+      "RowProject",
+      48
+     ],
+     [
+      "RowProperties",
+      48
+     ],
+     [
+      "CycleControl",
+      48
+     ],
+     [
+      "PriorityControl",
+      48
+     ],
+     [
+      "StateControl",
+      48
+     ],
+     [
+      "RowTitle",
+      48
+     ],
+     [
+      "OneLineText",
+      48
+     ],
+     [
+      "Avatar",
+      32
+     ],
+     [
+      "AreaProvider",
+      25
+     ],
+     [
+      "InternalInputClearButton",
+      18
+     ],
+     [
+      "CheckboxListItem",
+      14
+     ],
+     [
+      "DescribedCheckboxInput",
+      14
+     ],
+     [
+      "Dialog",
+      9
+     ],
+     [
+      "SegmentedControlItem",
+      9
+     ],
+     [
+      "VStack",
+      6
+     ],
+     [
+      "Kbd",
+      6
+     ],
+     [
+      "Badge",
+      6
+     ],
+     [
+      "Layout",
+      5
+     ],
+     [
+      "LayoutContent",
+      5
+     ],
+     [
+      "LayoutFooter",
+      4
+     ],
+     [
+      "LayoutHeader",
+      4
+     ],
+     [
+      "Heading",
+      4
+     ],
+     [
+      "PlusIcon",
+      4
+     ],
+     [
+      "Switch",
+      3
+     ],
+     [
+      "SegmentedControl",
+      3
+     ],
+     [
+      "DialogHeader",
+      3
+     ],
+     [
+      "AlertDialog",
+      2
+     ]
+    ],
+    "longTasks": [
+     204
+    ],
+    "ltTotal": 204,
+    "events": [
+     {
+      "type": "pointerdown",
+      "start": 21711,
+      "dur": 208,
+      "delay": 2,
+      "proc": 0,
+      "present": 206
+     },
+     {
+      "type": "mousedown",
+      "start": 21711,
+      "dur": 208,
+      "delay": 2,
+      "proc": 0,
+      "present": 206
+     },
+     {
+      "type": "pointerup",
+      "start": 21711,
+      "dur": 208,
+      "delay": 5,
+      "proc": 0,
+      "present": 203
+     },
+     {
+      "type": "mouseup",
+      "start": 21711,
+      "dur": 208,
+      "delay": 5,
+      "proc": 0,
+      "present": 203
+     },
+     {
+      "type": "click",
+      "start": 21711,
+      "dur": 208,
+      "delay": 5,
+      "proc": 191,
+      "present": 12
+     }
+    ],
+    "log": [
+     [
+      21899,
+      8838,
+      [
+       [
+        "Stack",
+        728
+       ],
+       [
+        "HStack",
+        721
+       ],
+       [
+        "CheckIndicator",
+        633
+       ],
+       [
+        "Text",
+        579
+       ],
+       [
+        "Icon",
+        577
+       ],
+       [
+        "LayerContentBoundary",
+        406
+       ],
+       [
+        "IconBase",
+        395
+       ],
+       [
+        "StateLabel",
+        288
+       ],
+       [
+        "StatusDot",
+        288
+       ],
+       [
+        "IconFromRegistry",
+        287
+       ],
+       [
+        "VisuallyHidden",
+        284
+       ],
+       [
+        "Button",
+        282
+       ],
+       [
+        "LayerDepthProvider",
+        251
+       ],
+       [
+        "PriorityLabel",
+        240
+       ]
+      ]
+     ],
+     [
+      21907,
+      0,
+      null
+     ]
+    ],
+    "cpuToReadyMs": 273,
+    "cpuTotalMs": 294,
+    "load": "3.14 2.27 1.73"
+   }
+  ],
+  "peek-open": [
+   {
+    "dt": 576,
+    "commits": 16,
+    "worked": 12276,
+    "topTypes": [
+     [
+      "Stack",
+      1053
+     ],
+     [
+      "HStack",
+      993
+     ],
+     [
+      "Icon",
+      752
+     ],
+     [
+      "Text",
+      675
+     ],
+     [
+      "CheckIndicator",
+      650
+     ],
+     [
+      "IconBase",
+      572
+     ],
+     [
+      "LayerContentBoundary",
+      495
+     ],
+     [
+      "VisuallyHidden",
+      387
+     ],
+     [
+      "Item",
+      379
+     ],
+     [
+      "Button",
+      378
+     ],
+     [
+      "IconFromRegistry",
+      328
+     ],
+     [
+      "LayerDepthProvider",
+      296
+     ],
+     [
+      "StateLabel",
+      295
+     ],
+     [
+      "StatusDot",
+      295
+     ],
+     [
+      "FieldLabel",
+      253
+     ],
+     [
+      "PriorityLabel",
+      247
+     ],
+     [
+      "CalendarBlankIcon",
+      198
+     ],
+     [
+      "Field",
+      174
+     ],
+     [
+      "Selector",
+      157
+     ],
+     [
+      "DefaultOption",
+      155
+     ],
+     [
+      "SelectorOption",
+      155
+     ],
+     [
+      "Kbd",
+      144
+     ],
+     [
+      "ListItem",
+      140
+     ],
+     [
+      "CellSignalMediumIcon",
+      134
+     ],
+     [
+      "CellSignalLowIcon",
+      122
+     ],
+     [
+      "CellSignalHighIcon",
+      122
+     ],
+     [
+      "ProhibitIcon",
+      108
+     ],
+     [
+      "CellSignalFullIcon",
+      106
+     ],
+     [
+      "AreaProvider",
+      100
+     ],
+     [
+      "Popover",
+      99
+     ],
+     [
+      "DateControl",
+      96
+     ],
+     [
+      "Token",
+      94
+     ],
+     [
+      "DayCell",
+      84
+     ],
+     [
+      "ShortcutKeys",
+      78
+     ],
+     [
+      "CheckboxInput",
+      74
+     ],
+     [
+      "CheckboxIndicator",
+      74
+     ],
+     [
+      "DropdownMenuItem",
+      72
+     ],
+     [
+      "CycleControl",
+      49
+     ],
+     [
+      "PriorityControl",
+      49
+     ],
+     [
+      "StateControl",
+      49
+     ],
+     [
+      "SafeLink(LinkComponent)",
+      48
+     ],
+     [
+      "LinkComponent",
+      48
+     ],
+     [
+      "WorkItemRow",
+      48
+     ],
+     [
+      "RowProject",
+      48
+     ],
+     [
+      "RowProperties",
+      48
+     ],
+     [
+      "RowTitle",
+      48
+     ],
+     [
+      "OneLineText",
+      48
+     ],
+     [
+      "VStack",
+      45
+     ],
+     [
+      "Dialog",
+      39
+     ],
+     [
+      "Avatar",
+      37
+     ],
+     [
+      "IconButton",
+      33
+     ],
+     [
+      "Heading",
+      23
+     ],
+     [
+      "Layout",
+      20
+     ],
+     [
+      "LayoutContent",
+      20
+     ],
+     [
+      "InternalInputClearButton",
+      20
+     ],
+     [
+      "ArchiveIcon",
+      18
+     ],
+     [
+      "SideNavItem",
+      17
+     ],
+     [
+      "NavItemElement",
+      17
+     ],
+     [
+      "lx",
+      16
+     ],
+     [
+      "PlusIcon",
+      16
+     ]
+    ],
+    "longTasks": [
+     204
+    ],
+    "ltTotal": 204,
+    "events": [
+     {
+      "type": "pointerout",
+      "start": 6889,
+      "dur": 32,
+      "delay": 9,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerleave",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerleave",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerleave",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerleave",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerleave",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerleave",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerleave",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerover",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerenter",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerenter",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerenter",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerenter",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerenter",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerenter",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "mouseout",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "mouseleave",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "mouseover",
+      "start": 6889,
+      "dur": 32,
+      "delay": 10,
+      "proc": 0,
+      "present": 22
+     },
+     {
+      "type": "pointerdown",
+      "start": 6889,
+      "dur": 32,
+      "delay": 11,
+      "proc": 1,
+      "present": 19
+     },
+     {
+      "type": "mousedown",
+      "start": 6889,
+      "dur": 32,
+      "delay": 13,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerup",
+      "start": 6889,
+      "dur": 32,
+      "delay": 19,
+      "proc": 0,
+      "present": 13
+     },
+     {
+      "type": "mouseup",
+      "start": 6889,
+      "dur": 32,
+      "delay": 19,
+      "proc": 0,
+      "present": 13
+     },
+     {
+      "type": "click",
+      "start": 6889,
+      "dur": 32,
+      "delay": 19,
+      "proc": 5,
+      "present": 7
+     },
+     {
+      "type": "pointerout",
+      "start": 7446,
+      "dur": 24,
+      "delay": 9,
+      "proc": 0,
+      "present": 15
+     },
+     {
+      "type": "pointerleave",
+      "start": 7446,
+      "dur": 24,
+      "delay": 9,
+      "proc": 0,
+      "present": 15
+     },
+     {
+      "type": "pointerleave",
+      "start": 7446,
+      "dur": 24,
+      "delay": 9,
+      "proc": 0,
+      "present": 15
+     },
+     {
+      "type": "pointerleave",
+      "start": 7446,
+      "dur": 24,
+      "delay": 9,
+      "proc": 0,
+      "present": 15
+     },
+     {
+      "type": "pointerleave",
+      "start": 7446,
+      "dur": 24,
+      "delay": 9,
+      "proc": 0,
+      "present": 15
+     },
+     {
+      "type": "pointerleave",
+      "start": 7446,
+      "dur": 24,
+      "delay": 9,
+      "proc": 0,
+      "present": 15
+     },
+     {
+      "type": "pointerleave",
+      "start": 7446,
+      "dur": 24,
+      "delay": 9,
+      "proc": 0,
+      "present": 15
+     },
+     {
+      "type": "pointerover",
+      "start": 7446,
+      "dur": 24,
+      "delay": 9,
+      "proc": 0,
+      "present": 15
+     },
+     {
+      "type": "pointerenter",
+      "start": 7446,
+      "dur": 24,
+      "delay": 9,
+      "proc": 0,
+      "present": 15
+     },
+     {
+      "type": "mouseout",
+      "start": 7446,
+      "dur": 24,
+      "delay": 9,
+      "proc": 0,
+      "present": 15
+     },
+     {
+      "type": "mouseover",
+      "start": 7446,
+      "dur": 24,
+      "delay": 9,
+      "proc": 0,
+      "present": 15
+     }
+    ],
+    "log": [
+     [
+      6913,
+      13,
+      null
+     ],
+     [
+      6913,
+      14,
+      null
+     ],
+     [
+      6960,
+      14,
+      null
+     ],
+     [
+      6989,
+      14,
+      null
+     ],
+     [
+      7129,
+      4,
+      null
+     ],
+     [
+      7143,
+      1,
+      null
+     ],
+     [
+      7172,
+      1,
+      null
+     ],
+     [
+      7322,
+      10771,
+      [
+       [
+        "Stack",
+        907
+       ],
+       [
+        "HStack",
+        863
+       ],
+       [
+        "Icon",
+        669
+       ],
+       [
+        "CheckIndicator",
+        633
+       ],
+       [
+        "Text",
+        625
+       ],
+       [
+        "IconBase",
+        504
+       ],
+       [
+        "LayerContentBoundary",
+        457
+       ],
+       [
+        "VisuallyHidden",
+        330
+       ],
+       [
+        "Button",
+        324
+       ],
+       [
+        "Item",
+        314
+       ],
+       [
+        "IconFromRegistry",
+        306
+       ],
+       [
+        "StateLabel",
+        289
+       ],
+       [
+        "StatusDot",
+        289
+       ],
+       [
+        "LayerDepthProvider",
+        277
+       ]
+      ]
+     ],
+     [
+      7428,
+      1227,
+      [
+       [
+        "Stack",
+        138
+       ],
+       [
+        "HStack",
+        126
+       ],
+       [
+        "DayCell",
+        84
+       ],
+       [
+        "Kbd",
+        70
+       ],
+       [
+        "Icon",
+        60
+       ],
+       [
+        "Item",
+        55
+       ],
+       [
+        "Text",
+        48
+       ],
+       [
+        "IconBase",
+        45
+       ],
+       [
+        "VisuallyHidden",
+        43
+       ],
+       [
+        "Button",
+        40
+       ],
+       [
+        "ListItem",
+        39
+       ],
+       [
+        "ShortcutKeys",
+        39
+       ],
+       [
+        "LayerContentBoundary",
+        32
+       ],
+       [
+        "FieldLabel",
+        25
+       ]
+      ]
+     ],
+     [
+      7445,
+      190,
+      null
+     ],
+     [
+      7461,
+      14,
+      null
+     ],
+     [
+      7461,
+      4,
+      null
+     ],
+     [
+      7470,
+      0,
+      null
+     ],
+     [
+      7565,
+      6,
+      null
+     ],
+     [
+      7668,
+      2,
+      null
+     ],
+     [
+      7688,
+      1,
+      null
+     ]
+    ],
+    "cpuToReadyMs": 840,
+    "cpuTotalMs": 944,
+    "load": "3.06 2.22 1.70"
+   },
+   {
+    "dt": 695,
+    "commits": 15,
+    "worked": 12288,
+    "topTypes": [
+     [
+      "Stack",
+      1053
+     ],
+     [
+      "HStack",
+      993
+     ],
+     [
+      "Icon",
+      752
+     ],
+     [
+      "Text",
+      673
+     ],
+     [
+      "CheckIndicator",
+      650
+     ],
+     [
+      "IconBase",
+      572
+     ],
+     [
+      "LayerContentBoundary",
+      495
+     ],
+     [
+      "VisuallyHidden",
+      387
+     ],
+     [
+      "Item",
+      379
+     ],
+     [
+      "Button",
+      378
+     ],
+     [
+      "IconFromRegistry",
+      328
+     ],
+     [
+      "LayerDepthProvider",
+      296
+     ],
+     [
+      "StateLabel",
+      295
+     ],
+     [
+      "StatusDot",
+      295
+     ],
+     [
+      "FieldLabel",
+      253
+     ],
+     [
+      "PriorityLabel",
+      247
+     ],
+     [
+      "CalendarBlankIcon",
+      198
+     ],
+     [
+      "Field",
+      174
+     ],
+     [
+      "Selector",
+      157
+     ],
+     [
+      "DefaultOption",
+      155
+     ],
+     [
+      "SelectorOption",
+      155
+     ],
+     [
+      "Kbd",
+      144
+     ],
+     [
+      "ListItem",
+      140
+     ],
+     [
+      "CellSignalMediumIcon",
+      134
+     ],
+     [
+      "CellSignalLowIcon",
+      122
+     ],
+     [
+      "CellSignalHighIcon",
+      122
+     ],
+     [
+      "ProhibitIcon",
+      108
+     ],
+     [
+      "CellSignalFullIcon",
+      106
+     ],
+     [
+      "AreaProvider",
+      100
+     ],
+     [
+      "Popover",
+      99
+     ],
+     [
+      "DateControl",
+      96
+     ],
+     [
+      "Token",
+      94
+     ],
+     [
+      "DayCell",
+      84
+     ],
+     [
+      "ShortcutKeys",
+      78
+     ],
+     [
+      "CheckboxInput",
+      74
+     ],
+     [
+      "CheckboxIndicator",
+      74
+     ],
+     [
+      "DropdownMenuItem",
+      72
+     ],
+     [
+      "CycleControl",
+      49
+     ],
+     [
+      "PriorityControl",
+      49
+     ],
+     [
+      "StateControl",
+      49
+     ],
+     [
+      "SafeLink(LinkComponent)",
+      48
+     ],
+     [
+      "LinkComponent",
+      48
+     ],
+     [
+      "WorkItemRow",
+      48
+     ],
+     [
+      "RowProject",
+      48
+     ],
+     [
+      "RowProperties",
+      48
+     ],
+     [
+      "RowTitle",
+      48
+     ],
+     [
+      "OneLineText",
+      48
+     ],
+     [
+      "VStack",
+      45
+     ],
+     [
+      "Dialog",
+      39
+     ],
+     [
+      "Avatar",
+      37
+     ],
+     [
+      "IconButton",
+      33
+     ],
+     [
+      "Heading",
+      23
+     ],
+     [
+      "lx",
+      20
+     ],
+     [
+      "Layout",
+      20
+     ],
+     [
+      "LayoutContent",
+      20
+     ],
+     [
+      "InternalInputClearButton",
+      20
+     ],
+     [
+      "ArchiveIcon",
+      18
+     ],
+     [
+      "SideNavItem",
+      17
+     ],
+     [
+      "NavItemElement",
+      17
+     ],
+     [
+      "PlusIcon",
+      16
+     ]
+    ],
+    "longTasks": [
+     404
+    ],
+    "ltTotal": 404,
+    "events": [
+     {
+      "type": "pointerout",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerleave",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerleave",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerleave",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerleave",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerleave",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerleave",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerleave",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerover",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerenter",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerenter",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerenter",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerenter",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerenter",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerenter",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "mouseout",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "mouseleave",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "mouseover",
+      "start": 23602,
+      "dur": 24,
+      "delay": 5,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "pointerdown",
+      "start": 23602,
+      "dur": 24,
+      "delay": 7,
+      "proc": 2,
+      "present": 16
+     },
+     {
+      "type": "mousedown",
+      "start": 23602,
+      "dur": 24,
+      "delay": 8,
+      "proc": 0,
+      "present": 16
+     },
+     {
+      "type": "pointerup",
+      "start": 23602,
+      "dur": 24,
+      "delay": 14,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "mouseup",
+      "start": 23602,
+      "dur": 24,
+      "delay": 14,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "click",
+      "start": 23602,
+      "dur": 24,
+      "delay": 14,
+      "proc": 2,
+      "present": 9
+     },
+     {
+      "type": "pointerout",
+      "start": 24285,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerleave",
+      "start": 24285,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerleave",
+      "start": 24285,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerleave",
+      "start": 24285,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerleave",
+      "start": 24285,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerleave",
+      "start": 24285,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerleave",
+      "start": 24285,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerover",
+      "start": 24285,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerenter",
+      "start": 24285,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "mouseout",
+      "start": 24285,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "mouseover",
+      "start": 24285,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     }
+    ],
+    "log": [
+     [
+      23617,
+      13,
+      null
+     ],
+     [
+      23618,
+      14,
+      null
+     ],
+     [
+      23628,
+      14,
+      null
+     ],
+     [
+      23662,
+      14,
+      null
+     ],
+     [
+      23829,
+      4,
+      null
+     ],
+     [
+      23843,
+      1,
+      null
+     ],
+     [
+      23934,
+      10775,
+      [
+       [
+        "Stack",
+        907
+       ],
+       [
+        "HStack",
+        863
+       ],
+       [
+        "Icon",
+        669
+       ],
+       [
+        "CheckIndicator",
+        633
+       ],
+       [
+        "Text",
+        625
+       ],
+       [
+        "IconBase",
+        504
+       ],
+       [
+        "LayerContentBoundary",
+        457
+       ],
+       [
+        "VisuallyHidden",
+        330
+       ],
+       [
+        "Button",
+        324
+       ],
+       [
+        "Item",
+        314
+       ],
+       [
+        "IconFromRegistry",
+        306
+       ],
+       [
+        "StateLabel",
+        289
+       ],
+       [
+        "StatusDot",
+        289
+       ],
+       [
+        "LayerDepthProvider",
+        277
+       ]
+      ]
+     ],
+     [
+      24154,
+      1228,
+      [
+       [
+        "Stack",
+        138
+       ],
+       [
+        "HStack",
+        126
+       ],
+       [
+        "DayCell",
+        84
+       ],
+       [
+        "Kbd",
+        70
+       ],
+       [
+        "Icon",
+        60
+       ],
+       [
+        "Item",
+        55
+       ],
+       [
+        "Text",
+        48
+       ],
+       [
+        "IconBase",
+        45
+       ],
+       [
+        "VisuallyHidden",
+        43
+       ],
+       [
+        "Button",
+        40
+       ],
+       [
+        "ListItem",
+        39
+       ],
+       [
+        "ShortcutKeys",
+        39
+       ],
+       [
+        "LayerContentBoundary",
+        32
+       ],
+       [
+        "FieldLabel",
+        25
+       ]
+      ]
+     ],
+     [
+      24259,
+      190,
+      null
+     ],
+     [
+      24296,
+      14,
+      null
+     ],
+     [
+      24296,
+      4,
+      null
+     ],
+     [
+      24300,
+      0,
+      null
+     ],
+     [
+      24501,
+      2,
+      null
+     ],
+     [
+      24521,
+      1,
+      null
+     ],
+     [
+      24864,
+      14,
+      null
+     ]
+    ],
+    "cpuToReadyMs": 767,
+    "cpuTotalMs": 1117,
+    "load": "3.14 2.27 1.73"
+   }
+  ],
+  "peek-close": [
+   {
+    "dt": 502,
+    "commits": 6,
+    "worked": 21184,
+    "topTypes": [
+     [
+      "Stack",
+      1876
+     ],
+     [
+      "HStack",
+      1809
+     ],
+     [
+      "Icon",
+      1293
+     ],
+     [
+      "CheckIndicator",
+      1283
+     ],
+     [
+      "Text",
+      1273
+     ],
+     [
+      "IconBase",
+      920
+     ],
+     [
+      "LayerContentBoundary",
+      900
+     ],
+     [
+      "VisuallyHidden",
+      646
+     ],
+     [
+      "Button",
+      637
+     ],
+     [
+      "Item",
+      623
+     ],
+     [
+      "IconFromRegistry",
+      605
+     ],
+     [
+      "StateLabel",
+      582
+     ],
+     [
+      "StatusDot",
+      582
+     ],
+     [
+      "LayerDepthProvider",
+      548
+     ],
+     [
+      "PriorityLabel",
+      486
+     ],
+     [
+      "FieldLabel",
+      461
+     ],
+     [
+      "CalendarBlankIcon",
+      390
+     ],
+     [
+      "Field",
+      316
+     ],
+     [
+      "DefaultOption",
+      308
+     ],
+     [
+      "SelectorOption",
+      308
+     ],
+     [
+      "Selector",
+      302
+     ],
+     [
+      "CellSignalMediumIcon",
+      264
+     ],
+     [
+      "CellSignalHighIcon",
+      242
+     ],
+     [
+      "ListItem",
+      241
+     ],
+     [
+      "CellSignalLowIcon",
+      236
+     ],
+     [
+      "Kbd",
+      216
+     ],
+     [
+      "ProhibitIcon",
+      214
+     ],
+     [
+      "CellSignalFullIcon",
+      210
+     ],
+     [
+      "Popover",
+      195
+     ],
+     [
+      "DateControl",
+      192
+     ],
+     [
+      "Token",
+      181
+     ],
+     [
+      "AreaProvider",
+      140
+     ],
+     [
+      "CheckboxInput",
+      136
+     ],
+     [
+      "CheckboxIndicator",
+      136
+     ],
+     [
+      "ShortcutKeys",
+      117
+     ],
+     [
+      "CycleControl",
+      97
+     ],
+     [
+      "PriorityControl",
+      97
+     ],
+     [
+      "StateControl",
+      97
+     ],
+     [
+      "WorkItemRow",
+      96
+     ],
+     [
+      "RowProject",
+      96
+     ],
+     [
+      "RowProperties",
+      96
+     ],
+     [
+      "RowTitle",
+      96
+     ],
+     [
+      "OneLineText",
+      96
+     ],
+     [
+      "DayCell",
+      84
+     ],
+     [
+      "Avatar",
+      69
+     ],
+     [
+      "DropdownMenuItem",
+      65
+     ],
+     [
+      "Dialog",
+      53
+     ],
+     [
+      "VStack",
+      51
+     ],
+     [
+      "SafeLink(LinkComponent)",
+      48
+     ],
+     [
+      "LinkComponent",
+      48
+     ],
+     [
+      "InternalInputClearButton",
+      37
+     ],
+     [
+      "Heading",
+      32
+     ],
+     [
+      "Layout",
+      28
+     ],
+     [
+      "LayoutContent",
+      28
+     ],
+     [
+      "CheckboxListItem",
+      28
+     ],
+     [
+      "DescribedCheckboxInput",
+      28
+     ],
+     [
+      "IconButton",
+      22
+     ],
+     [
+      "SegmentedControlItem",
+      21
+     ],
+     [
+      "PlusIcon",
+      20
+     ],
+     [
+      "LayoutFooter",
+      17
+     ]
+    ],
+    "longTasks": [
+     305
+    ],
+    "ltTotal": 305,
+    "events": [
+     {
+      "type": "keydown",
+      "start": 10467,
+      "dur": 16,
+      "delay": 3,
+      "proc": 5,
+      "present": 7
+     },
+     {
+      "type": "keyup",
+      "start": 10477,
+      "dur": 320,
+      "delay": 5,
+      "proc": 0,
+      "present": 315
+     },
+     {
+      "type": "pointerout",
+      "start": 10948,
+      "dur": 24,
+      "delay": 15,
+      "proc": 0,
+      "present": 9
+     },
+     {
+      "type": "pointerleave",
+      "start": 10948,
+      "dur": 24,
+      "delay": 15,
+      "proc": 0,
+      "present": 9
+     },
+     {
+      "type": "pointerover",
+      "start": 10948,
+      "dur": 24,
+      "delay": 15,
+      "proc": 0,
+      "present": 9
+     },
+     {
+      "type": "pointerenter",
+      "start": 10948,
+      "dur": 24,
+      "delay": 15,
+      "proc": 0,
+      "present": 9
+     },
+     {
+      "type": "pointerenter",
+      "start": 10948,
+      "dur": 24,
+      "delay": 15,
+      "proc": 0,
+      "present": 9
+     },
+     {
+      "type": "pointerenter",
+      "start": 10948,
+      "dur": 24,
+      "delay": 15,
+      "proc": 0,
+      "present": 9
+     },
+     {
+      "type": "pointerenter",
+      "start": 10948,
+      "dur": 24,
+      "delay": 15,
+      "proc": 0,
+      "present": 9
+     },
+     {
+      "type": "pointerenter",
+      "start": 10948,
+      "dur": 24,
+      "delay": 15,
+      "proc": 0,
+      "present": 9
+     },
+     {
+      "type": "pointerenter",
+      "start": 10948,
+      "dur": 24,
+      "delay": 15,
+      "proc": 0,
+      "present": 9
+     },
+     {
+      "type": "mouseout",
+      "start": 10948,
+      "dur": 24,
+      "delay": 15,
+      "proc": 0,
+      "present": 9
+     },
+     {
+      "type": "mouseover",
+      "start": 10948,
+      "dur": 24,
+      "delay": 15,
+      "proc": 0,
+      "present": 9
+     }
+    ],
+    "log": [
+     [
+      10762,
+      11240,
+      [
+       [
+        "Stack",
+        927
+       ],
+       [
+        "HStack",
+        880
+       ],
+       [
+        "Icon",
+        702
+       ],
+       [
+        "CheckIndicator",
+        650
+       ],
+       [
+        "Text",
+        648
+       ],
+       [
+        "IconBase",
+        516
+       ],
+       [
+        "LayerContentBoundary",
+        481
+       ],
+       [
+        "VisuallyHidden",
+        356
+       ],
+       [
+        "Button",
+        350
+       ],
+       [
+        "Item",
+        326
+       ],
+       [
+        "IconFromRegistry",
+        313
+       ],
+       [
+        "StateLabel",
+        294
+       ],
+       [
+        "StatusDot",
+        294
+       ],
+       [
+        "LayerDepthProvider",
+        290
+       ]
+      ]
+     ],
+     [
+      10786,
+      592,
+      [
+       [
+        "Stack",
+        112
+       ],
+       [
+        "HStack",
+        105
+       ],
+       [
+        "Kbd",
+        68
+       ],
+       [
+        "Item",
+        43
+       ],
+       [
+        "ListItem",
+        39
+       ],
+       [
+        "ShortcutKeys",
+        39
+       ],
+       [
+        "Text",
+        23
+       ],
+       [
+        "AreaProvider",
+        20
+       ],
+       [
+        "Icon",
+        11
+       ],
+       [
+        "LayerContentBoundary",
+        8
+       ],
+       [
+        "IconBase",
+        8
+       ],
+       [
+        "VStack",
+        6
+       ],
+       [
+        "VisuallyHidden",
+        5
+       ],
+       [
+        "Dialog",
+        5
+       ]
+      ]
+     ],
+     [
+      10787,
+      14,
+      null
+     ],
+     [
+      10802,
+      0,
+      null
+     ],
+     [
+      10929,
+      8850,
+      [
+       [
+        "Stack",
+        728
+       ],
+       [
+        "HStack",
+        721
+       ],
+       [
+        "CheckIndicator",
+        633
+       ],
+       [
+        "Text",
+        579
+       ],
+       [
+        "Icon",
+        577
+       ],
+       [
+        "LayerContentBoundary",
+        406
+       ],
+       [
+        "IconBase",
+        395
+       ],
+       [
+        "StateLabel",
+        288
+       ],
+       [
+        "StatusDot",
+        288
+       ],
+       [
+        "IconFromRegistry",
+        287
+       ],
+       [
+        "VisuallyHidden",
+        284
+       ],
+       [
+        "Button",
+        282
+       ],
+       [
+        "LayerDepthProvider",
+        251
+       ],
+       [
+        "PriorityLabel",
+        240
+       ]
+      ]
+     ],
+     [
+      10948,
+      488,
+      [
+       [
+        "Stack",
+        109
+       ],
+       [
+        "HStack",
+        103
+       ],
+       [
+        "Kbd",
+        66
+       ],
+       [
+        "ListItem",
+        39
+       ],
+       [
+        "Item",
+        39
+       ],
+       [
+        "ShortcutKeys",
+        39
+       ],
+       [
+        "Text",
+        23
+       ],
+       [
+        "AreaProvider",
+        10
+       ],
+       [
+        "VStack",
+        6
+       ],
+       [
+        "Dialog",
+        5
+       ],
+       [
+        "LayerContentBoundary",
+        5
+       ],
+       [
+        "Heading",
+        5
+       ],
+       [
+        "List",
+        4
+       ],
+       [
+        "LayerDepthProvider",
+        3
+       ]
+      ]
+     ]
+    ],
+    "cpuToReadyMs": 698,
+    "cpuTotalMs": 709,
+    "load": "3.06 2.22 1.70"
+   },
+   {
+    "dt": 506,
+    "commits": 6,
+    "worked": 21184,
+    "topTypes": [
+     [
+      "Stack",
+      1876
+     ],
+     [
+      "HStack",
+      1809
+     ],
+     [
+      "Icon",
+      1293
+     ],
+     [
+      "CheckIndicator",
+      1283
+     ],
+     [
+      "Text",
+      1273
+     ],
+     [
+      "IconBase",
+      920
+     ],
+     [
+      "LayerContentBoundary",
+      900
+     ],
+     [
+      "VisuallyHidden",
+      646
+     ],
+     [
+      "Button",
+      637
+     ],
+     [
+      "Item",
+      623
+     ],
+     [
+      "IconFromRegistry",
+      605
+     ],
+     [
+      "StateLabel",
+      582
+     ],
+     [
+      "StatusDot",
+      582
+     ],
+     [
+      "LayerDepthProvider",
+      548
+     ],
+     [
+      "PriorityLabel",
+      486
+     ],
+     [
+      "FieldLabel",
+      461
+     ],
+     [
+      "CalendarBlankIcon",
+      390
+     ],
+     [
+      "Field",
+      316
+     ],
+     [
+      "DefaultOption",
+      308
+     ],
+     [
+      "SelectorOption",
+      308
+     ],
+     [
+      "Selector",
+      302
+     ],
+     [
+      "CellSignalMediumIcon",
+      264
+     ],
+     [
+      "CellSignalHighIcon",
+      242
+     ],
+     [
+      "ListItem",
+      241
+     ],
+     [
+      "CellSignalLowIcon",
+      236
+     ],
+     [
+      "Kbd",
+      216
+     ],
+     [
+      "ProhibitIcon",
+      214
+     ],
+     [
+      "CellSignalFullIcon",
+      210
+     ],
+     [
+      "Popover",
+      195
+     ],
+     [
+      "DateControl",
+      192
+     ],
+     [
+      "Token",
+      181
+     ],
+     [
+      "AreaProvider",
+      140
+     ],
+     [
+      "CheckboxInput",
+      136
+     ],
+     [
+      "CheckboxIndicator",
+      136
+     ],
+     [
+      "ShortcutKeys",
+      117
+     ],
+     [
+      "CycleControl",
+      97
+     ],
+     [
+      "PriorityControl",
+      97
+     ],
+     [
+      "StateControl",
+      97
+     ],
+     [
+      "WorkItemRow",
+      96
+     ],
+     [
+      "RowProject",
+      96
+     ],
+     [
+      "RowProperties",
+      96
+     ],
+     [
+      "RowTitle",
+      96
+     ],
+     [
+      "OneLineText",
+      96
+     ],
+     [
+      "DayCell",
+      84
+     ],
+     [
+      "Avatar",
+      69
+     ],
+     [
+      "DropdownMenuItem",
+      65
+     ],
+     [
+      "Dialog",
+      53
+     ],
+     [
+      "VStack",
+      51
+     ],
+     [
+      "SafeLink(LinkComponent)",
+      48
+     ],
+     [
+      "LinkComponent",
+      48
+     ],
+     [
+      "InternalInputClearButton",
+      37
+     ],
+     [
+      "Heading",
+      32
+     ],
+     [
+      "Layout",
+      28
+     ],
+     [
+      "LayoutContent",
+      28
+     ],
+     [
+      "CheckboxListItem",
+      28
+     ],
+     [
+      "DescribedCheckboxInput",
+      28
+     ],
+     [
+      "IconButton",
+      22
+     ],
+     [
+      "SegmentedControlItem",
+      21
+     ],
+     [
+      "PlusIcon",
+      20
+     ],
+     [
+      "LayoutFooter",
+      17
+     ]
+    ],
+    "longTasks": [
+     248,
+     93
+    ],
+    "ltTotal": 341,
+    "events": [
+     {
+      "type": "keydown",
+      "start": 27293,
+      "dur": 280,
+      "delay": 0,
+      "proc": 3,
+      "present": 277
+     },
+     {
+      "type": "keyup",
+      "start": 27297,
+      "dur": 280,
+      "delay": 274,
+      "proc": 0,
+      "present": 6
+     },
+     {
+      "type": "pointerout",
+      "start": 27787,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerleave",
+      "start": 27787,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerover",
+      "start": 27787,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerenter",
+      "start": 27787,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerenter",
+      "start": 27787,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerenter",
+      "start": 27787,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerenter",
+      "start": 27787,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerenter",
+      "start": 27787,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "pointerenter",
+      "start": 27787,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "mouseout",
+      "start": 27787,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     },
+     {
+      "type": "mouseover",
+      "start": 27787,
+      "dur": 16,
+      "delay": 6,
+      "proc": 0,
+      "present": 10
+     }
+    ],
+    "log": [
+     [
+      27520,
+      11240,
+      [
+       [
+        "Stack",
+        927
+       ],
+       [
+        "HStack",
+        880
+       ],
+       [
+        "Icon",
+        702
+       ],
+       [
+        "CheckIndicator",
+        650
+       ],
+       [
+        "Text",
+        648
+       ],
+       [
+        "IconBase",
+        516
+       ],
+       [
+        "LayerContentBoundary",
+        481
+       ],
+       [
+        "VisuallyHidden",
+        356
+       ],
+       [
+        "Button",
+        350
+       ],
+       [
+        "Item",
+        326
+       ],
+       [
+        "IconFromRegistry",
+        313
+       ],
+       [
+        "StateLabel",
+        294
+       ],
+       [
+        "StatusDot",
+        294
+       ],
+       [
+        "LayerDepthProvider",
+        290
+       ]
+      ]
+     ],
+     [
+      27545,
+      592,
+      [
+       [
+        "Stack",
+        112
+       ],
+       [
+        "HStack",
+        105
+       ],
+       [
+        "Kbd",
+        68
+       ],
+       [
+        "Item",
+        43
+       ],
+       [
+        "ListItem",
+        39
+       ],
+       [
+        "ShortcutKeys",
+        39
+       ],
+       [
+        "Text",
+        23
+       ],
+       [
+        "AreaProvider",
+        20
+       ],
+       [
+        "Icon",
+        11
+       ],
+       [
+        "LayerContentBoundary",
+        8
+       ],
+       [
+        "IconBase",
+        8
+       ],
+       [
+        "VStack",
+        6
+       ],
+       [
+        "VisuallyHidden",
+        5
+       ],
+       [
+        "Dialog",
+        5
+       ]
+      ]
+     ],
+     [
+      27546,
+      14,
+      null
+     ],
+     [
+      27580,
+      0,
+      null
+     ],
+     [
+      27741,
+      8850,
+      [
+       [
+        "Stack",
+        728
+       ],
+       [
+        "HStack",
+        721
+       ],
+       [
+        "CheckIndicator",
+        633
+       ],
+       [
+        "Text",
+        579
+       ],
+       [
+        "Icon",
+        577
+       ],
+       [
+        "LayerContentBoundary",
+        406
+       ],
+       [
+        "IconBase",
+        395
+       ],
+       [
+        "StateLabel",
+        288
+       ],
+       [
+        "StatusDot",
+        288
+       ],
+       [
+        "IconFromRegistry",
+        287
+       ],
+       [
+        "VisuallyHidden",
+        284
+       ],
+       [
+        "Button",
+        282
+       ],
+       [
+        "LayerDepthProvider",
+        251
+       ],
+       [
+        "PriorityLabel",
+        240
+       ]
+      ]
+     ],
+     [
+      27761,
+      488,
+      [
+       [
+        "Stack",
+        109
+       ],
+       [
+        "HStack",
+        103
+       ],
+       [
+        "Kbd",
+        66
+       ],
+       [
+        "ListItem",
+        39
+       ],
+       [
+        "Item",
+        39
+       ],
+       [
+        "ShortcutKeys",
+        39
+       ],
+       [
+        "Text",
+        23
+       ],
+       [
+        "AreaProvider",
+        10
+       ],
+       [
+        "VStack",
+        6
+       ],
+       [
+        "Dialog",
+        5
+       ],
+       [
+        "LayerContentBoundary",
+        5
+       ],
+       [
+        "Heading",
+        5
+       ],
+       [
+        "List",
+        4
+       ],
+       [
+        "LayerDepthProvider",
+        3
+       ]
+      ]
+     ]
+    ],
+    "cpuToReadyMs": 602,
+    "cpuTotalMs": 617,
+    "load": "2.97 2.25 1.72"
+   }
+  ],
+  "state-pick": [
+   {
+    "dt": 239,
+    "commits": 9,
+    "worked": 19655,
+    "topTypes": [
+     [
+      "Stack",
+      1606
+     ],
+     [
+      "HStack",
+      1571
+     ],
+     [
+      "CheckIndicator",
+      1276
+     ],
+     [
+      "Icon",
+      1249
+     ],
+     [
+      "Text",
+      1203
+     ],
+     [
+      "IconBase",
+      891
+     ],
+     [
+      "LayerContentBoundary",
+      873
+     ],
+     [
+      "VisuallyHidden",
+      606
+     ],
+     [
+      "Button",
+      599
+     ],
+     [
+      "StateLabel",
+      588
+     ],
+     [
+      "StatusDot",
+      588
+     ],
+     [
+      "IconFromRegistry",
+      585
+     ],
+     [
+      "Item",
+      557
+     ],
+     [
+      "LayerDepthProvider",
+      530
+     ],
+     [
+      "PriorityLabel",
+      480
+     ],
+     [
+      "FieldLabel",
+      438
+     ],
+     [
+      "CalendarBlankIcon",
+      388
+     ],
+     [
+      "Field",
+      307
+     ],
+     [
+      "DefaultOption",
+      306
+     ],
+     [
+      "SelectorOption",
+      306
+     ],
+     [
+      "Selector",
+      300
+     ],
+     [
+      "CellSignalMediumIcon",
+      260
+     ],
+     [
+      "CellSignalHighIcon",
+      240
+     ],
+     [
+      "CellSignalLowIcon",
+      232
+     ],
+     [
+      "ProhibitIcon",
+      212
+     ],
+     [
+      "CellSignalFullIcon",
+      208
+     ],
+     [
+      "Popover",
+      194
+     ],
+     [
+      "DateControl",
+      192
+     ],
+     [
+      "Token",
+      175
+     ],
+     [
+      "ListItem",
+      163
+     ],
+     [
+      "CheckboxInput",
+      124
+     ],
+     [
+      "CheckboxIndicator",
+      124
+     ],
+     [
+      "AreaProvider",
+      115
+     ],
+     [
+      "WorkItemRow",
+      96
+     ],
+     [
+      "RowProject",
+      96
+     ],
+     [
+      "RowProperties",
+      96
+     ],
+     [
+      "CycleControl",
+      96
+     ],
+     [
+      "PriorityControl",
+      96
+     ],
+     [
+      "StateControl",
+      96
+     ],
+     [
+      "RowTitle",
+      96
+     ],
+     [
+      "OneLineText",
+      96
+     ],
+     [
+      "Kbd",
+      82
+     ],
+     [
+      "DropdownMenuItem",
+      82
+     ],
+     [
+      "Avatar",
+      65
+     ],
+     [
+      "SafeLink(LinkComponent)",
+      56
+     ],
+     [
+      "LinkComponent",
+      56
+     ],
+     [
+      "ShortcutKeys",
+      39
+     ],
+     [
+      "Dialog",
+      36
+     ],
+     [
+      "InternalInputClearButton",
+      36
+     ],
+     [
+      "CheckboxListItem",
+      28
+     ],
+     [
+      "DescribedCheckboxInput",
+      28
+     ],
+     [
+      "ArchiveIcon",
+      26
+     ],
+     [
+      "Layout",
+      23
+     ],
+     [
+      "LayoutContent",
+      23
+     ],
+     [
+      "Heading",
+      21
+     ],
+     [
+      "Divider",
+      21
+     ],
+     [
+      "DropdownMenuDivider",
+      20
+     ],
+     [
+      "ArrowDownIcon",
+      20
+     ],
+     [
+      "ArrowUpIcon",
+      20
+     ],
+     [
+      "VStack",
+      18
+     ]
+    ],
+    "longTasks": [
+     230
+    ],
+    "ltTotal": 230,
+    "events": [
+     {
+      "type": "pointerout",
+      "start": 14809,
+      "dur": 240,
+      "delay": 0,
+      "proc": 0,
+      "present": 240
+     },
+     {
+      "type": "pointerleave",
+      "start": 14809,
+      "dur": 240,
+      "delay": 1,
+      "proc": 0,
+      "present": 240
+     },
+     {
+      "type": "pointerleave",
+      "start": 14809,
+      "dur": 240,
+      "delay": 1,
+      "proc": 0,
+      "present": 240
+     },
+     {
+      "type": "pointerleave",
+      "start": 14809,
+      "dur": 240,
+      "delay": 1,
+      "proc": 0,
+      "present": 240
+     },
+     {
+      "type": "pointerleave",
+      "start": 14809,
+      "dur": 240,
+      "delay": 1,
+      "proc": 0,
+      "present": 240
+     },
+     {
+      "type": "pointerover",
+      "start": 14809,
+      "dur": 240,
+      "delay": 1,
+      "proc": 0,
+      "present": 240
+     },
+     {
+      "type": "pointerenter",
+      "start": 14809,
+      "dur": 240,
+      "delay": 1,
+      "proc": 0,
+      "present": 240
+     },
+     {
+      "type": "pointerenter",
+      "start": 14809,
+      "dur": 240,
+      "delay": 1,
+      "proc": 0,
+      "present": 240
+     },
+     {
+      "type": "mouseout",
+      "start": 14809,
+      "dur": 240,
+      "delay": 1,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "mouseover",
+      "start": 14809,
+      "dur": 240,
+      "delay": 1,
+      "proc": 0,
+      "present": 239
+     },
+     {
+      "type": "pointerdown",
+      "start": 14810,
+      "dur": 240,
+      "delay": 1,
+      "proc": 9,
+      "present": 230
+     },
+     {
+      "type": "mousedown",
+      "start": 14810,
+      "dur": 240,
+      "delay": 10,
+      "proc": 0,
+      "present": 230
+     },
+     {
+      "type": "pointerup",
+      "start": 14810,
+      "dur": 240,
+      "delay": 21,
+      "proc": 200,
+      "present": 19
+     },
+     {
+      "type": "mouseup",
+      "start": 14810,
+      "dur": 240,
+      "delay": 221,
+      "proc": 0,
+      "present": 19
+     },
+     {
+      "type": "click",
+      "start": 14810,
+      "dur": 240,
+      "delay": 221,
+      "proc": 0,
+      "present": 19
+     }
+    ],
+    "log": [
+     [
+      14820,
+      44,
+      null
+     ],
+     [
+      15017,
+      8853,
+      [
+       [
+        "Stack",
+        728
+       ],
+       [
+        "HStack",
+        721
+       ],
+       [
+        "CheckIndicator",
+        633
+       ],
+       [
+        "Text",
+        579
+       ],
+       [
+        "Icon",
+        577
+       ],
+       [
+        "LayerContentBoundary",
+        406
+       ],
+       [
+        "IconBase",
+        396
+       ],
+       [
+        "StateLabel",
+        288
+       ],
+       [
+        "StatusDot",
+        288
+       ],
+       [
+        "IconFromRegistry",
+        287
+       ],
+       [
+        "VisuallyHidden",
+        284
+       ],
+       [
+        "Button",
+        282
+       ],
+       [
+        "LayerDepthProvider",
+        251
+       ],
+       [
+        "PriorityLabel",
+        240
+       ]
+      ]
+     ],
+     [
+      15029,
+      44,
+      null
+     ],
+     [
+      15030,
+      14,
+      null
+     ],
+     [
+      15067,
+      14,
+      null
+     ],
+     [
+      15211,
+      10396,
+      [
+       [
+        "Stack",
+        863
+       ],
+       [
+        "HStack",
+        838
+       ],
+       [
+        "Icon",
+        643
+       ],
+       [
+        "CheckIndicator",
+        633
+       ],
+       [
+        "Text",
+        609
+       ],
+       [
+        "IconBase",
+        470
+       ],
+       [
+        "LayerContentBoundary",
+        455
+       ],
+       [
+        "Item",
+        318
+       ],
+       [
+        "VisuallyHidden",
+        312
+       ],
+       [
+        "Button",
+        307
+       ],
+       [
+        "IconFromRegistry",
+        294
+       ],
+       [
+        "StateLabel",
+        288
+       ],
+       [
+        "StatusDot",
+        288
+       ],
+       [
+        "LayerDepthProvider",
+        271
+       ]
+      ]
+     ],
+     [
+      15232,
+      276,
+      null
+     ],
+     [
+      15239,
+      14,
+      null
+     ],
+     [
+      15239,
+      0,
+      null
+     ]
+    ],
+    "cpuToReadyMs": 413,
+    "cpuTotalMs": 660,
+    "load": "3.05 2.23 1.71"
+   },
+   {
+    "dt": 218,
+    "commits": 10,
+    "worked": 19657,
+    "topTypes": [
+     [
+      "Stack",
+      1606
+     ],
+     [
+      "HStack",
+      1571
+     ],
+     [
+      "CheckIndicator",
+      1276
+     ],
+     [
+      "Icon",
+      1249
+     ],
+     [
+      "Text",
+      1204
+     ],
+     [
+      "IconBase",
+      891
+     ],
+     [
+      "LayerContentBoundary",
+      873
+     ],
+     [
+      "VisuallyHidden",
+      606
+     ],
+     [
+      "Button",
+      599
+     ],
+     [
+      "StateLabel",
+      588
+     ],
+     [
+      "StatusDot",
+      588
+     ],
+     [
+      "IconFromRegistry",
+      585
+     ],
+     [
+      "Item",
+      557
+     ],
+     [
+      "LayerDepthProvider",
+      530
+     ],
+     [
+      "PriorityLabel",
+      480
+     ],
+     [
+      "FieldLabel",
+      438
+     ],
+     [
+      "CalendarBlankIcon",
+      388
+     ],
+     [
+      "Field",
+      307
+     ],
+     [
+      "DefaultOption",
+      306
+     ],
+     [
+      "SelectorOption",
+      306
+     ],
+     [
+      "Selector",
+      300
+     ],
+     [
+      "CellSignalMediumIcon",
+      260
+     ],
+     [
+      "CellSignalHighIcon",
+      240
+     ],
+     [
+      "CellSignalLowIcon",
+      232
+     ],
+     [
+      "ProhibitIcon",
+      212
+     ],
+     [
+      "CellSignalFullIcon",
+      208
+     ],
+     [
+      "Popover",
+      194
+     ],
+     [
+      "DateControl",
+      192
+     ],
+     [
+      "Token",
+      175
+     ],
+     [
+      "ListItem",
+      163
+     ],
+     [
+      "CheckboxInput",
+      124
+     ],
+     [
+      "CheckboxIndicator",
+      124
+     ],
+     [
+      "AreaProvider",
+      115
+     ],
+     [
+      "OneLineText",
+      97
+     ],
+     [
+      "WorkItemRow",
+      96
+     ],
+     [
+      "RowProject",
+      96
+     ],
+     [
+      "RowProperties",
+      96
+     ],
+     [
+      "CycleControl",
+      96
+     ],
+     [
+      "PriorityControl",
+      96
+     ],
+     [
+      "StateControl",
+      96
+     ],
+     [
+      "RowTitle",
+      96
+     ],
+     [
+      "Kbd",
+      82
+     ],
+     [
+      "DropdownMenuItem",
+      82
+     ],
+     [
+      "Avatar",
+      65
+     ],
+     [
+      "SafeLink(LinkComponent)",
+      56
+     ],
+     [
+      "LinkComponent",
+      56
+     ],
+     [
+      "ShortcutKeys",
+      39
+     ],
+     [
+      "Dialog",
+      36
+     ],
+     [
+      "InternalInputClearButton",
+      36
+     ],
+     [
+      "CheckboxListItem",
+      28
+     ],
+     [
+      "DescribedCheckboxInput",
+      28
+     ],
+     [
+      "ArchiveIcon",
+      26
+     ],
+     [
+      "Layout",
+      23
+     ],
+     [
+      "LayoutContent",
+      23
+     ],
+     [
+      "Heading",
+      21
+     ],
+     [
+      "Divider",
+      21
+     ],
+     [
+      "DropdownMenuDivider",
+      20
+     ],
+     [
+      "ArrowDownIcon",
+      20
+     ],
+     [
+      "ArrowUpIcon",
+      20
+     ],
+     [
+      "VStack",
+      18
+     ]
+    ],
+    "longTasks": [
+     209
+    ],
+    "ltTotal": 209,
+    "events": [
+     {
+      "type": "pointerout",
+      "start": 30503,
+      "dur": 32,
+      "delay": 6,
+      "proc": 0,
+      "present": 26
+     },
+     {
+      "type": "pointerleave",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerleave",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerleave",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerleave",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerleave",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerleave",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerover",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerenter",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerenter",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerenter",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerenter",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerenter",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerenter",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerenter",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerenter",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerenter",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "mouseout",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "mouseover",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "mouseenter",
+      "start": 30503,
+      "dur": 32,
+      "delay": 7,
+      "proc": 0,
+      "present": 25
+     },
+     {
+      "type": "pointerdown",
+      "start": 30503,
+      "dur": 32,
+      "delay": 9,
+      "proc": 2,
+      "present": 21
+     },
+     {
+      "type": "mousedown",
+      "start": 30503,
+      "dur": 32,
+      "delay": 12,
+      "proc": 0,
+      "present": 20
+     },
+     {
+      "type": "pointerup",
+      "start": 30503,
+      "dur": 32,
+      "delay": 18,
+      "proc": 0,
+      "present": 14
+     },
+     {
+      "type": "mouseup",
+      "start": 30503,
+      "dur": 32,
+      "delay": 18,
+      "proc": 0,
+      "present": 14
+     },
+     {
+      "type": "click",
+      "start": 30503,
+      "dur": 32,
+      "delay": 18,
+      "proc": 8,
+      "present": 6
+     },
+     {
+      "type": "pointerout",
+      "start": 30808,
+      "dur": 216,
+      "delay": 0,
+      "proc": 0,
+      "present": 216
+     },
+     {
+      "type": "pointerleave",
+      "start": 30808,
+      "dur": 216,
+      "delay": 1,
+      "proc": 0,
+      "present": 216
+     },
+     {
+      "type": "pointerleave",
+      "start": 30808,
+      "dur": 216,
+      "delay": 1,
+      "proc": 0,
+      "present": 216
+     },
+     {
+      "type": "pointerleave",
+      "start": 30808,
+      "dur": 216,
+      "delay": 1,
+      "proc": 0,
+      "present": 216
+     },
+     {
+      "type": "pointerleave",
+      "start": 30808,
+      "dur": 216,
+      "delay": 1,
+      "proc": 0,
+      "present": 216
+     },
+     {
+      "type": "pointerover",
+      "start": 30808,
+      "dur": 216,
+      "delay": 1,
+      "proc": 0,
+      "present": 215
+     },
+     {
+      "type": "pointerenter",
+      "start": 30808,
+      "dur": 216,
+      "delay": 1,
+      "proc": 0,
+      "present": 215
+     },
+     {
+      "type": "pointerenter",
+      "start": 30808,
+      "dur": 216,
+      "delay": 1,
+      "proc": 0,
+      "present": 215
+     },
+     {
+      "type": "pointerenter",
+      "start": 30808,
+      "dur": 216,
+      "delay": 1,
+      "proc": 0,
+      "present": 215
+     },
+     {
+      "type": "pointerenter",
+      "start": 30808,
+      "dur": 216,
+      "delay": 1,
+      "proc": 0,
+      "present": 215
+     },
+     {
+      "type": "mouseout",
+      "start": 30808,
+      "dur": 216,
+      "delay": 1,
+      "proc": 0,
+      "present": 215
+     },
+     {
+      "type": "mouseover",
+      "start": 30808,
+      "dur": 216,
+      "delay": 1,
+      "proc": 0,
+      "present": 215
+     },
+     {
+      "type": "pointerdown",
+      "start": 30808,
+      "dur": 216,
+      "delay": 1,
+      "proc": 8,
+      "present": 207
+     },
+     {
+      "type": "mousedown",
+      "start": 30808,
+      "dur": 216,
+      "delay": 9,
+      "proc": 0,
+      "present": 207
+     },
+     {
+      "type": "pointerup",
+      "start": 30808,
+      "dur": 216,
+      "delay": 18,
+      "proc": 182,
+      "present": 16
+     },
+     {
+      "type": "mouseup",
+      "start": 30808,
+      "dur": 216,
+      "delay": 200,
+      "proc": 0,
+      "present": 16
+     },
+     {
+      "type": "click",
+      "start": 30808,
+      "dur": 216,
+      "delay": 201,
+      "proc": 0,
+      "present": 15
+     }
+    ],
+    "log": [
+     [
+      30817,
+      44,
+      null
+     ],
+     [
+      31000,
+      8853,
+      [
+       [
+        "Stack",
+        728
+       ],
+       [
+        "HStack",
+        721
+       ],
+       [
+        "CheckIndicator",
+        633
+       ],
+       [
+        "Text",
+        579
+       ],
+       [
+        "Icon",
+        577
+       ],
+       [
+        "LayerContentBoundary",
+        406
+       ],
+       [
+        "IconBase",
+        396
+       ],
+       [
+        "StateLabel",
+        288
+       ],
+       [
+        "StatusDot",
+        288
+       ],
+       [
+        "IconFromRegistry",
+        287
+       ],
+       [
+        "VisuallyHidden",
+        284
+       ],
+       [
+        "Button",
+        282
+       ],
+       [
+        "LayerDepthProvider",
+        251
+       ],
+       [
+        "PriorityLabel",
+        240
+       ]
+      ]
+     ],
+     [
+      31008,
+      44,
+      null
+     ],
+     [
+      31008,
+      14,
+      null
+     ],
+     [
+      31025,
+      2,
+      null
+     ],
+     [
+      31052,
+      14,
+      null
+     ],
+     [
+      31183,
+      10396,
+      [
+       [
+        "Stack",
+        863
+       ],
+       [
+        "HStack",
+        838
+       ],
+       [
+        "Icon",
+        643
+       ],
+       [
+        "CheckIndicator",
+        633
+       ],
+       [
+        "Text",
+        609
+       ],
+       [
+        "IconBase",
+        470
+       ],
+       [
+        "LayerContentBoundary",
+        455
+       ],
+       [
+        "Item",
+        318
+       ],
+       [
+        "VisuallyHidden",
+        312
+       ],
+       [
+        "Button",
+        307
+       ],
+       [
+        "IconFromRegistry",
+        294
+       ],
+       [
+        "StateLabel",
+        288
+       ],
+       [
+        "StatusDot",
+        288
+       ],
+       [
+        "LayerDepthProvider",
+        271
+       ]
+      ]
+     ],
+     [
+      31203,
+      276,
+      null
+     ],
+     [
+      31211,
+      14,
+      null
+     ],
+     [
+      31211,
+      0,
+      null
+     ]
+    ],
+    "cpuToReadyMs": 358,
+    "cpuTotalMs": 579,
+    "load": "2.97 2.25 1.72"
+   }
+  ]
+ }
+}

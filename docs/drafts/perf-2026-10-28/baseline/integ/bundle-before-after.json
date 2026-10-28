@@ -1,0 +1,320 @@
+[
+ {
+  "route": "/projects/[projectId]/cycles/[cycleId]",
+  "beforeKB": 1081.4,
+  "afterKB": 793.3,
+  "pct": -26.6
+ },
+ {
+  "route": "/projects/[projectId]/modules/[moduleId]",
+  "beforeKB": 973.1,
+  "afterKB": 684.4,
+  "pct": -29.7
+ },
+ {
+  "route": "/projects/[projectId]/views/[viewId]",
+  "beforeKB": 962.6,
+  "afterKB": 671.9,
+  "pct": -30.2
+ },
+ {
+  "route": "/projects/[projectId]/archives/work-items",
+  "beforeKB": 961.8,
+  "afterKB": 673.3,
+  "pct": -30
+ },
+ {
+  "route": "/projects/[projectId]/work-items",
+  "beforeKB": 960.1,
+  "afterKB": 669.3,
+  "pct": -30.3
+ },
+ {
+  "route": "/projects/[projectId]/intake",
+  "beforeKB": 897.7,
+  "afterKB": 898.1,
+  "pct": 0
+ },
+ {
+  "route": "/inbox",
+  "beforeKB": 891.5,
+  "afterKB": 892.1,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/work-items/[workItemId]",
+  "beforeKB": 878.4,
+  "afterKB": 878.9,
+  "pct": 0.1
+ },
+ {
+  "route": "/work-items/[workItemId]",
+  "beforeKB": 874.3,
+  "afterKB": 874.7,
+  "pct": 0
+ },
+ {
+  "route": "/projects/[projectId]/pages/[pageId]",
+  "beforeKB": 869.3,
+  "afterKB": 869.7,
+  "pct": 0
+ },
+ {
+  "route": "/pages/[pageId]",
+  "beforeKB": 864.6,
+  "afterKB": 865,
+  "pct": 0
+ },
+ {
+  "route": "/stickies",
+  "beforeKB": 819.5,
+  "afterKB": 820.3,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/cycles",
+  "beforeKB": 704,
+  "afterKB": 704.8,
+  "pct": 0.1
+ },
+ {
+  "route": "/active-cycles",
+  "beforeKB": 696.2,
+  "afterKB": 696.9,
+  "pct": 0.1
+ },
+ {
+  "route": "/analytics/[tab]",
+  "beforeKB": 685.6,
+  "afterKB": 686,
+  "pct": 0.1
+ },
+ {
+  "route": "/agents/[actorId]/[tab]",
+  "beforeKB": 665.9,
+  "afterKB": 667,
+  "pct": 0.2
+ },
+ {
+  "route": "/your-work/[tab]",
+  "beforeKB": 665.9,
+  "afterKB": 667,
+  "pct": 0.2
+ },
+ {
+  "route": "/workspace-views/[viewId]",
+  "beforeKB": 659.5,
+  "afterKB": 660.5,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/pages",
+  "beforeKB": 596.2,
+  "afterKB": 596.4,
+  "pct": 0
+ },
+ {
+  "route": "/wiki",
+  "beforeKB": 591.6,
+  "afterKB": 591.7,
+  "pct": 0
+ },
+ {
+  "route": "/projects/[projectId]/modules",
+  "beforeKB": 590.7,
+  "afterKB": 591.5,
+  "pct": 0.1
+ },
+ {
+  "route": "/",
+  "beforeKB": 589.4,
+  "afterKB": 590.2,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/settings/states",
+  "beforeKB": 582.5,
+  "afterKB": 583.2,
+  "pct": 0.1
+ },
+ {
+  "route": "/drafts",
+  "beforeKB": 578.3,
+  "afterKB": 579,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/settings/estimates",
+  "beforeKB": 554.1,
+  "afterKB": 554.8,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/views",
+  "beforeKB": 552.8,
+  "afterKB": 553.6,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/archives/modules",
+  "beforeKB": 551.7,
+  "afterKB": 552.5,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/settings/agents",
+  "beforeKB": 551.6,
+  "afterKB": 552.3,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/archives/cycles",
+  "beforeKB": 551.5,
+  "afterKB": 552.3,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/settings/automations",
+  "beforeKB": 550.2,
+  "afterKB": 551,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/settings/labels",
+  "beforeKB": 550.1,
+  "afterKB": 550.8,
+  "pct": 0.1
+ },
+ {
+  "route": "/settings/webhooks/[webhookId]",
+  "beforeKB": 549.3,
+  "afterKB": 550.1,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects",
+  "beforeKB": 548.5,
+  "afterKB": 549.2,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/archives",
+  "beforeKB": 548.5,
+  "afterKB": 549.2,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/settings/general",
+  "beforeKB": 547.6,
+  "afterKB": 548.4,
+  "pct": 0.1
+ },
+ {
+  "route": "/workspace-views",
+  "beforeKB": 547.3,
+  "afterKB": 548.1,
+  "pct": 0.1
+ },
+ {
+  "route": "/settings/exports",
+  "beforeKB": 546.8,
+  "afterKB": 547.6,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/settings/features",
+  "beforeKB": 546.7,
+  "afterKB": 547.5,
+  "pct": 0.1
+ },
+ {
+  "route": "/settings/backups",
+  "beforeKB": 546.3,
+  "afterKB": 547.1,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/settings",
+  "beforeKB": 545.6,
+  "afterKB": 546.4,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]/archives",
+  "beforeKB": 545.6,
+  "afterKB": 546.3,
+  "pct": 0.1
+ },
+ {
+  "route": "/agents",
+  "beforeKB": 545.1,
+  "afterKB": 545.8,
+  "pct": 0.1
+ },
+ {
+  "route": "/projects/[projectId]",
+  "beforeKB": 545,
+  "afterKB": 545.8,
+  "pct": 0.1
+ },
+ {
+  "route": "/settings/webhooks",
+  "beforeKB": 544.4,
+  "afterKB": 545.2,
+  "pct": 0.1
+ },
+ {
+  "route": "/settings/[tab]",
+  "beforeKB": 542.7,
+  "afterKB": 543.4,
+  "pct": 0.1
+ },
+ {
+  "route": "/agents/[actorId]",
+  "beforeKB": 540.7,
+  "afterKB": 541.5,
+  "pct": 0.1
+ },
+ {
+  "route": "/analytics",
+  "beforeKB": 540.7,
+  "afterKB": 541.5,
+  "pct": 0.1
+ },
+ {
+  "route": "/browse/[key]",
+  "beforeKB": 540.7,
+  "afterKB": 541.5,
+  "pct": 0.1
+ },
+ {
+  "route": "/cycles/[cycleId]",
+  "beforeKB": 540.7,
+  "afterKB": 541.5,
+  "pct": 0.1
+ },
+ {
+  "route": "/modules/[moduleId]",
+  "beforeKB": 540.7,
+  "afterKB": 541.5,
+  "pct": 0.1
+ },
+ {
+  "route": "/settings",
+  "beforeKB": 540.7,
+  "afterKB": 541.5,
+  "pct": 0.1
+ },
+ {
+  "route": "/your-work",
+  "beforeKB": 540.7,
+  "afterKB": 541.5,
+  "pct": 0.1
+ },
+ {
+  "route": "/_not-found",
+  "beforeKB": 277.3,
+  "afterKB": 277.3,
+  "pct": 0
+ }
+]

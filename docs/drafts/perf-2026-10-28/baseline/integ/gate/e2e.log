@@ -1,0 +1,149 @@
+22:08  up 6 days, 22:46, 1 user, load averages: 6.16 4.07 2.70
+Wed Oct 28 22:08:09 CET 2026
+
+Running 139 tests using 1 worker
+
+[1/139] tests/e2e/assistant.spec.ts:9:5 › the assistant proposes a change, and writes nothing until Apply
+[2/139] tests/e2e/collaboration.spec.ts:8:5 › a comment written in the peek is saved
+[3/139] tests/e2e/collaboration.spec.ts:27:5 › comments show in the peek's activity timeline
+[4/139] tests/e2e/collaboration.spec.ts:53:5 › a subscribed item's MCP comment raises the inbox badge, and opening it marks it read
+[5/139] tests/e2e/coverage-dialogs.spec.ts:19:9 › Mark duplicate at 375 px › an intake item is marked as a duplicate of a work item, and the dialog fits the screen
+[6/139] tests/e2e/coverage-dialogs.spec.ts:19:9 › Mark duplicate at 768 px › an intake item is marked as a duplicate of a work item, and the dialog fits the screen
+[7/139] tests/e2e/coverage-dialogs.spec.ts:64:7 › Save this draft? at 375 px › closing a dirty create dialog and saving lists the draft in Drafts
+[8/139] tests/e2e/coverage-dialogs.spec.ts:91:7 › Save this draft? at 375 px › after Save draft, focus returns to the button that opened the create dialog
+[9/139] tests/e2e/coverage-dialogs.spec.ts:110:7 › dialog focus at 375 px › New work item: Tab stays inside, Escape returns focus to the opener
+[10/139] tests/e2e/coverage-dialogs.spec.ts:129:7 › dialog focus at 375 px › Add link: Tab stays inside, Escape returns focus to the opener
+[11/139] tests/e2e/coverage-dialogs.spec.ts:149:7 › Power K › mod+K from the page body opens the palette, and Escape closes it
+[12/139] tests/e2e/coverage-drops.spec.ts:22:7 › board › a card dropped into another column changes its state and stays there after a reload
+[13/139] tests/e2e/coverage-drops.spec.ts:50:7 › gantt › dragging a bar moves both dates by the same days, and the dates survive a reload
+[14/139] tests/e2e/coverage-drops.spec.ts:77:7 › gantt › dragging an edge moves one date and leaves the other
+[15/139] tests/e2e/coverage-drops.spec.ts:108:7 › calendar › a chip dropped on another day writes that day and keeps it after a reload
+[16/139] tests/e2e/coverage-drops.spec.ts:141:7 › reorder surfaces › workspace views: a row dragged above another keeps the new order after a reload
+[17/139] tests/e2e/coverage-drops.spec.ts:160:7 › reorder surfaces › states: a row dragged above another in its group keeps the new order after a reload
+[18/139] tests/e2e/coverage-drops.spec.ts:178:7 › reorder surfaces › stickies: a card dragged before another keeps the new order after a reload
+[19/139] tests/e2e/coverage-timeline.spec.ts:27:7 › cycles › Transfer open items moves the open items, keeps the done ones and keeps the progress snapshot
+[20/139] tests/e2e/coverage-timeline.spec.ts:121:7 › gantt at tablet width › draws a connector between blocked_by items, from the end of one bar to the start of the other
+[21/139] tests/e2e/coverage-timeline.spec.ts:148:7 › gantt at tablet width › Today centres the today line in the bar area
+[22/139] tests/e2e/coverage-timeline.spec.ts:192:7 › week start Sunday › the gantt's week bands and the calendar's weekday heads follow the workspace setting
+[23/139] tests/e2e/coverage-timeline.spec.ts:232:11 › no horizontal page overflow without a peek › board at 768px
+[24/139] tests/e2e/coverage-timeline.spec.ts:232:11 › no horizontal page overflow without a peek › table at 768px
+[25/139] tests/e2e/coverage-timeline.spec.ts:232:11 › no horizontal page overflow without a peek › board at 1100px
+[26/139] tests/e2e/coverage-timeline.spec.ts:232:11 › no horizontal page overflow without a peek › table at 1100px
+[27/139] tests/e2e/coverage-touch.spec.ts:19:5 › a calendar chip taps open the peek, and its Target date moves the chip to the new day
+[28/139] tests/e2e/coverage-touch.spec.ts:52:5 › a finger drag on a page-tree grip reorders the pages and the order survives a reload
+[29/139] tests/e2e/coverage-touch.spec.ts:81:5 › /drafts at 375 px: no sideways scroll, and every control's 44x44 box hits it
+[30/139] tests/e2e/detail-editor.spec.ts:18:5 › a description typed just before a reload is persisted
+[31/139] tests/e2e/detail-editor.spec.ts:29:5 › an MCP description write shows the Updated elsewhere banner in a focused editor
+[32/139] tests/e2e/drag-surfaces.spec.ts:32:7 › reorder surfaces › views: a row menu's Move up swaps the saved order
+[33/139] tests/e2e/drag-surfaces.spec.ts:40:7 › reorder surfaces › states: Move up reorders within the group
+[34/139] tests/e2e/drag-surfaces.spec.ts:49:7 › reorder surfaces › labels: Move up reorders the labels
+[35/139] tests/e2e/drag-surfaces.spec.ts:57:7 › reorder surfaces › pages: the tree row menu's Move up reorders siblings
+[36/139] tests/e2e/drag-surfaces.spec.ts:65:7 › reorder surfaces › quick links: Move left puts a link before its neighbour
+[37/139] tests/e2e/drag-surfaces.spec.ts:82:7 › reorder surfaces › Home widgets: Manage widgets' Reorder menu moves a widget down, and Save keeps it
+[38/139] tests/e2e/drag-surfaces.spec.ts:114:7 › reorder surfaces › stickies: a card menu's Move earlier reorders the grid
+[39/139] tests/e2e/drag-surfaces.spec.ts:132:9 › reorder surfaces › pointer drags › views: a row dragged above another saves the order
+[40/139] tests/e2e/drag-surfaces.spec.ts:138:9 › reorder surfaces › pointer drags › states: a row dragged above another in its group saves the order
+[41/139] tests/e2e/drag-surfaces.spec.ts:144:9 › reorder surfaces › pointer drags › labels: a row dragged above another saves the order
+[42/139] tests/e2e/drag-surfaces.spec.ts:150:9 › reorder surfaces › pointer drags › pages: a tree row dragged above another reorders the siblings
+[43/139] tests/e2e/drag-surfaces.spec.ts:156:9 › reorder surfaces › pointer drags › stickies: a card dragged before another reorders the grid
+[44/139] tests/e2e/drag-surfaces.spec.ts:172:9 › reorder surfaces › pointer drags › quick links: a chip dragged before another reorders the links
+[45/139] tests/e2e/drag-surfaces.spec.ts:193:9 › reorder surfaces › pointer drags › Home widgets: a widget row dragged above another reorders the widgets
+[46/139] tests/e2e/drag.spec.ts:25:7 › board › a card dropped above another reorders the column, and the order survives a reload
+[47/139] tests/e2e/drag.spec.ts:47:7 › board › the card menu moves a card to another state without a pointer
+[48/139] tests/e2e/drag.spec.ts:62:7 › calendar and gantt keyboard paths › the calendar's Move to date control writes the target date
+[49/139] tests/e2e/drag.spec.ts:75:7 › calendar and gantt keyboard paths › the gantt's Set dates control writes both dates
+[50/139] tests/e2e/external-writes.spec.ts:9:5 › an MCP state change refreshes an open list without a reload
+[51/139] tests/e2e/external-writes.spec.ts:24:5 › an MCP-created item appears on an open board
+[52/139] tests/e2e/intake-drafts-bulk.spec.ts:9:5 › an MCP-created item lands in Intake when agent intake is required, and Accept moves it to Backlog
+[53/139] tests/e2e/intake-drafts-bulk.spec.ts:31:5 › a closed create dialog saves a draft, and the draft becomes a work item
+[54/139] tests/e2e/intake-drafts-bulk.spec.ts:61:5 › bulk edit sets the priority of two selected rows
+[55/139] tests/e2e/intake-drafts-bulk.spec.ts:87:5 › an estimate system turns on estimates and a point can be set on an item
+[56/139] tests/e2e/layouts.spec.ts:19:5 › dragging a gantt bar moves both dates, and a blocked_by connector turns into a conflict
+[57/139] tests/e2e/layouts.spec.ts:38:5 › dragging the end handle of a gantt bar changes only the target date
+[58/139] tests/e2e/layouts.spec.ts:50:5 › dragging a calendar item to another day writes its target date
+[59/139] tests/e2e/layouts.spec.ts:67:5 › an advanced filter narrows the list to its condition and shows the count
+[60/139] tests/e2e/layouts.spec.ts:89:5 › exporting a list writes a CSV that downloads and shows under Settings, Exports
+[61/139] tests/e2e/layouts.spec.ts:111:5 › a webhook can be created, deactivated and deleted in workspace settings
+[62/139] tests/e2e/mobile.spec.ts:15:5 › home, work items and a page have no horizontal page scroll at 375 px
+[63/139] tests/e2e/pages.spec.ts:10:5 › a page embeds a work item with # and the embed survives a reload
+[64/139] tests/e2e/pages.spec.ts:36:5 › the embedded work item shows Mentioned in with the page
+[65/139] tests/e2e/pages.spec.ts:65:5 › a page locks, refuses edits, and unlocks; an archived page restores
+[66/139] tests/e2e/perf.spec.ts:52:5 › list, board and table reach [data-list-ready] within 300 ms at p95 on 10 000 items
+[67/139] tests/e2e/relations-reactions.spec.ts:10:5 › a blocked-by relation added in the peek shows on both items
+[68/139] tests/e2e/relations-reactions.spec.ts:52:5 › reactions on the description and on a comment survive a reload
+[69/139] tests/e2e/round-features.spec.ts:20:7 › notifications (engine-notify) › two comments by one agent within 10 minutes make one inbox row reading 'commented 2 times'
+[70/139] tests/e2e/round-features.spec.ts:39:7 › notifications (engine-notify) › an agent mentioning the user in a description makes a 'mentioned you' row
+[71/139] tests/e2e/round-features.spec.ts:57:7 › notifications (engine-notify) › GET /api/changes returns a numeric unread_notifications
+[72/139] tests/e2e/round-features.spec.ts:65:7 › notifications (engine-notify) › unread_notifications moves by one when an agent comments on an item the user watches
+[73/139] tests/e2e/round-features.spec.ts:79:7 › page links (pages-editor) › typing [[ offers pages and inserts a page link that survives a reload
+[74/139] tests/e2e/round-features.spec.ts:109:7 › assistant undo (ai-undo) › Apply, then Undo on the toast, puts the priority back
+[75/139] tests/e2e/round-features.spec.ts:140:7 › phone list rows (list) › key and title share one line in every row at 375 px
+[76/139] tests/e2e/round4.spec.ts:77:7 › inbox wording (decision 51) › a state change and a comment by one agent make one row reading 'commented · +1 more', in either order
+[77/139] tests/e2e/round4.spec.ts:104:7 › inbox wording (decision 51) › at 375 px the whole phrase shows for an agent with a long client name
+[78/139] tests/e2e/round4.spec.ts:127:7 › project sections › at 375 px one section menu button replaces the tab strip, and the keyboard drives it
+[79/139] tests/e2e/round4.spec.ts:165:7 › project sections › at 768 px the folded tabs show their name in a tooltip on hover and on focus
+[80/139] tests/e2e/round4.spec.ts:183:7 › project sections › at 1440 px every tab shows its full label
+[81/139] tests/e2e/round4.spec.ts:196:9 › project settings tabs › at 768 px all seven tabs are visible with no horizontal scroll in the strip
+[82/139] tests/e2e/round4.spec.ts:196:9 › project settings tabs › at 1024 px all seven tabs are visible with no horizontal scroll in the strip
+[83/139] tests/e2e/round4.spec.ts:224:7 › project settings tabs › at 375 px the 'Project settings' menu lists the seven tabs
+[84/139] tests/e2e/round4.spec.ts:240:9 › app header touch boxes › at 375 px Open navigation, Assistant, Help and Account each own their 44x44 box
+[85/139] tests/e2e/round4.spec.ts:240:9 › app header touch boxes › at 360 px Open navigation, Assistant, Help and Account each own their 44x44 box
+[86/139] tests/e2e/round4.spec.ts:257:7 › page links (decision 10) › typing [[ in a page does not offer that page itself
+[87/139] tests/e2e/round4.spec.ts:275:7 › home since rows › at 375 px every Since row wraps to at most two lines and the long one wraps
+[88/139] tests/e2e/round5.spec.ts:42:7 › assigned notifications (decisions 50 and 51) › an agent that creates a work item assigned to the user gives the user one 'assigned you' row
+[89/139] tests/e2e/round5.spec.ts:57:7 › assigned notifications (decisions 50 and 51) › the user creating an item assigned to an agent leaves the user's inbox empty of it and gives the agent one assigned row
+[90/139] tests/e2e/round5.spec.ts:99:7 › home since rows with a long agent name › at 375 px the work item key is painted and the row has at most two lines
+[91/139] tests/e2e/round5.spec.ts:130:9 › coarse pointer project tabs and search (touch option A) › at 1440 px neighbouring project tab areas tile edge to edge and every tab hits strictly
+[92/139] tests/e2e/round5.spec.ts:163:9 › coarse pointer project tabs and search (touch option A) › at 1440 px the top-bar search owns its hit box, including around the shortcut chip
+[93/139] tests/e2e/round5.spec.ts:130:9 › coarse pointer project tabs and search (touch option A) › at 1280 px neighbouring project tab areas tile edge to edge and every tab hits strictly
+[94/139] tests/e2e/round5.spec.ts:163:9 › coarse pointer project tabs and search (touch option A) › at 1280 px the top-bar search owns its hit box, including around the shortcut chip
+[95/139] tests/e2e/round5.spec.ts:185:11 › coarse pointer top-bar heading (touch option A) › device pixel ratio 1 › at 768 px the sidebar toggle and the brand areas do not overlap, docked and collapsed
+[96/139] tests/e2e/round5.spec.ts:185:11 › coarse pointer top-bar heading (touch option A) › device pixel ratio 2 › at 768 px the sidebar toggle and the brand areas do not overlap, docked and collapsed
+[97/139] tests/e2e/round6.spec.ts:246:5 › early sidebar toggle, 800 ms chunk delay, Frappé (a) › on Home with a fresh agent Since row the toggle pressed at the shell's hydration point collapses the sidebar and logs no error
+[98/139] tests/e2e/round6.spec.ts:246:5 › early sidebar toggle, 800 ms chunk delay, Frappé (a) › on Projects the toggle pressed at the shell's hydration point collapses the sidebar and logs no error
+[99/139] tests/e2e/round6.spec.ts:246:5 › early sidebar toggle, 800 ms chunk delay, Frappé (a) › on Inbox the toggle pressed at the shell's hydration point collapses the sidebar and logs no error
+[100/139] tests/e2e/round6.spec.ts:246:5 › early sidebar toggle, 800 ms chunk delay, Frappé (a) › on Your work, assigned the toggle pressed at the shell's hydration point collapses the sidebar and logs no error
+[101/139] tests/e2e/round6.spec.ts:246:5 › early sidebar toggle, 800 ms chunk delay, Frappé (a) › on Wiki the toggle pressed at the shell's hydration point collapses the sidebar and logs no error
+[102/139] tests/e2e/round6.spec.ts:246:5 › early sidebar toggle, 800 ms chunk delay, Frappé (a) › on a project's work items list the toggle pressed at the shell's hydration point collapses the sidebar and logs no error
+[103/139] tests/e2e/round6.spec.ts:246:5 › early sidebar toggle, 800 ms chunk delay, Frappé (a) › on the board with a peek open the toggle pressed at the shell's hydration point collapses the sidebar and logs no error
+[104/139] tests/e2e/round6.spec.ts:246:5 › early sidebar toggle, 800 ms chunk delay, Frappé (a) › on a cycle detail the toggle pressed at the shell's hydration point collapses the sidebar and logs no error
+[105/139] tests/e2e/round6.spec.ts:246:5 › early sidebar toggle, 800 ms chunk delay, Frappé (a) › on a project page the toggle pressed at the shell's hydration point collapses the sidebar and logs no error
+[106/139] tests/e2e/round6.spec.ts:246:5 › early sidebar toggle, 800 ms chunk delay, Frappé (a) › on workspace settings, General the toggle pressed at the shell's hydration point collapses the sidebar and logs no error
+[107/139] tests/e2e/round6.spec.ts:254:5 › early sidebar toggle with the CPU slowed 6x and no delay (b) › on Home with a fresh agent Since row the early toggle logs no error
+[108/139] tests/e2e/round6.spec.ts:254:5 › early sidebar toggle with the CPU slowed 6x and no delay (b) › on Inbox the early toggle logs no error
+[109/139] tests/e2e/round6.spec.ts:262:5 › early mod+b chord, 800 ms chunk delay (c) › on Home with a fresh agent Since row the chord collapses the sidebar and logs no error
+[110/139] tests/e2e/round6.spec.ts:262:5 › early mod+b chord, 800 ms chunk delay (c) › on Projects the chord collapses the sidebar and logs no error
+[111/139] tests/e2e/round6.spec.ts:268:1 › on Home in Latte the early toggle collapses the sidebar and logs no error (d)
+[112/139] tests/e2e/round6.spec.ts:279:1 › at 375 px the early Open navigation button opens the drawer and logs no error (e, regression)
+[113/139] tests/e2e/round6.spec.ts:310:7 › AI status arrives after mount (f, regression) › Home with a fresh agent Since row loads with the assistant available and logs no error, chunks delayed 800 ms
+[114/139] tests/e2e/round6.spec.ts:310:7 › AI status arrives after mount (f, regression) › the project intake loads with the assistant available and logs no error, chunks delayed 800 ms
+[115/139] tests/e2e/round6.spec.ts:310:7 › AI status arrives after mount (f, regression) › the project views loads with the assistant available and logs no error, chunks delayed 800 ms
+[116/139] tests/e2e/round6.spec.ts:310:7 › AI status arrives after mount (f, regression) › workspace settings, AI loads with the assistant available and logs no error, chunks delayed 800 ms
+[117/139] tests/e2e/round6.spec.ts:310:7 › AI status arrives after mount (f, regression) › Home with a fresh agent Since row loads with the assistant available and logs no error, chunks delayed 2500 ms
+[118/139] tests/e2e/round6.spec.ts:310:7 › AI status arrives after mount (f, regression) › the project intake loads with the assistant available and logs no error, chunks delayed 2500 ms
+[119/139] tests/e2e/round6.spec.ts:310:7 › AI status arrives after mount (f, regression) › the project views loads with the assistant available and logs no error, chunks delayed 2500 ms
+[120/139] tests/e2e/round6.spec.ts:310:7 › AI status arrives after mount (f, regression) › workspace settings, AI loads with the assistant available and logs no error, chunks delayed 2500 ms
+[121/139] tests/e2e/round6.spec.ts:339:5 › early clicks on the other top-bar controls (g, regression) › an early click on Assistant on Home opens it and logs no error
+[122/139] tests/e2e/round6.spec.ts:339:5 › early clicks on the other top-bar controls (g, regression) › an early click on Help on Home opens it and logs no error
+[123/139] tests/e2e/round6.spec.ts:339:5 › early clicks on the other top-bar controls (g, regression) › an early click on Account on Home opens it and logs no error
+[124/139] tests/e2e/round6.spec.ts:339:5 › early clicks on the other top-bar controls (g, regression) › an early click on search on Home opens it and logs no error
+[125/139] tests/e2e/schemes.spec.ts:18:5 › home, work items and a page render in both colour schemes with different backgrounds
+[126/139] tests/e2e/smoke.spec.ts:12:5 › home shell renders
+[127/139] tests/e2e/smoke.spec.ts:20:5 › inbox shell renders
+[128/139] tests/e2e/smoke.spec.ts:28:5 › project work-items view renders
+[129/139] tests/e2e/smoke.spec.ts:37:5 › intake surface renders or shows feature-off
+[130/139] tests/e2e/smoke.spec.ts:51:5 › workspace settings general renders
+[131/139] tests/e2e/views-settings.spec.ts:8:5 › a list saved as a view opens from the views list, locks, and a locked view refuses edits
+[132/139] tests/e2e/views-settings.spec.ts:40:5 › project settings add a state and a label that the work items screen then offers
+[133/139] tests/e2e/work-items.spec.ts:11:5 › a new project shows in the sidebar with its counts, and a created item gets key 1 at the bottom of Backlog
+[134/139] tests/e2e/work-items.spec.ts:42:5 › dragging a board card to In Progress updates the counts and survives a reload
+[135/139] tests/e2e/work-items.spec.ts:66:5 › priority and due date set in the peek survive a reload
+[136/139] tests/e2e/workspace.spec.ts:5:5 › a quick link added on Home stays after a reload, and opened items show under Recent
+[137/139] tests/e2e/workspace.spec.ts:25:5 › a favourited project shows in the sidebar Favorites group and leaves it again
+[138/139] tests/e2e/workspace.spec.ts:38:5 › the header star of a favourite is a filled yellow star on a phone and a desktop, not a pressed button
+[139/139] tests/e2e/workspace.spec.ts:54:5 › the analytics work item total equals the sum of the sidebar project counts
+  1 skipped
+  138 passed (10.0m)
+EXIT 0
+22:18  up 6 days, 22:56, 1 user, load averages: 2.67 2.43 2.41
+Wed Oct 28 22:18:11 CET 2026

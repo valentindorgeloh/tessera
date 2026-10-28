@@ -7,7 +7,7 @@
  */
 import { Selector, type SelectorOptionData } from "@astryxdesign/core/Selector";
 import { formatEstimateValue } from "@/components/estimates/estimate-format";
-import { useProject } from "@/components/work-items/project-provider";
+import { useProjectRow } from "@/components/work-items/project-provider";
 
 export type EstimateControlProps = {
   value: string | null;
@@ -18,7 +18,7 @@ export type EstimateControlProps = {
 };
 
 export function EstimateControl({ value, onChange, size = "md", isLabelHidden = true, readOnly = false }: EstimateControlProps) {
-  const { bundle } = useProject();
+  const { bundle } = useProjectRow();
   const estimate = bundle.estimate;
   if (!bundle.project.estimates_enabled || estimate === null) return null;
   const options: SelectorOptionData[] = estimate.points.map((point) => ({
