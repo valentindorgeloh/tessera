@@ -122,6 +122,25 @@
 }
 
 /*
+ * One line with an ellipsis for the row title, the table's Name and Project
+ * cells (tessera-wi-cell-text) and the state, priority, assignee and
+ * group-marker labels (rows, group headers, selector options). These are the
+ * four declarations of Astryx's Text singleLine style, so nothing moves. Not Text
+ * maxLines: Astryx 0.6.8 measures every maxLines Text on mount (a forced layout
+ * each, even with hasTruncateTooltip={false}), thousands of them in a long list.
+ * The title and the cells get their tooltip from OneLineText, which measures on
+ * hover only.
+ */
+.tessera-wi-title,
+.tessera-wi-cell-text,
+.tessera-wi-label-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
  * From 481px the chip gap is 8px (the 4px it was before the visual alignment round, L11, plus 4px). The title
  * takes those 4px back from the 8px gap before the properties, so a 707px title that filled its slot no longer
  * ends in an ellipsis 4px early; the gap to the properties is 4px, the title's start and the key column stay.

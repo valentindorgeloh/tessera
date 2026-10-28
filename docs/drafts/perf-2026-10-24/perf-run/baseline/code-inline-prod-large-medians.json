@@ -1,0 +1,70 @@
+{
+ "head": {
+  "n": 5,
+  "load1m": "16.99,15.67,14.26,11.22,11.92",
+  "median": {
+   "rate": 1,
+   "row": 6,
+   "openMs": 179,
+   "ltOpen": 0,
+   "commitMs": 1107,
+   "settleMs": 2020,
+   "ltAfterPick": 1057,
+   "lt6s": 1057
+  },
+  "min": {
+   "rate": 1,
+   "row": 4,
+   "openMs": 164,
+   "ltOpen": 0,
+   "commitMs": 1054,
+   "settleMs": 1309,
+   "ltAfterPick": 1017,
+   "lt6s": 1017
+  },
+  "max": {
+   "rate": 1,
+   "row": 8,
+   "openMs": 277,
+   "ltOpen": 64,
+   "commitMs": 1327,
+   "settleMs": 3148,
+   "ltAfterPick": 1602,
+   "lt6s": 1602
+  }
+ },
+ "fix": {
+  "n": 5,
+  "load1m": "16.78,13.75,14.44,8.93,11.60",
+  "median": {
+   "rate": 1,
+   "row": 6,
+   "openMs": 140,
+   "ltOpen": 0,
+   "commitMs": 456,
+   "settleMs": 758,
+   "ltAfterPick": 352,
+   "lt6s": 352
+  },
+  "min": {
+   "rate": 1,
+   "row": 4,
+   "openMs": 125,
+   "ltOpen": 0,
+   "commitMs": 425,
+   "settleMs": 678,
+   "ltAfterPick": 332,
+   "lt6s": 332
+  },
+  "max": {
+   "rate": 1,
+   "row": 8,
+   "openMs": 342,
+   "ltOpen": 54,
+   "commitMs": 512,
+   "settleMs": 884,
+   "ltAfterPick": 411,
+   "lt6s": 411
+  }
+ }
+}

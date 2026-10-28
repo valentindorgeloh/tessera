@@ -134,6 +134,22 @@
   overflow: clip;
 }
 
+/*
+ * One line with an ellipsis for the band labels, the row names and the bar
+ * labels (work items and modules): the four declarations of Astryx's Text
+ * singleLine style. Not Text maxLines, which measures every Text on mount (a
+ * forced layout each, two per row); OneLineText measures on hover only, for its
+ * tooltip. Before the bar label's container query, which hides it in short bars.
+ */
+.tessera-gantt-month-label,
+.tessera-gantt-name,
+.tessera-gantt-bar-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tessera-gantt-month-label {
   position: sticky;
   inset-inline-start: var(--tessera-gantt-label);

@@ -37,6 +37,7 @@ import { splitShownNames } from "./properties/membership-rules";
 import { GroupFooter, GroupPoints } from "./GroupFooter";
 import { UNGROUPED_KEY, loadedOfTotal } from "./paging";
 import { NoResults } from "./NoResults";
+import { OneLineText } from "./OneLineText";
 import { QuickAdd } from "./QuickAdd";
 import type { LayoutProps, QuickAddGroup, UpdateWorkItemPatch } from "./types";
 
@@ -60,7 +61,7 @@ function GroupMarker({ group }: { group: Group }) {
   const { statesById } = useProject();
   if (group.id === NONE_GROUP_ID) {
     return (
-      <Text type="inherit" color="secondary" maxLines={1} hasTruncateTooltip={false}>
+      <Text type="inherit" color="secondary" className="tessera-wi-label-text">
         {group.name}
       </Text>
     );
@@ -81,7 +82,7 @@ function GroupMarker({ group }: { group: Group }) {
       return <ActorLabel name={group.name} />;
     default:
       return (
-        <Text type="inherit" maxLines={1} hasTruncateTooltip={false}>
+        <Text type="inherit" className="tessera-wi-label-text">
           {group.name}
         </Text>
       );
@@ -242,15 +243,17 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Omit<RowPr
 }
 
 /**
- * The row title: one line with an ellipsis and the full title in a tooltip when it is cut. Its class lets
- * work-items.css give Astryx's label slot a minimum width, so the properties wrap below the title instead of
- * squeezing it (narrow windows, the peek panel open).
+ * The row title: one line with an ellipsis, and the full title in a tooltip when it is cut. The ellipsis is CSS
+ * (`tessera-wi-title` in work-items.css) and `OneLineText` measures the title only on hover: Astryx 0.6.8 Text
+ * measures every Text it truncates on mount, a forced layout per row. The class also lets work-items.css give
+ * Astryx's label slot a minimum width, so the properties wrap below the title instead of squeezing it (narrow
+ * windows, the peek panel open).
  */
 function RowTitle({ name }: { name: string }) {
   return (
-    <Text className="tessera-wi-title" weight="medium" maxLines={1}>
+    <OneLineText className="tessera-wi-title" weight="medium">
       {name}
-    </Text>
+    </OneLineText>
   );
 }
 

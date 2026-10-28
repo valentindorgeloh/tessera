@@ -11,3 +11,4 @@ Run them from a scratch copy against a production server on your own port and a 
 | `next/` | sidebar prefetch and skeleton timing, first-peek timing (decision 142) |
 | `assets/` | per-route asset probe and the chunk dominator script |
 | `skeptic2/` | row-tick trace and the `:has()` bisect |
+| `perf-run/` | the 2026-10-24 performance run: its probes (`scripts/`) and the medians later runs compare against (`baseline/`: the `d26461b` Measure-phase medians, the integrated round's `integ2-summary.json` and the review fixes' `fix-*-medians.json`); see `perf-run/README.md`. The run's report is `docs/drafts/perf-report-2026-10-24.md` |

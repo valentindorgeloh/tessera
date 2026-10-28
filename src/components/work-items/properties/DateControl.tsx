@@ -69,8 +69,10 @@ export function DateControl({ value, onChange, compact = false, readOnly = false
   );
   if (!compact) return picker;
   const short = label.replace(/ date$/i, "");
+  // Astryx 0.6.8 Popover has no lazy prop and keeps closed content mounted: every closed chip carried a full DateInput
+  // calendar (two per row with both dates shown). The picker mounts only while the popover is open.
   return (
-    <Popover isOpen={isOpen} onOpenChange={setOpen} content={<VStack padding={3}>{picker}</VStack>} label={label} placement="below" alignment="start" hasAutoFocus>
+    <Popover isOpen={isOpen} onOpenChange={setOpen} content={isOpen ? <VStack padding={3}>{picker}</VStack> : null} label={label} placement="below" alignment="start" hasAutoFocus>
       <Button
         variant="ghost"
         size="sm"

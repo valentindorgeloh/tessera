@@ -1,0 +1,39 @@
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import fs from "node:fs";
+import { execSync } from "node:child_process";
+import { USER_ACTOR_ID } from "@/lib/tessera/actors";
+import { createContext } from "@/lib/tessera/core/context";
+import { schema } from "@/lib/tessera/db/schema";
+import { getCounts } from "@/lib/tessera/counts";
+import { getStoredDigest } from "@/lib/tessera/ai/digest-store";
+import { listQuickLinks } from "@/lib/tessera/workspace/quick-links";
+import { getWorkspaceSettings } from "@/lib/tessera/workspace/settings";
+import { sinceLastVisit } from "@/lib/tessera/workspace/since";
+import { recentStickies } from "@/lib/tessera/workspace/stickies";
+const sqlite = new Database(process.argv[2], { readonly: true });
+const db = drizzle(sqlite, { schema });
+const mk = () => createContext({ db, sqlite, actorId: USER_ACTOR_ID });
+const settings = getWorkspaceSettings(mk());
+const cases: Record<string, () => unknown> = {
+  sinceLastVisit: () => sinceLastVisit(mk(), settings.last_seen_seq),
+  "sinceLastVisit(seq 0)": () => sinceLastVisit(mk(), 0),
+  listQuickLinks: () => listQuickLinks(mk()),
+  "getCounts(profile assigned)": () => getCounts(mk(), { type: "profile", actor_id: USER_ACTOR_ID, tab: "assigned" }),
+  "getCounts(profile created)": () => getCounts(mk(), { type: "profile", actor_id: USER_ACTOR_ID, tab: "created" }),
+  "getCounts(profile subscribed)": () => getCounts(mk(), { type: "profile", actor_id: USER_ACTOR_ID, tab: "subscribed" }),
+  recentStickies: () => recentStickies(mk(), 6),
+  getStoredDigest: () => getStoredDigest(mk(), "home", "workspace"),
+};
+const med = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+const res: Record<string, number> = {};
+const load = execSync("uptime").toString().trim();
+for (const [k, f] of Object.entries(cases)) {
+  for (let i = 0; i < 3; i++) f();
+  const t: number[] = [];
+  for (let i = 0; i < 20; i++) { const s = performance.now(); f(); t.push(performance.now() - s); }
+  res[k] = +med(t).toFixed(2);
+  console.log(k.padEnd(36), res[k]);
+}
+console.log("last_seen_seq", settings.last_seen_seq, "load", load);
+fs.writeFileSync(process.argv[3], JSON.stringify({ load, n: 20, last_seen_seq: settings.last_seen_seq, medians_ms: res }, null, 2));

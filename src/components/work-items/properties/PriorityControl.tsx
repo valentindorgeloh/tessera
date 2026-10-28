@@ -44,7 +44,7 @@ export function PriorityLabel({ value }: { value: string }) {
   return (
     <HStack gap={1.5} vAlign="center">
       <Icon icon={option.icon} size="sm" color={option.value === "none" ? "secondary" : "primary"} />
-      <Text type="inherit" maxLines={1} hasTruncateTooltip={false}>
+      <Text type="inherit" className="tessera-wi-label-text">
         {option.label}
       </Text>
     </HStack>

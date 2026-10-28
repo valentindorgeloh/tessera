@@ -1,12 +1,26 @@
-# Tessera: what needs improving (2026-10-24)
+# Tessera: what needs improving (2026-10-28)
 
 Reconciled on 2026-10-24 against the working tree after fix round 6 (tree = HEAD 157c687, which has fix round 5 committed as d3ffeb9 plus the demo seed, performance plan and live-app commits, plus this round's uncommitted changes: three lanes (shell-collapse, pins, e2e), two fix passes, two browser verify passes on scratch copies, never :3000 or `data/tessera.db*`). Gates on that tree: the round's gate is green after both fix passes; verify 2 ran `vitest run` from an un-niced shell (240 files / 3000 tests pass, including `live-build` and `live-script`, which refuse a niced shell), and the reconciler re-ran `tsc --noEmit` (clean), `eslint .` (clean), `scripts/check-conventions.ts` (passed) and the five round 6 Vitest files (23 tests pass). Playwright: 138 of 138 (24 spec files) on a scratch production build of the tree after fix 2 (port 3690, no fixme or skip), and `round6.spec.ts` 280 of 280 with `--repeat-each=10` (verify 1 had 279 of 280, a project-identifier collision in the spec helpers, fixed). The root then ran its own gate and two review passes over the tree; their fixes are the "Root close-out" entries under Closed, and the final gate on a fresh scratch copy of the tree after them was green: `next build`, `check:bundle`, `npm run check`, then two more `vitest run` (241 files / 3011 tests each time), Playwright 138 of 138 and `round6.spec.ts` 84 of 84 with `--repeat-each=3` (every early action landed in the gap on its first attempt), plus browser checks of the Power K seed and the drawer button. Contract for the round: `docs/drafts/fix-round-6-2026-10-23.md`. Re-check an item before working on it.
+
+Updated on 2026-10-28 with the performance round (commit after 21f8ae3): its open follow-ups are under "Performance", "Operations" and "Waiting for the user", its results under "Closed".
 
 ## Open
 
 ### Accessibility, 375 px and visual
 Shell
 - Latent hydration case, never reproduced (round 6 investigation): `AiStatusProvider` keeps `status` in a `useState` that changes after mount, and `SinceLastVisit` (DigestCard), `ViewsScreen`, `WorkspaceSettingsScreen` and `useAssistant` (intake) read it through context, so a status that lands before a streamed boundary hydrates would hydrate it against different HTML (error 418). 0 of 9 faked runs and round6 (f), (g) pass; ui.md "Shell" names it as the exception to the streamed-subtree rule. If it reproduces, read `status` in the consumer through `useSyncExternalStore` with a null server snapshot. Low.
+Work items
+- On the board a long state name in a column header overlaps the column's Add button: the StateLabel HStack in `.tessera-board-column-title` has no `min-width: 0` (found by the performance round, 2026-10-28). Low.
+- At 375 px the open Assignees MultiSelector cuts a very long actor name at the listbox edge with no ellipsis (same round). Low.
+
+### Performance (after the round of 2026-10-28)
+- Decision 115's budget is still missed on 10k items: list p95 1,121 ms, table p95 1,996 ms (n=20, `tests/e2e/perf.spec.ts`). Next: roadmap lanes B (decision 141, memoised rows and stable identities) and C (decision 142, lazy peek and editor, sidebar links, bundle budget) in docs/drafts/perf-roadmap-2026-10-24.md, then Astryx lazy layers upstream (docs/drafts/astryx-upstream-2026-10-24.md).
+- The perf spec's board time is bimodal before and after the round (about 0.25 s, or 1.0 to 1.35 s when the reveal waits behind start-up long tasks); its cause is not traced.
+- The ProjectFrame heading and the "Work items" Text in `WorkItemsScreen` still use `Text maxLines`: 115 to 119 ms of `checkTruncation` in a dev 10k table load. Low.
+- Per-row popovers were made lazy in the list, table, gantt and modules timeline only; other popovers with heavy closed content are not audited. Low.
+
+### Operations
+- Backup file names do not name their database: every backup is `tessera-<kind>-<stamp>.db` in `backups/` next to the database file (`src/lib/tessera/db/backups.ts`), so two databases in one folder (`data/tessera.db` and a perf or acceptance copy in `data/`) share one folder whose list, rotation and restore mix their copies. Put the source file's base name in the backup name and filter by it. Medium.
 
 ### Coverage gaps (not checked this round)
 - Real devices: all touch checks are Playwright emulation (the page-tree grip uses CDP touch events in `coverage-touch.spec.ts`). Playwright WebKit would add Safari-engine emulation, but installing it is a download and needs your approval.
@@ -25,6 +39,7 @@ The `npm run db:demo` run (about 70 routes at 1440 and 375 in both schemes on a 
 - Home quick links whose URL is an internal path show the raw path with the project UUID as their subtitle. Low.
 
 ## Waiting for the user
+- Astryx upstream: approve filing the issue and PR drafted in docs/drafts/astryx-upstream-2026-10-24.md (public, on your GitHub account): the ContextMenu `moveTo`/`start`/`cancel` prop warning, lazy `Text maxLines` measuring, lazy closed layers. Later, approve the Astryx upgrade download once a release has the fixes; then `OneLineText` goes back to `Text maxLines`.
 - Live P5 acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is built and `assistant.spec.ts` and `round-features.spec.ts` pass on it.
 
 ## Planned for P12 (docs/drafts/p12-plan.md)
@@ -35,6 +50,13 @@ The `npm run db:demo` run (about 70 routes at 1440 and 375 in both schemes on a 
 - Calendar zoom Week / Month / Quarter, consistent with the gantt zoom (decision 90).
 
 ## Closed
+
+### Performance round (2026-10-28)
+The work-item views were slow in the browser, not on the server (a 10k list read takes 5 ms). Every row mounted closed Astryx date-picker calendars (61,892 of 113,464 DOM nodes on a 10k list page), and every row title and label ran Astryx `Text maxLines`, which forces a layout per Text on mount. Fixed: the date chips and the gantt and modules date popovers mount their pickers only while open; row text is cut by a CSS one-line class, and `OneLineText` keeps the overflow tooltip by measuring only on hover. Measured interleaved, production, n=5 (docs/drafts/perf-report-2026-10-24.md):
+- 10k items: list 6,221 → 962 ms, table 14,485 → 1,630 ms, sidebar to list 6,372 → 971 ms, peek 1,493 → 703 ms, inline priority edit 1,086 → 430 ms, gantt hydrated 1,531 → 679 ms; board unchanged.
+- About 50 items: list 791 → 373 ms, table 1,407 → 566 ms, peek 405 → 255 ms; with 4× CPU throttling list 3,151 → 1,380 ms.
+- Dev, 10k: sidebar to list 9,661 → 1,914 ms.
+Also added: the decision 115 perf spec (`tests/e2e/perf.spec.ts`, opt-in), a tripwire for the Astryx ContextMenu prop warning, and the upstream draft.
 
 ### Fix round 6 (2026-10-23)
 - Hydration error 418 after an early sidebar toggle or `mod+b` (the round 5 item named the wrong cause: not Home or its Since rows). The collapse flag was `useState` in `TesseraShell` passed through `ShellContext`; the sidebar streams behind a Suspense boundary (`(tessera)/layout.tsx`) that hydrates after the top bar and `mod+b` are live, and React 19.3 never propagates a context change into a still-dehydrated boundary whose props come from the RSC payload, so it later hydrated collapsed against expanded server HTML (Astryx `SideNav` drops its resize wrapper). Reproduced on all 25 routes at 1440, both schemes. Fix: `nav-collapse-store.ts` (`useSyncExternalStore`, server snapshot false, no persistence), each `useShell()` consumer reads it, the context holds only stable callbacks; rule in ui.md "Shell": `nav-collapse-store.test.ts`, `shell-collapse-wiring.test.ts` (fails when the read moves back into the provider); browser PASS (verify 1: 33 of 33 production and dev matrix runs, 0 of 12 repeat runs against 12 of 12 before, 900-case sweep of 25 routes at 1440 and 375 with 0 errors, shell checks in both schemes, 375 drawer); e2e `round6.spec.ts` (a) to (g). `round5.spec.ts` no longer waits with `waitForHydrated`.

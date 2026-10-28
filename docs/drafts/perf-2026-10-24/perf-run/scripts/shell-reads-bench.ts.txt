@@ -1,0 +1,115 @@
+/**
+ * Times the engine reads one request of the (tessera) layout, the project layout,
+ * the work-items page and Home make, on a given DB. Read-only.
+ * Run from the HEAD copy: cd $B; npx tsx --tsconfig tsconfig.json <this> <db> <out.json>
+ */
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import fs from "node:fs";
+import { execSync } from "node:child_process";
+import { USER_ACTOR_ID } from "@/lib/tessera/actors";
+import { createContext, type TesseraContext } from "@/lib/tessera/core/context";
+import { schema } from "@/lib/tessera/db/schema";
+import * as E from "@/lib/tessera/index";
+import { listFavorites } from "@/lib/tessera/workspace/favorites";
+import { getWorkspaceSettings } from "@/lib/tessera/workspace/settings";
+import { getHomeSummary } from "@/lib/tessera/workspace/home";
+import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
+import { listPaging, ganttListExtras } from "@/components/work-items/paging";
+import { toWeekStart } from "@/components/work-items/calendar-math";
+import { mergeDisplay, mergeFilters } from "@/components/work-items/url-state";
+
+const dbPath = process.argv[2];
+const out = process.argv[3];
+const sqlite = new Database(dbPath, { readonly: true });
+sqlite.pragma("busy_timeout = 5000");
+const db = drizzle(sqlite, { schema });
+const mk = (): TesseraContext => createContext({ db, sqlite, actorId: USER_ACTOR_ID });
+
+const ctx0 = mk();
+const projects = E.listProjects(ctx0, {});
+const big = projects.reduce((a, p) => (p.counts.total > a.counts.total ? p : a), projects[0]);
+
+function median(xs: number[]): number {
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
+}
+function p95(xs: number[]): number {
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.min(s.length - 1, Math.ceil(0.95 * s.length) - 1)];
+}
+
+const cases: Record<string, () => unknown> = {
+  createContext: () => mk(),
+  "listProjects(active)": () => E.listProjects(mk(), {}),
+  "listProjects(archived)": () => E.listProjects(mk(), { archived: true }),
+  listFavorites: () => listFavorites(mk()),
+  getUnreadCount: () => E.getUnreadCount(mk()),
+  countDrafts: () => E.countDrafts(mk()),
+  latestSeq: () => E.latestSeq(mk()),
+  getWorkspaceSettings: () => getWorkspaceSettings(mk()),
+  "SidebarData (all)": () => {
+    const c = mk();
+    E.listProjects(c, {});
+    listFavorites(c);
+    E.getUnreadCount(c);
+    E.countDrafts(c);
+    getWorkspaceSettings(c);
+  },
+  "WatchersData (all, minus cached projects/favs)": () => {
+    const c = mk();
+    E.listProjects(c, { archived: true });
+    E.latestSeq(c);
+    E.getUnreadCount(c);
+    getWorkspaceSettings(c);
+  },
+  "ProjectLayout bundle": () => {
+    const c = mk();
+    const project = E.getProject(c, big.id);
+    E.listStates(c, big.id);
+    E.listLabels(c, big.id);
+    E.listCycles(c, big.id, {});
+    E.listModules(c, big.id, {});
+    E.listActors(c);
+    E.latestSeq(c);
+    getWorkspaceSettings(c);
+    if (project.estimates_enabled) E.getActiveEstimate(c, project.id);
+    E.countOpenIntake(c, project.id);
+    E.listProjects(c, {});
+  },
+  "ProjectLayout: listCycles": () => E.listCycles(mk(), big.id, {}),
+  "ProjectLayout: listModules": () => E.listModules(mk(), big.id, {}),
+  "ProjectLayout: getProject": () => E.getProject(mk(), big.id),
+  "WorkItems page: list (default display)": () => {
+    const c = mk();
+    const settings = E.getViewSettings(c, "project", big.id);
+    const display = mergeDisplay(DEFAULT_DISPLAY, settings.display, undefined);
+    const filters = mergeFilters({}, settings.filters, undefined);
+    const paging = listPaging(display, undefined, c.today(), toWeekStart(getWorkspaceSettings(c).week_start));
+    return E.listWorkItems(c, { scope: { type: "project", project_id: big.id }, filters, display, ...paging, ...ganttListExtras(display) });
+  },
+  "Home: getHomeSummary": () => getHomeSummary(mk()),
+  "api/changes": () => {
+    const c = mk();
+    E.listChanges(c, E.latestSeq(c) - 50, { excludeActors: [USER_ACTOR_ID] });
+    E.getUnreadCount(c);
+  },
+};
+
+const RUNS = Number(process.env.RUNS ?? 30);
+const results: Record<string, { median: number; p95: number; n: number }> = {};
+const load = execSync("uptime").toString().trim();
+for (const [name, fn] of Object.entries(cases)) {
+  for (let i = 0; i < 3; i++) fn();
+  const times: number[] = [];
+  for (let i = 0; i < RUNS; i++) {
+    const t = performance.now();
+    fn();
+    times.push(performance.now() - t);
+  }
+  results[name] = { median: +median(times).toFixed(2), p95: +p95(times).toFixed(2), n: RUNS };
+  console.log(name.padEnd(48), "median", results[name].median.toFixed(2), "p95", results[name].p95.toFixed(2));
+}
+const loadAfter = execSync("uptime").toString().trim();
+fs.writeFileSync(out, JSON.stringify({ db: dbPath, project: { id: big.id, identifier: big.identifier, items: big.counts.total }, projects: projects.length, loadBefore: load, loadAfter, results }, null, 2));
+console.log("load", load, "|", loadAfter);

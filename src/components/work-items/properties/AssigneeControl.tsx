@@ -20,7 +20,7 @@ export function ActorLabel({ name }: { name: string }) {
   return (
     <HStack gap={1.5} vAlign="center">
       <Avatar name={name} size="xsm" tooltip={false} />
-      <Text type="inherit" maxLines={1} hasTruncateTooltip={false}>
+      <Text type="inherit" className="tessera-wi-label-text">
         {name}
       </Text>
     </HStack>

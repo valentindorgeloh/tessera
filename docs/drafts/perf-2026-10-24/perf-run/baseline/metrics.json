@@ -1,0 +1,2911 @@
+[
+ {
+  "scenario": "prod small server home",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 19.8,
+  "p95_ms": 20.7,
+  "n": 7,
+  "notes": "/; status 200; TTFB 1.4 ms; first hit 39.5 ms; 279.2 KB raw HTML in 9 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server projects",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 12.9,
+  "p95_ms": 13.2,
+  "n": 7,
+  "notes": "/projects; status 200; TTFB 1.5 ms; first hit 26.6 ms; 202.3 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server wi-list",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 54.4,
+  "p95_ms": 72.1,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items; status 200; TTFB 1.7 ms; first hit 182.5 ms; 1084.8 KB raw HTML in 22 chunks (streamed: true); [data-list-ready] in stream at 43 ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server wi-list-state",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 58.4,
+  "p95_ms": 71.9,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items?q=eyJkaXNwbG…; status 200; TTFB 1.9 ms; first hit 81.5 ms; 1119.7 KB raw HTML in 22 chunks (streamed: true); [data-list-ready] in stream at 46.9 ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server wi-board-state",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 35.7,
+  "p95_ms": 37.3,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items?q=eyJkaXNwbG…; status 200; TTFB 1.9 ms; first hit 50.9 ms; 718.9 KB raw HTML in 16 chunks (streamed: true); [data-list-ready] in stream at 30.2 ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server wi-table-state",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 81.1,
+  "p95_ms": 93,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items?q=eyJkaXNwbG…; status 200; TTFB 1.8 ms; first hit 105.4 ms; 1491.5 KB raw HTML in 28 chunks (streamed: true); [data-list-ready] in stream at 57.8 ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server wi-table",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 79.3,
+  "p95_ms": 106.3,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items?q=eyJkaXNwbG…; status 200; TTFB 2.3 ms; first hit 87.7 ms; 1478.2 KB raw HTML in 28 chunks (streamed: true); [data-list-ready] in stream at 60.3 ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server wi-peek",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 58.4,
+  "p95_ms": 68.7,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/work-items?peek=01a160d…; status 200; TTFB 2.1 ms; first hit 73.4 ms; 1095 KB raw HTML in 22 chunks (streamed: true); [data-list-ready] in stream at 46.6 ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server work-item",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 23.1,
+  "p95_ms": 24.3,
+  "n": 7,
+  "notes": "/work-items/01a160df-6440-736b-a03e-3ac1380b7a52; status 200; TTFB 1.9 ms; first hit 39.4 ms; 330.4 KB raw HTML in 9 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server cycles",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 20.3,
+  "p95_ms": 27.2,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles; status 200; TTFB 1.6 ms; first hit 52.2 ms; 277.7 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server cycle",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 37.5,
+  "p95_ms": 51.1,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/cycles/01a160df-6439-75…; status 200; TTFB 1.7 ms; first hit 50.4 ms; 621.2 KB raw HTML in 15 chunks (streamed: true); [data-list-ready] in stream at 33.7 ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server modules",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 18,
+  "p95_ms": 19.1,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/modules; status 200; TTFB 1.8 ms; first hit 28.1 ms; 269.5 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server views",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 19.3,
+  "p95_ms": 21.7,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/views; status 200; TTFB 1.6 ms; first hit 29.2 ms; 264.6 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server pages",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 19.6,
+  "p95_ms": 26.5,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/pages; status 200; TTFB 1.7 ms; first hit 31.3 ms; 327.2 KB raw HTML in 10 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server page",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 18.5,
+  "p95_ms": 24.7,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/pages/01a160e1-a737-762…; status 200; TTFB 1.6 ms; first hit 27.6 ms; 280 KB raw HTML in 9 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server intake",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 16.1,
+  "p95_ms": 18.2,
+  "n": 7,
+  "notes": "/projects/01a160df-642f-7102-859a-8c50a72e7f1e/intake; status 200; TTFB 1.6 ms; first hit 31.1 ms; 264.7 KB raw HTML in 9 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server inbox",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 12.9,
+  "p95_ms": 14.1,
+  "n": 7,
+  "notes": "/inbox; status 200; TTFB 1.5 ms; first hit 23.5 ms; 242.2 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server yw-summary",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 16.4,
+  "p95_ms": 17.4,
+  "n": 7,
+  "notes": "/your-work/summary; status 200; TTFB 1.6 ms; first hit 29.2 ms; 221.6 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server yw-assigned",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 32.4,
+  "p95_ms": 37.8,
+  "n": 7,
+  "notes": "/your-work/assigned; status 200; TTFB 1.5 ms; first hit 35.7 ms; 518.4 KB raw HTML in 12 chunks (streamed: true); [data-list-ready] in stream at 28.9 ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server agents",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 14.9,
+  "p95_ms": 15.5,
+  "n": 7,
+  "notes": "/agents; status 200; TTFB 1.6 ms; first hit 22 ms; 197.3 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server drafts",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 12.1,
+  "p95_ms": 13.9,
+  "n": 7,
+  "notes": "/drafts; status 200; TTFB 1.4 ms; first hit 18.2 ms; 198.7 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server workspace-views",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 13.8,
+  "p95_ms": 14.9,
+  "n": 7,
+  "notes": "/workspace-views; status 200; TTFB 1.5 ms; first hit 20.3 ms; 210.1 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server active-cycles",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 11.9,
+  "p95_ms": 12.6,
+  "n": 7,
+  "notes": "/active-cycles; status 200; TTFB 1.4 ms; first hit 19.1 ms; 199.1 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server analytics",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 18.8,
+  "p95_ms": 21.6,
+  "n": 7,
+  "notes": "/analytics/overview; status 200; TTFB 1.4 ms; first hit 37.6 ms; 276 KB raw HTML in 9 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server stickies",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 15.1,
+  "p95_ms": 15.8,
+  "n": 7,
+  "notes": "/stickies; status 200; TTFB 1.5 ms; first hit 20.5 ms; 259.7 KB raw HTML in 9 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server wiki",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 19.1,
+  "p95_ms": 20.3,
+  "n": 7,
+  "notes": "/wiki; status 200; TTFB 1.5 ms; first hit 28.1 ms; 402 KB raw HTML in 11 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small server settings",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 12.3,
+  "p95_ms": 12.6,
+  "n": 7,
+  "notes": "/settings/general; status 200; TTFB 1.6 ms; first hit 18.7 ms; 199.2 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 6.22 9.31 9.17 -> 5.95 9.15 9.11"
+ },
+ {
+  "scenario": "prod small hard load home @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 173,
+  "p95_ms": 266,
+  "n": 5,
+  "notes": "TTFB 4, FCP 64, LCP 64, hydrated 173, load 83 ms; long tasks total 0 ms (max 0); JS 884 KB transferred in 44 files, CSS 55 KB, HTML 31 KB gz / 241 KB raw; DOM nodes at ready 1402; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load projects @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 58,
+  "p95_ms": 74,
+  "n": 5,
+  "notes": "TTFB 2, FCP 60, LCP 60, hydrated 135, load 72 ms; long tasks total 0 ms (max 0); JS 606 KB transferred in 43 files, CSS 55 KB, HTML 27 KB gz / 202 KB raw; DOM nodes at ready 1045; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load wi-list @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 850,
+  "p95_ms": 1114,
+  "n": 5,
+  "notes": "TTFB 2, FCP 76, LCP 76, hydrated 851, load 157 ms; long tasks total 865 ms (max 685); JS 993 KB transferred in 52 files, CSS 55 KB, HTML 64 KB gz / 1085 KB raw; DOM nodes at ready 31844; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load wi-list-state @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 813,
+  "p95_ms": 893,
+  "n": 5,
+  "notes": "TTFB 3, FCP 80, LCP 80, hydrated 838, load 153 ms; long tasks total 839 ms (max 673); JS 993 KB transferred in 52 files, CSS 55 KB, HTML 67 KB gz / 1120 KB raw; DOM nodes at ready 32244; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load wi-board-state @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 402,
+  "p95_ms": 526,
+  "n": 5,
+  "notes": "TTFB 4, FCP 80, LCP 80, hydrated 447, load 151 ms; long tasks total 260 ms (max 260); JS 993 KB transferred in 52 files, CSS 55 KB, HTML 57 KB gz / 719 KB raw; DOM nodes at ready 8983; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load wi-table-state @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 1542,
+  "p95_ms": 1811,
+  "n": 5,
+  "notes": "TTFB 2, FCP 92, LCP 92, hydrated 1559, load 164 ms; long tasks total 1559 ms (max 1382); JS 993 KB transferred in 52 files, CSS 55 KB, HTML 73 KB gz / 1491 KB raw; DOM nodes at ready 36080; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load wi-table @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 1531,
+  "p95_ms": 1980,
+  "n": 5,
+  "notes": "TTFB 3, FCP 104, LCP 104, hydrated 1531, load 150 ms; long tasks total 1530 ms (max 1348); JS 993 KB transferred in 52 files, CSS 55 KB, HTML 71 KB gz / 1478 KB raw; DOM nodes at ready 35930; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load wi-peek @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 1074,
+  "p95_ms": 1090,
+  "n": 5,
+  "notes": "TTFB 2, FCP 72, LCP 1096, hydrated 1074, load 121 ms; long tasks total 1089 ms (max 916); JS 994 KB transferred in 53 files, CSS 55 KB, HTML 65 KB gz / 1095 KB raw; DOM nodes at ready 33872; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load work-item @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 82,
+  "p95_ms": 296,
+  "n": 5,
+  "notes": "TTFB 3, FCP 60, LCP 64, hydrated 296, load 97 ms; long tasks total 164 ms (max 164); JS 912 KB transferred in 47 files, CSS 55 KB, HTML 39 KB gz / 330 KB raw; DOM nodes at ready 1676; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load cycles @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 226,
+  "p95_ms": 252,
+  "n": 5,
+  "notes": "TTFB 2, FCP 60, LCP 60, hydrated 226, load 84 ms; long tasks total 101 ms (max 101); JS 744 KB transferred in 50 files, CSS 55 KB, HTML 35 KB gz / 278 KB raw; DOM nodes at ready 1748; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load cycle @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 430,
+  "p95_ms": 436,
+  "n": 5,
+  "notes": "TTFB 2, FCP 60, LCP 440, hydrated 430, load 122 ms; long tasks total 351 ms (max 294); JS 1116 KB transferred in 55 files, CSS 55 KB, HTML 56 KB gz / 621 KB raw; DOM nodes at ready 12158; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load modules @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 63,
+  "p95_ms": 179,
+  "n": 5,
+  "notes": "TTFB 2, FCP 52, LCP 52, hydrated 168, load 83 ms; long tasks total 0 ms (max 0); JS 629 KB transferred in 48 files, CSS 55 KB, HTML 35 KB gz / 270 KB raw; DOM nodes at ready 1323; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load views @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 69,
+  "p95_ms": 176,
+  "n": 5,
+  "notes": "TTFB 2, FCP 56, LCP 56, hydrated 169, load 84 ms; long tasks total 0 ms (max 0); JS 620 KB transferred in 47 files, CSS 55 KB, HTML 35 KB gz / 265 KB raw; DOM nodes at ready 1283; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load pages @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 62,
+  "p95_ms": 69,
+  "n": 5,
+  "notes": "TTFB 2, FCP 52, LCP 52, hydrated 167, load 81 ms; long tasks total 57 ms (max 57); JS 627 KB transferred in 48 files, CSS 55 KB, HTML 37 KB gz / 327 KB raw; DOM nodes at ready 1614; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load page @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 66,
+  "p95_ms": 97,
+  "n": 5,
+  "notes": "TTFB 2, FCP 64, LCP 64, hydrated 251, load 85 ms; long tasks total 132 ms (max 132); JS 902 KB transferred in 50 files, CSS 55 KB, HTML 36 KB gz / 280 KB raw; DOM nodes at ready 1361; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load intake @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 65,
+  "p95_ms": 70,
+  "n": 5,
+  "notes": "TTFB 2, FCP 56, LCP 56, hydrated 168, load 108 ms; long tasks total 50 ms (max 50); JS 930 KB transferred in 51 files, CSS 55 KB, HTML 35 KB gz / 265 KB raw; DOM nodes at ready 1308; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load inbox @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 65,
+  "p95_ms": 72,
+  "n": 5,
+  "notes": "TTFB 3, FCP 60, LCP 60, hydrated 172, load 120 ms; long tasks total 0 ms (max 0); JS 929 KB transferred in 48 files, CSS 55 KB, HTML 30 KB gz / 242 KB raw; DOM nodes at ready 1285; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load yw-summary @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 64,
+  "p95_ms": 195,
+  "n": 5,
+  "notes": "TTFB 3, FCP 60, LCP 60, hydrated 151, load 83 ms; long tasks total 0 ms (max 0); JS 702 KB transferred in 46 files, CSS 55 KB, HTML 29 KB gz / 222 KB raw; DOM nodes at ready 1196; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load yw-assigned @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 334,
+  "p95_ms": 370,
+  "n": 5,
+  "notes": "TTFB 2, FCP 72, LCP 72, hydrated 352, load 103 ms; long tasks total 270 ms (max 211); JS 702 KB transferred in 46 files, CSS 55 KB, HTML 45 KB gz / 518 KB raw; DOM nodes at ready 12002; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load agents @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 59,
+  "p95_ms": 167,
+  "n": 5,
+  "notes": "TTFB 2, FCP 60, LCP 60, hydrated 157, load 73 ms; long tasks total 0 ms (max 0); JS 609 KB transferred in 43 files, CSS 55 KB, HTML 26 KB gz / 197 KB raw; DOM nodes at ready 1059; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load drafts @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 66,
+  "p95_ms": 220,
+  "n": 5,
+  "notes": "TTFB 2, FCP 60, LCP 60, hydrated 138, load 71 ms; long tasks total 0 ms (max 0); JS 613 KB transferred in 43 files, CSS 55 KB, HTML 26 KB gz / 199 KB raw; DOM nodes at ready 1064; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load workspace-views @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 66,
+  "p95_ms": 66,
+  "n": 5,
+  "notes": "TTFB 2, FCP 60, LCP 60, hydrated 137, load 71 ms; long tasks total 0 ms (max 0); JS 611 KB transferred in 43 files, CSS 55 KB, HTML 28 KB gz / 210 KB raw; DOM nodes at ready 1116; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load active-cycles @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 190,
+  "p95_ms": 204,
+  "n": 5,
+  "notes": "TTFB 3, FCP 60, LCP 60, hydrated 190, load 72 ms; long tasks total 85 ms (max 85); JS 733 KB transferred in 46 files, CSS 55 KB, HTML 27 KB gz / 199 KB raw; DOM nodes at ready 1266; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load analytics @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 238,
+  "p95_ms": 246,
+  "n": 5,
+  "notes": "TTFB 2, FCP 60, LCP 60, hydrated 238, load 87 ms; long tasks total 114 ms (max 114); JS 743 KB transferred in 46 files, CSS 55 KB, HTML 32 KB gz / 276 KB raw; DOM nodes at ready 2013; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load stickies @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 60,
+  "p95_ms": 68,
+  "n": 5,
+  "notes": "TTFB 2, FCP 64, LCP 240, hydrated 234, load 103 ms; long tasks total 124 ms (max 124); JS 884 KB transferred in 44 files, CSS 55 KB, HTML 30 KB gz / 260 KB raw; DOM nodes at ready 1386; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load wiki @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 64,
+  "p95_ms": 207,
+  "n": 5,
+  "notes": "TTFB 2, FCP 52, LCP 52, hydrated 169, load 82 ms; long tasks total 53 ms (max 53); JS 620 KB transferred in 44 files, CSS 55 KB, HTML 33 KB gz / 402 KB raw; DOM nodes at ready 2129; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load settings @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 60,
+  "p95_ms": 72,
+  "n": 5,
+  "notes": "TTFB 2, FCP 60, LCP 60, hydrated 136, load 70 ms; long tasks total 0 ms (max 0); JS 623 KB transferred in 46 files, CSS 55 KB, HTML 27 KB gz / 199 KB raw; DOM nodes at ready 1050; errors 0; load 11.96 9.43 9.16 -> 6.05 8.14 8.70"
+ },
+ {
+  "scenario": "prod small hard load home @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 583,
+  "p95_ms": 657,
+  "n": 5,
+  "notes": "TTFB 2, FCP 116, LCP 576, hydrated 583, load 244 ms; long tasks total 364 ms (max 175); JS 596 KB transferred in 40 files, CSS 55 KB, HTML 31 KB gz / 241 KB raw; DOM nodes at ready 1639; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load projects @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 123,
+  "p95_ms": 395,
+  "n": 5,
+  "notes": "TTFB 2, FCP 112, LCP 548, hydrated 540, load 244 ms; long tasks total 271 ms (max 114); JS 606 KB transferred in 43 files, CSS 55 KB, HTML 27 KB gz / 202 KB raw; DOM nodes at ready 1043; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load wi-list @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 539,
+  "p95_ms": 586,
+  "n": 5,
+  "notes": "TTFB 2, FCP 136, LCP 136, hydrated 3950, load 304 ms; long tasks total 4357 ms (max 3314); JS 982 KB transferred in 48 files, CSS 55 KB, HTML 64 KB gz / 1085 KB raw; DOM nodes at ready 5887; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load wi-list-state @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 566,
+  "p95_ms": 574,
+  "n": 5,
+  "notes": "TTFB 2, FCP 140, LCP 140, hydrated 3850, load 317 ms; long tasks total 4192 ms (max 3223); JS 982 KB transferred in 48 files, CSS 55 KB, HTML 67 KB gz / 1120 KB raw; DOM nodes at ready 6087; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load wi-board-state @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 500,
+  "p95_ms": 500,
+  "n": 5,
+  "notes": "TTFB 2, FCP 148, LCP 1788, hydrated 1736, load 285 ms; long tasks total 1510 ms (max 1197); JS 982 KB transferred in 48 files, CSS 55 KB, HTML 57 KB gz / 719 KB raw; DOM nodes at ready 3588; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load wi-table-state @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 651,
+  "p95_ms": 695,
+  "n": 5,
+  "notes": "TTFB 2, FCP 168, LCP 168, hydrated 7019, load 351 ms; long tasks total 7485 ms (max 6315); JS 982 KB transferred in 48 files, CSS 55 KB, HTML 73 KB gz / 1491 KB raw; DOM nodes at ready 7568; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load wi-table @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 630,
+  "p95_ms": 653,
+  "n": 5,
+  "notes": "TTFB 2, FCP 156, LCP 156, hydrated 6987, load 350 ms; long tasks total 7471 ms (max 6299); JS 982 KB transferred in 48 files, CSS 55 KB, HTML 71 KB gz / 1478 KB raw; DOM nodes at ready 7493; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load wi-peek @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 4930,
+  "p95_ms": 5436,
+  "n": 5,
+  "notes": "TTFB 3, FCP 144, LCP 4968, hydrated 4932, load 336 ms; long tasks total 5383 ms (max 4284); JS 983 KB transferred in 49 files, CSS 55 KB, HTML 65 KB gz / 1095 KB raw; DOM nodes at ready 28583; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load work-item @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 281,
+  "p95_ms": 288,
+  "n": 5,
+  "notes": "TTFB 2, FCP 156, LCP 156, hydrated 1145, load 308 ms; long tasks total 851 ms (max 656); JS 904 KB transferred in 45 files, CSS 55 KB, HTML 39 KB gz / 330 KB raw; DOM nodes at ready 1676; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load cycles @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 857,
+  "p95_ms": 882,
+  "n": 5,
+  "notes": "TTFB 3, FCP 124, LCP 136, hydrated 857, load 265 ms; long tasks total 586 ms (max 410); JS 733 KB transferred in 46 files, CSS 55 KB, HTML 35 KB gz / 278 KB raw; DOM nodes at ready 1353; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load cycle @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 825,
+  "p95_ms": 854,
+  "n": 5,
+  "notes": "TTFB 2, FCP 116, LCP 840, hydrated 1692, load 275 ms; long tasks total 1587 ms (max 844); JS 1105 KB transferred in 51 files, CSS 55 KB, HTML 56 KB gz / 621 KB raw; DOM nodes at ready 2790; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load modules @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 432,
+  "p95_ms": 581,
+  "n": 5,
+  "notes": "TTFB 3, FCP 116, LCP 116, hydrated 664, load 243 ms; long tasks total 414 ms (max 226); JS 618 KB transferred in 44 files, CSS 55 KB, HTML 35 KB gz / 270 KB raw; DOM nodes at ready 1324; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load views @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 246,
+  "p95_ms": 660,
+  "n": 5,
+  "notes": "TTFB 2, FCP 124, LCP 668, hydrated 660, load 257 ms; long tasks total 412 ms (max 213); JS 609 KB transferred in 43 files, CSS 55 KB, HTML 35 KB gz / 265 KB raw; DOM nodes at ready 1283; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load pages @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 427,
+  "p95_ms": 437,
+  "n": 5,
+  "notes": "TTFB 2, FCP 124, LCP 124, hydrated 709, load 254 ms; long tasks total 445 ms (max 254); JS 617 KB transferred in 44 files, CSS 55 KB, HTML 37 KB gz / 327 KB raw; DOM nodes at ready 1615; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load page @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 400,
+  "p95_ms": 402,
+  "n": 5,
+  "notes": "TTFB 2, FCP 112, LCP 408, hydrated 952, load 250 ms; long tasks total 707 ms (max 516); JS 891 KB transferred in 46 files, CSS 55 KB, HTML 36 KB gz / 280 KB raw; DOM nodes at ready 1362; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load intake @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 432,
+  "p95_ms": 672,
+  "n": 5,
+  "notes": "TTFB 2, FCP 116, LCP 440, hydrated 676, load 253 ms; long tasks total 430 ms (max 238); JS 919 KB transferred in 47 files, CSS 55 KB, HTML 35 KB gz / 265 KB raw; DOM nodes at ready 1309; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load inbox @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 206,
+  "p95_ms": 460,
+  "n": 5,
+  "notes": "TTFB 2, FCP 116, LCP 148, hydrated 688, load 247 ms; long tasks total 396 ms (max 239); JS 920 KB transferred in 46 files, CSS 55 KB, HTML 30 KB gz / 242 KB raw; DOM nodes at ready 1285; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load yw-summary @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 272,
+  "p95_ms": 581,
+  "n": 5,
+  "notes": "TTFB 2, FCP 124, LCP 172, hydrated 581, load 237 ms; long tasks total 355 ms (max 155); JS 694 KB transferred in 44 files, CSS 55 KB, HTML 29 KB gz / 222 KB raw; DOM nodes at ready 1196; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load yw-assigned @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 477,
+  "p95_ms": 1287,
+  "n": 5,
+  "notes": "TTFB 2, FCP 136, LCP 140, hydrated 1529, load 261 ms; long tasks total 1463 ms (max 1014); JS 694 KB transferred in 44 files, CSS 55 KB, HTML 45 KB gz / 518 KB raw; DOM nodes at ready 2719; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load agents @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 250,
+  "p95_ms": 584,
+  "n": 5,
+  "notes": "TTFB 2, FCP 116, LCP 116, hydrated 572, load 237 ms; long tasks total 323 ms (max 135); JS 601 KB transferred in 41 files, CSS 55 KB, HTML 26 KB gz / 197 KB raw; DOM nodes at ready 1059; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load drafts @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 129,
+  "p95_ms": 214,
+  "n": 5,
+  "notes": "TTFB 2, FCP 120, LCP 120, hydrated 579, load 249 ms; long tasks total 300 ms (max 145); JS 605 KB transferred in 41 files, CSS 55 KB, HTML 26 KB gz / 199 KB raw; DOM nodes at ready 1062; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load workspace-views @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 129,
+  "p95_ms": 562,
+  "n": 5,
+  "notes": "TTFB 2, FCP 120, LCP 124, hydrated 562, load 246 ms; long tasks total 299 ms (max 137); JS 603 KB transferred in 41 files, CSS 55 KB, HTML 28 KB gz / 210 KB raw; DOM nodes at ready 1114; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load active-cycles @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 735,
+  "p95_ms": 787,
+  "n": 5,
+  "notes": "TTFB 2, FCP 120, LCP 128, hydrated 735, load 247 ms; long tasks total 474 ms (max 310); JS 724 KB transferred in 44 files, CSS 55 KB, HTML 27 KB gz / 199 KB raw; DOM nodes at ready 871; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load analytics @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 859,
+  "p95_ms": 949,
+  "n": 5,
+  "notes": "TTFB 2, FCP 108, LCP 108, hydrated 859, load 233 ms; long tasks total 616 ms (max 424); JS 734 KB transferred in 44 files, CSS 55 KB, HTML 32 KB gz / 276 KB raw; DOM nodes at ready 1623; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load stickies @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 295,
+  "p95_ms": 912,
+  "n": 5,
+  "notes": "TTFB 2, FCP 128, LCP 968, hydrated 954, load 263 ms; long tasks total 675 ms (max 504); JS 876 KB transferred in 42 files, CSS 55 KB, HTML 30 KB gz / 260 KB raw; DOM nodes at ready 1386; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load wiki @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 427,
+  "p95_ms": 452,
+  "n": 5,
+  "notes": "TTFB 2, FCP 120, LCP 120, hydrated 709, load 260 ms; long tasks total 406 ms (max 251); JS 611 KB transferred in 42 files, CSS 55 KB, HTML 33 KB gz / 402 KB raw; DOM nodes at ready 2130; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small hard load settings @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 232,
+  "p95_ms": 504,
+  "n": 5,
+  "notes": "TTFB 2, FCP 120, LCP 120, hydrated 550, load 243 ms; long tasks total 286 ms (max 126); JS 615 KB transferred in 44 files, CSS 55 KB, HTML 27 KB gz / 199 KB raw; DOM nodes at ready 1050; errors 0; load 6.05 8.14 8.70 -> 7.25 6.54 7.42"
+ },
+ {
+  "scenario": "prod small client nav cold home->projects @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 58,
+  "p95_ms": 66,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 9 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 55 ms in 1/5; main thread busy after ready 0 ms; load 9.48 18.46 15.74 -> 7.07 13.71 14.28"
+ },
+ {
+  "scenario": "prod small client nav cold projects->work-items @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 953,
+  "p95_ms": 967,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 28 ms / 14 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 39 ms in 5/5; main thread busy after ready 0 ms; load 9.48 18.46 15.74 -> 7.07 13.71 14.28"
+ },
+ {
+  "scenario": "prod small client nav cold work-items->cycles @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 374,
+  "p95_ms": 376,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 12 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 53 ms in 5/5; main thread busy after ready 0 ms; load 9.48 18.46 15.74 -> 7.07 13.71 14.28"
+ },
+ {
+  "scenario": "prod small client nav cold cycles->inbox @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 350,
+  "p95_ms": 355,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 10 ms / 6 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 43 ms in 5/5; main thread busy after ready 0 ms; load 9.48 18.46 15.74 -> 7.07 13.71 14.28"
+ },
+ {
+  "scenario": "prod small client nav cold inbox->analytics @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 434,
+  "p95_ms": 462,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 18 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 86 ms in 5/5; main thread busy after ready 0 ms; load 9.48 18.46 15.74 -> 7.07 13.71 14.28"
+ },
+ {
+  "scenario": "prod small client nav cold analytics->home @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 70,
+  "p95_ms": 74,
+  "n": 5,
+  "notes": "prefetched before click 0/5; nav RSC 18.5 ms / 6 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 48 ms in 5/5; main thread busy after ready 0 ms; load 9.48 18.46 15.74 -> 7.07 13.71 14.28"
+ },
+ {
+  "scenario": "prod small client nav warm home->projects @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 34,
+  "p95_ms": 36,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 8 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at null ms in 0/5; main thread busy after ready 0 ms; load 9.48 18.46 15.74 -> 7.07 13.71 14.28"
+ },
+ {
+  "scenario": "prod small client nav warm projects->work-items @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 700,
+  "p95_ms": 770,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 16 ms / 14 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 33 ms in 5/5; main thread busy after ready 0 ms; load 9.48 18.46 15.74 -> 7.07 13.71 14.28"
+ },
+ {
+  "scenario": "prod small client nav warm work-items->cycles @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 73,
+  "p95_ms": 74,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 10.5 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 48 ms in 5/5; main thread busy after ready 0 ms; load 9.48 18.46 15.74 -> 7.07 13.71 14.28"
+ },
+ {
+  "scenario": "prod small client nav warm cycles->inbox @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 54,
+  "p95_ms": 58,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 9 ms / 6 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 38 ms in 5/5; main thread busy after ready 0 ms; load 9.48 18.46 15.74 -> 7.07 13.71 14.28"
+ },
+ {
+  "scenario": "prod small client nav warm inbox->analytics @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 93,
+  "p95_ms": 121,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 10.5 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 55 ms in 5/5; main thread busy after ready 0 ms; load 9.48 18.46 15.74 -> 7.07 13.71 14.28"
+ },
+ {
+  "scenario": "prod small client nav warm analytics->home @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 68,
+  "p95_ms": 89,
+  "n": 5,
+  "notes": "prefetched before click 0/5; nav RSC 14 ms / 6 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 50 ms in 5/5; main thread busy after ready 0 ms; load 9.48 18.46 15.74 -> 7.07 13.71 14.28"
+ },
+ {
+  "scenario": "prod small client nav cold home->projects @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 184,
+  "p95_ms": 238,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 20.5 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 152 ms in 5/5; main thread busy after ready 0 ms; load 7.31 13.64 14.25 -> 30.62 18.07 15.64"
+ },
+ {
+  "scenario": "prod small client nav cold projects->work-items @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 3527,
+  "p95_ms": 4887,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 26 ms / 14 KB (1 req); long tasks click->ready 169 ms; skeleton shown at 129 ms in 5/5; main thread busy after ready 0 ms; load 7.31 13.64 14.25 -> 30.62 18.07 15.64"
+ },
+ {
+  "scenario": "prod small client nav cold work-items->cycles @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 735,
+  "p95_ms": 852,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 48.5 ms / 5 KB (1 req); long tasks click->ready 147 ms; skeleton shown at 422 ms in 5/5; main thread busy after ready 0 ms; load 7.31 13.64 14.25 -> 30.62 18.07 15.64"
+ },
+ {
+  "scenario": "prod small client nav cold cycles->inbox @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 308,
+  "p95_ms": 395,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 19 ms / 6 KB (1 req); long tasks click->ready 62 ms; skeleton shown at 215 ms in 5/5; main thread busy after ready 922 ms; load 7.31 13.64 14.25 -> 30.62 18.07 15.64"
+ },
+ {
+  "scenario": "prod small client nav cold inbox->analytics @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 585,
+  "p95_ms": 972,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 24 ms / 5 KB (1 req); long tasks click->ready 78 ms; skeleton shown at null ms in 0/5; main thread busy after ready 0 ms; load 7.31 13.64 14.25 -> 30.62 18.07 15.64"
+ },
+ {
+  "scenario": "prod small client nav cold analytics->home @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 239,
+  "p95_ms": 566,
+  "n": 5,
+  "notes": "prefetched before click 0/5; nav RSC 50 ms / 6 KB (1 req); long tasks click->ready 108 ms; skeleton shown at 182 ms in 5/5; main thread busy after ready 0 ms; load 7.31 13.64 14.25 -> 30.62 18.07 15.64"
+ },
+ {
+  "scenario": "prod small client nav warm home->projects @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 99,
+  "p95_ms": 204,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 30 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 75 ms in 5/5; main thread busy after ready 0 ms; load 7.31 13.64 14.25 -> 30.62 18.07 15.64"
+ },
+ {
+  "scenario": "prod small client nav warm projects->work-items @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 3627,
+  "p95_ms": 5929,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 40 ms / 14 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 75 ms in 5/5; main thread busy after ready 0 ms; load 7.31 13.64 14.25 -> 30.62 18.07 15.64"
+ },
+ {
+  "scenario": "prod small client nav warm work-items->cycles @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 414,
+  "p95_ms": 531,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 29 ms / 5 KB (1 req); long tasks click->ready 110 ms; skeleton shown at 285 ms in 5/5; main thread busy after ready 904 ms; load 7.31 13.64 14.25 -> 30.62 18.07 15.64"
+ },
+ {
+  "scenario": "prod small client nav warm cycles->inbox @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 218,
+  "p95_ms": 504,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 10 ms / 6 KB (1 req); long tasks click->ready 54 ms; skeleton shown at 138 ms in 5/5; main thread busy after ready 950 ms; load 7.31 13.64 14.25 -> 30.62 18.07 15.64"
+ },
+ {
+  "scenario": "prod small client nav warm inbox->analytics @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 438,
+  "p95_ms": 1012,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 17 ms / 5 KB (1 req); long tasks click->ready 71 ms; skeleton shown at 254 ms in 5/5; main thread busy after ready 944 ms; load 7.31 13.64 14.25 -> 30.62 18.07 15.64"
+ },
+ {
+  "scenario": "prod small client nav warm analytics->home @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 208,
+  "p95_ms": 618,
+  "n": 5,
+  "notes": "prefetched before click 0/5; nav RSC 109 ms / 6 KB (1 req); long tasks click->ready 98 ms; skeleton shown at 162 ms in 5/5; main thread busy after ready 0 ms; load 7.31 13.64 14.25 -> 30.62 18.07 15.64"
+ },
+ {
+  "scenario": "prod large server home",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 115.9,
+  "p95_ms": 339.6,
+  "n": 7,
+  "notes": "/; status 200; TTFB 1.6 ms; first hit 339.2 ms; 208.8 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server projects",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 22.2,
+  "p95_ms": 27.7,
+  "n": 7,
+  "notes": "/projects; status 200; TTFB 1.6 ms; first hit 36.8 ms; 202 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server wi-list",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 230.3,
+  "p95_ms": 255.7,
+  "n": 7,
+  "notes": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/work-items; status 200; TTFB 1.6 ms; first hit 407.7 ms; 3578.5 KB raw HTML in 60 chunks (streamed: true); [data-list-ready] in stream at 141.8 ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server wi-list-state",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 327,
+  "p95_ms": 357.8,
+  "n": 7,
+  "notes": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/work-items?q=eyJkaXNwbG…; status 200; TTFB 2.1 ms; first hit 351.2 ms; 4427.1 KB raw HTML in 74 chunks (streamed: true); [data-list-ready] in stream at 182.5 ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server wi-board-state",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 104.9,
+  "p95_ms": 118.5,
+  "n": 7,
+  "notes": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/work-items?q=eyJkaXNwbG…; status 200; TTFB 2.2 ms; first hit 108.9 ms; 1582.6 KB raw HTML in 29 chunks (streamed: true); [data-list-ready] in stream at 86 ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server wi-table-state",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 477.3,
+  "p95_ms": 534.7,
+  "n": 7,
+  "notes": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/work-items?q=eyJkaXNwbG…; status 200; TTFB 2 ms; first hit 553.6 ms; 5706.1 KB raw HTML in 94 chunks (streamed: true); [data-list-ready] in stream at 264 ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server wi-table",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 332.8,
+  "p95_ms": 403.2,
+  "n": 7,
+  "notes": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/work-items?q=eyJkaXNwbG…; status 200; TTFB 2.1 ms; first hit 374.5 ms; 4618.2 KB raw HTML in 77 chunks (streamed: true); [data-list-ready] in stream at 191.4 ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server wi-peek",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 241.3,
+  "p95_ms": 266.4,
+  "n": 7,
+  "notes": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/work-items?peek=01a16ad…; status 200; TTFB 2.1 ms; first hit 259.6 ms; 3589.2 KB raw HTML in 60 chunks (streamed: true); [data-list-ready] in stream at 155.2 ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server work-item",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 41.8,
+  "p95_ms": 58.8,
+  "n": 7,
+  "notes": "/work-items/01a16ad8-6e4b-75e0-a1b9-93396ad2e9a6; status 200; TTFB 2 ms; first hit 59.6 ms; 358.4 KB raw HTML in 10 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server cycles",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 46.9,
+  "p95_ms": 58.5,
+  "n": 7,
+  "notes": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/cycles; status 200; TTFB 1.7 ms; first hit 79 ms; 410.5 KB raw HTML in 11 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server cycle",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 258.9,
+  "p95_ms": 271.6,
+  "n": 7,
+  "notes": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/cycles/01a16ad8-6e1d-70…; status 200; TTFB 1.8 ms; first hit 276 ms; 3592.8 KB raw HTML in 61 chunks (streamed: true); [data-list-ready] in stream at 160.5 ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server modules",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 56.6,
+  "p95_ms": 68.6,
+  "n": 7,
+  "notes": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/modules; status 200; TTFB 2 ms; first hit 79.1 ms; 521.9 KB raw HTML in 13 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server views",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 40.1,
+  "p95_ms": 54.5,
+  "n": 7,
+  "notes": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/views; status 200; TTFB 1.8 ms; first hit 59.1 ms; 272.4 KB raw HTML in 9 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server pages",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 42.7,
+  "p95_ms": 53,
+  "n": 7,
+  "notes": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/pages; status 200; TTFB 1.7 ms; first hit 51.3 ms; 294.2 KB raw HTML in 9 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server intake",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 37.6,
+  "p95_ms": 51.3,
+  "n": 7,
+  "notes": "/projects/01a16ad8-6ddd-7752-91fa-653ae8b8a394/intake; status 200; TTFB 1.7 ms; first hit 42 ms; 266.6 KB raw HTML in 9 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server inbox",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 17.7,
+  "p95_ms": 19.4,
+  "n": 7,
+  "notes": "/inbox; status 200; TTFB 1.5 ms; first hit 22.4 ms; 194.7 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server yw-summary",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 98.3,
+  "p95_ms": 113.8,
+  "n": 7,
+  "notes": "/your-work/summary; status 200; TTFB 1.6 ms; first hit 115.4 ms; 232.6 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server yw-assigned",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 320.6,
+  "p95_ms": 343.5,
+  "n": 7,
+  "notes": "/your-work/assigned; status 200; TTFB 1.7 ms; first hit 317 ms; 3179.9 KB raw HTML in 55 chunks (streamed: true); [data-list-ready] in stream at 245.3 ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server agents",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 71.1,
+  "p95_ms": 89.6,
+  "n": 7,
+  "notes": "/agents; status 200; TTFB 2.1 ms; first hit 100 ms; 207.3 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server drafts",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 22.8,
+  "p95_ms": 38.1,
+  "n": 7,
+  "notes": "/drafts; status 200; TTFB 1.6 ms; first hit 41.4 ms; 188.1 KB raw HTML in 7 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server workspace-views",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 17.2,
+  "p95_ms": 19,
+  "n": 7,
+  "notes": "/workspace-views; status 200; TTFB 1.5 ms; first hit 23.4 ms; 193.5 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server active-cycles",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 25.6,
+  "p95_ms": 33.9,
+  "n": 7,
+  "notes": "/active-cycles; status 200; TTFB 1.5 ms; first hit 59.8 ms; 198.7 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server analytics",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 78.3,
+  "p95_ms": 80.8,
+  "n": 7,
+  "notes": "/analytics/overview; status 200; TTFB 1.6 ms; first hit 88.8 ms; 287.4 KB raw HTML in 9 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server stickies",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 16.1,
+  "p95_ms": 17.6,
+  "n": 7,
+  "notes": "/stickies; status 200; TTFB 1.6 ms; first hit 22.4 ms; 190.6 KB raw HTML in 7 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server wiki",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 22.2,
+  "p95_ms": 24.2,
+  "n": 7,
+  "notes": "/wiki; status 200; TTFB 1.4 ms; first hit 24.1 ms; 193.7 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large server settings",
+  "metric": "HTML total (curl-like GET, uncompressed)",
+  "median_ms": 17.3,
+  "p95_ms": 21.6,
+  "n": 7,
+  "notes": "/settings/general; status 200; TTFB 1.6 ms; first hit 22.5 ms; 194.9 KB raw HTML in 8 chunks (streamed: true); [data-list-ready] in stream at n/a ms; load 5.78 8.80 8.99 -> 6.01 8.56 8.89"
+ },
+ {
+  "scenario": "prod large hard load home @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 564,
+  "p95_ms": 722,
+  "n": 5,
+  "notes": "TTFB 3, FCP 420, LCP 568, hydrated 564, load 465 ms; long tasks total 56 ms (max 56); JS 884 KB transferred in 44 files, CSS 55 KB, HTML 27 KB gz / 208 KB raw; DOM nodes at ready 1327; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load projects @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 183,
+  "p95_ms": 212,
+  "n": 5,
+  "notes": "TTFB 3, FCP 64, LCP 64, hydrated 183, load 99 ms; long tasks total 0 ms (max 0); JS 606 KB transferred in 43 files, CSS 55 KB, HTML 26 KB gz / 202 KB raw; DOM nodes at ready 1173; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load wi-list @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 7224,
+  "p95_ms": 7652,
+  "n": 5,
+  "notes": "TTFB 2, FCP 228, LCP 7276, hydrated 7225, load 296 ms; long tasks total 7572 ms (max 6865); JS 993 KB transferred in 52 files, CSS 55 KB, HTML 141 KB gz / 3578 KB raw; DOM nodes at ready 131843; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load wi-list-state @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 9381,
+  "p95_ms": 10087,
+  "n": 5,
+  "notes": "TTFB 4, FCP 264, LCP 9480, hydrated 9383, load 332 ms; long tasks total 9760 ms (max 8972); JS 982 KB transferred in 48 files, CSS 55 KB, HTML 169 KB gz / 4427 KB raw; DOM nodes at ready 164654; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load wi-board-state @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 1414,
+  "p95_ms": 1587,
+  "n": 5,
+  "notes": "TTFB 3, FCP 160, LCP 1440, hydrated 1415, load 214 ms; long tasks total 1183 ms (max 1094); JS 993 KB transferred in 52 files, CSS 55 KB, HTML 86 KB gz / 1583 KB raw; DOM nodes at ready 20804; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load wi-table-state @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 25494,
+  "p95_ms": 27516,
+  "n": 5,
+  "notes": "TTFB 2, FCP 320, LCP 25596, hydrated 25496, load 410 ms; long tasks total 26139 ms (max 24971); JS 982 KB transferred in 48 files, CSS 55 KB, HTML 186 KB gz / 5706 KB raw; DOM nodes at ready 172510; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load wi-table @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 16842,
+  "p95_ms": 18701,
+  "n": 5,
+  "notes": "TTFB 4, FCP 352, LCP 16900, hydrated 16843, load 438 ms; long tasks total 17085 ms (max 16292); JS 993 KB transferred in 52 files, CSS 55 KB, HTML 159 KB gz / 4618 KB raw; DOM nodes at ready 138073; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load wi-peek @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 7600,
+  "p95_ms": 8915,
+  "n": 5,
+  "notes": "TTFB 3, FCP 284, LCP 7664, hydrated 7602, load 394 ms; long tasks total 7935 ms (max 7167); JS 994 KB transferred in 53 files, CSS 55 KB, HTML 143 KB gz / 3589 KB raw; DOM nodes at ready 134591; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load work-item @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 319,
+  "p95_ms": 361,
+  "n": 5,
+  "notes": "TTFB 3, FCP 88, LCP 328, hydrated 329, load 147 ms; long tasks total 171 ms (max 171); JS 912 KB transferred in 47 files, CSS 55 KB, HTML 41 KB gz / 358 KB raw; DOM nodes at ready 4658; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load cycles @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 273,
+  "p95_ms": 343,
+  "n": 5,
+  "notes": "TTFB 3, FCP 88, LCP 256, hydrated 273, load 131 ms; long tasks total 117 ms (max 117); JS 744 KB transferred in 50 files, CSS 55 KB, HTML 41 KB gz / 411 KB raw; DOM nodes at ready 3384; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load cycle @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 6447,
+  "p95_ms": 8388,
+  "n": 5,
+  "notes": "TTFB 2, FCP 264, LCP 6412, hydrated 6448, load 341 ms; long tasks total 6653 ms (max 6079); JS 1116 KB transferred in 55 files, CSS 55 KB, HTML 156 KB gz / 3593 KB raw; DOM nodes at ready 117640; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load modules @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 261,
+  "p95_ms": 666,
+  "n": 5,
+  "notes": "TTFB 3, FCP 92, LCP 92, hydrated 261, load 130 ms; long tasks total 89 ms (max 89); JS 629 KB transferred in 48 files, CSS 55 KB, HTML 42 KB gz / 522 KB raw; DOM nodes at ready 4948; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load views @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 182,
+  "p95_ms": 217,
+  "n": 5,
+  "notes": "TTFB 2, FCP 68, LCP 188, hydrated 192, load 102 ms; long tasks total 0 ms (max 0); JS 620 KB transferred in 47 files, CSS 55 KB, HTML 35 KB gz / 272 KB raw; DOM nodes at ready 1576; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load pages @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 197,
+  "p95_ms": 380,
+  "n": 5,
+  "notes": "TTFB 2, FCP 76, LCP 76, hydrated 204, load 107 ms; long tasks total 54 ms (max 54); JS 627 KB transferred in 48 files, CSS 55 KB, HTML 37 KB gz / 294 KB raw; DOM nodes at ready 1627; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load intake @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 195,
+  "p95_ms": 617,
+  "n": 5,
+  "notes": "TTFB 2, FCP 68, LCP 200, hydrated 195, load 143 ms; long tasks total 50 ms (max 50); JS 932 KB transferred in 52 files, CSS 55 KB, HTML 35 KB gz / 267 KB raw; DOM nodes at ready 1504; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load inbox @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 63,
+  "p95_ms": 316,
+  "n": 5,
+  "notes": "TTFB 2, FCP 64, LCP 64, hydrated 149, load 85 ms; long tasks total 0 ms (max 0); JS 929 KB transferred in 48 files, CSS 55 KB, HTML 26 KB gz / 195 KB raw; DOM nodes at ready 1034; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load yw-summary @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 286,
+  "p95_ms": 460,
+  "n": 5,
+  "notes": "TTFB 2, FCP 160, LCP 160, hydrated 286, load 203 ms; long tasks total 50 ms (max 50); JS 702 KB transferred in 46 files, CSS 55 KB, HTML 30 KB gz / 233 KB raw; DOM nodes at ready 1520; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load yw-assigned @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 5788,
+  "p95_ms": 7664,
+  "n": 5,
+  "notes": "TTFB 2, FCP 296, LCP 5820, hydrated 5789, load 365 ms; long tasks total 6125 ms (max 5368); JS 702 KB transferred in 46 files, CSS 55 KB, HTML 117 KB gz / 3180 KB raw; DOM nodes at ready 116987; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load agents @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 224,
+  "p95_ms": 306,
+  "n": 5,
+  "notes": "TTFB 5, FCP 140, LCP 140, hydrated 253, load 171 ms; long tasks total 0 ms (max 0); JS 609 KB transferred in 43 files, CSS 55 KB, HTML 26 KB gz / 207 KB raw; DOM nodes at ready 1339; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load drafts @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 66,
+  "p95_ms": 203,
+  "n": 5,
+  "notes": "TTFB 2, FCP 52, LCP 52, hydrated 148, load 84 ms; long tasks total 0 ms (max 0); JS 613 KB transferred in 43 files, CSS 55 KB, HTML 25 KB gz / 188 KB raw; DOM nodes at ready 1007; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load workspace-views @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 67,
+  "p95_ms": 186,
+  "n": 5,
+  "notes": "TTFB 2, FCP 56, LCP 56, hydrated 148, load 83 ms; long tasks total 0 ms (max 0); JS 611 KB transferred in 43 files, CSS 55 KB, HTML 25 KB gz / 194 KB raw; DOM nodes at ready 1038; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load active-cycles @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 213,
+  "p95_ms": 236,
+  "n": 5,
+  "notes": "TTFB 3, FCP 56, LCP 220, hydrated 213, load 90 ms; long tasks total 85 ms (max 85); JS 733 KB transferred in 46 files, CSS 55 KB, HTML 27 KB gz / 199 KB raw; DOM nodes at ready 1329; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load analytics @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 333,
+  "p95_ms": 375,
+  "n": 5,
+  "notes": "TTFB 3, FCP 132, LCP 292, hydrated 333, load 174 ms; long tasks total 131 ms (max 131); JS 743 KB transferred in 46 files, CSS 55 KB, HTML 31 KB gz / 287 KB raw; DOM nodes at ready 2682; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load stickies @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 68,
+  "p95_ms": 266,
+  "n": 5,
+  "notes": "TTFB 3, FCP 56, LCP 64, hydrated 192, load 126 ms; long tasks total 61 ms (max 61); JS 884 KB transferred in 44 files, CSS 55 KB, HTML 26 KB gz / 191 KB raw; DOM nodes at ready 1005; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load wiki @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 69,
+  "p95_ms": 195,
+  "n": 5,
+  "notes": "TTFB 3, FCP 56, LCP 56, hydrated 160, load 88 ms; long tasks total 0 ms (max 0); JS 620 KB transferred in 44 files, CSS 55 KB, HTML 26 KB gz / 194 KB raw; DOM nodes at ready 1030; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load settings @1440 no throttle",
+  "metric": "navigation start -> ready",
+  "median_ms": 69,
+  "p95_ms": 215,
+  "n": 5,
+  "notes": "TTFB 3, FCP 60, LCP 60, hydrated 155, load 81 ms; long tasks total 0 ms (max 0); JS 623 KB transferred in 46 files, CSS 55 KB, HTML 26 KB gz / 195 KB raw; DOM nodes at ready 1023; errors 0; load 7.25 6.54 7.42 -> 9.70 18.66 15.79"
+ },
+ {
+  "scenario": "prod large hard load home @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 862,
+  "p95_ms": 1056,
+  "n": 5,
+  "notes": "TTFB 3, FCP 364, LCP 704, hydrated 862, load 502 ms; long tasks total 326 ms (max 146); JS 876 KB transferred in 42 files, CSS 55 KB, HTML 27 KB gz / 208 KB raw; DOM nodes at ready 853; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load projects @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 191,
+  "p95_ms": 433,
+  "n": 5,
+  "notes": "TTFB 3, FCP 124, LCP 588, hydrated 578, load 269 ms; long tasks total 280 ms (max 125); JS 606 KB transferred in 43 files, CSS 55 KB, HTML 26 KB gz / 202 KB raw; DOM nodes at ready 1038; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load wi-list @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 1152,
+  "p95_ms": 1477,
+  "n": 5,
+  "notes": "TTFB 4, FCP 356, LCP 356, hydrated 34915, load 696 ms; long tasks total 34669 ms (max 33647); JS 982 KB transferred in 48 files, CSS 55 KB, HTML 141 KB gz / 3578 KB raw; DOM nodes at ready 19670; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load wi-list-state @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 1441,
+  "p95_ms": 1588,
+  "n": 5,
+  "notes": "TTFB 7, FCP 568, LCP 568, hydrated 47637, load 956 ms; long tasks total 47540 ms (max 46288); JS 982 KB transferred in 48 files, CSS 55 KB, HTML 169 KB gz / 4427 KB raw; DOM nodes at ready 24378; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load wi-board-state @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 707,
+  "p95_ms": 775,
+  "n": 5,
+  "notes": "TTFB 4, FCP 228, LCP 5568, hydrated 5449, load 459 ms; long tasks total 5097 ms (max 4728); JS 982 KB transferred in 48 files, CSS 55 KB, HTML 86 KB gz / 1583 KB raw; DOM nodes at ready 7548; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load wi-table-state @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 1531,
+  "p95_ms": 1637,
+  "n": 4,
+  "notes": "TTFB 3, FCP 410, LCP 1670, hydrated 123183, load 794 ms; long tasks total 123559 ms (max 121487); JS 982 KB transferred in 48 files, CSS 55 KB, HTML 186 KB gz / 5706 KB raw; DOM nodes at ready 28608; errors 1; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load wi-table @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 1411,
+  "p95_ms": 1540,
+  "n": 5,
+  "notes": "TTFB 4, FCP 436, LCP 1516, hydrated 73754, load 841 ms; long tasks total 74120 ms (max 72244); JS 982 KB transferred in 48 files, CSS 55 KB, HTML 159 KB gz / 4618 KB raw; DOM nodes at ready 23129; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load wi-peek @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 37657,
+  "p95_ms": 43555,
+  "n": 5,
+  "notes": "TTFB 5, FCP 348, LCP 348, hydrated 37662, load 710 ms; long tasks total 37549 ms (max 36367); JS 983 KB transferred in 49 files, CSS 55 KB, HTML 143 KB gz / 3589 KB raw; DOM nodes at ready 115713; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load work-item @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 422,
+  "p95_ms": 538,
+  "n": 5,
+  "notes": "TTFB 4, FCP 164, LCP 432, hydrated 1360, load 333 ms; long tasks total 945 ms (max 780); JS 904 KB transferred in 45 files, CSS 55 KB, HTML 41 KB gz / 358 KB raw; DOM nodes at ready 1650; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load cycles @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 980,
+  "p95_ms": 1124,
+  "n": 5,
+  "notes": "TTFB 3, FCP 144, LCP 144, hydrated 980, load 286 ms; long tasks total 661 ms (max 500); JS 733 KB transferred in 46 files, CSS 55 KB, HTML 41 KB gz / 411 KB raw; DOM nodes at ready 2167; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load cycle @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 1602,
+  "p95_ms": 4228,
+  "n": 5,
+  "notes": "TTFB 4, FCP 384, LCP 1592, hydrated 29593, load 761 ms; long tasks total 32004 ms (max 27840); JS 1105 KB transferred in 51 files, CSS 55 KB, HTML 156 KB gz / 3593 KB raw; DOM nodes at ready 18173; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load modules @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 484,
+  "p95_ms": 1402,
+  "n": 5,
+  "notes": "TTFB 3, FCP 152, LCP 152, hydrated 920, load 295 ms; long tasks total 570 ms (max 405); JS 618 KB transferred in 44 files, CSS 55 KB, HTML 42 KB gz / 522 KB raw; DOM nodes at ready 2428; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load views @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 415,
+  "p95_ms": 1771,
+  "n": 5,
+  "notes": "TTFB 3, FCP 136, LCP 424, hydrated 665, load 267 ms; long tasks total 420 ms (max 217); JS 609 KB transferred in 43 files, CSS 55 KB, HTML 35 KB gz / 272 KB raw; DOM nodes at ready 1163; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load pages @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 631,
+  "p95_ms": 706,
+  "n": 5,
+  "notes": "TTFB 3, FCP 140, LCP 560, hydrated 680, load 269 ms; long tasks total 392 ms (max 226); JS 617 KB transferred in 44 files, CSS 55 KB, HTML 37 KB gz / 294 KB raw; DOM nodes at ready 1187; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load intake @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 446,
+  "p95_ms": 574,
+  "n": 5,
+  "notes": "TTFB 4, FCP 140, LCP 452, hydrated 691, load 279 ms; long tasks total 372 ms (max 194); JS 922 KB transferred in 49 files, CSS 55 KB, HTML 35 KB gz / 267 KB raw; DOM nodes at ready 1138; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load inbox @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 241,
+  "p95_ms": 480,
+  "n": 5,
+  "notes": "TTFB 4, FCP 132, LCP 132, hydrated 601, load 266 ms; long tasks total 331 ms (max 139); JS 920 KB transferred in 46 files, CSS 55 KB, HTML 26 KB gz / 195 KB raw; DOM nodes at ready 1034; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load yw-summary @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 639,
+  "p95_ms": 2204,
+  "n": 5,
+  "notes": "TTFB 3, FCP 284, LCP 672, hydrated 813, load 460 ms; long tasks total 361 ms (max 165); JS 694 KB transferred in 44 files, CSS 55 KB, HTML 30 KB gz / 233 KB raw; DOM nodes at ready 1186; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load yw-assigned @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 1274,
+  "p95_ms": 5664,
+  "n": 5,
+  "notes": "TTFB 4, FCP 548, LCP 548, hydrated 26978, load 853 ms; long tasks total 26527 ms (max 25485); JS 694 KB transferred in 44 files, CSS 55 KB, HTML 117 KB gz / 3180 KB raw; DOM nodes at ready 16925; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load agents @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 661,
+  "p95_ms": 989,
+  "n": 5,
+  "notes": "TTFB 4, FCP 272, LCP 272, hydrated 724, load 412 ms; long tasks total 327 ms (max 151); JS 601 KB transferred in 41 files, CSS 55 KB, HTML 26 KB gz / 207 KB raw; DOM nodes at ready 1107; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load drafts @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 140,
+  "p95_ms": 560,
+  "n": 5,
+  "notes": "TTFB 3, FCP 132, LCP 132, hydrated 572, load 272 ms; long tasks total 280 ms (max 120); JS 605 KB transferred in 41 files, CSS 55 KB, HTML 25 KB gz / 188 KB raw; DOM nodes at ready 1005; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load workspace-views @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 526,
+  "p95_ms": 591,
+  "n": 5,
+  "notes": "TTFB 5, FCP 124, LCP 532, hydrated 603, load 269 ms; long tasks total 317 ms (max 136); JS 603 KB transferred in 41 files, CSS 55 KB, HTML 25 KB gz / 194 KB raw; DOM nodes at ready 1039; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load active-cycles @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 748,
+  "p95_ms": 1076,
+  "n": 5,
+  "notes": "TTFB 4, FCP 128, LCP 136, hydrated 748, load 265 ms; long tasks total 457 ms (max 301); JS 724 KB transferred in 44 files, CSS 55 KB, HTML 27 KB gz / 199 KB raw; DOM nodes at ready 871; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load analytics @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 958,
+  "p95_ms": 1185,
+  "n": 5,
+  "notes": "TTFB 5, FCP 152, LCP 152, hydrated 958, load 331 ms; long tasks total 644 ms (max 443); JS 734 KB transferred in 44 files, CSS 55 KB, HTML 31 KB gz / 287 KB raw; DOM nodes at ready 1732; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load stickies @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 201,
+  "p95_ms": 699,
+  "n": 5,
+  "notes": "TTFB 4, FCP 128, LCP 164, hydrated 739, load 264 ms; long tasks total 462 ms (max 288); JS 876 KB transferred in 42 files, CSS 55 KB, HTML 26 KB gz / 191 KB raw; DOM nodes at ready 1005; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load wiki @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 430,
+  "p95_ms": 548,
+  "n": 5,
+  "notes": "TTFB 5, FCP 124, LCP 440, hydrated 610, load 259 ms; long tasks total 299 ms (max 143); JS 611 KB transferred in 42 files, CSS 55 KB, HTML 26 KB gz / 194 KB raw; DOM nodes at ready 1031; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large hard load settings @375 CPU 4x",
+  "metric": "navigation start -> ready",
+  "median_ms": 446,
+  "p95_ms": 541,
+  "n": 5,
+  "notes": "TTFB 3, FCP 124, LCP 452, hydrated 609, load 263 ms; long tasks total 298 ms (max 139); JS 615 KB transferred in 44 files, CSS 55 KB, HTML 26 KB gz / 195 KB raw; DOM nodes at ready 1024; errors 0; load 9.70 18.66 15.79 -> 8.55 10.73 12.09"
+ },
+ {
+  "scenario": "prod large client nav cold home->projects @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 55,
+  "p95_ms": 56,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 20 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at null ms in 0/5; main thread busy after ready 0 ms; load 11.61 14.15 14.83 -> 9.04 11.74 13.58"
+ },
+ {
+  "scenario": "prod large client nav cold projects->work-items @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 7245,
+  "p95_ms": 7562,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 49 ms / 29 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 37 ms in 5/5; main thread busy after ready 0 ms; load 11.61 14.15 14.83 -> 9.04 11.74 13.58"
+ },
+ {
+  "scenario": "prod large client nav cold work-items->cycles @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 201,
+  "p95_ms": 447,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 44 ms / 6 KB (1 req); long tasks click->ready 68 ms; skeleton shown at 116 ms in 5/5; main thread busy after ready 826 ms; load 11.61 14.15 14.83 -> 9.04 11.74 13.58"
+ },
+ {
+  "scenario": "prod large client nav cold cycles->inbox @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 91,
+  "p95_ms": 363,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 11 ms / 4 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 79 ms in 5/5; main thread busy after ready 872 ms; load 11.61 14.15 14.83 -> 9.04 11.74 13.58"
+ },
+ {
+  "scenario": "prod large client nav cold inbox->analytics @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 563,
+  "p95_ms": 850,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 101 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 222 ms in 5/5; main thread busy after ready 807 ms; load 11.61 14.15 14.83 -> 9.04 11.74 13.58"
+ },
+ {
+  "scenario": "prod large client nav cold analytics->home @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 366,
+  "p95_ms": 564,
+  "n": 5,
+  "notes": "prefetched before click 0/5; nav RSC null ms / null KB (1 req); long tasks click->ready 87 ms; skeleton shown at 114 ms in 5/5; main thread busy after ready 0 ms; load 11.61 14.15 14.83 -> 9.04 11.74 13.58"
+ },
+ {
+  "scenario": "prod large client nav warm home->projects @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 35,
+  "p95_ms": 37,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 14 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at null ms in 0/5; main thread busy after ready 0 ms; load 11.61 14.15 14.83 -> 9.04 11.74 13.58"
+ },
+ {
+  "scenario": "prod large client nav warm projects->work-items @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 7158,
+  "p95_ms": 8109,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 46 ms / 29 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 33 ms in 5/5; main thread busy after ready 0 ms; load 11.61 14.15 14.83 -> 9.04 11.74 13.58"
+ },
+ {
+  "scenario": "prod large client nav warm work-items->cycles @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 161,
+  "p95_ms": 176,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 37 ms / 6 KB (1 req); long tasks click->ready 72 ms; skeleton shown at 121 ms in 5/5; main thread busy after ready 747 ms; load 11.61 14.15 14.83 -> 9.04 11.74 13.58"
+ },
+ {
+  "scenario": "prod large client nav warm cycles->inbox @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 75,
+  "p95_ms": 77,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 10 ms / 4 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 66 ms in 5/5; main thread busy after ready 753 ms; load 11.61 14.15 14.83 -> 9.04 11.74 13.58"
+ },
+ {
+  "scenario": "prod large client nav warm inbox->analytics @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 448,
+  "p95_ms": 467,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 107 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 119 ms in 5/5; main thread busy after ready 786 ms; load 11.61 14.15 14.83 -> 9.04 11.74 13.58"
+ },
+ {
+  "scenario": "prod large client nav warm analytics->home @1440 no throttle",
+  "metric": "click -> ready",
+  "median_ms": 401,
+  "p95_ms": 487,
+  "n": 5,
+  "notes": "prefetched before click 0/5; nav RSC 350 ms / 6 KB (1 req); long tasks click->ready 82 ms; skeleton shown at 107 ms in 5/5; main thread busy after ready 0 ms; load 11.61 14.15 14.83 -> 9.04 11.74 13.58"
+ },
+ {
+  "scenario": "prod large client nav cold home->projects @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 132,
+  "p95_ms": 151,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 18 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 113 ms in 5/5; main thread busy after ready 0 ms; load 8.54 10.49 12.70 -> 14.86 12.83 12.93"
+ },
+ {
+  "scenario": "prod large client nav cold projects->work-items @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 28798,
+  "p95_ms": 31450,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 68 ms / 29 KB (1 req); long tasks click->ready 218 ms; skeleton shown at 121 ms in 5/5; main thread busy after ready 0 ms; load 8.54 10.49 12.70 -> 14.86 12.83 12.93"
+ },
+ {
+  "scenario": "prod large client nav cold work-items->cycles @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 1026,
+  "p95_ms": 1288,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 36 ms / 6 KB (1 req); long tasks click->ready 486 ms; skeleton shown at 721 ms in 5/5; main thread busy after ready 0 ms; load 8.54 10.49 12.70 -> 14.86 12.83 12.93"
+ },
+ {
+  "scenario": "prod large client nav cold cycles->inbox @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 466,
+  "p95_ms": 692,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 15 ms / 4 KB (1 req); long tasks click->ready 218 ms; skeleton shown at 426 ms in 5/5; main thread busy after ready 0 ms; load 8.54 10.49 12.70 -> 14.86 12.83 12.93"
+ },
+ {
+  "scenario": "prod large client nav cold inbox->analytics @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 1191,
+  "p95_ms": 1367,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 90.5 ms / 5 KB (1 req); long tasks click->ready 101 ms; skeleton shown at null ms in 0/5; main thread busy after ready 0 ms; load 8.54 10.49 12.70 -> 14.86 12.83 12.93"
+ },
+ {
+  "scenario": "prod large client nav cold analytics->home @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 676,
+  "p95_ms": 866,
+  "n": 5,
+  "notes": "prefetched before click 0/5; nav RSC 409 ms / 6 KB (1 req); long tasks click->ready 385 ms; skeleton shown at 627 ms in 5/5; main thread busy after ready 0 ms; load 8.54 10.49 12.70 -> 14.86 12.83 12.93"
+ },
+ {
+  "scenario": "prod large client nav warm home->projects @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 91,
+  "p95_ms": 102,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 22 ms / 5 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 74 ms in 4/5; main thread busy after ready 0 ms; load 8.54 10.49 12.70 -> 14.86 12.83 12.93"
+ },
+ {
+  "scenario": "prod large client nav warm projects->work-items @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 31667,
+  "p95_ms": 36162,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 62 ms / 29 KB (1 req); long tasks click->ready 0 ms; skeleton shown at 72 ms in 5/5; main thread busy after ready 0 ms; load 8.54 10.49 12.70 -> 14.86 12.83 12.93"
+ },
+ {
+  "scenario": "prod large client nav warm work-items->cycles @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 938,
+  "p95_ms": 1529,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 39 ms / 6 KB (1 req); long tasks click->ready 433 ms; skeleton shown at 760 ms in 5/5; main thread busy after ready 0 ms; load 8.54 10.49 12.70 -> 14.86 12.83 12.93"
+ },
+ {
+  "scenario": "prod large client nav warm cycles->inbox @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 412,
+  "p95_ms": 493,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 16 ms / 4 KB (1 req); long tasks click->ready 103 ms; skeleton shown at 370 ms in 5/5; main thread busy after ready 0 ms; load 8.54 10.49 12.70 -> 14.86 12.83 12.93"
+ },
+ {
+  "scenario": "prod large client nav warm inbox->analytics @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 941,
+  "p95_ms": 1287,
+  "n": 5,
+  "notes": "prefetched before click 5/5; nav RSC 162 ms / 5 KB (1 req); long tasks click->ready 201 ms; skeleton shown at 715 ms in 5/5; main thread busy after ready 0 ms; load 8.54 10.49 12.70 -> 14.86 12.83 12.93"
+ },
+ {
+  "scenario": "prod large client nav warm analytics->home @1440 CPU 4x",
+  "metric": "click -> ready",
+  "median_ms": 647,
+  "p95_ms": 771,
+  "n": 5,
+  "notes": "prefetched before click 0/5; nav RSC 423 ms / 6 KB (1 req); long tasks click->ready 348 ms; skeleton shown at 612 ms in 5/5; main thread busy after ready 0 ms; load 8.54 10.49 12.70 -> 14.86 12.83 12.93"
+ },
+ {
+  "scenario": "prod large interaction peekOpen @1440 no throttle",
+  "metric": "input -> visible result",
+  "median_ms": 3028,
+  "p95_ms": 3092,
+  "n": 5,
+  "notes": "rsc_ms 45, rsc_kb 23.5, busy_after 0; setup {\"listSettleMs\":0,\"stateListSettleMs\":0,\"boardSettleMs\":626,\"quickAddListSettleMs\":0}; load 14.82 12.94 12.96 -> 15.28 14.06 13.42"
+ },
+ {
+  "scenario": "prod large interaction stateDropdownOpen @1440 no throttle",
+  "metric": "input -> visible result",
+  "median_ms": 162,
+  "p95_ms": 291,
+  "n": 5,
+  "notes": "; setup {\"listSettleMs\":0,\"stateListSettleMs\":0,\"boardSettleMs\":626,\"quickAddListSettleMs\":0}; load 14.82 12.94 12.96 -> 15.28 14.06 13.42"
+ },
+ {
+  "scenario": "prod large interaction stateChange @1440 no throttle",
+  "metric": "input -> visible result",
+  "median_ms": 379,
+  "p95_ms": 480,
+  "n": 5,
+  "notes": "action_ms 492, busy_after 1142; setup {\"listSettleMs\":0,\"stateListSettleMs\":0,\"boardSettleMs\":626,\"quickAddListSettleMs\":0}; load 14.82 12.94 12.96 -> 15.28 14.06 13.42"
+ },
+ {
+  "scenario": "prod large interaction boardMove @1440 no throttle",
+  "metric": "input -> visible result",
+  "median_ms": 228,
+  "p95_ms": 289,
+  "n": 5,
+  "notes": "action_ms 547, busy_after 199; setup {\"listSettleMs\":0,\"stateListSettleMs\":0,\"boardSettleMs\":626,\"quickAddListSettleMs\":0}; load 14.82 12.94 12.96 -> 15.28 14.06 13.42"
+ },
+ {
+  "scenario": "prod large interaction quickAdd @1440 no throttle",
+  "metric": "input -> visible result",
+  "median_ms": 1033,
+  "p95_ms": 1159,
+  "n": 5,
+  "notes": "action_ms 1053, busy_after 951; setup {\"listSettleMs\":0,\"stateListSettleMs\":0,\"boardSettleMs\":626,\"quickAddListSettleMs\":0}; load 14.82 12.94 12.96 -> 15.28 14.06 13.42"
+ },
+ {
+  "scenario": "prod large interaction powerKOpen @1440 no throttle",
+  "metric": "input -> visible result",
+  "median_ms": 130,
+  "p95_ms": 151,
+  "n": 5,
+  "notes": "source interactions-large-none-powerk.json; setup {\"listSettleMs\":0,\"stateListSettleMs\":0,\"boardSettleMs\":626,\"quickAddListSettleMs\":0}; load 14.82 12.94 12.96 -> 15.28 14.06 13.42"
+ },
+ {
+  "scenario": "prod large interaction powerKSearch @1440 no throttle",
+  "metric": "input -> visible result",
+  "median_ms": 322,
+  "p95_ms": 421,
+  "n": 5,
+  "notes": "typing_ms 77, after_last_key_ms 174, search_api_ms 11.5, source interactions-large-none-powerk.json; setup {\"listSettleMs\":0,\"stateListSettleMs\":0,\"boardSettleMs\":626,\"quickAddListSettleMs\":0}; load 14.82 12.94 12.96 -> 15.28 14.06 13.42"
+ },
+ {
+  "scenario": "prod large interaction peekOpen @1440 CPU 4x",
+  "metric": "input -> visible result",
+  "median_ms": 14110,
+  "p95_ms": 18453,
+  "n": 5,
+  "notes": "rsc_ms 29, rsc_kb 24, busy_after 0; setup {\"listSettleMs\":180,\"stateListSettleMs\":3044,\"boardSettleMs\":0,\"quickAddListSettleMs\":2750}; load 14.44 13.98 13.44 -> 4.01 7.86 10.66"
+ },
+ {
+  "scenario": "prod large interaction stateDropdownOpen @1440 CPU 4x",
+  "metric": "input -> visible result",
+  "median_ms": 545,
+  "p95_ms": 1110,
+  "n": 5,
+  "notes": "; setup {\"listSettleMs\":180,\"stateListSettleMs\":3044,\"boardSettleMs\":0,\"quickAddListSettleMs\":2750}; load 14.44 13.98 13.44 -> 4.01 7.86 10.66"
+ },
+ {
+  "scenario": "prod large interaction stateChange @1440 CPU 4x",
+  "metric": "input -> visible result",
+  "median_ms": 1468,
+  "p95_ms": 1541,
+  "n": 5,
+  "notes": "action_ms 1869, busy_after 140; setup {\"listSettleMs\":180,\"stateListSettleMs\":3044,\"boardSettleMs\":0,\"quickAddListSettleMs\":2750}; load 14.44 13.98 13.44 -> 4.01 7.86 10.66"
+ },
+ {
+  "scenario": "prod large interaction boardMove @1440 CPU 4x",
+  "metric": "input -> visible result",
+  "median_ms": 702,
+  "p95_ms": 737,
+  "n": 5,
+  "notes": "action_ms 898, busy_after 997; setup {\"listSettleMs\":180,\"stateListSettleMs\":3044,\"boardSettleMs\":0,\"quickAddListSettleMs\":2750}; load 14.44 13.98 13.44 -> 4.01 7.86 10.66"
+ },
+ {
+  "scenario": "prod large interaction quickAdd @1440 CPU 4x",
+  "metric": "input -> visible result",
+  "median_ms": 3744,
+  "p95_ms": 3819,
+  "n": 5,
+  "notes": "action_ms 3802, busy_after 0; setup {\"listSettleMs\":180,\"stateListSettleMs\":3044,\"boardSettleMs\":0,\"quickAddListSettleMs\":2750}; load 14.44 13.98 13.44 -> 4.01 7.86 10.66"
+ },
+ {
+  "scenario": "prod large interaction powerKOpen @1440 CPU 4x",
+  "metric": "input -> visible result",
+  "median_ms": 540,
+  "p95_ms": 565,
+  "n": 5,
+  "notes": "; setup {\"listSettleMs\":180,\"stateListSettleMs\":3044,\"boardSettleMs\":0,\"quickAddListSettleMs\":2750}; load 14.44 13.98 13.44 -> 4.01 7.86 10.66"
+ },
+ {
+  "scenario": "prod large interaction powerKSearch @1440 CPU 4x",
+  "metric": "input -> visible result",
+  "median_ms": 1457,
+  "p95_ms": 1638,
+  "n": 5,
+  "notes": "typing_ms 1246, after_last_key_ms 211, search_api_ms 4.5; setup {\"listSettleMs\":180,\"stateListSettleMs\":3044,\"boardSettleMs\":0,\"quickAddListSettleMs\":2750}; load 14.44 13.98 13.44 -> 4.01 7.86 10.66"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/cycles/[cycleId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 1081,
+  "n": 1,
+  "notes": "3564 KB raw in 51 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/modules/[moduleId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 973,
+  "n": 1,
+  "notes": "3201 KB raw in 49 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/views/[viewId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 962,
+  "n": 1,
+  "notes": "3171 KB raw in 48 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/archives/work-items",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 961,
+  "n": 1,
+  "notes": "3168 KB raw in 49 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/work-items",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 960,
+  "n": 1,
+  "notes": "3164 KB raw in 48 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/intake",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 898,
+  "n": 1,
+  "notes": "2966 KB raw in 48 chunks"
+ },
+ {
+  "scenario": "prod bundle /inbox",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 891,
+  "n": 1,
+  "notes": "2947 KB raw in 45 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/work-items/[workItemId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 878,
+  "n": 1,
+  "notes": "2905 KB raw in 46 chunks"
+ },
+ {
+  "scenario": "prod bundle /work-items/[workItemId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 874,
+  "n": 1,
+  "notes": "2895 KB raw in 44 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/pages/[pageId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 869,
+  "n": 1,
+  "notes": "2875 KB raw in 46 chunks"
+ },
+ {
+  "scenario": "prod bundle /pages/[pageId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 864,
+  "n": 1,
+  "notes": "2863 KB raw in 44 chunks"
+ },
+ {
+  "scenario": "prod bundle /stickies",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 819,
+  "n": 1,
+  "notes": "2731 KB raw in 39 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/cycles",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 704,
+  "n": 1,
+  "notes": "2325 KB raw in 45 chunks"
+ },
+ {
+  "scenario": "prod bundle /active-cycles",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 696,
+  "n": 1,
+  "notes": "2305 KB raw in 43 chunks"
+ },
+ {
+  "scenario": "prod bundle /analytics/[tab]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 685,
+  "n": 1,
+  "notes": "2272 KB raw in 42 chunks"
+ },
+ {
+  "scenario": "prod bundle /agents/[actorId]/[tab]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 665,
+  "n": 1,
+  "notes": "2190 KB raw in 43 chunks"
+ },
+ {
+  "scenario": "prod bundle /your-work/[tab]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 665,
+  "n": 1,
+  "notes": "2190 KB raw in 43 chunks"
+ },
+ {
+  "scenario": "prod bundle /workspace-views/[viewId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 659,
+  "n": 1,
+  "notes": "2171 KB raw in 43 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/pages",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 596,
+  "n": 1,
+  "notes": "1962 KB raw in 44 chunks"
+ },
+ {
+  "scenario": "prod bundle /wiki",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 591,
+  "n": 1,
+  "notes": "1950 KB raw in 42 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/modules",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 590,
+  "n": 1,
+  "notes": "1947 KB raw in 43 chunks"
+ },
+ {
+  "scenario": "prod bundle /",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 589,
+  "n": 1,
+  "notes": "1945 KB raw in 42 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/settings/states",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 582,
+  "n": 1,
+  "notes": "1926 KB raw in 43 chunks"
+ },
+ {
+  "scenario": "prod bundle /drafts",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 578,
+  "n": 1,
+  "notes": "1915 KB raw in 41 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/settings/estimates",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 554,
+  "n": 1,
+  "notes": "1837 KB raw in 42 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/views",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 553,
+  "n": 1,
+  "notes": "1836 KB raw in 40 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/settings/agents",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 551,
+  "n": 1,
+  "notes": "1831 KB raw in 41 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/archives/modules",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 552,
+  "n": 1,
+  "notes": "1830 KB raw in 41 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/archives/cycles",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 551,
+  "n": 1,
+  "notes": "1830 KB raw in 41 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/settings/automations",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 550,
+  "n": 1,
+  "notes": "1828 KB raw in 41 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/settings/labels",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 550,
+  "n": 1,
+  "notes": "1827 KB raw in 41 chunks"
+ },
+ {
+  "scenario": "prod bundle /settings/webhooks/[webhookId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 549,
+  "n": 1,
+  "notes": "1826 KB raw in 39 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 548,
+  "n": 1,
+  "notes": "1823 KB raw in 39 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/archives",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 548,
+  "n": 1,
+  "notes": "1823 KB raw in 39 chunks"
+ },
+ {
+  "scenario": "prod bundle /workspace-views",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 547,
+  "n": 1,
+  "notes": "1821 KB raw in 38 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/settings/general",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 547,
+  "n": 1,
+  "notes": "1820 KB raw in 41 chunks"
+ },
+ {
+  "scenario": "prod bundle /settings/exports",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 547,
+  "n": 1,
+  "notes": "1818 KB raw in 38 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/settings/features",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 547,
+  "n": 1,
+  "notes": "1817 KB raw in 41 chunks"
+ },
+ {
+  "scenario": "prod bundle /settings/backups",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 546,
+  "n": 1,
+  "notes": "1817 KB raw in 38 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/settings",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 545,
+  "n": 1,
+  "notes": "1815 KB raw in 40 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]/archives",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 545,
+  "n": 1,
+  "notes": "1815 KB raw in 40 chunks"
+ },
+ {
+  "scenario": "prod bundle /projects/[projectId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 545,
+  "n": 1,
+  "notes": "1814 KB raw in 39 chunks"
+ },
+ {
+  "scenario": "prod bundle /agents",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 545,
+  "n": 1,
+  "notes": "1814 KB raw in 38 chunks"
+ },
+ {
+  "scenario": "prod bundle /settings/webhooks",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 544,
+  "n": 1,
+  "notes": "1813 KB raw in 38 chunks"
+ },
+ {
+  "scenario": "prod bundle /settings/[tab]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 542,
+  "n": 1,
+  "notes": "1808 KB raw in 38 chunks"
+ },
+ {
+  "scenario": "prod bundle /agents/[actorId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 541,
+  "n": 1,
+  "notes": "1803 KB raw in 37 chunks"
+ },
+ {
+  "scenario": "prod bundle /analytics",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 541,
+  "n": 1,
+  "notes": "1803 KB raw in 37 chunks"
+ },
+ {
+  "scenario": "prod bundle /browse/[key]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 541,
+  "n": 1,
+  "notes": "1803 KB raw in 37 chunks"
+ },
+ {
+  "scenario": "prod bundle /cycles/[cycleId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 541,
+  "n": 1,
+  "notes": "1803 KB raw in 37 chunks"
+ },
+ {
+  "scenario": "prod bundle /modules/[moduleId]",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 541,
+  "n": 1,
+  "notes": "1803 KB raw in 37 chunks"
+ },
+ {
+  "scenario": "prod bundle /settings",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 541,
+  "n": 1,
+  "notes": "1803 KB raw in 37 chunks"
+ },
+ {
+  "scenario": "prod bundle /your-work",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 541,
+  "n": 1,
+  "notes": "1803 KB raw in 37 chunks"
+ },
+ {
+  "scenario": "prod bundle /_not-found",
+  "metric": "first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 277,
+  "n": 1,
+  "notes": "1022 KB raw in 16 chunks"
+ },
+ {
+  "scenario": "prod bundle shared by every route",
+  "metric": "shared first-load JS gzip KB (value is KB, not ms)",
+  "median_ms": 541,
+  "n": 1,
+  "notes": "1803 KB raw in 37 chunks"
+ },
+ {
+  "scenario": "prod bundle CSS total",
+  "metric": "CSS gzip KB (value is KB, not ms)",
+  "median_ms": 52,
+  "n": 1,
+  "notes": "295 KB raw in 9 files; all JS 4644 KB raw in 111 files"
+ },
+ {
+  "scenario": "prod bundle chunk 0r3mtv5jjeqon.js",
+  "metric": "chunk gzip KB (value is KB, not ms)",
+  "median_ms": 269,
+  "n": 1,
+  "notes": "903 KB raw; first load of 12 routes; holds @tiptap, prosemirror, lowlight/highlight.js, markdown-it/marked, tessera app code"
+ },
+ {
+  "scenario": "prod bundle chunk 27kj2s3cuwvcq.js",
+  "metric": "chunk gzip KB (value is KB, not ms)",
+  "median_ms": 76,
+  "n": 1,
+  "notes": "350 KB raw; first load of 53 routes; holds see hotspots"
+ },
+ {
+  "scenario": "prod bundle chunk 1_0y4ztv7ticn.js",
+  "metric": "chunk gzip KB (value is KB, not ms)",
+  "median_ms": 103,
+  "n": 1,
+  "notes": "348 KB raw; first load of 4 routes; holds recharts, d3 (recharts)"
+ },
+ {
+  "scenario": "prod bundle chunk 0i8eef_83jjb7.js",
+  "metric": "chunk gzip KB (value is KB, not ms)",
+  "median_ms": 64,
+  "n": 1,
+  "notes": "202 KB raw; first load of 53 routes; holds react-dom"
+ },
+ {
+  "scenario": "prod bundle chunk 1bgu118fh_96w.js",
+  "metric": "chunk gzip KB (value is KB, not ms)",
+  "median_ms": 60,
+  "n": 1,
+  "notes": "198 KB raw; first load of 8 routes; holds uuid, tessera app code"
+ },
+ {
+  "scenario": "prod bundle chunk 159h5br6-lj5s.js",
+  "metric": "chunk gzip KB (value is KB, not ms)",
+  "median_ms": 40,
+  "n": 1,
+  "notes": "132 KB raw; first load of 52 routes; holds @astryxdesign/core, tessera app code"
+ },
+ {
+  "scenario": "prod bundle chunk 1gsjhro5fzrji.js",
+  "metric": "chunk gzip KB (value is KB, not ms)",
+  "median_ms": 35,
+  "n": 1,
+  "notes": "129 KB raw; first load of 53 routes; holds next router"
+ },
+ {
+  "scenario": "prod bundle chunk 2rqlly34-6q9v.js",
+  "metric": "chunk gzip KB (value is KB, not ms)",
+  "median_ms": 37,
+  "n": 1,
+  "notes": "128 KB raw; first load of 52 routes; holds zod, uuid"
+ },
+ {
+  "scenario": "prod bundle chunk 3xkodhg22bplv.js",
+  "metric": "chunk gzip KB (value is KB, not ms)",
+  "median_ms": 43,
+  "n": 1,
+  "notes": "125 KB raw; first load of 52 routes; holds @astryxdesign/core"
+ },
+ {
+  "scenario": "prod bundle chunk 0cz1d0mv5g_q7.js",
+  "metric": "chunk gzip KB (value is KB, not ms)",
+  "median_ms": 39,
+  "n": 1,
+  "notes": "110 KB raw; first load of 0 routes; holds see hotspots"
+ },
+ {
+  "scenario": "prod bundle chunk 1x-ecp8rc9s-3.js",
+  "metric": "chunk gzip KB (value is KB, not ms)",
+  "median_ms": 22,
+  "n": 1,
+  "notes": "75 KB raw; first load of 53 routes; holds @astryxdesign/core"
+ },
+ {
+  "scenario": "prod bundle chunk 0pzdergpjwhh2.js",
+  "metric": "chunk gzip KB (value is KB, not ms)",
+  "median_ms": 21,
+  "n": 1,
+  "notes": "66 KB raw; first load of 22 routes; holds @astryxdesign/core, tessera app code"
+ },
+ {
+  "scenario": "prod large perf spec list (decision 115)",
+  "metric": "navigation start -> [data-list-ready], 20 runs",
+  "median_ms": 11660,
+  "p95_ms": 13272,
+  "n": 20,
+  "notes": "budget p95 <= 300 ms; max 13629"
+ },
+ {
+  "scenario": "prod large perf spec board (decision 115)",
+  "metric": "navigation start -> [data-list-ready], 20 runs",
+  "median_ms": 303,
+  "p95_ms": 344,
+  "n": 20,
+  "notes": "budget p95 <= 300 ms; max 1091"
+ },
+ {
+  "scenario": "prod large perf spec table (decision 115)",
+  "metric": "navigation start -> [data-list-ready], 20 runs",
+  "median_ms": 27543,
+  "p95_ms": 35717,
+  "n": 20,
+  "notes": "budget p95 <= 300 ms; max 35858"
+ },
+ {
+  "scenario": "prod large hard load wi-list normal @1440 no throttle (warm cache)",
+  "metric": "navigation start -> [data-list-ready] visible, no skeleton",
+  "median_ms": 6574,
+  "n": 5,
+  "notes": "TTFB 4, response end 208, FCP 200 ms; \"chunks blocked\" aborts every /_next/static/chunks/*.js so only streamed HTML + React inline reveal scripts run; load 14.45 10.30 7.90 -> 5.07 7.94 7.46"
+ },
+ {
+  "scenario": "prod large hard load wi-list chunks blocked @1440 no throttle (warm cache)",
+  "metric": "navigation start -> [data-list-ready] visible, no skeleton",
+  "median_ms": 586,
+  "n": 5,
+  "notes": "TTFB 3, response end 191, FCP 188 ms; \"chunks blocked\" aborts every /_next/static/chunks/*.js so only streamed HTML + React inline reveal scripts run; load 14.45 10.30 7.90 -> 5.07 7.94 7.46"
+ },
+ {
+  "scenario": "prod large hard load wi-list-state normal @1440 no throttle (warm cache)",
+  "metric": "navigation start -> [data-list-ready] visible, no skeleton",
+  "median_ms": 8563,
+  "n": 5,
+  "notes": "TTFB 3, response end 215, FCP 208 ms; \"chunks blocked\" aborts every /_next/static/chunks/*.js so only streamed HTML + React inline reveal scripts run; load 14.45 10.30 7.90 -> 5.07 7.94 7.46"
+ },
+ {
+  "scenario": "prod large hard load wi-list-state chunks blocked @1440 no throttle (warm cache)",
+  "metric": "navigation start -> [data-list-ready] visible, no skeleton",
+  "median_ms": 635,
+  "n": 5,
+  "notes": "TTFB 3, response end 231, FCP 228 ms; \"chunks blocked\" aborts every /_next/static/chunks/*.js so only streamed HTML + React inline reveal scripts run; load 14.45 10.30 7.90 -> 5.07 7.94 7.46"
+ },
+ {
+  "scenario": "prod large hard load wi-board-state normal @1440 no throttle (warm cache)",
+  "metric": "navigation start -> [data-list-ready] visible, no skeleton",
+  "median_ms": 1245,
+  "n": 5,
+  "notes": "TTFB 2, response end 97, FCP 112 ms; \"chunks blocked\" aborts every /_next/static/chunks/*.js so only streamed HTML + React inline reveal scripts run; load 14.45 10.30 7.90 -> 5.07 7.94 7.46"
+ },
+ {
+  "scenario": "prod large hard load wi-board-state chunks blocked @1440 no throttle (warm cache)",
+  "metric": "navigation start -> [data-list-ready] visible, no skeleton",
+  "median_ms": 466,
+  "n": 5,
+  "notes": "TTFB 3, response end 102, FCP 116 ms; \"chunks blocked\" aborts every /_next/static/chunks/*.js so only streamed HTML + React inline reveal scripts run; load 14.45 10.30 7.90 -> 5.07 7.94 7.46"
+ },
+ {
+  "scenario": "prod large hard load wi-table-state normal @1440 no throttle (warm cache)",
+  "metric": "navigation start -> [data-list-ready] visible, no skeleton",
+  "median_ms": 23073,
+  "n": 5,
+  "notes": "TTFB 2, response end 307, FCP 272 ms; \"chunks blocked\" aborts every /_next/static/chunks/*.js so only streamed HTML + React inline reveal scripts run; load 14.45 10.30 7.90 -> 5.07 7.94 7.46"
+ },
+ {
+  "scenario": "prod large hard load wi-table-state chunks blocked @1440 no throttle (warm cache)",
+  "metric": "navigation start -> [data-list-ready] visible, no skeleton",
+  "median_ms": 796,
+  "n": 5,
+  "notes": "TTFB 3, response end 340, FCP 344 ms; \"chunks blocked\" aborts every /_next/static/chunks/*.js so only streamed HTML + React inline reveal scripts run; load 14.45 10.30 7.90 -> 5.07 7.94 7.46"
+ },
+ {
+  "scenario": "prod small A/B client nav cold home->projects @1440 no throttle [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 65.5,
+  "p95_ms": 80,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 57.5 ms in 6/6; nav RSC 13.5 ms / 5 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav cold projects->work-items @1440 no throttle [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 880,
+  "p95_ms": 914,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 64.5 ms in 6/6; nav RSC 22 ms / 14 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav cold work-items->cycles @1440 no throttle [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 386.5,
+  "p95_ms": 397,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 56 ms in 6/6; nav RSC 13 ms / 5 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav cold cycles->inbox @1440 no throttle [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 215.5,
+  "p95_ms": 366,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 46 ms in 6/6; nav RSC 10.5 ms / 6 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav cold inbox->analytics @1440 no throttle [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 434.5,
+  "p95_ms": 441,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 84.5 ms in 6/6; nav RSC 12 ms / 5 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav cold analytics->home @1440 no throttle [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 68.5,
+  "p95_ms": 70,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 50 ms in 6/6; nav RSC 20 ms / 6 KB; prefetched 0/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav warm home->projects @1440 no throttle [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 36,
+  "p95_ms": 49,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 32 ms in 1/6; nav RSC 12 ms / 5 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav warm projects->work-items @1440 no throttle [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 627,
+  "p95_ms": 669,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 36 ms in 6/6; nav RSC 20.5 ms / 14 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav warm work-items->cycles @1440 no throttle [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 74,
+  "p95_ms": 76,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 51 ms in 6/6; nav RSC 12 ms / 5 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav warm cycles->inbox @1440 no throttle [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 59.5,
+  "p95_ms": 61,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 39.5 ms in 6/6; nav RSC 10 ms / 6 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav warm inbox->analytics @1440 no throttle [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 95,
+  "p95_ms": 96,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at null ms in 0/6; nav RSC 13 ms / 5 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav warm analytics->home @1440 no throttle [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 67,
+  "p95_ms": 69,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 47.5 ms in 6/6; nav RSC 18 ms / 6 KB; prefetched 0/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav cold home->projects @1440 no throttle [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 65.5,
+  "p95_ms": 81,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 57.5 ms in 6/6; nav RSC 11 ms / 5 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav cold projects->work-items @1440 no throttle [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 884.5,
+  "p95_ms": 916,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 48 ms in 6/6; nav RSC 26 ms / 14 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav cold work-items->cycles @1440 no throttle [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 152,
+  "p95_ms": 158,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at null ms in 0/6; nav RSC 10.5 ms / 4 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav cold cycles->inbox @1440 no throttle [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 73,
+  "p95_ms": 79,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at null ms in 0/6; nav RSC 9 ms / 5 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav cold inbox->analytics @1440 no throttle [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 434.5,
+  "p95_ms": 442,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 85 ms in 6/6; nav RSC 12.5 ms / 5 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav cold analytics->home @1440 no throttle [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 56.5,
+  "p95_ms": 70,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 46 ms in 6/6; nav RSC 16.5 ms / 6 KB; prefetched 0/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav warm home->projects @1440 no throttle [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 36.5,
+  "p95_ms": 37,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at null ms in 0/6; nav RSC 12 ms / 5 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav warm projects->work-items @1440 no throttle [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 624.5,
+  "p95_ms": 663,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 36 ms in 6/6; nav RSC 20 ms / 14 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav warm work-items->cycles @1440 no throttle [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 80,
+  "p95_ms": 84,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at null ms in 0/6; nav RSC 11.5 ms / 4 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav warm cycles->inbox @1440 no throttle [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 64.5,
+  "p95_ms": 65,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at null ms in 0/6; nav RSC 10 ms / 5 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav warm inbox->analytics @1440 no throttle [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 95,
+  "p95_ms": 95,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at null ms in 0/6; nav RSC 13 ms / 5 KB; prefetched 6/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav warm analytics->home @1440 no throttle [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 55,
+  "p95_ms": 71,
+  "n": 6,
+  "notes": "interleaved rounds; skeleton at 45 ms in 6/6; nav RSC 15 ms / 6 KB; prefetched 0/6; busy after 0 ms; load 4.34 7.59 7.34 -> 2.84 4.15 5.65"
+ },
+ {
+  "scenario": "prod small A/B client nav cold home->projects @1440 CPU 4x [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 137,
+  "p95_ms": 138,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 104 ms in 5/5; nav RSC 9 ms / 5 KB; prefetched 5/5; busy after 0 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav cold projects->work-items @1440 CPU 4x [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 2775,
+  "p95_ms": 2789,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 115 ms in 5/5; nav RSC 14 ms / 14 KB; prefetched 5/5; busy after 0 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav cold work-items->cycles @1440 CPU 4x [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 389,
+  "p95_ms": 408,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 202 ms in 5/5; nav RSC 9 ms / 5 KB; prefetched 5/5; busy after 731 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav cold cycles->inbox @1440 CPU 4x [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 209,
+  "p95_ms": 222,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 136 ms in 5/5; nav RSC 9 ms / 6 KB; prefetched 5/5; busy after 777 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav cold inbox->analytics @1440 CPU 4x [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 446,
+  "p95_ms": 453,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at null ms in 0/5; nav RSC 12 ms / 5 KB; prefetched 5/5; busy after 797 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav cold analytics->home @1440 CPU 4x [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 187,
+  "p95_ms": 192,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 147 ms in 5/5; nav RSC 12 ms / 6 KB; prefetched 0/5; busy after 0 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav warm home->projects @1440 CPU 4x [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 85,
+  "p95_ms": 86,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 63 ms in 5/5; nav RSC 8 ms / 5 KB; prefetched 5/5; busy after 0 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav warm projects->work-items @1440 CPU 4x [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 2336,
+  "p95_ms": 2469,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 66 ms in 5/5; nav RSC 11.5 ms / 14 KB; prefetched 5/5; busy after 0 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav warm work-items->cycles @1440 CPU 4x [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 274,
+  "p95_ms": 287,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 177 ms in 5/5; nav RSC 10 ms / 5 KB; prefetched 5/5; busy after 733 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav warm cycles->inbox @1440 CPU 4x [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 184,
+  "p95_ms": 192,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 121 ms in 5/5; nav RSC 8 ms / 6 KB; prefetched 5/5; busy after 755 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav warm inbox->analytics @1440 CPU 4x [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 359,
+  "p95_ms": 367,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 218 ms in 5/5; nav RSC 12 ms / 5 KB; prefetched 5/5; busy after 761 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav warm analytics->home @1440 CPU 4x [A baseline]",
+  "metric": "click -> ready",
+  "median_ms": 178,
+  "p95_ms": 186,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 139 ms in 5/5; nav RSC 13 ms / 6 KB; prefetched 0/5; busy after 0 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav cold home->projects @1440 CPU 4x [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 136,
+  "p95_ms": 136,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 103 ms in 5/5; nav RSC 9 ms / 5 KB; prefetched 5/5; busy after 0 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav cold projects->work-items @1440 CPU 4x [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 2749,
+  "p95_ms": 2779,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 116 ms in 5/5; nav RSC 13 ms / 14 KB; prefetched 5/5; busy after 0 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav cold work-items->cycles @1440 CPU 4x [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 583,
+  "p95_ms": 588,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at null ms in 0/5; nav RSC 9 ms / 4 KB; prefetched 5/5; busy after 772 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav cold cycles->inbox @1440 CPU 4x [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 251,
+  "p95_ms": 262,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at null ms in 0/5; nav RSC 7 ms / 5 KB; prefetched 5/5; busy after 741 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav cold inbox->analytics @1440 CPU 4x [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 446,
+  "p95_ms": 493,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at null ms in 0/5; nav RSC 12 ms / 5 KB; prefetched 5/5; busy after 781 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav cold analytics->home @1440 CPU 4x [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 174,
+  "p95_ms": 184,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 131 ms in 5/5; nav RSC 12 ms / 6 KB; prefetched 0/5; busy after 0 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav warm home->projects @1440 CPU 4x [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 72,
+  "p95_ms": 87,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 61 ms in 5/5; nav RSC 8 ms / 5 KB; prefetched 5/5; busy after 0 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav warm projects->work-items @1440 CPU 4x [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 2398,
+  "p95_ms": 2468,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 64 ms in 5/5; nav RSC null ms / null KB; prefetched 5/5; busy after 0 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav warm work-items->cycles @1440 CPU 4x [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 311,
+  "p95_ms": 317,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at null ms in 0/5; nav RSC 10 ms / 4 KB; prefetched 5/5; busy after 762 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav warm cycles->inbox @1440 CPU 4x [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 213,
+  "p95_ms": 223,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at null ms in 0/5; nav RSC 7 ms / 5 KB; prefetched 5/5; busy after 739 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav warm inbox->analytics @1440 CPU 4x [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 358,
+  "p95_ms": 363,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 206 ms in 5/5; nav RSC 12 ms / 5 KB; prefetched 5/5; busy after 758 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "prod small A/B client nav warm analytics->home @1440 CPU 4x [B blocking experiment (inbox+cycles: instant=false, no page Suspense)]",
+  "metric": "click -> ready",
+  "median_ms": 174,
+  "p95_ms": 182,
+  "n": 5,
+  "notes": "interleaved rounds; skeleton at 134 ms in 5/5; nav RSC 13 ms / 6 KB; prefetched 0/5; busy after 0 ms; load 2.81 4.08 5.60 -> 3.06 3.02 4.36"
+ },
+ {
+  "scenario": "engine perf:bench list first page, ungrouped (limit 200) (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 3.3,
+  "p95_ms": 3.9,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 4.1 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench list first page, grouped by state (first page) (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 14.2,
+  "p95_ms": 16.4,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 18.9 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench list first page, workspace scope (limit 200) (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 3.6,
+  "p95_ms": 4.1,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 4.3 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench board first page, by state (first page) (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 12.3,
+  "p95_ms": 13.4,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 16.7 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench group projection, by priority (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 13,
+  "p95_ms": 14.7,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 18.8 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench group projection, by labels (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 23.7,
+  "p95_ms": 26.9,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 32.0 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench group projection, by assignees (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 17.4,
+  "p95_ms": 21.1,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 21.8 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench group projection, by modules (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 18.5,
+  "p95_ms": 19.7,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 19.9 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench getCounts, project (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 17.2,
+  "p95_ms": 18,
+  "n": 150,
+  "notes": "budget 25 ms (decision 115): ok; max 27.5 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench getCounts, workspace (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 19.4,
+  "p95_ms": 20.1,
+  "n": 150,
+  "notes": "budget 25 ms (decision 115): ok; max 26.5 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench analytics overview, 30d (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 43.4,
+  "p95_ms": 44.9,
+  "n": 150,
+  "notes": "budget 60 ms (decision 115): ok; max 45.7 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench search (rotating terms) (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 0.9,
+  "p95_ms": 1.7,
+  "n": 150,
+  "notes": "budget 30 ms (decision 115): ok; max 1.8 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench detail read (rotating items) (bench-2.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 0.3,
+  "p95_ms": 0.4,
+  "n": 150,
+  "notes": "budget 25 ms (decision 115): ok; max 0.8 ms; perf-spec.db (10000 PERF items); load 4.01 7.73 10.58 -> 4.53 7.50 10.40"
+ },
+ {
+  "scenario": "engine perf:bench list first page, ungrouped (limit 200) (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 3.5,
+  "p95_ms": 3.9,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 4.8 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ },
+ {
+  "scenario": "engine perf:bench list first page, grouped by state (first page) (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 14,
+  "p95_ms": 17.5,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 27.6 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ },
+ {
+  "scenario": "engine perf:bench list first page, workspace scope (limit 200) (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 4,
+  "p95_ms": 6.5,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 32.4 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ },
+ {
+  "scenario": "engine perf:bench board first page, by state (first page) (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 12.8,
+  "p95_ms": 19.3,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 29.8 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ },
+ {
+  "scenario": "engine perf:bench group projection, by priority (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 14.6,
+  "p95_ms": 18.4,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 20.7 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ },
+ {
+  "scenario": "engine perf:bench group projection, by labels (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 24.9,
+  "p95_ms": 34.1,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 44.2 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ },
+ {
+  "scenario": "engine perf:bench group projection, by assignees (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 18.2,
+  "p95_ms": 22.3,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 68.0 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ },
+ {
+  "scenario": "engine perf:bench group projection, by modules (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 19.1,
+  "p95_ms": 23.6,
+  "n": 150,
+  "notes": "budget 40 ms (decision 115): ok; max 36.1 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ },
+ {
+  "scenario": "engine perf:bench getCounts, project (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 19.3,
+  "p95_ms": 22.6,
+  "n": 150,
+  "notes": "budget 25 ms (decision 115): ok; max 63.7 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ },
+ {
+  "scenario": "engine perf:bench getCounts, workspace (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 20.4,
+  "p95_ms": 31.5,
+  "n": 150,
+  "notes": "budget 25 ms (decision 115): OVER; max 56.8 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ },
+ {
+  "scenario": "engine perf:bench analytics overview, 30d (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 50.8,
+  "p95_ms": 64.3,
+  "n": 150,
+  "notes": "budget 60 ms (decision 115): OVER; max 83.4 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ },
+ {
+  "scenario": "engine perf:bench search (rotating terms) (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 1,
+  "p95_ms": 1.9,
+  "n": 150,
+  "notes": "budget 30 ms (decision 115): ok; max 3.7 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ },
+ {
+  "scenario": "engine perf:bench detail read (rotating items) (bench.txt)",
+  "metric": "engine call time, best of 3x50 runs",
+  "median_ms": 0.4,
+  "p95_ms": 0.7,
+  "n": 150,
+  "notes": "budget 25 ms (decision 115): ok; max 1.0 ms; perf-spec.db (10000 PERF items); load 14.37 8.84 8.20 -> 22.64 11.31 9.12"
+ }
+]

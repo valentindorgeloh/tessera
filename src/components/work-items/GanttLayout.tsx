@@ -29,6 +29,7 @@ import { barColorToken, conflictNotes, connectorPaths, ganttEdges, monthSpans, w
 import { useTodayScroll } from "./gantt-scroll";
 import { GroupFooter } from "./GroupFooter";
 import { isOptimisticId } from "./optimistic";
+import { OneLineText } from "./OneLineText";
 import { UNGROUPED_KEY } from "./paging";
 import { DateControl } from "./properties/DateControl";
 import { stateGroupLabel, stateGroupVariant } from "./properties/StateControl";
@@ -123,9 +124,9 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
           <HStack gap={0}>
             {topSpans.map((span) => (
               <HStack key={span.key} className="tessera-gantt-month" style={cssVars({ width: `calc(${span.span} * var(--tessera-gantt-day))` })}>
-                <Text type="supporting" maxLines={1} className="tessera-gantt-month-label">
+                <OneLineText type="supporting" className="tessera-gantt-month-label">
                   {span.label}
-                </Text>
+                </OneLineText>
               </HStack>
             ))}
           </HStack>
@@ -261,9 +262,7 @@ function GanttRow({
           <Text type="supporting" hasTabularNumbers className="tessera-gantt-key">
             {item.key}
           </Text>
-          <Text maxLines={1} className="tessera-gantt-name">
-            {item.name}
-          </Text>
+          <OneLineText className="tessera-gantt-name">{item.name}</OneLineText>
         </HStack>
         {canDrag ? <GanttDates item={item} onUpdate={onUpdate} /> : null}
       </HStack>
@@ -299,9 +298,9 @@ function GanttRow({
               }}
               onPointerDown={canDrag ? (event) => onPointerDown(item.id, "move", event) : undefined}
             >
-              <Text type="supporting" maxLines={1} className="tessera-gantt-bar-label">
+              <OneLineText type="supporting" className="tessera-gantt-bar-label">
                 {item.key}
-              </Text>
+              </OneLineText>
               {canDrag ? (
                 <HStack
                   className="tessera-gantt-handle"
@@ -333,8 +332,11 @@ function GanttRow({
   );
 }
 
-function GanttDates({ item, onUpdate }: { item: WorkItem; onUpdate: LayoutProps["onUpdate"] }) {
+/** The row's date button. Exported for tests/ui/gantt-dates-lazy.test.ts. */
+export function GanttDates({ item, onUpdate }: { item: WorkItem; onUpdate: LayoutProps["onUpdate"] }) {
   const [isOpen, setOpen] = useState(false);
+  // Astryx 0.6.8 Popover has no lazy prop and keeps closed content mounted: every draggable row carried two full
+  // DateInput calendars. The pickers mount only while the popover is open (as in the compact DateControl).
   return (
     <Popover
       isOpen={isOpen}
@@ -344,19 +346,21 @@ function GanttDates({ item, onUpdate }: { item: WorkItem; onUpdate: LayoutProps[
       alignment="end"
       hasAutoFocus
       content={
-        <VStack gap={2} padding={3} className="tessera-gantt-dates">
-          <DateControl label="Start date" value={item.start_date} max={item.target_date} onChange={(start_date) => onUpdate(item.id, { start_date })} />
-          <DateControl label="Target date" value={item.target_date} min={item.start_date} onChange={(target_date) => onUpdate(item.id, { target_date })} />
-          <Button
-            variant="ghost"
-            size="sm"
-            label="Clear dates"
-            onClick={() => {
-              onUpdate(item.id, { start_date: null, target_date: null });
-              setOpen(false);
-            }}
-          />
-        </VStack>
+        isOpen ? (
+          <VStack gap={2} padding={3} className="tessera-gantt-dates">
+            <DateControl label="Start date" value={item.start_date} max={item.target_date} onChange={(start_date) => onUpdate(item.id, { start_date })} />
+            <DateControl label="Target date" value={item.target_date} min={item.start_date} onChange={(target_date) => onUpdate(item.id, { target_date })} />
+            <Button
+              variant="ghost"
+              size="sm"
+              label="Clear dates"
+              onClick={() => {
+                onUpdate(item.id, { start_date: null, target_date: null });
+                setOpen(false);
+              }}
+            />
+          </VStack>
+        ) : null
       }
     >
       <IconButton label={`Set dates for ${item.key}`} size="sm" variant="ghost" icon={<CalendarIcon />} />

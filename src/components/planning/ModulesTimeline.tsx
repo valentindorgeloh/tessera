@@ -33,6 +33,7 @@ import {
 } from "@/components/work-items/date-span";
 import { barColorToken, weekSpans } from "@/components/work-items/gantt-scale";
 import { useTodayScroll } from "@/components/work-items/gantt-scroll";
+import { OneLineText } from "@/components/work-items/OneLineText";
 import { DateControl } from "@/components/work-items/properties/DateControl";
 import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import { daysBetween } from "@/lib/tessera/core/time";
@@ -157,9 +158,9 @@ export function ModulesTimeline({ projectId, modules, today, readOnly = false }:
           <HStack gap={0}>
             {topSpans.map((span) => (
               <HStack key={span.key} className="tessera-gantt-month" style={cssVars({ width: `calc(${span.span} * var(--tessera-gantt-day))` })}>
-                <Text type="supporting" maxLines={1} className="tessera-gantt-month-label">
+                <OneLineText type="supporting" className="tessera-gantt-month-label">
                   {span.label}
-                </Text>
+                </OneLineText>
               </HStack>
             ))}
           </HStack>
@@ -255,9 +256,7 @@ function ModuleTimelineRow({
             }
           }}
         >
-          <Text maxLines={1} className="tessera-gantt-name">
-            {module.name}
-          </Text>
+          <OneLineText className="tessera-gantt-name">{module.name}</OneLineText>
         </HStack>
         {readOnly ? null : <ModuleDates module={module} ends={ends} onUpdate={onUpdate} />}
       </HStack>
@@ -290,9 +289,9 @@ function ModuleTimelineRow({
             }}
             onPointerDown={readOnly ? undefined : (event) => onPointerDown(module.id, "move", event)}
           >
-            <Text type="supporting" maxLines={1} className="tessera-gantt-bar-label">
+            <OneLineText type="supporting" className="tessera-gantt-bar-label">
               {module.name}
-            </Text>
+            </OneLineText>
             {readOnly ? null : (
               <>
                 <HStack
@@ -318,8 +317,10 @@ function ModuleTimelineRow({
   );
 }
 
-function ModuleDates({ module, ends, onUpdate }: { module: Module; ends: DateEnds; onUpdate: (patch: ModuleDatePatch) => void }) {
+/** The row's date button. Exported for tests/ui/gantt-dates-lazy.test.ts. */
+export function ModuleDates({ module, ends, onUpdate }: { module: Module; ends: DateEnds; onUpdate: (patch: ModuleDatePatch) => void }) {
   const [isOpen, setOpen] = useState(false);
+  // The pickers mount only while the popover is open: Astryx 0.6.8 Popover keeps closed content mounted (GanttDates).
   return (
     <Popover
       isOpen={isOpen}
@@ -329,19 +330,21 @@ function ModuleDates({ module, ends, onUpdate }: { module: Module; ends: DateEnd
       alignment="end"
       hasAutoFocus
       content={
-        <VStack gap={2} padding={3} className="tessera-gantt-dates">
-          <DateControl label="Start date" value={ends.start_date} max={ends.target_date} onChange={(start_date) => onUpdate({ start_date })} />
-          <DateControl label="Target date" value={ends.target_date} min={ends.start_date} onChange={(target_date) => onUpdate({ target_date })} />
-          <Button
-            variant="ghost"
-            size="sm"
-            label="Clear dates"
-            onClick={() => {
-              onUpdate({ start_date: null, target_date: null });
-              setOpen(false);
-            }}
-          />
-        </VStack>
+        isOpen ? (
+          <VStack gap={2} padding={3} className="tessera-gantt-dates">
+            <DateControl label="Start date" value={ends.start_date} max={ends.target_date} onChange={(start_date) => onUpdate({ start_date })} />
+            <DateControl label="Target date" value={ends.target_date} min={ends.start_date} onChange={(target_date) => onUpdate({ target_date })} />
+            <Button
+              variant="ghost"
+              size="sm"
+              label="Clear dates"
+              onClick={() => {
+                onUpdate({ start_date: null, target_date: null });
+                setOpen(false);
+              }}
+            />
+          </VStack>
+        ) : null
       }
     >
       <IconButton label={`Set dates for ${module.name}`} size="sm" variant="ghost" icon={<CalendarIcon />} />

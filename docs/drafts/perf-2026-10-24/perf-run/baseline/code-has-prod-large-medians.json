@@ -1,0 +1,40 @@
+{
+ "has": {
+  "n": 5,
+  "load1m": "12.74,14.02,12.94,11.63,12.83",
+  "median": {
+   "removed": 0,
+   "readyMs": 7058,
+   "lt": 6661
+  },
+  "min": {
+   "removed": 0,
+   "readyMs": 6893,
+   "lt": 6430
+  },
+  "max": {
+   "removed": 0,
+   "readyMs": 7463,
+   "lt": 6998
+  }
+ },
+ "nohas": {
+  "n": 5,
+  "load1m": "13.71,12.99,11.56,11.90,12.51",
+  "median": {
+   "removed": 71,
+   "readyMs": 6213,
+   "lt": 5763
+  },
+  "min": {
+   "removed": 71,
+   "readyMs": 6166,
+   "lt": 5724
+  },
+  "max": {
+   "removed": 71,
+   "readyMs": 6773,
+   "lt": 6335
+  }
+ }
+}

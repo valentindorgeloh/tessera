@@ -1,0 +1,150 @@
+{
+ "head": {
+  "n": 5,
+  "load1m": "12.78,20.67,15.00,9.77,9.85",
+  "median": {
+   "load.ready": 10319,
+   "load.hydrated": 10342,
+   "load.fcp": 620,
+   "load.lcp": 10368,
+   "load.lt": 9668,
+   "load.ltMax": 9459,
+   "load.nodes": 113464,
+   "nav.urlMs": 596,
+   "nav.readyMs": 11033
+  },
+  "min": {
+   "load.ready": 1031,
+   "load.hydrated": 10240,
+   "load.fcp": 560,
+   "load.lcp": 1052,
+   "load.lt": 9613,
+   "load.ltMax": 9364,
+   "load.nodes": 113464,
+   "nav.urlMs": 563,
+   "nav.readyMs": 10435
+  },
+  "max": {
+   "load.ready": 10392,
+   "load.hydrated": 14167,
+   "load.fcp": 664,
+   "load.lcp": 10464,
+   "load.lt": 13541,
+   "load.ltMax": 13077,
+   "load.nodes": 113464,
+   "nav.urlMs": 659,
+   "nav.readyMs": 12214
+  }
+ },
+ "trunc": {
+  "n": 5,
+  "load1m": "12.70,15.72,15.16,12.25,14.73",
+  "median": {
+   "load.ready": 4631,
+   "load.hydrated": 5392,
+   "load.fcp": 932,
+   "load.lcp": 4676,
+   "load.lt": 4928,
+   "load.ltMax": 4001,
+   "load.nodes": 113464,
+   "nav.urlMs": 595,
+   "nav.readyMs": 4110
+  },
+  "min": {
+   "load.ready": 1326,
+   "load.hydrated": 4633,
+   "load.fcp": 556,
+   "load.lcp": 1348,
+   "load.lt": 3958,
+   "load.ltMax": 3473,
+   "load.nodes": 113464,
+   "nav.urlMs": 569,
+   "nav.readyMs": 4025
+  },
+  "max": {
+   "load.ready": 5390,
+   "load.hydrated": 6768,
+   "load.fcp": 1620,
+   "load.lcp": 5444,
+   "load.lt": 6113,
+   "load.ltMax": 4592,
+   "load.nodes": 113464,
+   "nav.urlMs": 646,
+   "nav.readyMs": 4229
+  }
+ },
+ "date": {
+  "n": 5,
+  "load1m": "26.52,13.77,13.13,10.31,10.92",
+  "median": {
+   "load.ready": 8058,
+   "load.hydrated": 8325,
+   "load.fcp": 560,
+   "load.lcp": 8100,
+   "load.lt": 7671,
+   "load.ltMax": 7407,
+   "load.nodes": 54770,
+   "nav.urlMs": 568,
+   "nav.readyMs": 8898
+  },
+  "min": {
+   "load.ready": 4351,
+   "load.hydrated": 7999,
+   "load.fcp": 496,
+   "load.lcp": 4376,
+   "load.lt": 7530,
+   "load.ltMax": 7276,
+   "load.nodes": 54770,
+   "nav.urlMs": 433,
+   "nav.readyMs": 8352
+  },
+  "max": {
+   "load.ready": 8551,
+   "load.hydrated": 15176,
+   "load.fcp": 3968,
+   "load.lcp": 8604,
+   "load.lt": 11096,
+   "load.ltMax": 10585,
+   "load.nodes": 54772,
+   "nav.urlMs": 602,
+   "nav.readyMs": 9895
+  }
+ },
+ "trunc+date": {
+  "n": 5,
+  "load1m": "31.59,14.28,13.50,11.18,8.35",
+  "median": {
+   "load.ready": 2525,
+   "load.hydrated": 2525,
+   "load.fcp": 532,
+   "load.lcp": 2556,
+   "load.lt": 1939,
+   "load.ltMax": 1569,
+   "load.nodes": 54770,
+   "nav.urlMs": 598,
+   "nav.readyMs": 2082
+  },
+  "min": {
+   "load.ready": 2322,
+   "load.hydrated": 2323,
+   "load.fcp": 500,
+   "load.lcp": 2360,
+   "load.lt": 1894,
+   "load.ltMax": 1526,
+   "load.nodes": 54770,
+   "nav.urlMs": 533,
+   "nav.readyMs": 1980
+  },
+  "max": {
+   "load.ready": 3993,
+   "load.hydrated": 3994,
+   "load.fcp": 1700,
+   "load.lcp": 4028,
+   "load.lt": 2294,
+   "load.ltMax": 1925,
+   "load.nodes": 54770,
+   "nav.urlMs": 690,
+   "nav.readyMs": 2248
+  }
+ }
+}

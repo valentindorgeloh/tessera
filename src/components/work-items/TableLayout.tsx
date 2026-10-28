@@ -44,6 +44,7 @@ import { isOptimisticId } from "./optimistic";
 import { UNGROUPED_KEY, hasUnloaded, loadedOfTotal } from "./paging";
 import { usePeekedId } from "./peeked";
 import { NoResults } from "./NoResults";
+import { OneLineText } from "./OneLineText";
 import { RowProject } from "./row-project";
 import { TABLE_SORT_FIELDS, orderByFromSort, sortFromOrderBy } from "./table-sort";
 import { ActorLabel, AssigneeControl, CycleControl, DateControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, PriorityLabel, StateControl, StateLabel, isPriority, paletteTokenColor } from "./properties";
@@ -128,9 +129,9 @@ function buildColumns(
     header: "Name",
     width: NAME_COLUMN_WIDTH,
     renderCell: (row) => (
-      <Text weight="medium" maxLines={1}>
+      <OneLineText className="tessera-wi-cell-text" weight="medium">
         {row.item.name}
-      </Text>
+      </OneLineText>
     ),
   });
   if (showProject) {
@@ -140,7 +141,7 @@ function buildColumns(
       header: "Project",
       width: pixel(160),
         renderCell: (row) => (
-        <Text maxLines={1}>{projectName.get(row.item.project_id) ?? ""}</Text>
+        <OneLineText className="tessera-wi-cell-text">{projectName.get(row.item.project_id) ?? ""}</OneLineText>
       ),
     });
   }

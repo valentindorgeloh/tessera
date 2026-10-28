@@ -53,7 +53,7 @@ export function StateLabel({ state, group, name }: { state?: State; group?: Stat
   return (
     <HStack gap={1.5} vAlign="center">
       <StatusDot variant={GROUP_VARIANT[resolvedGroup]} label={GROUP_LABEL[resolvedGroup]} />
-      <Text type="inherit" maxLines={1} hasTruncateTooltip={false}>
+      <Text type="inherit" className="tessera-wi-label-text">
         {resolvedName}
       </Text>
     </HStack>

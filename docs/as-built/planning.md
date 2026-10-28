@@ -174,7 +174,7 @@ No test submits `CycleDialog` or `TransferDialog`, runs the Restore and Delete f
 
 ## 7. Known debt and quirks
 
-File budget (scripts/file-budget.json): `src/lib/tessera/cycles.ts` 871 and `src/lib/tessera/modules.ts` 694 (both at their budget; they may not grow). No file in `src/components/planning` is near 600 lines; the largest are `ModulesTimeline.tsx` (350) and `ModuleDialog.tsx` (298).
+File budget (scripts/file-budget.json): `src/lib/tessera/cycles.ts` 871 and `src/lib/tessera/modules.ts` 694 (both at their budget; they may not grow). No file in `src/components/planning` is near 600 lines; the largest are `ModulesTimeline.tsx` (353) and `ModuleDialog.tsx` (298).
 
 Not built (ui.md P3 "Scope and deferrals" and "As built"):
 - Module gallery layout and a module burndown (the module side panel has no chart).
