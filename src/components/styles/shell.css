@@ -853,3 +853,16 @@
   height: var(--size-element-md);
   display: block;
 }
+
+/*
+ * The collapsed rail is 48px wide but the wash strip left of the content card is 56px (the card's
+ * 8px inset), so icons centred in the rail sit 4px left of the strip's centre. Shift the rail's
+ * contents and the top bar's sidebar toggle right so both centre on the strip.
+ */
+:root[data-nav-collapsed] .astryx-side-nav[aria-label="Work"] > * {
+  padding-inline: var(--spacing-3) var(--spacing-1);
+}
+
+:root[data-nav-collapsed] .tessera-topbar-heading > :first-child {
+  margin-inline-start: var(--spacing-1-5);
+}
