@@ -252,11 +252,14 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
     clearTimer();
     if (current.theirs !== null) {
       applyServer(current.theirs.text, current.theirs.version);
+      // The status line is plain text now, so the switch to "Saved" is spoken from this handler.
+      // The awaitingTheirs path below says nothing: it resolves from the effect that applies the refreshed page.
+      announce(STATUS_TEXT.clean);
       return;
     }
     current.awaitingTheirs = true;
     void refreshAction();
-  }, [applyServer, clearTimer]);
+  }, [announce, applyServer, clearTimer]);
 
   const onLossyParse = useCallback(
     (serialised: string) => {

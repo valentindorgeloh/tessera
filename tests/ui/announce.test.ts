@@ -16,11 +16,15 @@
  * - The empty outcome of an editor suggestion search is spoken once, from the
  *   renderer's callbacks, and "Searching…" is not.
  * - EntryBanner: Astryx's `useEntryAnimation("slideDown")` through `xstyle`,
- *   decided where the banner mounts (null on the server and while hydrating).
+ *   decided where the banner mounts (null on the server and while hydrating),
+ *   and dropped once its own animationend has fired, so a route shown again
+ *   under Activity does not replay the slide.
+ * - "Load theirs" on a changed page says "Saved" from its handler; the stale
+ *   backup warning is an EntryBanner only when the switch brought it in.
  * Astryx writes a message into its polite or assertive live region one frame
  * after the call, which is why the helpers wait two frames.
  */
-import { act, createElement, useImperativeHandle, type ReactNode, type Ref } from "react";
+import { act, createElement, useImperativeHandle, type ComponentProps, type ReactNode, type Ref } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { readFileSync } from "node:fs";
@@ -193,6 +197,21 @@ afterEach(async () => {
 const alerts = () => [...document.querySelectorAll('[role="alert"]')].filter((node) => !node.hasAttribute("data-astryx-live-region"));
 const classesOf = (element: Element | null) => (element?.className ?? "").split(/\s+/).filter(Boolean);
 
+const frameOf = (root: ParentNode) => root.querySelector(".astryx-banner-frame");
+/** The classes a plain Banner's frame has: what an EntryBanner returns to once its slide is over. */
+function plainFrameClasses(props: ComponentProps<typeof Banner>): string[] {
+  const host = document.createElement("div");
+  host.innerHTML = renderToString(createElement(Banner, props));
+  return classesOf(frameOf(host));
+}
+async function animationEnd(target: Element | null) {
+  expect(target).not.toBeNull();
+  // jsdom has no AnimationEvent, so React listens for the prefixed name there; a browser fires "animationend". One of the two is heard.
+  await act(async () => {
+    for (const type of ["animationend", "webkitAnimationEnd"]) target?.dispatchEvent(new Event(type, { bubbles: true }));
+  });
+}
+
 describe("EntryBanner", () => {
   it("renders the same markup as a plain Banner on the server, so nothing moves on load", () => {
     const props = { status: "warning", title: "Changed elsewhere", role: "alert" } as const;
@@ -224,6 +243,32 @@ describe("EntryBanner", () => {
     await act(async () => root?.render(createElement(Screen, { show: false })));
     await act(async () => root?.render(createElement(Banner, { id: "plain", status: "warning", title: "Later" })));
     expect(later.length).toBeGreaterThan(classesOf(document.querySelector("#plain")).length);
+  });
+
+  it("drops the slide once the frame's animation has ended, so a route shown again does not replay it", async () => {
+    const props = { id: "settled", status: "warning", title: "Changed elsewhere", description: "Someone else saved." } as const;
+    await mount(createElement(EntryBanner, props));
+    const plain = plainFrameClasses(props);
+    expect(classesOf(document.querySelector("#settled")).length).toBeGreaterThan(plain.length);
+    await animationEnd(document.querySelector("#settled"));
+    expect(classesOf(document.querySelector("#settled"))).toEqual(plain);
+    // Shown again under Activity (the same instance renders on): still plain.
+    await act(async () => root?.render(createElement(EntryBanner, { ...props, description: "Someone else saved this page." })));
+    expect(classesOf(document.querySelector("#settled"))).toEqual(plain);
+  });
+
+  it("ignores the animation events of what is inside the banner, and forwards its own handler", async () => {
+    const onAnimationEnd = vi.fn();
+    const props = { id: "inner", status: "warning", title: "Changed elsewhere", description: "Someone else saved." } as const;
+    await mount(createElement(EntryBanner, { ...props, onAnimationEnd }));
+    const plain = plainFrameClasses(props);
+    const title = [...document.querySelectorAll("#inner *")].find((node) => node.children.length === 0 && node.textContent === "Changed elsewhere") ?? null;
+    await animationEnd(title);
+    expect(classesOf(document.querySelector("#inner")).length).toBeGreaterThan(plain.length);
+    expect(onAnimationEnd).toHaveBeenCalledTimes(1);
+    await animationEnd(document.querySelector("#inner"));
+    expect(classesOf(document.querySelector("#inner"))).toEqual(plain);
+    expect(onAnimationEnd).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -277,6 +322,20 @@ describe("PageBodyEditor save status", () => {
     expect(toast).not.toHaveBeenCalled();
   });
 
+  it("says 'Saved' from the 'Load theirs' handler, since the status line is not a live region", async () => {
+    await mount(editor());
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    await type(textarea(), "Hello there");
+    // The page changes on the server while the person has unsaved edits: the banner offers it.
+    await act(async () => root?.render(createElement(PageBodyEditor, { pageId: "pg-1", text: "Their text", version: 2 })));
+    expect(alerts()[0]?.textContent).toContain("Updated elsewhere");
+    await silence();
+    await click([...document.querySelectorAll("button")].find((entry) => entry.textContent?.trim() === "Load theirs") ?? null);
+    expect(statusLine()?.textContent).toBe("Saved");
+    expect(await heard()).toBe("Saved");
+    expect(alerts()).toHaveLength(0);
+  });
+
   it("leaves a failed save to its toast", async () => {
     pageActions.update.mockResolvedValue({ ok: false, code: "VALIDATION", message: "Body too long" });
     await mount(editor());
@@ -298,11 +357,21 @@ describe("BackupsScreen stale warning", () => {
   const screen = (autoBackup: boolean) => createElement(BackupsScreen, { backups: [manual], autoBackup, now: NOW });
   const warning = () => [...document.querySelectorAll("*")].find((node) => node.children.length === 0 && node.textContent === "No recent automatic backup");
 
+  const staleProps = { status: "warning", title: "No recent automatic backup", description: "The last automatic backup is older than 48 hours, or none exists yet." } as const;
+  const warningFrame = () => classesOf(warning()?.closest(".astryx-banner-frame") ?? null);
+
   it("is plain page content when the page loads with it: no role and nothing announced", async () => {
     await mount(screen(true));
     expect(warning()).toBeDefined();
     expect(alerts()).toHaveLength(0);
     expect(await heard()).toBe("");
+  });
+
+  it("does not slide in with a screen that mounts (a client navigation) already stale: its frame is a plain Banner's", async () => {
+    await frame();
+    await mount(screen(true));
+    expect(warningFrame().length).toBeGreaterThan(0);
+    expect(warningFrame()).toEqual(plainFrameClasses(staleProps));
   });
 
   it("is told from the switch's handler when turning daily backups on brings it in", async () => {
@@ -313,6 +382,8 @@ describe("BackupsScreen stale warning", () => {
     expect(settingsActions.update).toHaveBeenCalledWith({ auto_backup: true });
     expect(warning()).toBeDefined();
     expect(alerts()).toHaveLength(0);
+    // The switch brought it in, so it slides in (an EntryBanner adds the preset's classes to the plain frame's).
+    expect(warningFrame().length).toBeGreaterThan(plainFrameClasses(staleProps).length);
     expect(await heard()).toBe("No recent automatic backup. The last automatic backup is older than 48 hours, or none exists yet.");
   });
 

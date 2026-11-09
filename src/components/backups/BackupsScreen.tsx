@@ -4,6 +4,7 @@
  * Workspace backups list (docs/drafts/p11-plan.md U2): daily toggle, Back up now.
  */
 import { useState, useTransition } from "react";
+import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -55,6 +56,8 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
   const toast = useToast();
   const announce = useAnnounce();
   const [enabled, setEnabled] = useState(autoBackup);
+  // The stale banner is page content when the screen mounts with it, and slides in only when the switch brings it in (decided by the event, not by the render).
+  const [brought, setBrought] = useState(false);
   const [isSaving, startSave] = useTransition();
   const [isBackingUp, startBackup] = useTransition();
 
@@ -75,6 +78,7 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
 
   const toggleDaily = (value: boolean) => {
     setEnabled(value);
+    if (value) setBrought(true);
     startSave(async () => {
       const result = await updateWorkspaceSettingsAction({ auto_backup: value });
       if (!result.ok) {
@@ -164,7 +168,11 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
           </Text>
         </VStack>
         {stale ? (
-          <EntryBanner status="warning" title={STALE_TITLE} description={STALE_DESCRIPTION} />
+          brought ? (
+            <EntryBanner status="warning" title={STALE_TITLE} description={STALE_DESCRIPTION} />
+          ) : (
+            <Banner status="warning" title={STALE_TITLE} description={STALE_DESCRIPTION} />
+          )
         ) : null}
         {backups.length === 0 ? (
           <EmptyState

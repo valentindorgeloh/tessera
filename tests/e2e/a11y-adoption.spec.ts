@@ -114,6 +114,53 @@ test.describe("banners that the person brings in", () => {
       await page.waitForTimeout(500);
     }
   });
+
+  const warningFrame = (page: import("@playwright/test").Page) => page.locator(".astryx-banner-frame", { has: page.getByText("No recent automatic backup", { exact: true }) });
+  const animationNameOf = (frame: import("@playwright/test").Locator) => frame.evaluate((node) => getComputedStyle(node).animationName);
+
+  test("a stale warning that is page content stays still when the screen opens by a client navigation", async ({ page }) => {
+    const before = (await mcp<{ auto_backup: boolean }>("get_workspace_settings")).auto_backup;
+    try {
+      await mcp("update_workspace_settings", { auto_backup: true });
+      await page.goto("/settings/general");
+      await waitForAppHydrated(page);
+      // A link, not a load: the Backups screen mounts now, with the warning already in its content.
+      await page.locator('[data-tab-value="backups"]').first().click();
+      await expect(page.getByText("No recent automatic backup", { exact: true })).toBeVisible();
+      expect(await animationNameOf(warningFrame(page))).toBe("none");
+      await expect(polite(page)).not.toContainText("No recent automatic backup");
+    } finally {
+      await mcp("update_workspace_settings", { auto_backup: before });
+    }
+  });
+
+  test("a warning the switch brought in does not slide again when its route is shown again", async ({ page }) => {
+    const before = (await mcp<{ auto_backup: boolean }>("get_workspace_settings")).auto_backup;
+    try {
+      await mcp("update_workspace_settings", { auto_backup: false });
+      await page.goto("/settings/backups");
+      await waitForAppHydrated(page);
+      await page.getByRole("switch", { name: "Daily backups" }).click();
+      const warning = page.getByText("No recent automatic backup", { exact: true });
+      await expect(warning).toBeVisible();
+      expect(await animationNameOf(warningFrame(page)), "it slides in while the person is looking").not.toBe("none");
+      // Past the slide (about 140 ms): its animationend has dropped the style.
+      await page.waitForTimeout(700);
+      expect(await animationNameOf(warningFrame(page))).toBe("none");
+      await warningFrame(page).evaluate((node) => node.setAttribute("data-probe", "same-instance"));
+
+      // Leave by a link and come back by a link: Next keeps the left route mounted (Activity) and shows it again.
+      await page.locator('[data-tab-value="general"]').first().click();
+      await page.waitForURL("**/settings/general");
+      await expect(warning).toBeHidden();
+      await page.locator('[data-tab-value="backups"]').first().click();
+      await expect(warning).toBeVisible();
+      await expect(warningFrame(page)).toHaveAttribute("data-probe", "same-instance");
+      expect(await animationNameOf(warningFrame(page)), "shown again, it does not replay the slide").toBe("none");
+    } finally {
+      await mcp("update_workspace_settings", { auto_backup: before });
+    }
+  });
 });
 
 test("the page body speaks 'Saved' through Astryx's live region and keeps no aria-live line", async ({ page }) => {
