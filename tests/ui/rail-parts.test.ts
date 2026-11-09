@@ -79,13 +79,13 @@ describe("ExpandedOnly (S2)", () => {
 });
 
 describe("RailItem (S3)", () => {
-  it("names a collapsed row in a tooltip anchored on the row", async () => {
+  it("names a collapsed row in exactly one tooltip, Astryx's own on the link", async () => {
     const el = await render(nav(true));
     const tips = [...el.querySelectorAll('[role="tooltip"]')].map((tip) => tip.textContent);
-    expect(tips).toContain("Inbox");
-    // Astryx's own sibling tooltip never attaches (0.6.8); this one sets aria-describedby on the row.
-    const row = el.querySelector('a[aria-label="Inbox"]')?.parentElement;
-    expect(row?.getAttribute("aria-describedby")).toBeTruthy();
+    // Astryx 0.7.5+ puts the label tooltip on the collapsed link; the 0.6.8 wrapper would add a second one.
+    expect(tips).toEqual(["Inbox"]);
+    const link = el.querySelector('a[aria-label="Inbox"]');
+    expect(link?.getAttribute("aria-describedby")).toBeTruthy();
   });
 
   it("renders the bare row, with no tooltip, while expanded", async () => {

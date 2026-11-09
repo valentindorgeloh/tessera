@@ -77,7 +77,7 @@ Shell and sidebar
 - `src/components/shell/RailParts.tsx` (99 lines). The parts read Astryx's collapse context (`useSideNavCollapse`), so they render expanded in the mobile drawer, which has no collapse context:
   - `NewItemButton` (`:28-45`) is an `IconButton` in the rail (`:31`) and the full `Button` otherwise;
   - `ExpandedOnly` (`:53-56`) renders nothing in the rail;
-  - `RailItem` (`:67-76`) wraps a collapsed `SideNavItem` in `Tooltip placement="end" focusTrigger="always"` (`:72`), because Astryx's own sibling tooltip never attaches in 0.6.8;
+  - `RailItem` (`:67-76`) wraps a collapsed `SideNavItem` in `Tooltip placement="end" focusTrigger="always"` (`:72`), because Astryx's own sibling tooltip never attaches in 0.6.8; **since the Astryx 0.7.11 upgrade (2026-11-09) `RailItem` renders the bare `SideNavItem`: Astryx 0.7.5+ names the collapsed link itself, so P12's "RailItem unchanged / keeps its tooltip" lines below mean the built-in tooltip;**
   - `RowActions` (`:88-98`).
 - `src/components/shell/FavoritesSection.tsx`: favourites are `RailItem`s (`:228`); a folder is a plain `SideNavItem` with children (`:134`), which shows a flyout in the rail.
 - `src/components/shell/SidebarSkeleton.tsx` (24 lines) renders the same SideNav frame (`:16`) from `useShell().isNavCollapsed` (`:13`) and `useSidebarResize()`.
