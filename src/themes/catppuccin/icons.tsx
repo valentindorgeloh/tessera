@@ -75,7 +75,7 @@ import {
   User,
   UserCircle,
   Users,
-  // Colour scheme menu (top bar account menu).
+  // Colour scheme menu (top bar).
   Monitor,
   Moon,
   Sun,

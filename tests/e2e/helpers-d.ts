@@ -207,7 +207,7 @@ export async function searchAddonBoxMisses(page: Page): Promise<string[]> {
 // ---------------------------------------------------------------------------
 
 /** The control an early action targets. */
-export type EarlyAction = "toggle" | "chord" | "open-nav" | "assistant" | "help" | "account" | "search";
+export type EarlyAction = "toggle" | "chord" | "open-nav" | "assistant" | "help" | "scheme" | "search";
 
 /** What the init script of `armEarlyAction` recorded on `window.__early`. */
 export type EarlyRecord = {
@@ -269,8 +269,8 @@ export async function armEarlyAction(page: Page, action: EarlyAction): Promise<v
             return document.querySelector<HTMLElement>('button[aria-label="Assistant"]');
           case "help":
             return document.querySelector<HTMLElement>('button[aria-label="Help and keyboard shortcuts"]');
-          case "account":
-            return document.querySelector<HTMLElement>('button[aria-label="Account and preferences"]');
+          case "scheme":
+            return document.querySelector<HTMLElement>('button[aria-label="Colour scheme"]');
           case "search":
             return document.querySelector<HTMLElement>('input[aria-haspopup="dialog"]');
         }

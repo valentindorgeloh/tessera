@@ -52,7 +52,7 @@ export const ROUTE_ICONS: Readonly<Record<RouteIconKey, IconType>> = {
   webhooks: WebhookIcon,
 };
 
-/** Glyphs for the colour schemes, shared by the account menu and Power K's theme commands. */
+/** Glyphs for the colour schemes, shared by the top bar colour scheme menu and Power K's theme commands. */
 export const COLOR_SCHEME_ICONS: Readonly<Record<ColorScheme, IconType>> = {
   dark: MoonIcon,
   light: SunIcon,

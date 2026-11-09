@@ -237,12 +237,12 @@ test.describe("project settings tabs", () => {
 
 test.describe("app header touch boxes", () => {
   for (const width of [375, 360]) {
-    test(`at ${width} px Open navigation, Assistant, Help and Account each own their 44x44 box`, async ({ page }) => {
+    test(`at ${width} px Open navigation, Assistant, Help and Colour scheme each own their 44x44 box`, async ({ page }) => {
       await page.setViewportSize({ width, height: 812 });
       await page.goto("/");
       await expect(page.getByRole("heading", { name: "Home" }).first()).toBeVisible();
 
-      const controls = ["Open navigation", "Assistant", "Help and keyboard shortcuts", "Account and preferences"];
+      const controls = ["Open navigation", "Assistant", "Help and keyboard shortcuts", "Colour scheme"];
       for (const name of controls) {
         const control = page.getByRole("button", { name, exact: true });
         await expect(control, name).toBeVisible();

@@ -330,7 +330,7 @@ type OtherControl = { action: EarlyAction; name: string; opened: (page: Page) =>
 const OTHER_CONTROLS: readonly OtherControl[] = [
   { action: "assistant", name: "Assistant", opened: (page) => page.getByRole("complementary", { name: "Assistant" }) },
   { action: "help", name: "Help", opened: (page) => page.getByRole("dialog", { name: "Keyboard shortcuts" }) },
-  { action: "account", name: "Account", opened: (page) => page.getByRole("menu") },
+  { action: "scheme", name: "Colour scheme", opened: (page) => page.getByRole("menu") },
   { action: "search", name: "search", opened: (page) => page.getByRole("dialog", { name: "Command bar" }) },
 ];
 
