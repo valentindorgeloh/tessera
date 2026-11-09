@@ -91,6 +91,23 @@ describe("catppuccin theme wiring", () => {
     expect(tokens.get(token)).toBe(value);
   });
 
+  // Calm and quick (X01): the motion scale keeps the CSS durations at 140/280/520 ms
+  // (a scale's durations win over `tempo`), and `tempo: 0.75`, the quickest the knob
+  // goes, speeds the animator's springs. The curves stay at the `standard` character:
+  // `crisp` reads as slower, so catppuccinTheme.ts must not name a character.
+  it("sets tempo 0.75 and keeps the 140/280/520 ms durations", () => {
+    expect(tokens.get("--_astryx-motion-tempo")).toBe("0.75");
+    expect(tokens.get("--duration-fast")).toBe("140ms");
+    expect(tokens.get("--duration-medium")).toBe("280ms");
+    expect(tokens.get("--duration-slow")).toBe("520ms");
+    // The entrance, move and exit tokens at `standard`: Astryx's own, never written by the build.
+    expect(tokens.get("--duration-exit")).toBe("var(--duration-fast)");
+    for (const name of ["--ease-entrance", "--ease-move", "--ease-exit"]) expect(tokens.has(name), name).toBe(false);
+    const source = fs.readFileSync(path.join(THEME_DIR, "catppuccinTheme.ts"), "utf8");
+    expect(source).toMatch(/motion: \{[^}]*\btempo: 0\.75\b/);
+    expect(source).not.toMatch(/\bcharacter:/);
+  });
+
   it("the focus ring follows the on-colour on inverted surfaces", () => {
     expect(ruleBody('[data-astryx-media="dark"]')).toContain("--focus-outline-color: var(--color-on-dark)");
     expect(ruleBody('[data-astryx-media="light"]')).toContain("--focus-outline-color: var(--color-on-light)");

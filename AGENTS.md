@@ -42,6 +42,6 @@ RULES:
 
 ## Tessera project rules
 
-`docs/contracts/ui.md` refines the Astryx block above for this repo. Per-instance layout may use a className with tokens only, in the area's file under `src/components/styles/` (imported once from `src/app/globals.css`). Theme-wide restyles go through `src/themes/catppuccin/` (see the "Theme" section of `docs/contracts/ui.md`). Fonts load through `next/font` in `src/app/layout.tsx`, so `astryx doctor` keeps one documented `theme-fonts` warning.
+`docs/contracts/ui.md` refines the Astryx block above for this repo. Per-instance layout may use a className with tokens only, in the area's file under `src/components/styles/` (imported once from `src/app/globals.css`). The Astryx block's "don't use xstyle" has one exception here: a style object that an Astryx hook returns (today `useEntryAnimation`) may go to an Astryx component's `xstyle`; never `stylex.create`. Theme-wide restyles go through `src/themes/catppuccin/` (see the "Theme" section of `docs/contracts/ui.md`). Fonts load through `next/font` in `src/app/layout.tsx`, so `astryx doctor` keeps one documented `theme-fonts` warning.
 
 Agents build Tessera as a swarm with fixed roles (planner, worker, reviewer, reconciler); the roles, models and rules are in `docs/process/swarm.md`. Before starting any task, read `docs/field-guide/index.md`, the short list of surprises that cost earlier agents time.

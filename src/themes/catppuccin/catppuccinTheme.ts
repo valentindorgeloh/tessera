@@ -124,7 +124,12 @@ export const catppuccinTheme = defineTheme({
     },
   },
   radius: {base: 4, multiplier: 1},
-  motion: {fast: 140, medium: 280, slow: 520, ratio: 0.8},
+  // The scale keeps the CSS durations at 140/280/520 ms (a motion scale's
+  // durations win over `tempo`). `tempo: 0.75` is the quickest the knob goes
+  // and speeds up the animator's springs (useAnimator, useAnimatedLayout),
+  // which stay at tempo 1 without it. Character stays `standard`: `crisp`
+  // decelerates harder and reads as slower here. Calm and quick, no bounce.
+  motion: {fast: 140, medium: 280, slow: 520, ratio: 0.8, tempo: 0.75},
   tokens: {
     ...syntaxTokenDefaults,
     ...SEMANTIC_TOKENS,

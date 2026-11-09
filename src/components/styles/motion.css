@@ -1,0 +1,111 @@
+/*
+ * Shared motion classes: the keyframes behind the side-panel slides (peek,
+ * assistant) and a few small appearances, on tokens only. Calm and quick: an
+ * enter runs 225 ms on --ease-entrance, an exit 140 ms on --ease-exit, a fade
+ * 175 ms, and nothing bounces. Offsets are the element's own size (100%) or a
+ * spacing token, never a raw length.
+ *
+ * Astryx first: anything that merely APPEARS (a banner, a status line, a
+ * placeholder, the bulk bar) uses Astryx's useEntryAnimation through the
+ * component's xstyle prop (docs/contracts/ui.md "Motion"). These classes are
+ * for what Astryx has no preset for: a panel that slides in from the end of
+ * the layout, and the CSS exit that src/components/motion/play-exit.ts waits for.
+ *
+ * How a surface uses them (src/components/motion/):
+ *   className="tessera-motion-slide-end"  plus
+ *   data-enter     from useEnterFlag: the surface opened after mount (never on
+ *                  hydration, so a ?peek= deep link does not slide);
+ *   data-exiting   set by playExit, or by the owner, to run the exit; the
+ *                  `forwards` fill keeps the surface out until it unmounts.
+ * The slide goes towards the end edge of a left-to-right layout.
+ *
+ * Under prefers-reduced-motion every rule below is `animation: none` (the
+ * block at the end), so an exit has nothing to wait for and playExit resolves
+ * at once. A route that Activity hides cancels its running animations; the
+ * rules hold no state, so a reveal shows the surface as it is.
+ */
+
+@keyframes tessera-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tessera-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes tessera-slide-in-end {
+  from {
+    translate: 100% 0;
+    opacity: 0;
+  }
+  to {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+
+@keyframes tessera-slide-out-end {
+  from {
+    translate: 0 0;
+    opacity: 1;
+  }
+  to {
+    translate: 100% 0;
+    opacity: 0;
+  }
+}
+
+@keyframes tessera-rise {
+  from {
+    translate: 0 var(--spacing-2);
+    opacity: 0;
+  }
+  to {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+
+/* A side panel: slides in from the end edge and back out. */
+.tessera-motion-slide-end[data-enter] {
+  animation: tessera-slide-in-end var(--duration-medium-min) var(--ease-entrance) backwards;
+}
+
+.tessera-motion-slide-end[data-exiting] {
+  animation: tessera-slide-out-end var(--duration-exit) var(--ease-exit) forwards;
+}
+
+/* A surface that only fades. */
+.tessera-motion-fade[data-enter] {
+  animation: tessera-fade-in var(--duration-fast-max) var(--ease-entrance) backwards;
+}
+
+.tessera-motion-fade[data-exiting] {
+  animation: tessera-fade-out var(--duration-exit) var(--ease-exit) forwards;
+}
+
+/* A bar or line that rises into place; no exit (it leaves at once). */
+.tessera-motion-rise[data-enter] {
+  animation: tessera-rise var(--duration-fast-max) var(--ease-entrance) backwards;
+}
+
+/* Reduce Motion: no Tessera motion at all. Same selectors as above, so the specificity matches. */
+@media (prefers-reduced-motion: reduce) {
+  .tessera-motion-slide-end[data-enter],
+  .tessera-motion-slide-end[data-exiting],
+  .tessera-motion-fade[data-enter],
+  .tessera-motion-fade[data-exiting],
+  .tessera-motion-rise[data-enter] {
+    animation: none;
+  }
+}

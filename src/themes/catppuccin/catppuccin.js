@@ -124,7 +124,7 @@ export const catppuccinTheme = {
     "--_astryx-pre-tempo-duration-slow-min": "415ms",
     "--_astryx-pre-tempo-duration-slow": "520ms",
     "--_astryx-pre-tempo-duration-slow-max": "650ms",
-    "--_astryx-motion-tempo": "1",
+    "--_astryx-motion-tempo": "0.75",
     "--font-family-body": "var(--font-body), \"Source Sans 3\", \"Source Sans Pro\", sans-serif",
     "--font-family-heading": "var(--font-body), \"Source Sans 3\", \"Source Sans Pro\", sans-serif",
     "--font-family-code": "var(--font-code), \"Source Code Pro\", ui-monospace, monospace",
@@ -792,7 +792,8 @@ export const catppuccinTheme = {
       "fast": 140,
       "medium": 280,
       "slow": 520,
-      "ratio": 0.8
+      "ratio": 0.8,
+      "tempo": 0.75
     }
   },
   icons: catppuccinIconRegistry,

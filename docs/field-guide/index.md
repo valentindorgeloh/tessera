@@ -48,7 +48,7 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 ## Astryx and theme
 - Convention `css-token`: an Astryx-family name (`--spacing-`, `--color-`, ...) must exist in the installed Astryx CSS or in `src/themes/**`, never only in an area file; any other name must be defined in the same file, a theme file, or the other side of the css/ts pair (a style prop or `setProperty` for CSS). `--font-body` and `--font-code` are exempt (next/font sets them in layout.tsx). See `scripts/convention-rules.ts`.
 - Astryx spacing tokens stop at `--spacing-12` (4px steps; `--spacing-11` is 44px). An undefined var() silently drops the whole declaration.
-- No raw <div>/<span>, hex or xstyle. Layout uses className + tokens in src/components/styles/<area>.css. Icons come only from src/themes/catppuccin/icons.tsx.
+- No raw <div>/<span>, hex or xstyle (only an Astryx hook's style, e.g. `useEntryAnimation`: astryx-0.7.md). Layout uses className + tokens in src/components/styles/<area>.css. Icons come only from src/themes/catppuccin/icons.tsx.
 - No Astryx Toolbar in panel headers: its roving tabindex steals arrow keys. Use PanelHeader/PanelBar (src/components/shell/PanelHeader.tsx).
 - Panel rows use a 16px inline inset (paddingInline={4}). Header controls are size sm. A screen inside the project frame adds no second title row.
 - Badge is for counts only. RelativeTime inside a tooltip trigger needs hasTooltip={false}. A MoreMenu row with nested `items` drops `description`; a disabled reason has to be a leaf row.
