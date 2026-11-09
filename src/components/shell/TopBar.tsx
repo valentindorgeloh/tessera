@@ -8,13 +8,12 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { InputGroup, InputGroupText } from "@astryxdesign/core/InputGroup";
 import { Kbd } from "@astryxdesign/core/Kbd";
-import { SideNavCollapseButton } from "@astryxdesign/core/SideNav";
 import { HStack, Stack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { TopNav, TopNavHeading } from "@astryxdesign/core/TopNav";
 import { useAssistant } from "@/components/ai/AssistantProvider";
-import { AssistantIcon, KeyboardIcon, QuestionIcon, SearchIcon, TesseraMark } from "@/themes/catppuccin/icons";
+import { AssistantIcon, KeyboardIcon, QuestionIcon, SearchIcon, SidebarIcon, TesseraMark } from "@/themes/catppuccin/icons";
 import { COLOR_SCHEME_LABELS, isColorScheme, setColorScheme, useColorScheme, type ColorScheme } from "./color-scheme";
 import { COLOR_SCHEME_ICONS } from "./shell-icons";
 import { useShell } from "./TesseraShell";
@@ -177,7 +176,16 @@ export function TopBar() {
       label={name}
       heading={
         <HStack gap={1} vAlign="center" className="tessera-topbar-heading">
-          {isMobile ? null : <SideNavCollapseButton size="sm" collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed }} />}
+          {isMobile ? null : (
+            <IconButton
+              label={isNavCollapsed ? "Open sidebar" : "Close sidebar"}
+              variant="ghost"
+              size="sm"
+              tooltip={isNavCollapsed ? "Open sidebar" : "Close sidebar"}
+              icon={<Icon icon={SidebarIcon} />}
+              onClick={() => setNavCollapsed(!isNavCollapsed)}
+            />
+          )}
           <Tooltip content={name} placement="below" focusTrigger="always">
             <TopNavHeading headingHref="/" logo={<TesseraMark className="tessera-brand-mark" />} logoLabel={name} />
           </Tooltip>

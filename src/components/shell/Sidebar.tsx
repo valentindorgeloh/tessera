@@ -232,9 +232,11 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
       >
         <RailItem label="Projects" icon={FolderIcon} href="/projects" isSelected={isProjectsPage(pathname)} />
         {ordered.length === 0 ? (
-          <Text type="supporting" color="secondary" as="p">
-            No projects yet.
-          </Text>
+          <ExpandedOnly>
+            <Text type="supporting" color="secondary" as="p">
+              No projects yet.
+            </Text>
+          </ExpandedOnly>
         ) : (
           ordered.map((project, index) => (
             <RailItem
