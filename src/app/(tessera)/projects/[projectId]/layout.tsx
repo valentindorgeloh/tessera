@@ -5,7 +5,7 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { ProjectFrame } from "@/components/work-items/ProjectFrame";
 import { ProjectProvider } from "@/components/work-items/project-provider";
 import type { ProjectBundle } from "@/components/work-items/types";
-import { countOpenIntake, getActiveEstimate, getProject, getWorkspaceSettings, isTrackerError, latestSeq, listActors, listCycles, listLabels, listModules, listProjects, listStates, readTessera } from "@/lib/tessera/server";
+import { agentRepoFor, countOpenIntake, getActiveEstimate, getProject, getWorkspaceSettings, isTrackerError, latestSeq, listActors, listCycles, listLabels, listModules, listProjects, listStates, readTessera } from "@/lib/tessera/server";
 
 type Props = { children: ReactNode; params: Promise<{ projectId: string }> };
 
@@ -38,6 +38,7 @@ async function ProjectShell({ children, params }: Props) {
   try {
     bundle = await readTessera((ctx) => {
       const project = getProject(ctx, projectId);
+      const workspace = getWorkspaceSettings(ctx);
       return {
         project,
         states: listStates(ctx, projectId),
@@ -47,10 +48,12 @@ async function ProjectShell({ children, params }: Props) {
         actors: listActors(ctx),
         cursor: latestSeq(ctx),
         today: ctx.today(),
-        week_start: getWorkspaceSettings(ctx).week_start,
+        week_start: workspace.week_start,
         estimate: project.estimates_enabled ? getActiveEstimate(ctx, project.id) : null,
         intake_open: countOpenIntake(ctx, project.id),
         projects: listProjects(ctx, {}).map((row) => ({ id: row.id, name: row.name, identifier: row.identifier })),
+        // The repository the superagent works in for this project (decision 144), for "Send to superagent" in the detail.
+        superagent_repo: agentRepoFor(workspace.agents, project.id),
       };
     });
   } catch (err) {

@@ -29,11 +29,12 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { VersionHistoryDialog } from "@/components/history/VersionHistoryDialog";
 import { ProjectTransferDialog } from "@/components/detail/ProjectTransferDialog";
 import { copyWorkItemAction } from "@/app/actions/detail";
-import { archiveWorkItemAction, deleteWorkItemAction, unarchiveWorkItemAction } from "@/app/actions/work-items";
+import { archiveWorkItemAction, deleteWorkItemAction, setAssigneesAction, unarchiveWorkItemAction } from "@/app/actions/work-items";
 import { ARCHIVE_OPEN_ITEM_REASON, canArchiveWorkItem } from "@/components/planning/archive-rules";
 import { registerCommandContext } from "@/components/shell/command-context";
 import { registerEntityLabel } from "@/components/shell/entity-labels";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
+import { sendToSuperagentState, sentToSuperagentText } from "@/components/superagent/send-to-superagent";
 import { useProject } from "@/components/work-items/project-provider";
 import type { WorkItemDetail as WorkItemDetailModel } from "@/lib/tessera/types";
 import { PencilIcon, RestoreIcon } from "@/themes/catppuccin/icons";
@@ -155,6 +156,17 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
     );
   };
 
+  // "Send to superagent" (decision 145): the runner treats the superagent's assignment as the request, so a send is an assignment.
+  const send = sendToSuperagentState({ repo: bundle.superagent_repo, actors: bundle.actors, assigneeIds: item.assignee_ids, readOnly });
+  const sendToSuperagent = () => {
+    if (send.kind !== "ready") return;
+    actions.run(
+      () => setAssigneesAction({ work_item_id: item.id, actor_ids: send.actorIds }),
+      () => toast({ type: "info", body: sentToSuperagentText(send.repo) }),
+      "Could not send to the superagent",
+    );
+  };
+
   // Archive and restore share one pending flag, so the Banner's Restore shows its spinner and cannot fire twice.
   const [isArchiving, startArchiving] = useTransition();
   const archiveItem = () => {
@@ -248,6 +260,8 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
         archiveBlockedReason={readOnly || canArchive ? undefined : ARCHIVE_OPEN_ITEM_REASON}
         onRestore={itemArchived && !projectArchived ? restoreItem : undefined}
         onVersionHistory={() => setHistoryOpen(true)}
+        onSendToSuperagent={send.kind === "hidden" ? undefined : sendToSuperagent}
+        sendToSuperagentBlockedReason={send.kind === "blocked" ? send.reason : undefined}
       />
       {/* Grid areas (detail.css): title, rail and main stack in one column; the page host from 960px puts the rail in a right column. */}
       <VStack gap={0} className="tessera-detail-body" as="section" aria-label={label}>

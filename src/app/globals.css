@@ -29,6 +29,7 @@
 @import "../components/styles/history.css";
 @import "../components/styles/paging.css";
 @import "../components/styles/lock-control.css";
+@import "../components/styles/superagent.css";
 
 html,
 body {

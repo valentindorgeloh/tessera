@@ -18,7 +18,7 @@ import { useClipboard } from "@astryxdesign/core/hooks";
 import { PanelBar } from "@/components/shell/PanelHeader";
 import { useProject } from "@/components/work-items/project-provider";
 import type { WorkItem, WorkItemDetail } from "@/lib/tessera/types";
-import { ArchiveIcon, ArrowSquareOutIcon, ArrowsOutIcon, CheckIcon, CopyIcon, HashIcon, HistoryIcon, LinkIcon, MoveToProjectIcon, RestoreIcon, SidebarIcon, TrashIcon, XIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { ArchiveIcon, ArrowSquareOutIcon, ArrowsOutIcon, CheckIcon, CopyIcon, HashIcon, HistoryIcon, LinkIcon, MoveToProjectIcon, RestoreIcon, RobotIcon, SidebarIcon, TrashIcon, XIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import type { DetailHost } from "./types";
 
 export type DetailHeaderProps = {
@@ -40,6 +40,9 @@ export type DetailHeaderProps = {
   archiveBlockedReason?: string;
   /** Opens version history. */
   onVersionHistory?: () => void;
+  /** "Send to superagent" entry (decision 145); shown disabled with `sendToSuperagentBlockedReason` as its description while the item cannot be sent. */
+  onSendToSuperagent?: () => void;
+  sendToSuperagentBlockedReason?: string;
 };
 
 /** Full page route of an item; the origin is added at copy time. */
@@ -117,6 +120,8 @@ export function DetailHeader({
   onRestore,
   archiveBlockedReason,
   onVersionHistory,
+  onSendToSuperagent,
+  sendToSuperagentBlockedReason,
 }: DetailHeaderProps) {
   const { bundle } = useProject();
   const { project } = bundle;
@@ -129,11 +134,14 @@ export function DetailHeader({
     void copyUrl.copy(`${origin}${workItemPath(item)}`);
   };
 
-  // Make a copy, Copy ID, then Restore (archived) or Archive (disabled with the reason while blocked), Delete last.
+  // Make a copy, copy and move to a project, Send to superagent, Copy ID, then Restore (archived) or Archive (disabled with the reason while blocked), Delete last.
   const menuItems: DropdownMenuOption[] = [
     ...(onCopyItem ? [{ id: "copy", label: "Make a copy", icon: CopyIcon, onClick: onCopyItem }] : []),
     ...(onCopyToProject ? [{ id: "copy-project", label: "Copy to project…", icon: CopyIcon, onClick: onCopyToProject }] : []),
     ...(onMoveToProject ? [{ id: "move-project", label: "Move to project…", icon: MoveToProjectIcon, onClick: onMoveToProject }] : []),
+    ...(onSendToSuperagent
+      ? [{ id: "superagent", label: "Send to superagent", icon: RobotIcon, isDisabled: sendToSuperagentBlockedReason !== undefined, description: sendToSuperagentBlockedReason, onClick: onSendToSuperagent }]
+      : []),
     { id: "copy-id", label: `Copy ID (${item.key})`, icon: HashIcon, onClick: () => void copyId.copy(item.key) },
     ...(onVersionHistory ? [{ id: "history", label: "Version history", icon: HistoryIcon, onClick: onVersionHistory }] : []),
     ...(onRestore ? [{ id: "restore", label: "Restore", icon: RestoreIcon, onClick: onRestore }] : []),
