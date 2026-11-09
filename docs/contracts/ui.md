@@ -2180,3 +2180,184 @@ One audit measured nine areas at 1440 and 375px in both schemes against `docs/dr
 - Home: quick links are 240 x 56 card rows (32px icon tile, a supporting line, a hover-revealed menu); the Recent heading sits above its filter; the recents rows are 44px under a coarse pointer or at 480px and narrower. The "Since you were last here" rows keep a one-line label on a desktop; at 480px and narrower the label (a `<Text>` with `tessera-home-since-label`) wraps to at most two lines (`home.css`).
 - Analytics: the header is two rows below 1100px and three rows below 600px (title, then the range controls, then the tabs on their own 44px row); `COUNT_COLUMN` has a 100px minimum.
 
+
+## Superagent control (decisions 143, 144 and 145)
+
+The superagent is a runner on this Mac (separate repo `tessera-agents`) that takes requests from Tessera work items and answers with comments and pull requests. Tessera's side: idempotent comments (`client_ref`), per-project agent settings, `latest_seq` on the change feed, a control screen at `/agents/superagent` that drives the runner's local HTTP API, and "Send to superagent" on a work item. The runner and Tessera meet only at bring-up, so the control client follows the plan's "Runner API contract (v1)" exactly (mirrored below) and is tested with a stubbed `fetch`. Engine details: `tools.md` and `service-api.md` "Superagent", `schema.md` "Migration 0014".
+
+### Control client (`src/lib/superagent/`, lane S)
+
+Files and boundaries:
+- `schemas.ts`: zod mirrors of the v1 shapes (below). Objects are plain `z.object` (unknown keys stripped, never `.strict()`), so an additive runner field does not break the screen; enums are exact.
+- `types.ts`: client-safe. `import type` from `./schemas` only, plus `SUPERAGENT_ACTOR_NAME = "mcp:superagent"`, `RUNNER_FAILURE_STATES`, `REQUEST_SCOPES = ["open", "recent", "all"]`. Components import nothing else from `@/lib/superagent` (eslint pattern `^@/lib/superagent(?!/types$)` added to `componentPatterns`).
+- `client.ts`: `createRunnerClient`. No file system, no `server-only`, so Vitest imports it.
+- `token.ts`: `tokenFilePath(env = process.env)`, `readRunnerToken(path)`. Node `fs/promises`, `os`, `path`.
+- `server.ts`: `import "server-only"`; `withRunner` and `loadSuperagent`. Reads `agents.runner_url` through `readTessera(getWorkspaceSettings)` (default `AGENT_RUNNER_DEFAULT_URL`) and the token per call.
+
+Shapes (`schemas.ts`, names exact; every timestamp `z.string()`, money `z.number()`, counts `z.number().int().nonnegative()`):
+
+```ts
+STAGE_KINDS = ["needs_delivery","needs_question","needs_signoff","needs_hold","needs_review","needs_blocked","needs_failed","paused","queued","working","done","dropped","stopped"]
+StageSchema = { kind: enum(STAGE_KINDS), label: string, reason: string | null }
+RUNNER_ACTIONS = ["approve","retry","stop","resize","budget","lift_hold"];  RunnerActionSchema = enum(RUNNER_ACTIONS)
+RequestSizeSchema = enum(["S","M","L"]);  DeliverableSchema = enum(["pr","answer","investigation"])
+PullRequestSchema = { number: int, url: string, state: enum(["draft","open","merged","closed"]) }
+RequestSummarySchema = { id, itemKey, workItemId, projectId, repo, title: string, size, deliverable, stage, models: string[], costUsd, budgetUsd, pr: PullRequestSchema | null, createdAt, updatedAt, actions: RunnerAction[] }
+SessionSchema = { id, role, model, effort: string, costUsd, startedAt, endedAt: string | null, outcome: string | null }
+EventSchema = { at, kind, text: string }
+RequestDetailSchema = RequestSummarySchema.extend({ scope: string, question: string | null, planPageId: string | null, sessions: Session[], events: Event[] })
+RunnerStateSchema = { health: { status: enum(["ok","degraded","setup_failed"]), checks: { name, ok: boolean, detail: string | null }[] }, paused: boolean, pauseReason: enum(["manual","daily_cap"]) | null, spend: { todayUsd, dailyCapUsd }, slots: { running, max }, counts: { needsYou, working, queued }, intake: { rewound: boolean, cursor: int, latestSeq: int } }
+RunnerStatsSchema = { bySize: { size, completed, avgCostUsd }[], byModel: { model, sessions, costUsd }[], sizeChanged: { total, changed }, firstPassReviewRate: number | null, escalations: { cause: string, count }[] }
+TriageRowSchema = { id, itemKey, status: enum(["queued","running","decided","unavailable"]), attempts, lastError: string | null, updatedAt }
+RevisionSchema = string | number          // the v1 text gives no type; passed back unchanged as baseRevision
+RunnerSettingsSchema = { budgetsUsd: { S, M, L }, dailyCapUsd, maxParallel: int, signoffM: boolean }
+RunnerSettingsDocSchema = { settings: RunnerSettings, revision }
+TeamSectionSchema = { repo: string, section: enum(["communication","scope","delivery"]), text: string }
+RunnerPromptsDocSchema = { teamSections: TeamSection[], revision }
+RunnerErrorBodySchema = { error: { code: string, message: string } }
+// envelopes: { requests: RequestSummary[] }, { request: RequestDetail }, { triage: TriageRow[] }, { triage: TriageRow }, { request: RequestSummary }, { paused: boolean }
+```
+
+Client (`client.ts`):
+
+```ts
+export const RUNNER_TIMEOUT_MS = 5000;
+export type RunnerFailureState = "not_set_up" | "token_unreadable" | "unreachable" | "timeout" | "unauthorized" | "forbidden" | "not_found" | "validation" | "conflict" | "unavailable" | "bad_response" | "http_error";
+export type RunnerFailure = { state: RunnerFailureState; message: string; status: number | null; code: string | null };
+export type RunnerResult<T> = { ok: true; data: T } | { ok: false; failure: RunnerFailure };   // both in types.ts
+export function createRunnerClient(options: { baseUrl: string; token: string; fetch?: typeof fetch; timeoutMs?: number }): RunnerClient;
+type RunnerClient = {
+  getState(): Promise<RunnerResult<RunnerState>>;                                   // GET  /v1/state
+  listRequests(scope: RequestScope): Promise<RunnerResult<RequestSummary[]>>;      // GET  /v1/requests?scope=<scope>      → body.requests
+  getRequest(id: string): Promise<RunnerResult<RequestDetail>>;                    // GET  /v1/requests/:id                → body.request
+  getStats(): Promise<RunnerResult<RunnerStats>>;                                   // GET  /v1/stats
+  listTriage(): Promise<RunnerResult<TriageRow[]>>;                                 // GET  /v1/triage                      → body.triage
+  getSettings(): Promise<RunnerResult<RunnerSettingsDoc>>;                          // GET  /v1/settings
+  putSettings(settings: RunnerSettings, baseRevision: Revision): Promise<RunnerResult<RunnerSettingsDoc>>;   // PUT /v1/settings {settings, baseRevision}
+  getPrompts(): Promise<RunnerResult<RunnerPromptsDoc>>;                            // GET  /v1/prompts
+  putPrompts(teamSections: TeamSection[], baseRevision: Revision): Promise<RunnerResult<RunnerPromptsDoc>>;  // PUT /v1/prompts {teamSections, baseRevision}
+  setPaused(paused: boolean): Promise<RunnerResult<{ paused: boolean }>>;          // POST /v1/pause {paused}
+  requestAction(id: string, action: "approve" | "retry" | "stop" | "lift_hold"): Promise<RunnerResult<RequestSummary>>;  // POST /v1/requests/:id/{approve|retry|stop|lift-hold}, no body → body.request
+  resize(id: string, size: RequestSize): Promise<RunnerResult<RequestSummary>>;     // POST /v1/requests/:id/resize {size}
+  setBudget(id: string, usd: number): Promise<RunnerResult<RequestSummary>>;       // POST /v1/requests/:id/budget {usd}
+  retryTriage(id: string): Promise<RunnerResult<TriageRow>>;                        // POST /v1/triage/:id/retry, no body → body.triage
+};
+```
+
+- URL: `baseUrl` without a trailing `/`, then `/v1/...`; path ids through `encodeURIComponent`. Every request: `Authorization: Bearer <token>`, `x-agents-request: 1`, `Accept: application/json`, `cache: "no-store"`, `redirect: "error"`, `signal: AbortSignal.timeout(timeoutMs)`. `Content-Type: application/json` and a JSON body only on PUT and on POSTs with a body; "(empty body)" routes send no body and no content type. No `Origin`.
+- Failures, never thrown: fetch rejected with `TimeoutError`/`AbortError` → `timeout`; any other rejection → `unreachable`; a non-2xx answer maps by `error.code` when the body parses as `RunnerErrorBodySchema` (`UNAUTHORIZED` → `unauthorized`, `FORBIDDEN` → `forbidden`, `NOT_FOUND` → `not_found`, `VALIDATION` → `validation`, `CONFLICT` → `conflict`, `UNAVAILABLE` → `unavailable`), else by status (401, 403, 404, 400 and 422, 409, 503 the same way), else `http_error`; a 2xx answer that is not JSON or fails the schema → `bad_response` (message: the first zod issue path and text). `message` is the runner's `error.message`, else a short technical text; `status` and `code` as received. The token never appears in a result, a log line or an error.
+- Token (`token.ts`): `tokenFilePath` returns `TESSERA_AGENTS_TOKEN_FILE` (a leading `~/` expands to the home directory; relative paths resolve against the process cwd) or `<homedir>/.tessera-agents/api-token`. `readRunnerToken` returns `{ kind: "ok", token }` (trimmed), `{ kind: "missing" }` for ENOENT or an empty or whitespace-only file, `{ kind: "unreadable", message }` for anything else (EACCES, EISDIR; the message names the code, never the content).
+- `withRunner(run)` (server): token missing → `{ ok: false, failure: { state: "not_set_up", message: "No runner token file", status: null, code: null } }` without a fetch; unreadable → `token_unreadable`; else builds the client and returns `run(client)`.
+- `loadSuperagent({ scope, requestId })` → `SuperagentLoad = { runnerUrl, tokenFile, state, requests, triage, stats, settings, prompts, request: RunnerResult<RequestDetail> | null }`, the runner calls in parallel (`request` only when `requestId` is set). Plain objects, passed to the client component as props.
+
+### Server Actions (`src/app/actions/superagent.ts`, lane S)
+
+File-level `"use server"`; each export is an async function that validates its input with zod (a bad input returns `{ ok: false, failure: { state: "validation", … } }` without a call), runs `withRunner`, then calls `refresh()` outside any try (also after a runner failure, so the screen shows current data), and returns the `RunnerResult`:
+
+| Action | Input | Runner call |
+|---|---|---|
+| `superagentPauseAction` | `{ paused: boolean }` | `setPaused` |
+| `superagentRequestAction` | `{ request_id: string (1–200), action: "approve" \| "retry" \| "stop" \| "lift_hold" }` | `requestAction` |
+| `superagentResizeAction` | `{ request_id, size: "S" \| "M" \| "L" }` | `resize` |
+| `superagentBudgetAction` | `{ request_id, usd: number (> 0, ≤ 10000) }` | `setBudget` |
+| `superagentRetryTriageAction` | `{ triage_id: string (1–200) }` | `retryTriage` |
+| `superagentSaveSettingsAction` | `{ settings: RunnerSettings, base_revision: string \| number }` | `putSettings` |
+| `superagentSavePromptsAction` | `{ team_sections: TeamSection[] (≤ 200), base_revision }` | `putPrompts` |
+| `superagentRefreshAction` | none | none; only `refresh()` |
+
+These are not registry tools and never become ones (decision 145). Tessera's own mapping is saved with `setAgentSettingsAction = toolAction("set_agent_settings")` in `src/app/actions/workspace-settings.ts` (lane E).
+
+### Screen `/agents/superagent` (lanes U1 and U2)
+
+Route `src/app/(tessera)/agents/superagent/page.tsx` (static segment, so it wins over `agents/[actorId]`): a `Suspense` with a skeleton around an async child that awaits `searchParams` (`scope`: `open` (default) | `recent` | `all`; `request`: a request id or none), then `await io()`, then in parallel `loadSuperagent({ scope, requestId })` and `readTessera` for `{ agents: getWorkspaceSettings(ctx).agents, projects: listProjects(ctx, {}) → { id, name, identifier } }`, and renders `SuperagentScreen`.
+
+`SuperagentScreen` (`"use client"`, props `{ runner: SuperagentLoad; agents: AgentSettings | null; projects: ProjectOption[]; scope: RequestScope; requestId: string | null }`) is a `PanelPage` with `PanelHeader label="Superagent"` > `PanelBar` (start `PanelTitle` "Superagent"; end a ghost `IconButton` "Refresh" that calls `superagentRefreshAction`). The body is a `VStack gap={6} padding={4}` (as `WebhookScreen`) with, in this order:
+
+0. **Banners.** When `runner.state` failed: one `Banner` from `failureCopy(failure, { tokenFile, runnerUrl })`. When it loaded: `state.paused` → info "Paused" with "Paused by you." or "The daily cap is reached; new work waits until tomorrow."; `state.intake.rewound` → warning "Tessera history rewound", "The runner's cursor ({cursor}) is past Tessera's newest change ({latestSeq}), as after a restore. Intake stays stopped until the runner is reset."; `health.status === "setup_failed"` → error "Runner setup failed" naming the failed checks.
+1. **Needs you** (`Heading` level 2 "Needs you", with `Badge` = `state.counts.needsYou` when above 0). A `SegmentedControl` (Open, Recent, All) sets `?scope=`. `RequestsTable` (U1): `Table` rows from `sortRequests(requests)`, columns Item (key as a `Link` to `/work-items/<workItemId>`, title as supporting text below), Repo, Size (size, plus " · answer" or " · investigation" when not `pr`), Stage (`StatusDot variant={stageVariant(kind)}` + label, reason as supporting text), Models (comma list), Cost (`formatUsd(costUsd)` of `formatUsd(budgetUsd)`), PR (`#<number> <state>` linking to `pr.url`, or "None"), Actions (`primaryAction(actions)` as an sm secondary `Button` named "<Label> <itemKey>", and a `MoreMenu` "Actions for <itemKey>" with every listed action). A container under 640px (`useNarrowContainer(640)`) shows Item, Stage and Actions only. A row click selects it (`router.push` to `?scope=…&request=<id>`, `scroll: false`); the key link stops propagation. Empty: `EmptyState` "No requests" ("Assign or mention the superagent on a work item in a mapped project."). Below the table, triage rows with `status === "unavailable"`: a `List` titled "Triage unavailable", each `Item` with the item key, "Tried {attempts} times", `lastError`, `RelativeTime` of `updatedAt`, and a "Re-triage <itemKey>" button (`superagentRetryTriageAction`).
+   - Approve, Retry and Lift hold run at once. Stop opens an `AlertDialog` ("Stop <itemKey>?", "Stop is final: the session is aborted and late results are discarded.", destructive "Stop request"). Resize opens a `Dialog` with a `SegmentedControl` S, M, L (current one selected). Budget opens a `Dialog` with a `NumberInput` "Budget (USD)" (min 0.01, step 0.5, starts at `budgetUsd`). Dialogs come from `@/components/shell/dialogs`. A failed action shows a `Toast` from `failureCopy`; a done one shows "<Label> sent for <itemKey>".
+2. **Health** (`RunnerOverview`, U1). Status as `StatusDot` + "Healthy", "Degraded" or "Setup failed"; checks as a `List` (dot + name + detail); a `MetadataList` with Slots ("{running} of {max} running"), Needs you, Working, Queued, Triage ("{n} queued, {m} running" from the triage rows) and Intake ("cursor {cursor}, Tessera at {latestSeq}"). Spend: `ProgressBar` label "Spent today", value `todayUsd`, max `dailyCapUsd`, value label "{formatUsd(today)} of {formatUsd(cap)}", variant `warning` from 80% and `error` from 100%; beside it a secondary `Button` "Pause" or "Resume" (`superagentPauseAction`).
+3. **History** (`RequestHistory`, U1). No selection: secondary text "Select a request to see its history." Otherwise heading "<itemKey> <title>", a `MetadataList` (Stage, Size, Deliverable, Repo, Cost, PR, Created and Updated as `RelativeTime`, Plan page as a `Link` to `/pages/<planPageId>` when set), the scope text (pre-wrapped), the open question as an info `Banner` when set, a sessions `Table` (Role, Model, Effort, Cost, Started, Ended, Outcome) and the events as a `List`, newest first (`RelativeTime`, kind, text). A failed load shows its `failureCopy` inline.
+4. **Routing** (`RunnerOverview`, U1). "By size" `Table` (Size, Completed, Average cost), "By model" `Table` (Model, Sessions, Cost), a `MetadataList` with "Size changed" ("{changed} of {total} requests"), "First-pass reviews" (percent, or "No reviews yet") and "Escalations" ("{cause}: {count}" joined, or "None").
+5. **Settings** (`AgentSettingsSection`, U2, props `{ agents: AgentSettings | null; projects: ProjectOption[]; runnerSettings: RunnerResult<RunnerSettingsDoc> }`). Two forms in a `FormLayout` each:
+   - "Projects and repositories" (Tessera, always available): `TextInput` "Runner URL" (placeholder `AGENT_RUNNER_DEFAULT_URL`), then one row per mapping: `Selector` "Project" (live projects not mapped in another row), `TextInput` "Repository" (`name` or `owner/name`), `IconButton` "Remove <project name>"; an "Add project" button; "Save mapping" calls `setAgentSettingsAction({ runner_url, projects })`. Field errors from `AgentRunnerUrlSchema` and `AgentRepoSchema` show before sending. A stored mapping whose project no longer exists is left out of the rows, with an info line "{n} mapped project(s) no longer exist and are dropped on save."
+   - "Runner" (runner settings, disabled with the failure text while `runnerSettings` failed): `NumberInput`s "Budget for S (USD)", "M", "L", "Daily cap (USD)", "Parallel requests" (integer 1 to 8), `Switch` "M requests wait for my sign-off" (`signoffM`); "Save runner settings" calls `superagentSaveSettingsAction` with the loaded `revision`. A `conflict` shows "Changed elsewhere. The latest values are loaded."; the form is keyed by the revision so the refreshed values replace the fields.
+6. **Team sections** (`TeamSectionsSection`, U2, props `{ prompts: RunnerResult<RunnerPromptsDoc>; repos: string[] }`; `repos` = mapped repos plus repos already in `teamSections`, sorted). One `Collapsible` per repo, three `TextArea`s ("Communication", "Scope", "Delivery"), and one "Save team sections" that sends every non-empty text (entries of repos not shown pass through unchanged) with the loaded `revision`; `conflict` as in Settings. Disabled with the failure text while `prompts` failed.
+
+While the tab is visible and no dialog is open, the screen calls `superagentRefreshAction` every 15 s, so health and stages stay current.
+
+Shared helpers (`src/components/superagent/superagent-format.ts`, U1; names exact, U2 imports them):
+- `formatUsd(value: number): string` → `$0.42`, `$12.00` (two decimals, `en-US`).
+- `stageVariant(kind)` → `needs_failed` error; other `needs_*` warning; `working` accent; `done` success; `paused`, `queued`, `dropped`, `stopped` neutral.
+- `sortRequests(rows)`: by stage order (`needs_delivery`, `needs_question`, `needs_signoff`, `needs_hold`, `needs_review`, `needs_blocked`, `needs_failed`, `paused`, `queued`, `working`, `done`, `dropped`, `stopped`), then `updatedAt` newest first. Never mutates its input.
+- `ACTION_LABELS`: approve "Approve", retry "Retry", stop "Stop…", resize "Resize…", budget "Budget…", lift_hold "Lift hold". `primaryAction(actions)`: the first of approve, lift_hold, retry that is listed, else null.
+- `failureCopy(failure, { tokenFile, runnerUrl })` → `{ status: "info" | "warning" | "error"; title; body }`: `not_set_up` info "Runner not set up" / "Tessera reads the runner's token from {tokenFile}. Start the superagent runner once to create it."; `token_unreadable` error "Token file unreadable" / "Tessera cannot read {tokenFile} ({message})."; `unreachable` warning "Runner not answering" / "Nothing answers at {runnerUrl}. Check that the runner is running."; `timeout` warning "Runner timed out" / "The runner at {runnerUrl} did not answer within 5 seconds."; `unauthorized` error "Token rejected" / "The runner rejected Tessera's token. Restart the runner or check {tokenFile}."; `forbidden` error "Request refused" / message; `not_found` warning "Not found" / message; `validation` error "Not accepted" / message; `conflict` warning "Changed elsewhere" / "The latest values are loaded."; `unavailable` warning "Runner unavailable" / message; `bad_response` error "Unexpected answer" / "The runner's answer does not match the API contract (v1): {message}"; `http_error` error "Runner error" / "The runner answered {status}: {message}".
+
+Every part that depends on the runner shows, when its own load failed but the state loaded, one line of secondary text with the failure title; when the state failed, only the banner speaks and the sections show "Not available: {title}." The Tessera mapping form always works.
+
+CSS: `src/components/styles/superagent.css` (one `@import` line in `globals.css`), tokens only, for the section grid and the table frame. Astryx components only; no raw `div`/`span`, hex or px beyond the 640 container width.
+
+### Send to superagent (lane U2)
+
+- `ProjectBundle` gains `superagent_repo?: string | null` ("Repository the superagent works in for this project (decision 144), or null when it is not mapped"). `projects/[projectId]/layout.tsx` and `work-items/load-detail.ts` (`loadProjectBundle`) fill it with `agentRepoFor(getWorkspaceSettings(ctx).agents, project.id)`; other bundles leave it out.
+- `DetailHeader` gains `onSendToSuperagent?: () => void` and `sendToSuperagentBlockedReason?: string`. The menu row `{ id: "superagent", label: "Send to superagent", icon: RobotIcon, isDisabled, description }` sits after "Move to project…" and before "Copy ID".
+- `WorkItemDetail` passes them when the item is writable and `bundle.superagent_repo` is set. The superagent is `bundle.actors.find((a) => a.kind === "agent" && a.name === SUPERAGENT_ACTOR_NAME)`. Without it the row is disabled with "The superagent has not connected to Tessera yet."; when it is already an assignee, disabled with "Already assigned to the superagent." Otherwise the click calls `setAssigneesAction({ work_item_id, actor_ids: [...current assignee ids, superagent.id] })` and shows "Sent to the superagent ({repo})." or the error. The runner treats your assignment as the request (the plan's intake rules).
+- The Agents screen (`AgentsScreen`) gets a "Superagent" link in its `PanelBar` end (Astryx `Button` with `href` if its props allow, else `Link`), to `/agents/superagent`.
+
+### Fake runner and fixtures (lane S)
+
+- `tests/fixtures/superagent/`: `state.json`, `requests.json` (at least one request per stage group: `needs_signoff` with approve, `needs_hold` with lift_hold, `needs_blocked` with budget and resize, `needs_review` with an open PR, `needs_question`, `working` with stop, `queued`, `done` with a merged PR, `stopped`; at least one non-`pr` deliverable), `request-detail.json` (sessions and events), `stats.json`, `triage.json` (one `unavailable`, one `queued`), `settings.json`, `prompts.json`. Client tests and the fake runner read the same files, so a fixture that drifts from the schema fails a test.
+- `scripts/superagent-stub.ts` (`npx tsx scripts/superagent-stub.ts --port <n> --token-file <path> [--rewound] [--conflict]`): a `node:http` server on `127.0.0.1:<port>` that applies the v1 auth rules (bearer token from the file, `x-agents-request: 1`, no `Origin`, Host `127.0.0.1:<port>` or `localhost:<port>`), serves the fixtures and applies actions in memory (approve → `working`; stop → `stopped`; lift-hold → `working`; retry → `queued`; resize, budget; pause toggles `paused` with `pauseReason: "manual"`; triage retry → `queued`, attempts + 1; PUT with a stale `baseRevision` → 409 `CONFLICT`, else revision + 1). `--rewound` sets `intake.rewound`; `--conflict` makes every PUT a 409. For acceptance only; not part of the app.
+
+### Lane split and file ownership
+
+| Lane | Model | Owns |
+|---|---|---|
+| E (engine) | sonnet, high | `drizzle/0014_superagent.sql`, `drizzle/meta/{_journal.json,0014_snapshot.json}`, `src/lib/tessera/db/schema/{collaboration,workspace}.ts`, `src/lib/tessera/{comments,changes,schemas,types}.ts`, `src/lib/tessera/workspace/{settings,index}.ts`, `src/lib/tessera/tools/registry/{comments,workspace,meta}.ts`, `src/app/api/changes/route.ts`, `src/app/actions/workspace-settings.ts`, tests `comments-client-ref.test.ts`, `workspace/agent-settings.test.ts`, `registry.test.ts`, `changes.test.ts`, `changes-route.test.ts` |
+| S (control client) | sonnet, high | `src/lib/superagent/**`, `src/app/actions/superagent.ts`, `scripts/superagent-stub.ts`, `tests/fixtures/superagent/**`, `tests/superagent/**`, one pattern in `eslint.config.mjs` |
+| U1 (screen) | sonnet, high | `src/app/(tessera)/agents/superagent/**`, `src/components/superagent/{SuperagentScreen,RequestsTable,RunnerOverview,RequestHistory}.tsx`, `src/components/superagent/superagent-format.ts`, `src/components/styles/superagent.css`, the `@import` line in `src/app/globals.css`, `tests/ui/superagent-format.test.ts` |
+| U2 (settings and send) | sonnet, high | `src/components/superagent/{AgentSettingsSection,TeamSectionsSection}.tsx`, `src/components/detail/{DetailHeader,WorkItemDetail}.tsx`, `src/components/work-items/types.ts`, `src/app/(tessera)/projects/[projectId]/layout.tsx`, `src/app/(tessera)/work-items/load-detail.ts`, `src/components/profile/AgentsScreen.tsx`, `tests/ui/detail-superagent.test.ts` |
+| Root | opus | docs, `tests/mcp-http-identity.test.ts` (written in the contract step), commits |
+
+E and S run first and in parallel; U1 and U2 start once both are green, in parallel. Every file stays under 600 lines; `schemas.ts` has six lines of room and takes exactly the six lines of decision 144's schemas.
+
+### Tests
+
+- Lane E: `client_ref` (first create; repeat returns the same id with no new activity, notification, subscription or mention rows and an unchanged `latestSeq`; another body is `CONFLICT` with `comment_id`; a deleted comment and a reply deleted with its root give `{ deleted: true }`; another actor or item with the same ref gets its own comment; a repeat on an item archived since returns the comment; a bad ref is `VALIDATION`; the registry path; views carry `client_ref`). Agent settings (normalisation cases; set and read back through `get_workspace_settings`; omitted URL kept; `[]` clears; non-loopback, `https`, `127.0.0.2` and portless URLs refused; unknown and deleted projects `NOT_FOUND`; a repeated project `VALIDATION`; an agent through `runToolWithContext`, the assistant through `applyProposals` and an MCP client through the in-memory adapter all get `RULE user_only`; `agentRepoFor`). `latest_seq` (equals `latestSeq`; below `since_seq` after a simulated rewind while `cursor` stays; a cut page keeps the real latest); `/api/changes` returns it; registry entries.
+- Lane S: every route's method, URL, headers and body against a stubbed `fetch`; every fixture parses; a missing field and non-JSON are `bad_response`; each error code and bare status maps to its state; a rejected fetch is `unreachable`; a fetch that waits for its signal with `timeoutMs: 20` is `timeout`; no result, failure or log contains the token; token path, `~` expansion, missing, empty, whitespace-trimmed, unreadable (mode 000) and directory cases; actions validate before calling, call `refresh()` (mocked `next/cache` and `server-only`), and the registry has no tool whose name contains `superagent` or `runner`.
+- Lane U1: `superagent-format` helpers (every failure state, stage variants, sort order and stability, primary action, money).
+- Lane U2: `DetailHeader` menu with and without `onSendToSuperagent`, disabled with each reason (render with `createElement`, as `detail-smoke.test.ts`).
+- Root: `tests/mcp-http-identity.test.ts` (pinned client writes as `mcp:superagent`, no `mcp:unknown`; the legacy era loses the name).
+
+### API verification and mismatches found while writing this section
+
+| API | Used by | Verified |
+|---|---|---|
+| `@modelcontextprotocol/client` 2.3.1: `new Client(info, { versionNegotiation: { mode: { pin: "2026-07-28" } } })`, `new StreamableHTTPClientTransport(url, { fetch })` | identity test, the runner | `dist/index.d.mts` (`VersionNegotiationOptions`, default `'legacy'`); run against the real route on 2026-11-09: legacy → `mcp:unknown`, pinned → `mcp:superagent` |
+| `mcp-handler` 2.3.0 `createMcpHandler` | `/api/mcp` | wraps the server SDK's `createMcpHandler`, which seeds the client identity from each request's `_meta["io.modelcontextprotocol/clientInfo"]` on the modern era only (`@modelcontextprotocol/server` `dist/index.mjs`) |
+| `AbortSignal.timeout(ms)`; fetch rejects with a `TimeoutError` `DOMException` | client | Node 22 |
+| Node fetch (undici) sends no `Origin`; `Host` comes from the URL (`127.0.0.1:3090`) | client | the fake runner rejects `Origin` and checks `Host`, so acceptance proves it |
+| `fs/promises.readFile` error codes `ENOENT`, `EACCES`, `EISDIR` | token | Node 22 |
+| `refresh()` (`next/cache`) only inside Server Actions; `io()` before reads; `searchParams` awaited under `Suspense` | actions, page | field guide; `node_modules/next/dist/docs/` |
+| Astryx 0.6.8 `Section`, `MetadataList`, `ProgressBar` (`label`, `value`, `max`, `hasValueLabel`, `formatValueLabel`, `variant`), `StatusDot` (`variant`, `label`) | screen | `npm run astryx -- component <Name>` on 2026-11-09. Workers check every other component the same way before use |
+| Runner API v1 | client | the plan's text, mirrored above |
+
+Mismatches and assumptions (the runner contract stays as written):
+1. `revision` has no type in v1: mirrored as `string | number` and sent back unchanged.
+2. `intake.cursor` and `intake.latestSeq` are numbers, never null; a runner that sends null before its first poll gets `bad_response` on the state (noted for the runner session).
+3. "(empty body)" POSTs send no body and no `Content-Type`.
+4. `RequestSummary.workItemId` is taken as Tessera's work item id (links go to `/work-items/<workItemId>`).
+
+### Acceptance (Frappé and Latte, 1440 and 375)
+
+Scratch only: `TESSERA_DB_PATH=data/superagent/acceptance.db` (fresh, migrated, demo seed), `next dev` on port 3311 (`PORT=3311`), `TESSERA_AGENTS_TOKEN_FILE=data/superagent/api-token`, the fake runner on 127.0.0.1:3391. Never port 3000 or `data/tessera.db`. Screenshots at each width and scheme for steps 4 to 7.
+
+1. No token file: `/agents/superagent` shows the info banner "Runner not set up" naming the token path; every runner section says "Not available: Runner not set up."; the console is clean; no Toast.
+2. Settings: set the runner URL to `http://127.0.0.1:3391`, map the demo project to `tessera`, save. Reload: the mapping is there; `scripts/mcp-call.ts get_workspace_settings` returns `agents` with that map. `http://example.com:3391` shows a field error and sends nothing.
+3. Send to superagent: on an item of the mapped project the More menu shows "Send to superagent", disabled with "The superagent has not connected to Tessera yet."; after `scripts/mcp-call.ts list_projects '{}' --client superagent` and a reload it is enabled; a click assigns `mcp:superagent` (the assignee shows its robot avatar) and the row then reads disabled "Already assigned to the superagent." An item of an unmapped project has no row.
+4. Token file and fake runner up: the banners match the state; "Needs you" lists needs-you rows first; Health shows status, checks, slots and the spend bar with Pause; the unavailable triage row has Re-triage; Routing and both settings forms and the team sections show the fixture values.
+5. Actions: Approve moves its row to Working; Stop asks first and then shows Stopped; Resize and Budget dialogs change size and budget; Lift hold and Re-triage work; Pause turns into Resume and the "Paused" banner appears; each shows its Toast.
+6. A row click selects the request: the URL gains `request=`, History shows the metadata, scope, sessions and events; the scope control switches Open, Recent and All.
+7. Runner settings saved with the fake runner on `--conflict` show "Changed elsewhere" and reload; team sections save and survive a reload.
+8. Fake runner stopped: "Runner not answering", no crash; a wrong token in the file: "Token rejected"; `--rewound`: "Tessera history rewound".
+9. 375: no horizontal page scroll; the table shows Item, Stage and Actions; menus, dialogs and the 44px touch areas follow the Theme rules; Latte and Frappé both read.

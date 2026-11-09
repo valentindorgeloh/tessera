@@ -58,7 +58,7 @@ Owner: lane A. Source folder: `src/lib/tessera/db/schema/` (Drizzle, SQLite; `in
 | Table | Columns | Constraints |
 |---|---|---|
 | `work_item_relation` | `id`, audit columns, `work_item_id`, `related_work_item_id`, `relation_type` (RelationType) | unique (`work_item_id`, `related_work_item_id`) partial (service stores the canonical direction; `relates_to` and `duplicate` store the smaller id first); index (`related_work_item_id`) |
-| `comment` | `work_item_id`, `parent_comment_id`, `body_md`, `body_version`, `actor_id`, `edited_at` | index (`work_item_id`, `created_at`) |
+| `comment` | `work_item_id`, `parent_comment_id`, `body_md`, `body_version`, `actor_id`, `edited_at`, `client_ref` (nullable; decision 143, migration 0014) | index (`work_item_id`, `created_at`); `comment_client_ref_uq` unique (`actor_id`, `work_item_id`, `client_ref`) where `client_ref IS NOT NULL` (deleted rows keep their ref) |
 | `comment_reaction` | `id`, `comment_id`, `actor_id`, `reaction`, `created_at` | unique triple (`comment_id`, `actor_id`, `reaction`), not partial (no soft delete) |
 | `work_item_reaction` | `id`, `work_item_id`, `actor_id`, `reaction`, `created_at` | unique triple, not partial |
 | `mention` | `entity_type` (`work_item, comment, page`), `entity_id`, `actor_id`, `created_at` | primary key (all three); index (`actor_id`) |
@@ -83,7 +83,7 @@ Owner: lane A. Source folder: `src/lib/tessera/db/schema/` (Drizzle, SQLite; `in
 | `recent_visit` | `entity_type`, `entity_id`, `visited_at`; primary key (`entity_type`, `entity_id`); index (`visited_at`) |
 | `sticky` | `name`, `description_md`, `color`, `sort_order` |
 | `quick_link` | `title`, `url`, `sort_order` |
-| `workspace_settings` | singleton row `id = "workspace"`: `name` (default `Tessera`), `home_widgets` JSON (default `[]`), `ai` JSON, `last_seen_at`, `created_at`, `updated_at` |
+| `workspace_settings` | singleton row `id = "workspace"`: `name` (default `Tessera`), `home_widgets` JSON (default `[]`), `ai` JSON, `last_seen_at`, `agents` JSON (nullable; `AgentSettings`, decision 144, migration 0014), `created_at`, `updated_at` |
 
 ### Hardening (P10)
 
@@ -103,6 +103,7 @@ Owner: lane A. Source folder: `src/lib/tessera/db/schema/` (Drizzle, SQLite; `in
 - **DisplayPatch** (`view-settings.ts`): every `Display` key optional and without defaults; `calendar` and `properties` merge one level deep (`mergeDisplay`). It is the `display` input of `createView`, `updateView` and `saveViewSettings`; stored `display` columns always hold a complete `Display`.
 - **CycleProgress**: `{ total, completed, cancelled, started, unstarted, backlog, by_state: Record<state_id, n>, by_label: Record<label_id, n>, by_assignee: Record<actor_id, n>, points?: { total, completed, cancelled, started, unstarted, backlog }, completion_chart: Record<date, pending> }` (`ProgressCountsSchema` + extensions). `ModuleProgress = ProgressCounts & { by_state, points? }` is a TypeScript type only.
 - **Logo**: `{ icon: string (Phosphor name), color: PaletteColor }`.
+- **AgentSettings** (decision 144): `{ runner_url: string, projects: { project_id: id, repo: string }[] }`. `AgentRunnerUrlSchema` accepts `http://127.0.0.1:<port>` and `http://localhost:<port>` (1 to 5 digits, optional trailing `/`); `AgentRepoSchema` accepts `name` or `owner/name` from `[A-Za-z0-9_.-]`, at most 140 characters; at most 50 projects. `AGENT_RUNNER_DEFAULT_URL` is `http://127.0.0.1:3090`. Stored as given by `setAgentSettings`, normalised on read (`normalizeAgentSettings`).
 
 ## Invariants (service layer; each has a Vitest case)
 
@@ -195,10 +196,15 @@ Cross-cutting
 - Tests open `:memory:` databases (`tests/helpers/db.ts` `createTestDb`, `createTestContext`) and apply all migrations through the same `migrate()` function; `withTempFileDb` covers the file path, lock and backup code.
 - Node >= 22.14 (Node-API 10) is required by `better-sqlite3` 13; `.nvmrc` pins 22.23.3, `engines.node` enforces it, `vitest.config.mts` fails fast on an older `process.versions.napi`.
 
+## Migration 0014 (`drizzle/0014_superagent.sql`, hand-written)
+
+One SQL file, one `_journal.json` entry (`idx` 14, `version` "6", `when` 1793400000000, `tag` `0014_superagent`, `breakpoints` true) and `drizzle/meta/0014_snapshot.json` generated in a scratch copy (field guide). Statements: `ALTER TABLE comment ADD client_ref text`; `CREATE UNIQUE INDEX comment_client_ref_uq ON comment (actor_id, work_item_id, client_ref) WHERE client_ref IS NOT NULL` (the SQL text exactly as drizzle-kit writes it for the schema's `.where(sql\`client_ref IS NOT NULL\`)`); `ALTER TABLE workspace_settings ADD agents text`. A fresh scratch `drizzle-kit generate` after it says "No schema changes". No FTS rebuild is needed.
+
 ## Environment
 
 | Variable | Default | Meaning |
 |---|---|---|
+| `TESSERA_AGENTS_TOKEN_FILE` | `~/.tessera-agents/api-token` | File holding the superagent runner's bearer token (decision 144); read per call by the server, never stored. Missing or empty: the screen shows "runner not set up" |
 | `TESSERA_DB_PATH` | `data/tessera.db` | SQLite file, relative paths resolved against the repo root; `:memory:` for an in-memory database |
 | `ANTHROPIC_API_KEY` | unset | Assistant credential; alternatively the `ant auth login` profile |
 | `TESSERA_AI_MODEL` | `claude-opus-5-5` | Assistant model |
