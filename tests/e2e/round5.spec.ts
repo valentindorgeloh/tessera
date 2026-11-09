@@ -195,7 +195,8 @@ test.describe("coarse pointer top-bar heading (touch option A)", () => {
         await expectCoarsePointer(page);
 
         const brand = page.locator(".tessera-topbar-heading a.astryx-top-nav-heading");
-        for (const state of ["Collapse sidebar", "Expand sidebar"]) {
+        // The docked toggle is "Close sidebar" while the Full sidebar shows and "Open sidebar" on the rail (TopBar.tsx).
+        for (const state of ["Close sidebar", "Open sidebar"]) {
           const toggle = page.getByRole("button", { name: state, exact: true });
           await expect(toggle, state).toBeVisible();
           const [collapse] = await hitAreaRects(toggle);
@@ -206,7 +207,7 @@ test.describe("coarse pointer top-bar heading (touch option A)", () => {
           expect(collapse!.right, `${state} area right edge vs brand area left edge`).toBeLessThanOrEqual(heading!.left);
           expect(await strictHitBoxMisses(toggle), state).toEqual([]);
           expect(await strictHitBoxMisses(brand), `brand next to ${state}`).toEqual([]);
-          if (state === "Collapse sidebar") await toggle.click();
+          if (state === "Close sidebar") await toggle.click();
         }
       });
     });

@@ -257,7 +257,8 @@ export async function armEarlyAction(page: Page, action: EarlyAction): Promise<v
       host.__early = record;
       const hydrated = (element: Element | null): boolean | "absent" =>
         element === null ? "absent" : Object.keys(element).some((key) => key.startsWith("__reactFiber"));
-      const toggle = () => document.querySelector<HTMLElement>('button[aria-label$="sidebar"]');
+      // The top bar's sidebar toggle: docked "Close sidebar" / "Open sidebar", floating "Show sidebar" / "Hide sidebar" (one at a time).
+      const toggle = () => document.querySelector<HTMLElement>("#tessera-nav-toggle");
       const target = (): HTMLElement | null => {
         switch (what) {
           case "toggle":

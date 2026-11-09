@@ -20,8 +20,9 @@ import {
  * ancestor of the still-dehydrated boundary without telling it, so it hydrated
  * with the new flag against server HTML rendered expanded (React error 418, the
  * boundary then client-renders). The flag now lives in a client store that each
- * consumer reads through `useSyncExternalStore` with a server snapshot
- * (`src/components/shell/nav-collapse-store.ts`, docs/contracts/ui.md "Shell").
+ * consumer reads through `useSyncExternalStore` with a server snapshot (since the
+ * sidebar views, the stored preferences of `src/components/shell/nav-prefs.ts`,
+ * docs/contracts/ui.md "Shell").
  *
  *   a  early toggle, 800 ms chunk delay, dark   ten routes; ends collapsed (48 px), then expands again
  *   b  early toggle, CPU x6, no delay           Home and Inbox
@@ -194,11 +195,12 @@ async function expandedWidth(page: Page): Promise<number> {
 
 /** End state of a toggle or chord: collapsed to the 48 px rail, and a click on the button expands it again. */
 async function expectCollapsedThenExpanded(page: Page): Promise<void> {
-  const toggle = page.locator('button[aria-label$="sidebar"]').first();
-  await expect(toggle).toHaveAttribute("aria-label", "Expand sidebar");
+  // The docked top-bar toggle reads "Open sidebar" on the rail and "Close sidebar" on the Full sidebar (TopBar.tsx).
+  const toggle = page.locator("#tessera-nav-toggle");
+  await expect(toggle).toHaveAttribute("aria-label", "Open sidebar");
   await expect.poll(() => navWidth(page), { message: "collapsed nav width" }).toBe(48);
   await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-label", "Collapse sidebar");
+  await expect(toggle).toHaveAttribute("aria-label", "Close sidebar");
   const width = await expandedWidth(page);
   await expect.poll(() => navWidth(page), { message: "expanded nav width" }).toBe(width);
 }
