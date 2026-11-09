@@ -28,6 +28,8 @@
 @import "../components/styles/gantt.css";
 @import "../components/styles/history.css";
 @import "../components/styles/paging.css";
+@import "../components/styles/nav.css";
+@import "../components/styles/virtual.css";
 @import "../components/styles/lock-control.css";
 
 html,

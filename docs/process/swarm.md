@@ -36,7 +36,7 @@ The models are pinned per role in each workflow script through `agent(..., { mod
   - Every workflow script passes its text through `args` and puts it in every agent prompt.
   - The reconciler adds new surprises at the end of a phase and removes entries that no longer hold, within the budget.
   - Longer notes go into `docs/field-guide/<topic>.md`, with a one-line pointer in the index.
-- **Decisions.** Design decisions live in the numbered table in `docs/PLAN.md` ("Resolved design decisions", 1–28, and U1–U9) or in a phase section of `docs/contracts/ui.md`.
+- **Decisions.** Design decisions live in the numbered table in `docs/PLAN.md` ("Resolved design decisions", 1–142, and U1–U9) or in a phase section of `docs/contracts/ui.md`.
   - Code that depends on a numbered decision cites it in a comment as `decision N`, or `decision UN` for the user-confirmed ones.
   - The convention gate checks that every cited number exists, so a decision cannot be renumbered or deleted silently.
   - When two lanes disagree about a decision, the reconciler settles it in the document first, then in the code.

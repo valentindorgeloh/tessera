@@ -148,6 +148,9 @@ import {
   ChatCircleDots,
   ListChecks,
   MagicWand,
+  // Sidebar views: dock and undock in the sidebar options menu.
+  PushPin,
+  PushPinSlash,
   type Icon as PhosphorIcon,
   type IconProps,
 } from "@phosphor-icons/react";
@@ -261,6 +264,9 @@ export const CopyIcon = duotoneIcon(Copy);
 export const LinkIcon = duotoneIcon(Link);
 export const PencilIcon = duotoneIcon(PencilSimple);
 export const SidebarIcon = duotoneIcon(SidebarSimple);
+// Sidebar views: dock and undock in the sidebar options menu.
+export const PinIcon = duotoneIcon(PushPin);
+export const UnpinIcon = duotoneIcon(PushPinSlash);
 
 // Tessera Power K (lane D4): command bar sections, the help dialog and the Ask tab.
 export const GearIcon = duotoneIcon(Gear);

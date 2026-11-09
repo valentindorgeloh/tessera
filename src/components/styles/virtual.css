@@ -1,0 +1,7 @@
+/*
+ * Virtual windows for list, table, board and gantt (decisions 135-137;
+ * docs/contracts/ui.md "Sidebar views, motion, virtual lists, calendar zoom").
+ * The window's padding, kept rows and table spacers read --tessera-virtual-*
+ * values that the TS side sets through cssVars (src/components/shared/css-vars.ts).
+ * Tokens only.
+ */

@@ -39,4 +39,19 @@ describe("seedPerf", () => {
     expect(again.project_id).toBe(result.project_id);
     expect(again.counts).toEqual(result.counts);
   });
+
+  it("seeds two identifiers into one database, naming each big project after its identifier", () => {
+    const handles = createTestDb();
+    const ctx = createTestContext(handles);
+    const first = seedPerf(ctx, { items: 30, projects: 0 });
+    const second = seedPerf(ctx, { items: 30, projects: 0, identifier: "perf2" });
+    expect(first.created).toBe(true);
+    expect(second.created).toBe(true);
+    expect(second.project_id).not.toBe(first.project_id);
+    const projects = handles.sqlite.prepare("SELECT name, identifier FROM project ORDER BY identifier").all();
+    expect(projects).toEqual([
+      { name: "Performance", identifier: "PERF" },
+      { name: "Performance PERF2", identifier: "PERF2" },
+    ]);
+  });
 });

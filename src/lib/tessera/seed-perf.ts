@@ -308,7 +308,7 @@ export function seedPerf(callerCtx: TesseraContext, options: SeedPerfOptions): S
   }
   const ctx = seededContext(callerCtx);
   const rng = mulberry32(options.seed ?? 11);
-  const main = createProject(ctx, { name: "Performance", identifier });
+  const main = createProject(ctx, { name: identifier === "PERF" ? "Performance" : `Performance ${identifier}`, identifier });
   progress(`project ${identifier} created`);
   const taxonomy = seedTaxonomy(ctx, rng, main.id);
   progress(`taxonomy: ${taxonomy.labels.length} labels, ${taxonomy.cycles.length} cycles, ${taxonomy.modules.length} modules`);

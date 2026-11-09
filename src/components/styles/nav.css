@@ -1,0 +1,7 @@
+/*
+ * Sidebar views and the floating sidebar (decisions 128, 129, 132, 133;
+ * docs/contracts/ui.md "Sidebar views, motion, virtual lists, calendar zoom").
+ * Per-instance layout rules: they reach Astryx's sidebar classes only through
+ * our own `tessera-sidebar` class. Tokens only; every transition has a
+ * prefers-reduced-motion override in this file.
+ */
