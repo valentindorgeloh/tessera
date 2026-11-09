@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { SideNav, SideNavHeading, SideNavSection } from "@astryxdesign/core/SideNav";
+import { SideNav, SideNavSection } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { usePointerDrag } from "@/components/dnd/use-pointer-drag";
@@ -138,9 +138,10 @@ export function useSidebarResize(): { key: string; resizable: { defaultWidth: nu
 
 /**
  * SideNav of the Tessera shell (docs/contracts/ui.md "Shell"), on the wash
- * beside the content panel: the "Work" heading, a quiet "New work item"
- * button for the last visited (else first) project, then Home, Inbox,
- * Your work, Drafts, Wiki, Favourites, the projects, and Workspace views,
+ * beside the content panel, with no visible heading ("Work" is only its
+ * landmark name): a quiet "New work item" button for the last visited (else
+ * first) project, then Home, Inbox, Your work, Drafts, Wiki, Favourites, the
+ * projects, and Workspace views,
  * Active cycles, Analytics and Agents. A project's own pages are the tabs
  * in its panel header (`ProjectFrame`), not children here. Collapse state
  * comes from the shell (`mod+b`, the top bar's toggle) and reaches the rows
@@ -198,7 +199,6 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
       aria-label="Work"
       collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed, hasButton: false }}
       resizable={resize.resizable}
-      header={<SideNavHeading heading="Work" headingHref="/" />}
       topContent={<NewItemButton label="New work item" tooltip={createTooltip} isDisabled={createTarget === null} onClick={openCreate} />}
     >
       <SideNavSection title="Workspace" isHeaderHidden>
