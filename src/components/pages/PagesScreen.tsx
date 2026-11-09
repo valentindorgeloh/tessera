@@ -11,7 +11,7 @@
  * ASSUMPTION: `spaces` is the active projects with Pages on, which the move
  * dialog needs and the plan's prop list does not name.
  */
-import { useEffect, useOptimistic, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
@@ -22,6 +22,7 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { Token } from "@astryxdesign/core/Token";
 import { TreeList, type TreeListItemData } from "@astryxdesign/core/TreeList";
 import { useToast } from "@astryxdesign/core/Toast";
+import { useAnimatedLayout } from "@astryxdesign/core/hooks";
 import { createPageAction, movePageAction } from "@/app/actions/pages";
 import { RowDragOverlay, RowGrip } from "@/components/shared/RowDrag";
 import { PanelBar, PanelHeader, PanelPage, PanelTitle } from "@/components/shell/PanelHeader";
@@ -79,6 +80,10 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
   const [pages, applyMove] = useOptimistic(serverPages, (current, move: PageMove) => applyPageMove(current, move));
   // Moved parents keep the expansion they were drawn with: the tree seeds only the first level open, so a depth change (the optimistic list, or the revert of a failed move) would close them.
   const [pinnedOpen, setPinnedOpen] = useState<ReadonlyMap<string, boolean>>(() => new Map());
+  // The element that scrolls the tree: a page opening or closing its sub-pages glides, and the rows below follow
+  // (`useAnimatedLayout`, docs/contracts/ui.md "Motion"). Nothing glides on load: the tree only measures a change of its own expansion.
+  const contentRef = useRef<HTMLDivElement>(null);
+  const treeLayout = useAnimatedLayout({ containerRef: contentRef });
   const project = space.kind === "project" ? space.project : null;
   const projectArchived = project !== null && project.archived_at !== null;
   const canCreate = tab !== "archived" && !projectArchived;
@@ -206,6 +211,7 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
   return (
     <PanelPage
       width="full"
+      contentRef={contentRef}
       header={
         <PanelHeader label={space.kind === "wiki" ? "Wiki" : "Pages"}>
           {space.kind === "wiki" ? (
@@ -219,7 +225,7 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
         {items.length === 0 ? (
           <EmptyState icon={<Icon icon={PageIcon} />} title={query.trim() === "" ? emptyTitle : "No matching pages"} description={query.trim() === "" ? emptyDescription : "Try a different name."} actions={query.trim() === "" ? (newButton ?? undefined) : undefined} />
         ) : (
-          <TreeList items={tree(items)} density="compact" variant="lineGuides" aria-label="Pages" />
+          <TreeList items={tree(items)} density="compact" variant="lineGuides" aria-label="Pages" animatedLayout={treeLayout} />
         )}
         {draggedPage ? <RowDragOverlay registerOverlay={registerOverlay} icon={draggedPage.logo ? resolveLogoIcon(draggedPage.logo.icon) : PageIcon} color={draggedPage.logo?.color} label={draggedPage.name} /> : null}
       </VStack>

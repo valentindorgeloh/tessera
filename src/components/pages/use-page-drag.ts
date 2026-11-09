@@ -50,6 +50,30 @@ export type PageDragApi = {
   rowClassName: (pageId: string) => string;
 };
 
+export type TreeNodes = {
+  /** The tree's `ul[role="tree"]`, the root container. */
+  tree: HTMLElement | null;
+  /** Every shown row: its page id, the `.tessera-page-row` element (null when the item has none) and the group of its sub-pages when they are shown. */
+  rows: { id: string; row: HTMLElement | null; group: HTMLElement | null }[];
+};
+
+/**
+ * The drag nodes in the rendered tree, found by DOM shape (the TreeList takes no ref per row). With `animatedLayout`
+ * a collapsing page keeps its sub-page group in the DOM, inert, until the glide ends (`data-tree-exiting`): those
+ * rows are on their way out, so they are neither drag items nor a drop group.
+ */
+export function findTreeNodes(element: ParentNode): TreeNodes {
+  const rows: TreeNodes["rows"] = [];
+  for (const row of element.querySelectorAll<HTMLElement>("li[data-tree-id]")) {
+    const id = row.dataset.treeId;
+    if (id === undefined || row.closest("[data-tree-exiting]") !== null) continue;
+    const rowElement = row.querySelector<HTMLElement>(`:scope > div > .${ROW_CLASS}`);
+    const group = row.querySelector<HTMLElement>(':scope > [role="group"]:not([data-tree-exiting])');
+    rows.push({ id, row: rowElement, group });
+  }
+  return { tree: element.querySelector<HTMLElement>('[role="tree"]'), rows };
+}
+
 export function usePageDrag({ pages, enabled, onMove }: UsePageDragOptions): PageDragApi {
   const root = useRef<HTMLElement | null>(null);
   const known = useRef({ items: new Set<string>(), containers: new Set<string>() });
@@ -74,20 +98,16 @@ export function usePageDrag({ pages, enabled, onMove }: UsePageDragOptions): Pag
     const items = new Set<string>();
     const containers = new Set<string>();
     if (element !== null) {
-      const tree = element.querySelector<HTMLElement>('[role="tree"]');
-      if (tree !== null) {
-        registerContainer(ROOT_CONTAINER)(tree);
+      const nodes = findTreeNodes(element);
+      if (nodes.tree !== null) {
+        registerContainer(ROOT_CONTAINER)(nodes.tree);
         containers.add(ROOT_CONTAINER);
       }
-      for (const row of element.querySelectorAll<HTMLElement>("li[data-tree-id]")) {
-        const id = row.dataset.treeId;
-        if (id === undefined) continue;
-        const rowElement = row.querySelector<HTMLElement>(`:scope > div > .${ROW_CLASS}`);
-        if (rowElement !== null) {
-          registerItem(id)(rowElement);
+      for (const { id, row, group } of nodes.rows) {
+        if (row !== null) {
+          registerItem(id)(row);
           items.add(id);
         }
-        const group = row.querySelector<HTMLElement>(':scope > [role="group"]');
         if (group !== null) {
           registerContainer(id)(group);
           containers.add(id);
