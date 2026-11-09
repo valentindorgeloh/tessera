@@ -8,13 +8,13 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { InputGroup, InputGroupText } from "@astryxdesign/core/InputGroup";
 import { Kbd } from "@astryxdesign/core/Kbd";
-import { NavIcon } from "@astryxdesign/core/NavIcon";
 import { SideNavCollapseButton } from "@astryxdesign/core/SideNav";
 import { HStack, Stack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
+import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { TopNav, TopNavHeading } from "@astryxdesign/core/TopNav";
 import { useAssistant } from "@/components/ai/AssistantProvider";
-import { AssistantIcon, KeyboardIcon, QuestionIcon, SearchIcon, SquaresFourIcon } from "@/themes/catppuccin/icons";
+import { AssistantIcon, KeyboardIcon, QuestionIcon, SearchIcon, TesseraMark } from "@/themes/catppuccin/icons";
 import { COLOR_SCHEME_LABELS, isColorScheme, setColorScheme, useColorScheme, type ColorScheme } from "./color-scheme";
 import { COLOR_SCHEME_ICONS } from "./shell-icons";
 import { useShell } from "./TesseraShell";
@@ -164,7 +164,7 @@ function AccountMenu({ onShortcuts }: { onShortcuts: () => void }) {
 /**
  * Top bar of the Tessera frame (docs/contracts/ui.md "Shell"), on the wash
  * above the sidebar and the content panel: the sidebar toggle and the
- * Tessera brand (home link) on the left, the search field in the middle, and
+ * Tessera mark (home link; the workspace name shows only in its tooltip) on the left, the search field in the middle, and
  * the assistant (when it is available), help and the account menu on the right. Below the AppShell's mobile
  * breakpoint the shell's own drawer toggle replaces the sidebar toggle.
  */
@@ -178,7 +178,9 @@ export function TopBar() {
       heading={
         <HStack gap={1} vAlign="center" className="tessera-topbar-heading">
           {isMobile ? null : <SideNavCollapseButton size="sm" collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed }} />}
-          <TopNavHeading heading={name} headingHref="/" logo={<NavIcon icon={<Icon icon={SquaresFourIcon} size="sm" />} />} />
+          <Tooltip content={name} placement="below" focusTrigger="always">
+            <TopNavHeading headingHref="/" logo={<TesseraMark className="tessera-brand-mark" />} logoLabel={name} />
+          </Tooltip>
         </HStack>
       }
       centerContent={<SearchTrigger onOpen={openCommandBar} />}

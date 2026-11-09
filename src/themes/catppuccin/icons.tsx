@@ -152,6 +152,7 @@ import {
   type IconProps,
 } from "@phosphor-icons/react";
 import type {IconRegistry} from "@astryxdesign/core/Icon";
+import {FRAPPE} from "./palette";
 
 const duotone = {
   weight: "duotone" as const,
@@ -335,6 +336,46 @@ export function StarFillIcon(props: SVGProps<SVGSVGElement>) {
   return <Star weight="fill" {...(props as IconProps)} />;
 }
 StarFillIcon.displayName = "StarFillIcon";
+
+/**
+ * The Tessera brand mark: the app icon (src/app/icon.png) drawn as SVG for the
+ * top bar. A 3x3 mosaic whose tiles form a T, on a Frappé plate with a thin
+ * edge so it stays visible on the dark top bar. Decorative:
+ * the heading link names it. Sized by `.tessera-brand-mark` in shell.css.
+ */
+export function TesseraMark(props: SVGProps<SVGSVGElement>) {
+  const id = React.useId();
+  const tiles = [0, 1, 2].flatMap((row) => [0, 1, 2].map((col) => ({ row, col })));
+  const isT = (row: number, col: number) => row === 0 || col === 1;
+  const dim = (row: number, col: number) => ((row + col) % 2 === 1 ? FRAPPE.surface1 : FRAPPE.surface0);
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false" {...props}>
+      <defs>
+        <linearGradient id={`${id}-plate`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={FRAPPE.base} />
+          <stop offset="1" stopColor={FRAPPE.crust} />
+        </linearGradient>
+        <linearGradient id={`${id}-t`} gradientUnits="userSpaceOnUse" x1="7" y1="7" x2="25" y2="25">
+          <stop offset="0" stopColor={FRAPPE.mauve} />
+          <stop offset="0.55" stopColor={FRAPPE.lavender} />
+          <stop offset="1" stopColor={FRAPPE.blue} />
+        </linearGradient>
+      </defs>
+      <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill={`url(#${id}-plate)`} stroke={FRAPPE.surface1} strokeWidth="1" />
+      {tiles.map(({ row, col }) => (
+        <rect
+          key={`${row}-${col}`}
+          x={7 + col * 6.5}
+          y={7 + row * 6.5}
+          width="5"
+          height="5"
+          rx="1.3"
+          fill={isT(row, col) ? `url(#${id}-t)` : dim(row, col)}
+        />
+      ))}
+    </svg>
+  );
+}
 export const ChartBarIcon = duotoneIcon(ChartBar);
 export const NoteIcon = duotoneIcon(Note);
 export const UserCircleIcon = duotoneIcon(UserCircle);

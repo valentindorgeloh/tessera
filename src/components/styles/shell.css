@@ -843,3 +843,13 @@
     position: relative;
   }
 }
+
+/*
+ * The Tessera mark in the top bar (TesseraMark, TopBar.tsx): the app icon at the size of the
+ * Astryx NavIcon it replaced. The workspace name is only its tooltip and accessible name.
+ */
+.tessera-brand-mark {
+  width: var(--size-element-md);
+  height: var(--size-element-md);
+  display: block;
+}
