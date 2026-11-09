@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from "react";
 import { AppShell } from "@astryxdesign/core/AppShell";
 import { Card } from "@astryxdesign/core/Card";
 import { useHotkeys } from "@astryxdesign/core/hooks";
@@ -70,13 +70,6 @@ function ShellFrame({ sideNav, children }: { sideNav: ReactNode; children: React
  */
 export function TesseraShell({ sideNav, children }: { sideNav: ReactNode; children: ReactNode }) {
   const commandBar = useRef<CommandBarHandle>(null);
-
-  // shell.css centres the collapsed rail's icons in the wash strip left of the content card.
-  const isNavCollapsed = useNavCollapsed();
-  useEffect(() => {
-    document.documentElement.toggleAttribute("data-nav-collapsed", isNavCollapsed);
-    return () => document.documentElement.removeAttribute("data-nav-collapsed");
-  }, [isNavCollapsed]);
 
   useHotkeys([
     {

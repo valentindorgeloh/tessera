@@ -179,6 +179,7 @@ export function TopBar() {
           {isMobile ? null : (
             <IconButton
               label={isNavCollapsed ? "Open sidebar" : "Close sidebar"}
+              className="tessera-sidebar-toggle"
               variant="ghost"
               size="sm"
               tooltip={isNavCollapsed ? "Open sidebar" : "Close sidebar"}

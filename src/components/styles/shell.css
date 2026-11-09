@@ -855,14 +855,17 @@
 }
 
 /*
- * The collapsed rail is 48px wide but the wash strip left of the content card is 56px (the card's
- * 8px inset), so icons centred in the rail sit 4px left of the strip's centre. Shift the rail's
- * contents and the top bar's sidebar toggle right so both centre on the strip.
+ * The wash strip left of the content card is the sidebar plus the card's 8px inset, so Astryx's
+ * even 8px inline padding leaves the sidebar's contents 4px left of the strip's centre: the
+ * collapsed rail's icons sat at x=24 in a 56px strip. A 12px/4px padding centres them at x=28 and
+ * gives the expanded rows 12px on both sides of the strip. It applies in both states, so the icons
+ * keep their x when the sidebar collapses or expands; the top bar's sidebar toggle sits on the
+ * same x=28 column.
  */
-:root[data-nav-collapsed] .astryx-side-nav[aria-label="Work"] > * {
+.astryx-side-nav[aria-label="Work"] > * {
   padding-inline: var(--spacing-3) var(--spacing-1);
 }
 
-:root[data-nav-collapsed] .tessera-topbar-heading > :first-child {
+.tessera-sidebar-toggle {
   margin-inline-start: var(--spacing-1-5);
 }
