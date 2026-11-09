@@ -10,7 +10,24 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/components/shell/TesseraShell", () => ({ useShell: () => ({}) }));
+vi.mock("@/components/shell/TesseraShell", async () => {
+  const { DEFAULT_NAV_PREFS } = await import("@/components/shell/nav-prefs");
+  const noop = () => {};
+  return {
+    useShell: () => ({
+      navPrefs: DEFAULT_NAV_PREFS,
+      isNavCollapsed: false,
+      isNavOpen: false,
+      setNavCollapsed: noop,
+      setNavView: noop,
+      setNavDock: noop,
+      setNavOpen: noop,
+      openCommandBar: noop,
+      openShortcuts: noop,
+      openCreateProject: noop,
+    }),
+  };
+});
 vi.mock("@/components/ai/AssistantProvider", () => ({ useAssistant: () => ({ status: null, toggle: () => {} }) }));
 
 const { SearchTrigger } = await import("@/components/shell/TopBar");

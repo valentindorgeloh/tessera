@@ -15,6 +15,7 @@ import { TopNav, TopNavHeading } from "@astryxdesign/core/TopNav";
 import { useAssistant } from "@/components/ai/AssistantProvider";
 import { AssistantIcon, KeyboardIcon, QuestionIcon, SearchIcon, SidebarIcon, TesseraMark } from "@/themes/catppuccin/icons";
 import { COLOR_SCHEME_LABELS, isColorScheme, setColorScheme, useColorScheme, type ColorScheme } from "./color-scheme";
+import { clearTogglePress, markTogglePress } from "./floating-nav";
 import { COLOR_SCHEME_ICONS } from "./shell-icons";
 import { useShell } from "./TesseraShell";
 
@@ -161,6 +162,37 @@ function AccountMenu({ onShortcuts }: { onShortcuts: () => void }) {
 }
 
 /**
+ * The sidebar toggle (`#tessera-nav-toggle`, desktop only). Docked it switches
+ * between Full and the stored rail kind ("Open sidebar" / "Close sidebar");
+ * undocked it shows and hides the floating sidebar ("Show sidebar" / "Hide
+ * sidebar", decision 129). A press marks itself first, so the panel's focusout
+ * and outside-press closes leave the click to the toggle. `data-rail` lets
+ * nav.css put it on the column of the rail on screen.
+ */
+function SidebarToggle() {
+  const { navPrefs, isNavCollapsed, isNavOpen, setNavCollapsed, setNavOpen } = useShell();
+  const common = { id: "tessera-nav-toggle", className: "tessera-sidebar-toggle", variant: "ghost", size: "sm", icon: <Icon icon={SidebarIcon} />, "aria-controls": "tessera-sidebar" } as const;
+  if (navPrefs.dock === "floating") {
+    const label = isNavOpen ? "Hide sidebar" : "Show sidebar";
+    return (
+      <IconButton
+        {...common}
+        label={label}
+        tooltip={`${label} (mod+b)`}
+        aria-expanded={isNavOpen}
+        onPointerDown={() => markTogglePress(performance.now())}
+        onClick={() => {
+          clearTogglePress();
+          setNavOpen(!isNavOpen, { focus: isNavOpen ? "toggle" : "panel" });
+        }}
+      />
+    );
+  }
+  const label = isNavCollapsed ? "Open sidebar" : "Close sidebar";
+  return <IconButton {...common} data-rail={isNavCollapsed ? navPrefs.rail : undefined} label={label} tooltip={label} onClick={() => setNavCollapsed(!isNavCollapsed)} />;
+}
+
+/**
  * Top bar of the Tessera frame (docs/contracts/ui.md "Shell"), on the wash
  * above the sidebar and the content panel: the sidebar toggle and the
  * Tessera mark (home link; the workspace name shows only in its tooltip) on the left, the search field in the middle, and
@@ -168,7 +200,7 @@ function AccountMenu({ onShortcuts }: { onShortcuts: () => void }) {
  * breakpoint the shell's own drawer toggle replaces the sidebar toggle.
  */
 export function TopBar() {
-  const { isNavCollapsed, setNavCollapsed, openCommandBar, openShortcuts } = useShell();
+  const { openCommandBar, openShortcuts } = useShell();
   const { isMobile } = useAppShellMobile();
   const name = useSyncExternalStore(subscribeBrand, readBrand, serverBrand);
   return (
@@ -176,17 +208,7 @@ export function TopBar() {
       label={name}
       heading={
         <HStack gap={1} vAlign="center" className="tessera-topbar-heading">
-          {isMobile ? null : (
-            <IconButton
-              label={isNavCollapsed ? "Open sidebar" : "Close sidebar"}
-              className="tessera-sidebar-toggle"
-              variant="ghost"
-              size="sm"
-              tooltip={isNavCollapsed ? "Open sidebar" : "Close sidebar"}
-              icon={<Icon icon={SidebarIcon} />}
-              onClick={() => setNavCollapsed(!isNavCollapsed)}
-            />
-          )}
+          {isMobile ? null : <SidebarToggle />}
           <Tooltip content={name} placement="below" focusTrigger="always">
             <TopNavHeading headingHref="/" logo={<TesseraMark className="tessera-brand-mark" />} logoLabel={name} />
           </Tooltip>

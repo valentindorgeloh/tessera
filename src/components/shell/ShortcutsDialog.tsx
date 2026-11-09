@@ -40,9 +40,6 @@ export function ShortcutKeys({ keys }: { keys: string }) {
 
 const GROUP_ORDER: readonly ShortcutGroup[] = ["Global", "Work item", "Create", "Navigate"];
 
-/** Shell shortcuts owned by other components; listed here so the dialog is complete. */
-const EXTRA_GLOBAL: readonly { label: string; keys: string }[] = [{ label: "Collapse the sidebar", keys: "mod+b" }];
-
 export function ShortcutsDialog({ isOpen, onOpenChange, singleKeys }: { isOpen: boolean; onOpenChange: (isOpen: boolean) => void; singleKeys: boolean }) {
   return (
     <Dialog isOpen={isOpen} onOpenChange={onOpenChange} width={560} maxHeight="85dvh" purpose="info">
@@ -61,9 +58,6 @@ export function ShortcutsDialog({ isOpen, onOpenChange, singleKeys }: { isOpen: 
                 <VStack key={group} gap={2}>
                   <Heading level={3}>{group}</Heading>
                   <List density="compact">
-                    {group === "Global"
-                      ? EXTRA_GLOBAL.map((row) => <ListItem key={row.keys} label={row.label} endContent={<ShortcutKeys keys={row.keys} />} />)
-                      : null}
                     {SHORTCUTS.filter((def) => def.group === group).map((def) => (
                       <ListItem
                         key={def.id}

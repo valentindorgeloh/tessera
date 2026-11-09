@@ -3,9 +3,11 @@
 import { startTransition, useEffect, useOptimistic, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
+import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { SideNav, SideNavSection } from "@astryxdesign/core/SideNav";
+import { VStack } from "@astryxdesign/core/Layout";
+import { SideNav, SideNavSection, useSideNavRenderMode } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { usePointerDrag } from "@/components/dnd/use-pointer-drag";
@@ -18,7 +20,10 @@ import { ProjectMenu, projectMove } from "./ProjectMenu";
 import { ExpandedOnly, NewItemButton, RailItem, RowActions } from "./RailParts";
 import { projectIdFromPath } from "./recents";
 import { formatKeys, SHORTCUT_BY_ID } from "./shortcuts";
+import { useSideNavChrome } from "./side-nav-chrome";
+import { SidebarOptionsMenu } from "./SidebarOptionsMenu";
 import { useShell } from "./TesseraShell";
+import { useFloatingNav } from "./use-floating-nav";
 
 export { LAST_PROJECT_STORAGE_KEY };
 
@@ -143,20 +148,28 @@ export function useSidebarResize(): { key: string; resizable: { defaultWidth: nu
  * first) project, then Home, Inbox, Your work, Drafts, Wiki, Favourites, the
  * projects, and Workspace views,
  * Active cycles, Analytics and Agents. A project's own pages are the tabs
- * in its panel header (`ProjectFrame`), not children here. Collapse state
- * comes from the shell (`mod+b`, the top bar's toggle) and reaches the rows
- * and the button through Astryx's collapse context (RailParts.tsx), which the
- * mobile drawer does not provide; the width and the last visited project are
- * remembered in localStorage.
+ * in its panel header (`ProjectFrame`), not children here. The view (Full,
+ * Icons and labels, Icons only) and the dock come from the stored
+ * preferences (decisions 128–130) through `useSideNavChrome()`; the rail
+ * reaches the rows and the button through Astryx's collapse context
+ * (RailParts.tsx), which the mobile drawer does not provide. Undocked, the
+ * nav floats over the page (`useFloatingNav`, an edge strip opens it on
+ * hover); "Sidebar options" sits in the footer except in the drawer. The width
+ * and the last visited project are remembered in localStorage.
  */
 export function Sidebar({ projects, unreadCount, draftCount, favorites }: { projects: Project[]; unreadCount: number; draftCount: number; favorites: FavoritesTree }) {
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
-  const { isNavCollapsed, setNavCollapsed, openCreateProject } = useShell();
+  const { navPrefs, isNavOpen, openCreateProject } = useShell();
   const [ordered, applyOrder] = useOptimistic(projects, (_current: Project[], next: Project[]) => next);
   const { lastProjectId: lastProject } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const resize = useSidebarResize();
+  const chrome = useSideNavChrome();
+  const isDrawer = useSideNavRenderMode() !== "default";
+  const canHover = useMediaQuery("(hover: hover)", false);
+  const { panelHandlers, edgeHandlers } = useFloatingNav({ panelId: "tessera-sidebar" });
+  const hasEdge = navPrefs.dock === "floating" && !isDrawer && !isNavOpen && canHover;
   const activeProjectId = projectIdFromPath(pathname);
 
   useEffect(() => {
@@ -194,84 +207,88 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
   };
 
   return (
-    <SideNav
-      key={resize.key}
-      aria-label="Work"
-      collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed, hasButton: false }}
-      resizable={resize.resizable}
-      topContent={<NewItemButton label="New work item" tooltip={createTooltip} isDisabled={createTarget === null} onClick={openCreate} />}
-    >
-      <SideNavSection title="Workspace" isHeaderHidden>
-        <RailItem label="Home" icon={HouseIcon} href="/" isSelected={pathname === "/"} />
-        <RailItem
-          label="Inbox"
-          icon={BellIcon}
-          href="/inbox"
-          isSelected={pathname === "/inbox"}
-          endContent={unreadCount > 0 ? <Badge label={String(unreadCount)} /> : undefined}
-        />
-        <RailItem label="Your work" icon={UserIcon} href="/your-work/summary" isSelected={pathname === "/your-work" || pathname.startsWith("/your-work/")} />
-        <RailItem
-          label="Drafts"
-          icon={DraftIcon}
-          href="/drafts"
-          isSelected={pathname === "/drafts"}
-          endContent={draftCount > 0 ? <Badge label={String(draftCount)} /> : undefined}
-        />
-        <RailItem label="Wiki" icon={PageIcon} href="/wiki" isSelected={pathname === "/wiki" || pathname.startsWith("/pages/")} />
-      </SideNavSection>
-      <FavoritesSection tree={favorites} />
-      <SideNavSection
-        ref={registerContainer("projects")}
-        title="Projects"
-        endContent={
-          <ExpandedOnly>
-            <IconButton label="Create project" variant="ghost" size="sm" icon={<Icon icon={PlusIcon} />} tooltip="Create project" onClick={openCreateProject} />
-          </ExpandedOnly>
-        }
+    <>
+      {hasEdge ? <VStack className="tessera-nav-edge" aria-hidden="true" {...edgeHandlers} /> : null}
+      <SideNav
+        key={resize.key}
+        {...chrome}
+        {...panelHandlers}
+        aria-label="Work"
+        topContent={<NewItemButton label="New work item" tooltip={createTooltip} isDisabled={createTarget === null} onClick={openCreate} />}
+        footerIcons={isDrawer ? undefined : <SidebarOptionsMenu />}
       >
-        <RailItem label="Projects" icon={FolderIcon} href="/projects" isSelected={isProjectsPage(pathname)} />
-        {ordered.length === 0 ? (
-          <ExpandedOnly>
-            <Text type="supporting" color="secondary" as="p">
-              No projects yet.
-            </Text>
-          </ExpandedOnly>
-        ) : (
-          ordered.map((project, index) => (
-            <RailItem
-              key={project.id}
-              ref={registerItem(project.id)}
-              {...itemHandlers(project.id, "projects")}
-              className="tessera-project-row"
-              label={project.name}
-              // The count sits in the actions slot, outside the link, so the link's
-              // name carries it: "Website 48" (the visible label stays inside the name).
-              aria-label={`${project.name} ${project.counts.total}`}
-              icon={resolveLogoIcon(project.logo?.icon)}
-              href={`/projects/${project.id}/work-items`}
-              isSelected={project.id === activeProjectId}
-              actions={
-                <RowActions count={project.counts.total}>
-                  <ProjectMenu
-                    project={project}
-                    isFavorite={isFavoriteInTree(favorites, "project", project.id)}
-                    canMoveUp={index > 0}
-                    canMoveDown={index < ordered.length - 1}
-                    onMove={(direction) => moveProject(project.id, direction)}
-                  />
-                </RowActions>
-              }
-            />
-          ))
-        )}
-      </SideNavSection>
-      <SideNavSection title="Workspace" isHeaderHidden className="tessera-sidebar-last">
-        <RailItem label="Workspace views" icon={TableIcon} href="/workspace-views" isSelected={pathname === "/workspace-views" || pathname.startsWith("/workspace-views/")} />
-        <RailItem label="Active cycles" icon={CycleIcon} href="/active-cycles" isSelected={pathname === "/active-cycles" || pathname.startsWith("/active-cycles/")} />
-        <RailItem label="Analytics" icon={BurndownIcon} href="/analytics/overview" isSelected={pathname === "/analytics" || pathname.startsWith("/analytics/")} />
-        <RailItem label="Agents" icon={AgentIcon} href="/agents" isSelected={pathname === "/agents" || pathname.startsWith("/agents/")} />
-      </SideNavSection>
-    </SideNav>
+        <SideNavSection title="Workspace" isHeaderHidden>
+          <RailItem label="Home" icon={HouseIcon} href="/" isSelected={pathname === "/"} />
+          <RailItem
+            label="Inbox"
+            icon={BellIcon}
+            href="/inbox"
+            isSelected={pathname === "/inbox"}
+            endContent={unreadCount > 0 ? <Badge label={String(unreadCount)} /> : undefined}
+          />
+          <RailItem label="Your work" icon={UserIcon} href="/your-work/summary" isSelected={pathname === "/your-work" || pathname.startsWith("/your-work/")} />
+          <RailItem
+            label="Drafts"
+            icon={DraftIcon}
+            href="/drafts"
+            isSelected={pathname === "/drafts"}
+            endContent={draftCount > 0 ? <Badge label={String(draftCount)} /> : undefined}
+          />
+          <RailItem label="Wiki" icon={PageIcon} href="/wiki" isSelected={pathname === "/wiki" || pathname.startsWith("/pages/")} />
+        </SideNavSection>
+        <FavoritesSection tree={favorites} />
+        <SideNavSection
+          ref={registerContainer("projects")}
+          title="Projects"
+          endContent={
+            <ExpandedOnly>
+              <IconButton label="Create project" variant="ghost" size="sm" icon={<Icon icon={PlusIcon} />} tooltip="Create project" onClick={openCreateProject} />
+            </ExpandedOnly>
+          }
+        >
+          <RailItem label="Projects" icon={FolderIcon} href="/projects" isSelected={isProjectsPage(pathname)} />
+          {ordered.length === 0 ? (
+            <ExpandedOnly>
+              <Text type="supporting" color="secondary" as="p">
+                No projects yet.
+              </Text>
+            </ExpandedOnly>
+          ) : (
+            ordered.map((project, index) => (
+              <RailItem
+                key={project.id}
+                ref={registerItem(project.id)}
+                {...itemHandlers(project.id, "projects")}
+                className="tessera-project-row"
+                label={project.name}
+                // The count sits in the actions slot, outside the link, so the link's
+                // name carries it: "Website 48" (the visible label stays inside the name).
+                aria-label={`${project.name} ${project.counts.total}`}
+                icon={resolveLogoIcon(project.logo?.icon)}
+                href={`/projects/${project.id}/work-items`}
+                isSelected={project.id === activeProjectId}
+                actions={
+                  <RowActions count={project.counts.total}>
+                    <ProjectMenu
+                      project={project}
+                      isFavorite={isFavoriteInTree(favorites, "project", project.id)}
+                      canMoveUp={index > 0}
+                      canMoveDown={index < ordered.length - 1}
+                      onMove={(direction) => moveProject(project.id, direction)}
+                    />
+                  </RowActions>
+                }
+              />
+            ))
+          )}
+        </SideNavSection>
+        <SideNavSection title="Workspace" isHeaderHidden className="tessera-sidebar-last">
+          <RailItem label="Workspace views" icon={TableIcon} href="/workspace-views" isSelected={pathname === "/workspace-views" || pathname.startsWith("/workspace-views/")} />
+          <RailItem label="Active cycles" icon={CycleIcon} href="/active-cycles" isSelected={pathname === "/active-cycles" || pathname.startsWith("/active-cycles/")} />
+          <RailItem label="Analytics" icon={BurndownIcon} href="/analytics/overview" isSelected={pathname === "/analytics" || pathname.startsWith("/analytics/")} />
+          <RailItem label="Agents" icon={AgentIcon} href="/agents" isSelected={pathname === "/agents" || pathname.startsWith("/agents/")} />
+        </SideNavSection>
+      </SideNav>
+    </>
   );
 }

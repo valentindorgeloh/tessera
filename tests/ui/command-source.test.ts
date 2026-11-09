@@ -4,12 +4,14 @@ import {
   buildProjectSettingsCommands,
   DESCRIBE_VIEW_ID,
   matchesCommand,
+  paletteSection,
   projectSettingsTab,
   SECTION_ORDER,
   sortBySection,
 } from "@/components/shell/command-source";
 import { SETTINGS_TABS } from "@/components/project-settings/settings-tabs";
 import { askItems } from "@/components/ai/ask-items";
+import { SHORTCUT_BY_ID } from "@/components/shell/shortcuts";
 
 const ALL_ON = { cycles: true, modules: true, views: true, pages: true, intake: true } as const;
 
@@ -58,5 +60,13 @@ describe("Project settings commands", () => {
     expect(items.map((item) => item.id)).toEqual(SETTINGS_TABS.map((tab) => `projectSettings.${tab.key}`));
     expect(items.find((item) => item.id === "projectSettings.automations")?.label).toBe("Settings: Automations");
     for (const tab of SETTINGS_TABS) expect(projectSettingsTab(`projectSettings.${tab.key}`)).toBe(tab.key);
+  });
+});
+
+describe("paletteSection", () => {
+  it("leaves the sidebar toggle out of the palette: mod+b is Global (decision 131)", () => {
+    const def = SHORTCUT_BY_ID.get("sidebar.toggle");
+    expect(def).toBeDefined();
+    if (def) expect(paletteSection(def)).toBeNull();
   });
 });

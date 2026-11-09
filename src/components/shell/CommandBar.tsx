@@ -57,6 +57,7 @@ import {
   PageIcon,
   PlusIcon,
   ResetIcon,
+  SidebarIcon,
   ViewIcon,
 } from "@/themes/catppuccin/icons";
 import { setColorScheme } from "./color-scheme";
@@ -79,12 +80,16 @@ import {
   type CommandSource,
 } from "./command-source";
 import { PaletteFooter, PaletteInput, type PaletteMode, type PaletteScope } from "./palette-parts";
+import { isSidenavDrawer } from "./layout-motion";
+import { getNavPrefs, SIDEBAR_COMMAND_PREFIX, sidebarCommandPatch } from "./nav-prefs";
 import { readProjectFeatures } from "./project-features";
 import { onScreenPaths, otherRecents, projectIdFromPath, RECENTS_IN_PALETTE } from "./recents";
 import { readRecents } from "./recents-store";
 import { COLOR_SCHEME_ICONS, ROUTE_ICONS } from "./shell-icons";
 import { ShortcutKeys, ShortcutsDialog } from "./ShortcutsDialog";
 import { isShortcutId } from "./shortcuts";
+import { buildSidebarCommands } from "./sidebar-commands";
+import { useShell } from "./TesseraShell";
 import { useShortcutPrefs, useShortcuts } from "./useShortcuts";
 
 /**
@@ -118,6 +123,7 @@ export function CommandBar({ ref }: CommandBarProps) {
   const ask = useCommandBarAsk();
   const context = useCommandContext();
   const { singleKeys } = useShortcutPrefs();
+  const { setNavView, setNavDock } = useShell();
   const [isOpen, setOpen] = useState(false);
   // A new palette instance per opening, so a close from outside the palette
   // (the help dialog taking over) never leaves a stale query behind.
@@ -229,6 +235,8 @@ export function CommandBar({ ref }: CommandBarProps) {
             ...buildProjectSettingsCommands(current.scope.projectId),
             ...buildAiCommands(current.scope.projectId, features, current.aiAvailable),
             ...buildUndoCommand(current.undoBatch),
+            // Read when the palette asks, like the project features (decision 131).
+            ...buildSidebarCommands(getNavPrefs(), isSidenavDrawer()),
           ];
         },
         recents: () => (state().scope.mode === "ask" ? [] : otherRecents(readRecents(), state().scope.onScreen, RECENTS_IN_PALETTE).map(recentToItem)),
@@ -353,11 +361,20 @@ export function CommandBar({ ref }: CommandBarProps) {
         setColorScheme(scheme);
         return;
       }
+      // After the palette has closed (decision 131); "Undock" leaves the overlay closed.
+      const sidebarPatch = sidebarCommandPatch(id);
+      if (sidebarPatch) {
+        window.setTimeout(() => {
+          if (sidebarPatch.dock) setNavDock(sidebarPatch.dock);
+          else setNavView(sidebarPatch.display === "rail" && sidebarPatch.rail ? sidebarPatch.rail : "full");
+        }, 0);
+        return;
+      }
       // After the palette has closed and handed focus back to where it was,
       // so a picker the command opens (Change state…) keeps the focus.
       if (isShortcutId(id)) window.setTimeout(() => run(id), 0);
     },
-    [openHit, router, run, toast],
+    [openHit, router, run, setNavDock, setNavView, toast],
   );
 
   return (
@@ -407,6 +424,7 @@ function commandIcon(item: CommandSearchItem): IconType {
   if (item.id === DESCRIBE_VIEW_ID) return MagicIcon;
   if (item.id === UNDO_ASSISTANT_ID) return ResetIcon;
   if (item.id === "shortcuts.help") return KeyboardIcon;
+  if (item.id.startsWith(SIDEBAR_COMMAND_PREFIX)) return SidebarIcon;
   const scheme = themeCommandScheme(item.id);
   if (scheme) return COLOR_SCHEME_ICONS[scheme];
   const group = item.auxiliaryData?.group;

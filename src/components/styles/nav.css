@@ -5,3 +5,127 @@
  * our own `tessera-sidebar` class. Tokens only; every transition has a
  * prefers-reduced-motion override in this file.
  */
+
+/*
+ * Inset beside the content card. The wash strip left of the card is the sidebar plus the card's
+ * 8px inset, so Astryx's even 8px inline padding leaves the docked sidebar's contents 4px left of
+ * the strip's centre. A 12px/4px padding centres the 48px rail's icons at x=28 and gives Full's
+ * rows 12px on both sides of the strip; it applies to Full and Icons only alike, so the icons keep
+ * their x when one switches to the other. The 60px labelled rail is padded 8px/0 (52px of content,
+ * centred at x=34 in its 68px strip). The floating overlay is not beside the card and keeps
+ * Astryx's even 8px.
+ */
+.tessera-sidebar:not([data-dock]) > * {
+  padding-inline: var(--spacing-3) var(--spacing-1);
+}
+
+.tessera-sidebar[data-rail="labels"] > * {
+  padding-inline: var(--spacing-2) 0;
+}
+
+/* The top bar's sidebar toggle (TopBar.tsx) sits on the column of the rail on screen: x=28, or x=34 beside the labelled rail. */
+.tessera-sidebar-toggle {
+  margin-inline-start: var(--spacing-1-5);
+}
+
+.tessera-sidebar-toggle[data-rail="labels"] {
+  margin-inline-start: var(--spacing-3);
+}
+
+/*
+ * Decision 132 (1): while docked, the panel clips its width animation and the nav keeps its own
+ * width (without flex-shrink: 0 the nav is squeezed to the panel's width on every frame).
+ */
+.astryx-app-shell-sidenav:has(.tessera-sidebar:not([data-dock])) {
+  overflow-x: hidden;
+}
+
+.tessera-sidebar:not([data-dock]) {
+  flex-shrink: 0;
+}
+
+/* Decision 128: the Icons and labels rail (60px): the collapsed rail, wider, with the name under each icon. */
+.tessera-sidebar[data-rail="labels"] {
+  width: calc(var(--spacing-12) + var(--spacing-3));
+}
+
+.tessera-sidebar[data-rail="labels"] .astryx-side-nav-section {
+  align-self: stretch;
+}
+
+.tessera-sidebar[data-rail="labels"] .astryx-side-nav-item[data-rail-label] {
+  width: 100%;
+  height: auto;
+  min-height: var(--spacing-11);
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--spacing-0-5);
+  padding-block: var(--spacing-1);
+  padding-inline: var(--spacing-0-5);
+}
+
+.tessera-sidebar[data-rail="labels"] .astryx-side-nav-item[data-rail-label]::after {
+  content: attr(data-rail-label);
+  max-width: 100%;
+  font-size: var(--font-size-xs);
+  line-height: var(--text-heading-6-leading);
+  font-weight: var(--font-weight-medium);
+  text-align: center;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Decision 129: the floating panel. The AppShell panel takes no width; the nav floats over the page. */
+.astryx-app-shell-sidenav:has(.tessera-sidebar[data-dock="floating"]) {
+  width: 0;
+  min-width: 0;
+  overflow: visible;
+  position: relative;
+  z-index: 300;
+  border-inline-end: 0;
+}
+
+.tessera-sidebar[data-dock="floating"] {
+  position: absolute;
+  inset-block: var(--spacing-2);
+  inset-inline-start: var(--spacing-2);
+  width: var(--tessera-nav-float-width);
+  height: auto;
+  background-color: var(--color-background-body);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-container);
+  box-shadow: var(--shadow-high);
+  overflow: hidden;
+  transform: translateX(calc(-100% - var(--spacing-4)));
+  visibility: hidden;
+  transition:
+    transform var(--duration-medium) ease-in-out,
+    visibility 0s linear var(--duration-medium);
+}
+
+.tessera-sidebar[data-dock="floating"][data-open] {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform var(--duration-medium) ease-in-out,
+    visibility 0s;
+}
+
+/* The 8px strip at the window's left edge that opens the closed panel on hover (Sidebar.tsx). */
+.tessera-nav-edge {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: var(--spacing-2);
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tessera-sidebar[data-dock="floating"],
+  .tessera-sidebar[data-dock="floating"][data-open] {
+    transition: none;
+  }
+}

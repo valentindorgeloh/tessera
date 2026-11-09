@@ -10,6 +10,7 @@ import type { CommandContextValue } from "@/components/shell/command-context";
 import {
   buildCommands,
   buildProjectSettingsCommands,
+  paletteSection,
   createCommandSource,
   hitItemId,
   hitToItem,
@@ -59,6 +60,7 @@ const ALL_IDS: ShortcutId[] = [
   "shortcuts.help",
   "peek.close",
   "assistant.toggle",
+  "sidebar.toggle",
   "item.state",
   "item.priority",
   "item.assign",
@@ -122,6 +124,21 @@ describe("SHORTCUTS", () => {
       expect(def.needsItem === true).toBe(def.id.startsWith("item."));
       expect(def.group === "Work item").toBe(def.id.startsWith("item."));
     }
+  });
+
+  it("holds exactly one mod+b entry, the sidebar toggle in Global, which the palette does not list (decision 131)", () => {
+    const modB = SHORTCUTS.filter((def) => def.keys === "mod+b");
+    expect(modB.map((def) => def.id)).toEqual(["sidebar.toggle"]);
+    const def = SHORTCUT_BY_ID.get("sidebar.toggle");
+    expect(def).toMatchObject({ label: "Collapse or expand the sidebar", note: "Shows or hides it while undocked", group: "Global" });
+    if (def) expect(paletteSection(def)).toBeNull();
+    expect(buildCommands(null).some((item) => item.id === "sidebar.toggle")).toBe(false);
+  });
+
+  it("resolves mod+b to the sidebar toggle with the platform modifier", () => {
+    expect(resolveShortcut(key("KeyB", { metaKey: true }), null, NOW, MAC)).toEqual(action("sidebar.toggle"));
+    expect(resolveShortcut(key("KeyB", { ctrlKey: true }), null, NOW, OTHER)).toEqual(action("sidebar.toggle"));
+    expect(resolveShortcut(key("KeyB", { ctrlKey: true }), null, NOW, MAC)).toBeNull();
   });
 
   it("recognises ids and rejects other strings", () => {

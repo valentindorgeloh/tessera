@@ -8,8 +8,9 @@
  * context, so the rows are expanded there even while the shell flag is
  * collapsed. The Sidebar used to pick the button from the flag and showed the
  * icon button above expanded rows. The Sidebar cases render the real Sidebar
- * (its server-action menus and navigation mocked) with the flag in the real
- * collapse store; the last one hydrates it against server HTML.
+ * (its server-action menus and navigation mocked) with the view in the real
+ * preferences store (nav-prefs.ts) and the frame from `useSideNavChrome()`;
+ * the last one hydrates it against server HTML.
  */
 import { act, createElement, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
@@ -21,15 +22,23 @@ import type { Project } from "@/lib/tessera/types";
 vi.mock("next/navigation", () => ({ usePathname: () => "/", useRouter: () => ({ push: () => {} }) }));
 vi.mock("@/components/shell/ProjectMenu", () => ({ ProjectMenu: () => null, projectMove: async () => ({ ok: true }) }));
 vi.mock("@/components/shell/FavoritesSection", () => ({ FavoritesSection: () => null }));
-// useShell() reads the flag from the collapse store, as TesseraShell's does; the actions are inert.
+// useShell() reads the preferences store, as TesseraShell's does; the actions other than the collapse are inert.
 vi.mock("@/components/shell/TesseraShell", async () => {
-  const store = await import("@/components/shell/nav-collapse-store");
-  return { useShell: () => ({ isNavCollapsed: store.useNavCollapsed(), setNavCollapsed: store.setNavCollapsed, openCreateProject: () => {} }) };
+  const store = await import("@/components/shell/nav-prefs");
+  const setNavCollapsed = (collapsed: boolean) => store.setNavPrefs({ display: collapsed ? "rail" : "full" });
+  return {
+    useShell: () => {
+      const navPrefs = store.useNavPrefs();
+      const isNavOpen = store.useNavOpen();
+      return { navPrefs, isNavCollapsed: store.isRailShown(navPrefs), isNavOpen, setNavCollapsed, setNavView: () => {}, setNavDock: () => {}, setNavOpen: () => {}, openCreateProject: () => {} };
+    },
+  };
 });
 
 const { NewItemButton, RailItem } = await import("@/components/shell/RailParts");
 const { Sidebar } = await import("@/components/shell/Sidebar");
-const { setNavCollapsed } = await import("@/components/shell/nav-collapse-store");
+const { DEFAULT_NAV_PREFS, setNavPrefs } = await import("@/components/shell/nav-prefs");
+const setNavCollapsed = (collapsed: boolean) => setNavPrefs({ display: collapsed ? "rail" : "full" });
 const { EMPTY_FAVORITES } = await import("@/components/favorites/tree");
 const { HouseIcon } = await import("@/themes/catppuccin/icons");
 
@@ -61,7 +70,8 @@ async function cleanup() {
 
 afterEach(async () => {
   await cleanup();
-  setNavCollapsed(false);
+  setNavPrefs(DEFAULT_NAV_PREFS);
+  localStorage.clear();
   document.body.innerHTML = "";
 });
 
@@ -193,6 +203,20 @@ describe("Sidebar topContent", () => {
     expect(el.querySelector('a[href="/projects/p1/work-items"]')).not.toBeNull();
     expect(rowsAreExpanded(el)).toBe(true);
     expect(variantOf(el)).toBe("full");
+  });
+
+  it("renders the chrome: our id and class, data-rail on a rail, the autofocus mark and Sidebar options outside the drawer", async () => {
+    setNavPrefs({ display: "rail", rail: "labels" });
+    const el = await render(sidebar());
+    const navEl = el.querySelector("nav#tessera-sidebar.tessera-sidebar");
+    expect(navEl?.getAttribute("aria-label")).toBe("Work");
+    expect(navEl?.getAttribute("data-rail")).toBe("labels");
+    expect(el.querySelector('button[aria-label="New work item"]')?.hasAttribute("data-nav-autofocus")).toBe(true);
+    expect(el.querySelector("#tessera-nav-options")?.getAttribute("aria-label")).toBe("Sidebar options");
+    await cleanup();
+    const drawerEl = await render(drawer(sidebar()));
+    expect(drawerEl.querySelector("#tessera-nav-options")).toBeNull();
+    expect(drawerEl.querySelector("button.tessera-sidebar-new")?.hasAttribute("data-nav-autofocus")).toBe(true);
   });
 
   it("hydrates against the server's expanded HTML when the flag flipped before the boundary hydrated", async () => {

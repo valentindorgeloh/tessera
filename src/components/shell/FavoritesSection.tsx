@@ -140,6 +140,8 @@ export function FavoritesSection({ tree }: { tree: FavoritesTree }) {
               {...itemHandlers(folder.id, "top")}
               className="tessera-favorites-row"
               label={folder.name}
+              // The Icons and labels rail shows it under the icon (nav.css, decision 128).
+              data-rail-label={folder.name}
               icon={FolderIcon}
               collapsible={{ defaultIsCollapsed: false }}
               actions={

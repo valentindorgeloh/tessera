@@ -17,7 +17,13 @@ const nav = vi.hoisted(() => ({ pathname: "/" }));
 vi.mock("next/navigation", () => ({ usePathname: () => nav.pathname, useRouter: () => ({ push: () => {} }) }));
 vi.mock("@/components/shell/ProjectMenu", () => ({ ProjectMenu: () => null, projectMove: async () => ({ ok: true }) }));
 vi.mock("@/components/shell/FavoritesSection", () => ({ FavoritesSection: () => null }));
-vi.mock("@/components/shell/TesseraShell", () => ({ useShell: () => ({ isNavCollapsed: false, setNavCollapsed: () => {}, openCreateProject: () => {} }) }));
+vi.mock("@/components/shell/TesseraShell", async () => {
+  const { DEFAULT_NAV_PREFS } = await import("@/components/shell/nav-prefs");
+  const noop = () => {};
+  return {
+    useShell: () => ({ navPrefs: DEFAULT_NAV_PREFS, isNavCollapsed: false, isNavOpen: false, setNavCollapsed: noop, setNavView: noop, setNavDock: noop, setNavOpen: noop, openCreateProject: noop }),
+  };
+});
 
 const { Sidebar } = await import("@/components/shell/Sidebar");
 const { goCommandPath } = await import("@/components/shell/command-source");

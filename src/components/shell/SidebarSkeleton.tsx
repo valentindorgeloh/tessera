@@ -3,17 +3,21 @@
 import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { VStack } from "@astryxdesign/core/Layout";
 import { SideNav } from "@astryxdesign/core/SideNav";
+import { useSideNavChrome } from "./side-nav-chrome";
 import { useSidebarResize } from "./Sidebar";
-import { useShell } from "./TesseraShell";
 
 const ROWS = [0, 1, 2, 3, 4, 5];
 
-/** Suspense fallback for the sidebar: the same width, with placeholder rows where the items go. */
+/**
+ * Suspense fallback for the sidebar: the same frame as the sidebar
+ * (`useSideNavChrome()`, so a stored rail shows as the 60 or 48px rail and a
+ * floating sidebar stays closed), with placeholder rows where the items go.
+ */
 export function SidebarSkeleton() {
-  const { isNavCollapsed } = useShell();
   const resize = useSidebarResize();
+  const chrome = useSideNavChrome();
   return (
-    <SideNav key={resize.key} aria-label="Work" collapsible={{ isCollapsed: isNavCollapsed, hasButton: false }} resizable={resize.resizable}>
+    <SideNav key={resize.key} {...chrome} aria-label="Work">
       <VStack gap={2} padding={2} aria-busy="true" aria-label="Loading navigation">
         {ROWS.map((row) => (
           <Skeleton key={row} index={row} height="var(--size-element-sm)" width={row % 3 === 0 ? "70%" : "90%"} />

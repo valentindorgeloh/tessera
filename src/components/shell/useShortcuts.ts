@@ -116,8 +116,11 @@ export type ShortcutDispatchOptions = {
 /** Runs a shortcut by id, the same path the palette's command items take. */
 export type ShortcutRunner = (id: ShortcutId) => void;
 
-/** Ids CommandBar dispatches through Astryx `useHotkeys`; the keydown path never fires them twice. */
-const DELEGATED: ReadonlySet<ShortcutId> = new Set<ShortcutId>(["palette.open", "shortcuts.help"]);
+/**
+ * Ids dispatched through Astryx `useHotkeys` elsewhere (CommandBar; `sidebar.toggle`, `mod+b`, in
+ * TesseraShell, decision 131); the keydown path never fires them twice.
+ */
+const DELEGATED: ReadonlySet<ShortcutId> = new Set<ShortcutId>(["palette.open", "shortcuts.help", "sidebar.toggle"]);
 
 /**
  * The project of the current route, else the last visited one (`tessera.lastProject.v1`), else null.

@@ -10,10 +10,18 @@ import { SideNav, SideNavSection } from "@astryxdesign/core/SideNav";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/components/shell/recents-store", () => ({ useMissingRoute: () => {} }));
+vi.mock("@/app/actions/favorites", () => ({
+  deleteFavoriteFolderAction: async () => ({ ok: true }),
+  moveFavoriteAction: async () => ({ ok: true }),
+  moveFavoriteFolderAction: async () => ({ ok: true }),
+  removeFavoriteAction: async () => ({ ok: true }),
+}));
+vi.mock("@/components/shell/FavoriteDialog", () => ({ FavoriteDialog: () => null }));
 
 const { ExpandedOnly, RailItem, RowActions } = await import("@/components/shell/RailParts");
 const { HouseIcon } = await import("@/themes/catppuccin/icons");
 const { NotFoundScreen } = await import("@/components/shell/NotFoundScreen");
+const { FavoritesSection } = await import("@/components/shell/FavoritesSection");
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
@@ -92,6 +100,46 @@ describe("RailItem (S3)", () => {
     const el = await render(nav(false));
     expect(el.querySelector('[role="tooltip"]')).toBeNull();
     expect(el.querySelector("a")?.textContent).toContain("Inbox");
+  });
+});
+
+describe("RailItem labels for the Icons and labels rail (decision 128)", () => {
+  it("puts data-rail-label on the collapsed link and keeps the tooltip and the link's name", async () => {
+    const el = await render(nav(true));
+    const link = el.querySelector('a[aria-label="Inbox"]');
+    expect(link?.getAttribute("data-rail-label")).toBe("Inbox");
+    expect([...el.querySelectorAll('[role="tooltip"]')].map((tip) => tip.textContent)).toContain("Inbox");
+  });
+
+  it("keeps the label out of a project link's name: the name stays its aria-label with the count", async () => {
+    const el = await render(
+      h(
+        SideNav,
+        { "aria-label": "Work", collapsible: { isCollapsed: true, hasButton: false } },
+        h(SideNavSection, { title: "Projects" }, h(RailItem, { label: "Website", "aria-label": "Website 12", href: "/projects/p1/work-items", icon: HouseIcon })),
+      ),
+    );
+    const link = el.querySelector('a[href="/projects/p1/work-items"]');
+    expect(link?.getAttribute("aria-label")).toBe("Website 12");
+    expect(link?.getAttribute("data-rail-label")).toBe("Website");
+  });
+
+  it("is harmless on the expanded row", async () => {
+    const el = await render(nav(false));
+    const link = el.querySelector('a[href="/inbox"]');
+    expect(link?.textContent).toContain("Inbox");
+    expect(el.querySelector("[data-rail-label]")?.getAttribute("data-rail-label")).toBe("Inbox");
+  });
+
+  it("is on the favourites folder's collapsed button too", async () => {
+    const tree = {
+      folders: [{ id: "f1", name: "Launch", sort_order: "a0", items: [] }],
+      items: [],
+      order: [{ kind: "folder" as const, id: "f1" }],
+    };
+    const el = await render(h(SideNav, { "aria-label": "Work", collapsible: { isCollapsed: true, hasButton: false } }, h(FavoritesSection, { tree })));
+    const folder = el.querySelector('button[aria-label="Launch"]');
+    expect(folder?.getAttribute("data-rail-label")).toBe("Launch");
   });
 });
 

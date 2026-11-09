@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 /**
- * How `TesseraShell`/`useShell()` wire the sidebar collapse flag
- * (docs/contracts/ui.md "Shell", streamed-subtree rule). The sidebar sits behind a
+ * How `TesseraShell`/`useShell()` wire the sidebar preferences and the floating
+ * open flag (nav-prefs.ts; docs/contracts/ui.md "Shell", streamed-subtree rule). The sidebar sits behind a
  * Suspense boundary that hydrates after the shell is live. Each case streams a
  * boundary from the server, keeps it dehydrated on the client, collapses the nav
  * through the shell (its `mod+b` hotkey, or `useShell().setNavCollapsed` from a
  * consumer outside the boundary, where the top bar's button sits), and only then
  * lets the boundary hydrate: a `useShell()` consumer inside it must hydrate against
- * the server's value (no recoverable error, error 418) and end collapsed. A variant
+ * the server's value (no recoverable error, error 418) and end collapsed (or, while
+ * undocked, end with the overlay open after an early `mod+b`). A variant
  * that reads the store in the provider and passes it down through the context value
  * fails here, and so does the pre-fix shape (the negative control). The shell's
  * heavy children are mocked. React's dev build logs "Detected multiple renderers
@@ -30,7 +31,7 @@ vi.mock("@/components/shell/CommandBar", () => ({ CommandBar: () => null }));
 vi.mock("@/components/shell/TopBar", () => ({ TopBar: () => null }));
 
 const { TesseraShell, useShell } = await import("@/components/shell/TesseraShell");
-const { setNavCollapsed } = await import("@/components/shell/nav-collapse-store");
+const { DEFAULT_NAV_PREFS, setNavOpenFlag, setNavPrefs } = await import("@/components/shell/nav-prefs");
 
 const roots: Root[] = [];
 
@@ -45,13 +46,20 @@ afterEach(() => {
   act(() => {
     for (const root of roots.splice(0)) root.unmount();
   });
-  setNavCollapsed(false);
+  setNavPrefs(DEFAULT_NAV_PREFS);
+  setNavOpenFlag(false);
+  localStorage.clear();
   document.body.innerHTML = "";
 });
 
 /** Inside the streamed boundary, where the sidebar reads the flag. */
 function SideNavProbe() {
   return createElement("p", { id: "flag" }, useShell().isNavCollapsed ? "collapsed" : "expanded");
+}
+
+/** Inside the streamed boundary, where the floating sidebar reads its open flag. */
+function OpenProbe() {
+  return createElement("p", { id: "open" }, useShell().isNavOpen ? "open" : "closed");
 }
 
 /** Outside the boundary and live before it hydrates, like the top bar's collapse button. */
@@ -67,7 +75,7 @@ function Gated({ gate, children }: { gate: Promise<void>; children?: ReactNode }
 }
 
 function shellTree(gate: Promise<void>) {
-  const sideNav = createElement(Suspense, { fallback: null }, createElement(Gated, { gate }, createElement(SideNavProbe)));
+  const sideNav = createElement(Suspense, { fallback: null }, createElement(Gated, { gate }, createElement(SideNavProbe), createElement(OpenProbe)));
   const props = { sideNav, children: createElement(CollapseButton) };
   return createElement(TesseraShell, props);
 }
@@ -181,6 +189,24 @@ describe("TesseraShell collapse wiring", () => {
     expect(onRecoverableError).not.toHaveBeenCalled();
     expect(container.querySelector("#flag")).toBe(serverFlag);
     expect(serverFlag?.textContent).toBe("collapsed");
+  });
+
+  it("hydrates a streamed useShell() consumer against the server value after an early mod+b while undocked", async () => {
+    setNavPrefs({ dock: "floating" }); // stored before the page loaded; the server still renders the defaults
+    const { container, onRecoverableError, open } = await hydrateStreamed(shellTree);
+    const serverOpen = container.querySelector("#open");
+    expect(serverOpen?.textContent).toBe("closed");
+
+    await act(async () => {
+      pressModB();
+    });
+    expect(serverOpen?.textContent).toBe("closed");
+
+    await open();
+    expect(onRecoverableError).not.toHaveBeenCalled();
+    expect(container.querySelector("#open")).toBe(serverOpen);
+    expect(serverOpen?.textContent).toBe("open");
+    expect(textOf(container, "flag")).toBe("expanded"); // floating always shows the Full view
   });
 
   it("negative control: provider state passed through the context value fails to hydrate the streamed boundary", async () => {

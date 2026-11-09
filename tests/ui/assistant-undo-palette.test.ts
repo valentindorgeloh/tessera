@@ -28,6 +28,25 @@ vi.mock("@/app/actions/maintenance", () => ({
 vi.mock("@/components/ai/AssistantProvider", () => ({ useAssistant: () => ({ status: null, isOpen: false, open: vi.fn(), close: vi.fn(), toggle: vi.fn(), ask: vi.fn() }) }));
 vi.mock("@/components/ai/CommandBarAsk", () => ({ useCommandBarAsk: () => ({ isAskShown: false, handoff: vi.fn() }) }));
 vi.mock("@astryxdesign/core/Toast", async (importOriginal) => ({ ...(await importOriginal<typeof import("@astryxdesign/core/Toast")>()), useToast: () => toast }));
+// CommandBar runs the sidebar commands through useShell(), which throws outside TesseraShell.
+vi.mock("@/components/shell/TesseraShell", async () => {
+  const { DEFAULT_NAV_PREFS } = await import("@/components/shell/nav-prefs");
+  const noop = () => {};
+  return {
+    useShell: () => ({
+      navPrefs: DEFAULT_NAV_PREFS,
+      isNavCollapsed: false,
+      isNavOpen: false,
+      setNavCollapsed: noop,
+      setNavView: noop,
+      setNavDock: noop,
+      setNavOpen: noop,
+      openCommandBar: noop,
+      openShortcuts: noop,
+      openCreateProject: noop,
+    }),
+  };
+});
 
 const { CommandBar } = await import("@/components/shell/CommandBar");
 

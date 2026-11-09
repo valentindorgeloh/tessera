@@ -23,14 +23,17 @@ import { PlusIcon } from "@/themes/catppuccin/icons";
  * are expanded there whatever the flag says (collapse at 1440 and narrow the
  * window, or `mod+b` on a phone), and the button must be too. In the rail the
  * context carries the flag the Sidebar passes to `collapsible`, so it
- * hydrates against the server's value like the rest of the boundary.
+ * hydrates against the server's value like the rest of the boundary. Both
+ * variants carry `data-nav-autofocus`: opening the floating sidebar by its
+ * toggle or `mod+b` focuses this button first (decision 129).
  */
 export function NewItemButton({ label, tooltip, isDisabled, onClick }: { label: string; tooltip: string; isDisabled: boolean; onClick: () => void }) {
   const { isCollapsed } = useSideNavCollapse();
   const icon = <Icon icon={PlusIcon} />;
-  if (isCollapsed) return <IconButton label={label} variant="secondary" size="sm" icon={icon} isDisabled={isDisabled} tooltip={tooltip} onClick={onClick} />;
+  if (isCollapsed) return <IconButton data-nav-autofocus="" label={label} variant="secondary" size="sm" icon={icon} isDisabled={isDisabled} tooltip={tooltip} onClick={onClick} />;
   return (
     <Button
+      data-nav-autofocus=""
       label={label}
       variant="secondary"
       size="sm"
@@ -63,10 +66,15 @@ export function ExpandedOnly({ children }: { children: ReactNode }) {
  * too (`focusTrigger="always"`: the row's wrapper is not focusable itself, the
  * link inside it is). Expanded, the row renders bare. Rows with children keep
  * the plain SideNavItem: their flyout already shows the label on hover.
+ *
+ * `data-rail-label` lands on the collapsed link (Astryx spreads the rest props
+ * there): the Icons and labels rail shows it as the link's `::after` (nav.css,
+ * decision 128), so the link's accessible name stays its `aria-label`. Whether
+ * the name shows is CSS on the nav's `data-rail`; no preference is read here.
  */
 export function RailItem(props: ComponentProps<typeof SideNavItem>) {
   const { isCollapsed } = useSideNavCollapse();
-  const item = <SideNavItem {...props} />;
+  const item = <SideNavItem {...props} data-rail-label={props.label} />;
   if (!isCollapsed) return item;
   return (
     <Tooltip content={props.label} placement="end" focusTrigger="always">

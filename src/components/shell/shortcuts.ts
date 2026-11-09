@@ -14,9 +14,12 @@
  *
  * Ownership: `palette.open` and `shortcuts.help` resolve here (also inside
  * inputs) but CommandBar dispatches them through Astryx `useHotkeys`, so the
- * dispatcher in ./useShortcuts.ts leaves them alone. `peek.close` is listed for
+ * dispatcher in ./useShortcuts.ts leaves them alone, as it does `sidebar.toggle`
+ * (`mod+b`), which TesseraShell owns. `peek.close` is listed for
  * the help dialog only and never resolves: PeekHost owns Escape.
  */
+import type { SidebarCommandId } from "./nav-prefs";
+
 /** What the typing-surface check needs from an event target; DOM-free so Vitest runs it in Node. */
 export type TypingTargetLike = { tagName: string; isContentEditable?: boolean } | null | undefined;
 
@@ -36,6 +39,7 @@ export type ShortcutId =
   | "shortcuts.help"
   | "peek.close"
   | "assistant.toggle"
+  | "sidebar.toggle"
   | "item.state"
   | "item.priority"
   | "item.assign"
@@ -71,8 +75,11 @@ export type ShortcutId =
   | "nav.intake"
   | "nav.drafts";
 
-/** Ids of the palette's static commands: the shortcuts plus the palette-only theme commands (./command-source.ts). */
-export type CommandId = ShortcutId | "theme.dark" | "theme.light" | "theme.system";
+/**
+ * Ids of the palette's static commands: the shortcuts plus the palette-only theme commands (./command-source.ts)
+ * and sidebar commands (./sidebar-commands.ts).
+ */
+export type CommandId = ShortcutId | "theme.dark" | "theme.light" | "theme.system" | SidebarCommandId;
 
 export type ShortcutGroup = "Global" | "Work item" | "Create" | "Navigate";
 
@@ -98,6 +105,8 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { id: "shortcuts.help", label: "Keyboard shortcuts", keys: "mod+/", group: "Global" },
   { id: "peek.close", label: "Close the panel", keys: "escape", group: "Global" },
   { id: "assistant.toggle", label: "Assistant", keys: "mod+j", group: "Global" },
+  // TesseraShell owns the key (decision 131); the dispatcher leaves it alone (`DELEGATED` in ./useShortcuts.ts).
+  { id: "sidebar.toggle", label: "Collapse or expand the sidebar", note: "Shows or hides it while undocked", keys: "mod+b", group: "Global" },
 
   { id: "item.state", label: "Change state…", keys: "s", group: "Work item", needsItem: true },
   { id: "item.priority", label: "Change priority…", keys: "p", group: "Work item", needsItem: true },
