@@ -90,7 +90,8 @@ export async function seedCollab(actors: DemoActors, clock: DemoClock): Promise<
     const row = await run(c, "create_comment", { work_item_id: (await get(key)).id, body_md: body, parent_comment_id: o.to ? threads.get(o.to)?.id : undefined });
     bump("comments");
     if (o.to) bump("replies");
-    if (o.tag) threads.set(o.tag, { id: row.id, v: row.body_version });
+    // create_comment may also return a { deleted: true } ref (decision 143); the demo sends no client_ref, so it always gets a comment.
+    if (o.tag && "body_version" in row) threads.set(o.tag, { id: row.id, v: row.body_version });
   }
   async function edit(c: Ctx, tag: string, body: string) {
     const t = threads.get(tag);

@@ -1,0 +1,20 @@
+{
+  "triage": [
+    {
+      "id": "tri_unavailable",
+      "itemKey": "TES-149",
+      "status": "unavailable",
+      "attempts": 3,
+      "lastError": "node_modules is missing in tessera; run npm install there.",
+      "updatedAt": "2026-11-09T08:50:00.000Z"
+    },
+    {
+      "id": "tri_queued",
+      "itemKey": "TES-153",
+      "status": "queued",
+      "attempts": 0,
+      "lastError": null,
+      "updatedAt": "2026-11-09T09:42:00.000Z"
+    }
+  ]
+}

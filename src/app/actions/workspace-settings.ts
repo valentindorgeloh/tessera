@@ -5,3 +5,4 @@ import { toolAction } from "./_run";
 
 export const getWorkspaceSettingsAction = toolAction("get_workspace_settings");
 export const updateWorkspaceSettingsAction = toolAction("update_workspace_settings");
+export const setAgentSettingsAction = toolAction("set_agent_settings");

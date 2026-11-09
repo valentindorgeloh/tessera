@@ -1,0 +1,51 @@
+{
+  "bySize": [
+    {
+      "size": "S",
+      "completed": 14,
+      "avgCostUsd": 0.71
+    },
+    {
+      "size": "M",
+      "completed": 9,
+      "avgCostUsd": 3.42
+    },
+    {
+      "size": "L",
+      "completed": 2,
+      "avgCostUsd": 9.8
+    }
+  ],
+  "byModel": [
+    {
+      "model": "opus",
+      "sessions": 31,
+      "costUsd": 41.2
+    },
+    {
+      "model": "sonnet",
+      "sessions": 88,
+      "costUsd": 36.5
+    },
+    {
+      "model": "haiku",
+      "sessions": 120,
+      "costUsd": 4.1
+    }
+  ],
+  "sizeChanged": {
+    "total": 25,
+    "changed": 4
+  },
+  "firstPassReviewRate": 0.64,
+  "escalations": [
+    {
+      "cause": "review_failed",
+      "count": 3
+    },
+    {
+      "cause": "tests_failed",
+      "count": 2
+    }
+  ]
+}

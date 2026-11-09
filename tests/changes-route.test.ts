@@ -1,6 +1,7 @@
 /**
  * GET /api/changes (src/app/api/changes/route.ts) against an in-memory
- * database: `{ changes, cursor, unread_notifications }` (decision 59). The
+ * database: `{ changes, cursor, latest_seq, unread_notifications }` (decisions 59
+ * and 145). The
  * user's own writes are left out of `changes`; the unread count is the user's
  * (unread, not archived, not snoozed) and moves when a snooze wakes with no
  * new activity. `@/lib/tessera/server` is replaced by the engine barrel plus a
@@ -9,6 +10,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { latestSeq } from "@/lib/tessera/activity";
 import { registerActor } from "@/lib/tessera/actors";
 import { createContext } from "@/lib/tessera/core/context";
 import { snoozeNotifications } from "@/lib/tessera/notifications";
@@ -52,7 +54,7 @@ afterEach(() => {
 });
 
 describe("GET /api/changes", () => {
-  it("returns changes, cursor and the unread notification count, uncached", async () => {
+  it("returns changes, cursor, latest_seq and the unread notification count, uncached", async () => {
     const user = createTestContext(handles);
     const project = createProject(user, { name: "Web", identifier: "WEB" });
     const item = createWorkItem(user, { project_id: project.id, name: "Login" });
@@ -62,11 +64,26 @@ describe("GET /api/changes", () => {
     const response = await get("0");
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    const body = (await response.json()) as { changes: { actor_id: string }[]; cursor: number; unread_notifications: number };
+    const body = (await response.json()) as { changes: { actor_id: string }[]; cursor: number; latest_seq: number; unread_notifications: number };
     expect(body.changes.length).toBeGreaterThan(0);
     expect(body.changes.every((change) => change.actor_id === agent.id)).toBe(true);
     expect(body.cursor).toBeGreaterThan(0);
+    expect(body.latest_seq).toBe(body.cursor);
+    expect(latestSeq(user)).toBe(body.latest_seq);
     expect(body.unread_notifications).toBe(1);
+  });
+
+  it("latest_seq is the real newest seq even when it is below the caller's cursor (a rewound history)", async () => {
+    const user = createTestContext(handles);
+    const project = createProject(user, { name: "Web", identifier: "WEB" });
+    createWorkItem(user, { project_id: project.id, name: "Login" });
+    const newest = latestSeq(user);
+    const since = newest + 50;
+    const body = (await (await get(String(since))).json()) as { changes: unknown[]; cursor: number; latest_seq: number };
+    expect(body.changes).toEqual([]);
+    expect(body.cursor).toBe(since);
+    expect(body.latest_seq).toBe(newest);
+    expect(body.latest_seq).toBeLessThan(since);
   });
 
   it("reports the count with no new changes, and a snooze lowers it without any activity", async () => {

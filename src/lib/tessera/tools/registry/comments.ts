@@ -32,12 +32,12 @@ export const commentTools = [
     name: "create_comment",
     title: "Create comment",
     description:
-      "Adds a markdown comment to a work item and subscribes the author. Threads are one level deep: a reply to a reply attaches to the root. Mention an actor as [@Name](actor:<id>), with ids from list_actors. Archived items are read-only (ARCHIVED).",
+      "Adds a markdown comment to a work item and subscribes the author. Threads are one level deep: a reply to a reply attaches to the root. Mention an actor as [@Name](actor:<id>), with ids from list_actors. Archived items are read-only (ARCHIVED). Pass client_ref (1 to 200 printable characters, no spaces) to make the call safe to repeat: the same caller, item and ref with the same body returns the stored comment and changes nothing, a ref whose comment was deleted returns { id, client_ref, deleted: true }, and the same ref with another body is CONFLICT.",
     input: CreateCommentToolInput,
     mutates: true,
     core: true,
     phase: "P7",
-    run: (ctx, { work_item_id, body_md, parent_comment_id }) => createComment(ctx, work_item_id, { body_md, parent_comment_id }),
+    run: (ctx, { work_item_id, body_md, parent_comment_id, client_ref }) => createComment(ctx, work_item_id, { body_md, parent_comment_id, client_ref }),
   }),
   defineTool({
     name: "update_comment",

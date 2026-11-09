@@ -7,6 +7,8 @@ import type { z } from "zod";
 import type {
   ActorAccessSchema,
   ActorKindSchema,
+  AgentProjectSchema,
+  AgentSettingsSchema,
   AiEffortSchema,
   AiStatusSchema,
   AssistantScopeSchema,
@@ -184,6 +186,9 @@ export type LinkMetadata = z.infer<typeof LinkMetadataSchema>;
 export type HomeWidgets = z.infer<typeof HomeWidgetsSchema>;
 export type AiEffort = z.infer<typeof AiEffortSchema>;
 export type WorkspaceAiSettings = z.infer<typeof WorkspaceAiSettingsSchema>;
+/** Superagent settings stored on the workspace (decision 144). */
+export type AgentSettings = z.infer<typeof AgentSettingsSchema>;
+export type AgentProject = z.infer<typeof AgentProjectSchema>;
 
 export type FavoriteView = {
   id: string;
@@ -281,6 +286,8 @@ export type WorkspaceSettingsView = {
   name: string;
   home_widgets: HomeWidgets;
   ai: WorkspaceAiSettings;
+  /** Superagent runner URL and project to repository map; null until `set_agent_settings` runs (decision 144). */
+  agents: AgentSettings | null;
   last_seen_seq: number | null;
   last_seen_at: string | null;
   /** When true, the maintenance job writes a daily auto backup (decision 120). */

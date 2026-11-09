@@ -1,0 +1,25 @@
+{
+  "teamSections": [
+    {
+      "repo": "tessera",
+      "section": "communication",
+      "text": "Write in plain English, one short paragraph, and name the item key."
+    },
+    {
+      "repo": "tessera",
+      "section": "scope",
+      "text": "Prefer small changes. Ask before touching drizzle/ or the live app."
+    },
+    {
+      "repo": "tessera",
+      "section": "delivery",
+      "text": "Open a draft pull request and run npm run check before marking it ready."
+    },
+    {
+      "repo": "tessera-agents",
+      "section": "communication",
+      "text": "Keep status comments to one sentence."
+    }
+  ],
+  "revision": 7
+}

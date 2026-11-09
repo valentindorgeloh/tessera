@@ -1,0 +1,47 @@
+{
+  "health": {
+    "status": "degraded",
+    "checks": [
+      {
+        "name": "GitHub CLI signed in",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "name": "Tessera MCP reachable",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "name": "Clone of tessera",
+        "ok": true,
+        "detail": "Clean, on main"
+      },
+      {
+        "name": "Dependencies of tessera-agents",
+        "ok": false,
+        "detail": "node_modules is missing; run npm install there"
+      }
+    ]
+  },
+  "paused": false,
+  "pauseReason": null,
+  "spend": {
+    "todayUsd": 6.4,
+    "dailyCapUsd": 20
+  },
+  "slots": {
+    "running": 1,
+    "max": 2
+  },
+  "counts": {
+    "needsYou": 7,
+    "working": 1,
+    "queued": 1
+  },
+  "intake": {
+    "rewound": false,
+    "cursor": 412,
+    "latestSeq": 412
+  }
+}

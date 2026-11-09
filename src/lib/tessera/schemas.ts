@@ -339,6 +339,12 @@ export const WorkspaceAiSettingsSchema = z.object({
   digest_enabled: z.boolean().default(true).describe("Whether the home digest is generated."),
 });
 
+export const AGENT_RUNNER_DEFAULT_URL = "http://127.0.0.1:3090"; // Superagent runner (decision 144): loopback only, so the token never leaves this Mac.
+export const AgentRunnerUrlSchema = z.string().regex(/^http:\/\/(?:127\.0\.0\.1|localhost):\d{1,5}\/?$/).describe("Runner URL: http://127.0.0.1:<port> or http://localhost:<port>, nothing after the port but an optional /.");
+export const AgentRepoSchema = z.string().max(140).regex(/^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)?$/).describe("Repository as name or owner/name, from letters, digits, underscore, dot and hyphen.");
+export const AgentProjectSchema = z.object({ project_id: IdSchema.describe("Project the repository belongs to."), repo: AgentRepoSchema }).strict();
+export const AgentSettingsSchema = z.object({ runner_url: AgentRunnerUrlSchema, projects: z.array(AgentProjectSchema).max(50).describe("Project to repository map, at most 50 entries, each project once.") }).strict();
+
 /** What an export covers. A view_id applies that view's saved filters, rich filters and order unless this scope overrides them. */
 export const ExportScopeSchema = z.object({
   project_id: IdSchema.nullable().default(null).describe("Project to export, or null for the whole workspace."),

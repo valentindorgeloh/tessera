@@ -36,7 +36,7 @@ export const metaTools = [
     name: "list_changes",
     title: "List changes",
     description:
-      "Polling feed for the UI and agents: activity rows with seq greater than since_seq, oldest first, without values; exclude_actors drops the caller's own changes. The returned cursor is the next since_seq.",
+      "Polling feed for the UI and agents: activity rows with seq greater than since_seq, oldest first, without values; exclude_actors drops the caller's own changes. The returned cursor is the next since_seq. latest_seq is the newest seq in the log: below your cursor, the history was rewound (a restore).",
     input: ListChangesInput,
     mutates: false,
     phase: "P1",

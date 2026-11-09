@@ -40,10 +40,14 @@ export {
   type UpdateQuickLinkInputType,
 } from "./quick-links";
 export {
+  agentRepoFor,
   defaultHomeWidgets,
   ensureWorkspaceSettings,
   getWorkspaceSettings,
+  normalizeAgentSettings,
   normalizeHomeWidgets,
+  setAgentSettings,
+  SetAgentSettingsInput,
   updateWorkspaceSettings,
   UpdateWorkspaceSettingsInput,
   type UpdateWorkspaceSettingsInputType,

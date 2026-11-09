@@ -1,0 +1,86 @@
+{
+  "request": {
+    "id": "rq_question",
+    "itemKey": "TES-150",
+    "workItemId": "0192f6a8-1000-7000-8000-000000000150",
+    "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+    "repo": "tessera",
+    "title": "Which projects should the weekly digest include?",
+    "size": "S",
+    "deliverable": "answer",
+    "stage": {
+      "kind": "needs_question",
+      "label": "Question for you",
+      "reason": "The superagent asked which projects count."
+    },
+    "models": [
+      "opus",
+      "haiku"
+    ],
+    "costUsd": 0.31,
+    "budgetUsd": 2,
+    "pr": null,
+    "createdAt": "2026-11-09T09:03:00.000Z",
+    "updatedAt": "2026-11-09T09:21:00.000Z",
+    "actions": [
+      "stop"
+    ],
+    "scope": "Answer which projects the weekly digest should include, based on how the digest is generated today. No code changes: reply on the work item.",
+    "question": "Should archived projects count towards the weekly digest, or only live ones?",
+    "planPageId": "0192f6a8-2000-7000-8000-000000000001",
+    "sessions": [
+      {
+        "id": "ses_triage",
+        "role": "triage",
+        "model": "haiku",
+        "effort": "low",
+        "costUsd": 0.02,
+        "startedAt": "2026-11-09T09:03:00.000Z",
+        "endedAt": "2026-11-09T09:04:00.000Z",
+        "outcome": "decided: answer"
+      },
+      {
+        "id": "ses_planner",
+        "role": "planner",
+        "model": "opus",
+        "effort": "high",
+        "costUsd": 0.29,
+        "startedAt": "2026-11-09T09:05:00.000Z",
+        "endedAt": "2026-11-09T09:21:00.000Z",
+        "outcome": "asked a question"
+      },
+      {
+        "id": "ses_worker",
+        "role": "worker",
+        "model": "sonnet",
+        "effort": "medium",
+        "costUsd": 0,
+        "startedAt": "2026-11-09T09:21:00.000Z",
+        "endedAt": null,
+        "outcome": null
+      }
+    ],
+    "events": [
+      {
+        "at": "2026-11-09T09:03:00.000Z",
+        "kind": "created",
+        "text": "Assigned to the superagent by you."
+      },
+      {
+        "at": "2026-11-09T09:04:00.000Z",
+        "kind": "triage",
+        "text": "Triage decided: answer, size S."
+      },
+      {
+        "at": "2026-11-09T09:05:00.000Z",
+        "kind": "comment",
+        "text": "Posted the acknowledgement on TES-150."
+      },
+      {
+        "at": "2026-11-09T09:21:00.000Z",
+        "kind": "question",
+        "text": "Asked which projects count towards the digest."
+      }
+    ]
+  }
+}
