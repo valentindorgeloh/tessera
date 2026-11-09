@@ -13,7 +13,6 @@
  * (./optimistic.ts) render as inert rows until the server item replaces them.
  */
 import { memo, useMemo, useRef, useState, type ReactNode } from "react";
-import { Avatar } from "@astryxdesign/core/Avatar";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
@@ -26,6 +25,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { formatEstimateValue } from "@/components/estimates/estimate-format";
+import { ActorAvatar } from "@/components/shell/ActorAvatar";
 import { groupLimitKey } from "@/lib/tessera/core/group";
 import type { Display, Group, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { visibleGroups, nothingMatches } from "./list-groups";
@@ -59,7 +59,7 @@ function dayOf(value: string | null): string {
 // ---------------------------------------------------------------------------
 
 function GroupMarker({ group }: { group: Group }) {
-  const { statesById } = useProjectRow();
+  const { statesById, actorsById } = useProjectRow();
   if (group.id === NONE_GROUP_ID) {
     return (
       <Text type="inherit" color="secondary" className="tessera-wi-label-text">
@@ -80,7 +80,7 @@ function GroupMarker({ group }: { group: Group }) {
       return <Token label={group.name} size="sm" color={paletteTokenColor(group.color)} />;
     case "assignees":
     case "created_by":
-      return <ActorLabel name={group.name} />;
+      return <ActorLabel name={group.name} actor={actorsById.get(group.id) ?? null} />;
     default:
       return (
         <Text type="inherit" className="tessera-wi-label-text">
@@ -183,7 +183,7 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowPr
       <HStack key="assignees" gap={0.5} vAlign="center" className="tessera-wi-assignees">
         {item.assignee_ids.map((id) => {
           const actor = actorsById.get(id);
-          return actor ? <Avatar key={id} name={actor.name} size="xsm" /> : null;
+          return actor ? <ActorAvatar key={id} actor={actor} size="xsm" /> : null;
         })}
       </HStack>,
     );

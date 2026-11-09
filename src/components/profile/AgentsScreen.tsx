@@ -3,7 +3,6 @@
 /** Agents (docs/drafts/p9-plan.md U3). A row opens that actor's profile. */
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar } from "@astryxdesign/core/Avatar";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Table, type TablePlugin } from "@astryxdesign/core/Table";
@@ -12,13 +11,16 @@ import { Link } from "@astryxdesign/core/Link";
 import { BAR_COLUMN, COUNT_COLUMN, NAME_COLUMN, TEXT_COLUMN } from "@/components/analytics/table-widths";
 import { RelativeTime } from "@/components/detail/RelativeTime";
 import { ACCESS_LABEL, KIND_LABEL } from "@/components/profile/profile-format";
+import { ActorAvatar } from "@/components/shell/ActorAvatar";
 import { PanelBar, PanelHeader, PanelPage, PanelTitle } from "@/components/shell/PanelHeader";
-import type { AgentProfileRow } from "@/lib/tessera/types";
+import type { AgentProfileRow, ProfileActor } from "@/lib/tessera/types";
 import { RobotIcon } from "@/themes/catppuccin/icons";
 import { Icon } from "@astryxdesign/core/Icon";
 
 type Row = {
   id: string;
+  /** The whole actor, for the avatar glyph. */
+  actor: ProfileActor;
   name: string;
   kind: string;
   access: string;
@@ -33,6 +35,7 @@ export function AgentsScreen({ rows }: AgentsScreenProps) {
   const router = useRouter();
   const data: Row[] = rows.map((row) => ({
     id: row.actor.id,
+    actor: row.actor,
     name: row.actor.name,
     kind: KIND_LABEL[row.actor.kind],
     access: ACCESS_LABEL[row.actor.access],
@@ -78,7 +81,7 @@ export function AgentsScreen({ rows }: AgentsScreenProps) {
                 width: NAME_COLUMN,
                 renderCell: (row) => (
                   <HStack gap={2} vAlign="center">
-                    <Avatar name={row.name} size="sm" tooltip={false} />
+                    <ActorAvatar actor={row.actor} size="sm" tooltip={false} />
                     <Link href={`/agents/${row.id}/summary`} className="tessera-profile-link" onClick={(event) => event.stopPropagation()}>
                       {row.name}
                     </Link>

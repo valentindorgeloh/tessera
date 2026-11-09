@@ -325,7 +325,7 @@ export type AnalyticsOverview = AnalyticsMeta & {
   by_state_group: Record<StateGroup, number>;
   by_priority: Record<Priority, number>;
   trend: TrendPoint[];
-  top_assignees: { actor_id: string; name: string; open: number; completed: number }[];
+  top_assignees: { actor_id: string; name: string; kind: ActorKind; color: PaletteColor; open: number; completed: number }[];
   projects: { id: string; name: string; identifier: string; logo: Logo | null; total: number; open: number; completed: number }[];
 };
 

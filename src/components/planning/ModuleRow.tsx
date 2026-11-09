@@ -7,13 +7,13 @@
  * and date range; at the end the lead, up to three members with a "+N"
  * overflow, "3/8" with a progress bar and the module menu.
  */
-import { Avatar } from "@astryxdesign/core/Avatar";
 import { AvatarGroup, AvatarGroupOverflow } from "@astryxdesign/core/AvatarGroup";
 import { ListItem } from "@astryxdesign/core/List";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { HStack } from "@astryxdesign/core/Stack";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
+import { ActorAvatar } from "@/components/shell/ActorAvatar";
 import { useProject } from "@/components/work-items/project-provider";
 import type { Module } from "@/lib/tessera/types";
 import { ModuleMenu } from "./ModuleMenu";
@@ -29,6 +29,7 @@ export function ModuleRow({ projectId, module }: ModuleRowProps) {
   const statusLabel = MODULE_STATUS_LABEL[module.status];
   const nameOf = (id: string) => actorsById.get(id)?.name ?? "Removed";
   const lead = module.lead_actor_id === null ? null : nameOf(module.lead_actor_id);
+  const leadActor = module.lead_actor_id === null ? null : (actorsById.get(module.lead_actor_id) ?? null);
   const members = module.member_ids;
   const { value, max } = moduleProgressValues(module.progress);
   return (
@@ -47,13 +48,13 @@ export function ModuleRow({ projectId, module }: ModuleRowProps) {
           {/* The lead and the members take fixed slots (an empty one stays), so every row's avatars start at the same x (visual audit P8). */}
           <HStack gap={2} vAlign="center">
             <HStack vAlign="center" className="tessera-modules-row-lead">
-              {lead !== null ? <Avatar name={lead} size="sm" tooltip={`Lead: ${lead}`} /> : null}
+              {lead !== null ? <ActorAvatar actor={leadActor} name={lead} size="sm" tooltip={`Lead: ${lead}`} /> : null}
             </HStack>
             <HStack vAlign="center" className="tessera-modules-row-members">
               {members.length > 0 ? (
                 <AvatarGroup size="sm" aria-label={`Members: ${members.map(nameOf).join(", ")}`}>
                   {members.slice(0, VISIBLE_MEMBERS).map((id) => (
-                    <Avatar key={id} name={nameOf(id)} tooltip={nameOf(id)} />
+                    <ActorAvatar key={id} actor={actorsById.get(id) ?? null} name={nameOf(id)} tooltip={nameOf(id)} />
                   ))}
                   {members.length > VISIBLE_MEMBERS ? <AvatarGroupOverflow count={members.length - VISIBLE_MEMBERS} /> : null}
                 </AvatarGroup>

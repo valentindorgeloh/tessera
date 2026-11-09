@@ -31,7 +31,7 @@ export function LeadControl({ value, onChange, readOnly = false, compact = false
   ];
   // A lead missing from the bundle (a removed actor) still shows instead of an empty trigger.
   if (value !== null && !actorsById.has(value)) options.push({ value, label: "Removed" });
-  const render = (option: SelectorOptionData) => (option.value === NONE ? (option.label ?? "No lead") : <ActorLabel name={option.label ?? option.value} />);
+  const render = (option: SelectorOptionData) => (option.value === NONE ? (option.label ?? "No lead") : <ActorLabel name={option.label ?? option.value} actor={actorsById.get(option.value) ?? null} />);
   return (
     <Selector
       label="Lead"

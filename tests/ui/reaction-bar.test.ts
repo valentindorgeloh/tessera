@@ -215,6 +215,7 @@ describe("CommentItem reactions", () => {
     actor_id: ADA,
     actor_name: "Ada",
     actor_kind: "user",
+    actor_color: "blue",
     body_md: "Looks good",
     body_version: 1,
     created_at: "2026-10-01T10:00:00.000Z",

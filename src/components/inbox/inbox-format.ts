@@ -9,7 +9,7 @@
  * `kind_count` those of its current kind (decision 51); `sort_at` orders the
  * list and moves to the wake time on a snooze (decision 52).
  */
-import type { ActorKind } from "@/lib/tessera/types";
+import type { ActorKind, PaletteColor } from "@/lib/tessera/types";
 
 export const INBOX_TABS = ["inbox", "mentions", "snoozed", "archived"] as const;
 
@@ -23,8 +23,10 @@ export type InboxNote = {
   snippet: string;
   work_item_id: string | null;
   work_item_key: string | null;
+  actor_id: string | null;
   actor_name: string | null;
   actor_kind: ActorKind | null;
+  actor_color: PaletteColor | null;
   read_at: string | null;
   archived_at: string | null;
   is_snoozed: boolean;

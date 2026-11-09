@@ -7,7 +7,6 @@
  */
 import { useRef, useState, useTransition } from "react";
 import { notFound } from "next/navigation";
-import { Avatar } from "@astryxdesign/core/Avatar";
 import { Heading } from "@astryxdesign/core/Heading";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
@@ -21,6 +20,7 @@ import { updateProjectAction } from "@/app/actions/projects";
 import { updateActorAction, updateProjectFeaturesAction } from "@/app/actions/settings";
 import { failureText } from "@/components/planning/archive-rules";
 import { RelativeTime } from "@/components/detail/RelativeTime";
+import { ActorAvatar } from "@/components/shell/ActorAvatar";
 import { useOptionalProject } from "@/components/work-items/project-provider";
 import type { ActorAccess, ActorRow } from "@/lib/tessera/types";
 import { PencilIcon } from "@/themes/catppuccin/icons";
@@ -129,7 +129,7 @@ function ActorList({ actors, isArchived }: { actors: ActorRow[]; isArchived: boo
             key={actor.id}
             className="tessera-settings-row tessera-settings-row--wrap"
             // The name is in the row, so the avatar is not a second, focusable tooltip stop.
-            startContent={<Avatar name={actor.name} size="sm" tooltip={false} />}
+            startContent={<ActorAvatar actor={actor} size="sm" tooltip={false} />}
             label={<SettingsTitle>{actor.name}</SettingsTitle>}
             description={<SettingsHelp>{actorDescription(actor)}</SettingsHelp>}
             endContent={

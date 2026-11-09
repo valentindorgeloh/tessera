@@ -21,8 +21,10 @@ const note: InboxNote = {
   snippet: "",
   work_item_id: "item-1",
   work_item_key: "WEB-1",
+  actor_id: "agent-1",
   actor_name: "mcp:p3-acceptance-agent",
   actor_kind: "agent",
+  actor_color: "teal",
   read_at: null,
   archived_at: null,
   is_snoozed: false,
@@ -55,6 +57,28 @@ describe("NotificationRow label", () => {
       }),
     );
     expect(html).toContain("mcp:p3-acceptance-agent commented 2 times");
+  });
+
+  it("shows an agent's glyph and a person's initials", () => {
+    const noop = () => {};
+    const render = (row: InboxNote) =>
+      renderToString(
+        createElement(NotificationRow, {
+          note: row,
+          isSelected: false,
+          onOpen: noop,
+          onMarkRead: noop,
+          onMarkUnread: noop,
+          onArchive: noop,
+          onUnarchive: noop,
+          onSnooze: noop,
+          onSnoozeCustom: noop,
+          onUnsnooze: noop,
+        }),
+      );
+    expect(render(note)).toContain("data:image/svg+xml");
+    expect(render({ ...note, actor_name: "Ada", actor_kind: "user" })).not.toContain("data:image/svg+xml");
+    expect(render({ ...note, actor_id: null, actor_kind: null, actor_color: null })).not.toContain("data:image/svg+xml");
   });
 
   it("renders '· +M more' in the label and no separate '+N' text in the row end", () => {

@@ -16,6 +16,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { Link } from "@astryxdesign/core/Link";
 import type { OverviewAnalytics } from "@/components/analytics/types";
 import { ActorLabel } from "@/components/work-items/properties/AssigneeControl";
+import type { AvatarActor } from "@/components/shell/ActorAvatar";
 import { ProjectToken } from "@/components/work-items/ProjectFrame";
 import { AnalyticsTableHeading } from "@/components/analytics/TableHeading";
 import { BAR_COLUMN, COUNT_COLUMN, NAME_COLUMN } from "@/components/analytics/table-widths";
@@ -45,7 +46,7 @@ const KPI_ORDER: { key: KpiKey; label: string }[] = [
   { key: "active_agents", label: "Active agents" },
 ];
 
-type AssigneeRow = { id: string; name: string; open: string; completed: string; href: string };
+type AssigneeRow = { id: string; name: string; actor: AvatarActor; open: string; completed: string; href: string };
 type ProjectRow = {
   id: string;
   name: string;
@@ -73,6 +74,7 @@ export function OverviewPanel({ result, projectIds, today }: { result: OverviewA
   const assignees: AssigneeRow[] = result.top_assignees.map((row) => ({
     id: row.actor_id,
     name: row.name,
+    actor: { id: row.actor_id, name: row.name, kind: row.kind, color: row.color },
     open: formatCount(row.open),
     completed: formatCount(row.completed),
     href: assigneeHref(row.actor_id, projectIds),
@@ -143,7 +145,7 @@ export function OverviewPanel({ result, projectIds, today }: { result: OverviewA
             idKey="id"
             data={assignees}
             columns={[
-              { key: "name", header: "Assignee", width: NAME_COLUMN, renderCell: (row) => <ActorLabel name={row.name} /> },
+              { key: "name", header: "Assignee", width: NAME_COLUMN, renderCell: (row) => <ActorLabel name={row.name} actor={row.actor} /> },
               {
                 key: "open",
                 header: "Open",

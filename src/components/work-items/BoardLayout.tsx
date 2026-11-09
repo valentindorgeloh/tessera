@@ -429,7 +429,7 @@ function GroupTitle({ name, color, id, field, bundle, level }: { name: string; c
     );
   }
   if (field === "assignees" || field === "created_by") {
-    return <ActorLabel name={name} />;
+    return <ActorLabel name={name} actor={bundle.actors.find((actor) => actor.id === id) ?? null} />;
   }
   if (field === "state") {
     const state = bundle.states.find((candidate) => candidate.id === id);

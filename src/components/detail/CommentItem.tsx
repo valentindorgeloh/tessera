@@ -10,7 +10,6 @@
  */
 import { useState, useTransition } from "react";
 import { AlertDialog } from "@/components/shell/dialogs";
-import { Avatar } from "@astryxdesign/core/Avatar";
 import type { DropdownMenuItemData } from "@astryxdesign/core/DropdownMenu";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
@@ -19,7 +18,8 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { useClipboard } from "@astryxdesign/core/hooks";
 import { deleteCommentAction } from "@/app/actions/relations-comments";
 import { MarkdownEditor, type EntityLink } from "@/components/editor";
-import type { ActorKind, CommentRow } from "@/lib/tessera/types";
+import { ActorAvatar } from "@/components/shell/ActorAvatar";
+import type { ActorKind, CommentRow, PaletteColor } from "@/lib/tessera/types";
 import { CopyIcon, PencilIcon, TrashIcon } from "@/themes/catppuccin/icons";
 import { CommentComposer } from "./CommentComposer";
 import { ReactionBar } from "./ReactionBar";
@@ -31,6 +31,7 @@ export type { ReactionSummary };
 export type CommentView = CommentRow & {
   actor_name: string;
   actor_kind: ActorKind | null;
+  actor_color: PaletteColor | null;
   reactions: ReactionSummary[];
   replies: CommentView[];
 };
@@ -63,6 +64,8 @@ export function CommentItem({ comment, rootId, workItemId, projectId, readOnly, 
   const clipboard = useClipboard({ announce: "Copied" });
   const canEdit = !readOnly && comment.actor_id === currentActorId;
   const replies = comment.replies;
+  const { actor_id: actorId, actor_name: actorName, actor_kind: actorKind, actor_color: actorColor } = comment;
+  const avatarActor = actorKind !== null && actorColor !== null ? { id: actorId, name: actorName, kind: actorKind, color: actorColor } : null;
   const items: DropdownMenuItemData[] = [];
   if (!readOnly) items.push({ id: "reply", label: "Reply", onClick: () => setReplying(true) });
   if (canEdit) items.push({ id: "edit", label: "Edit", icon: PencilIcon, onClick: () => setEditing(true) });
@@ -79,7 +82,7 @@ export function CommentItem({ comment, rootId, workItemId, projectId, readOnly, 
   return (
     <VStack gap={2} id={`comment-${comment.id}`} className="tessera-comment" as="li">
       <HStack gap={2} vAlign="center">
-        <Avatar name={comment.actor_name} size="sm" className="tessera-comment-avatar" />
+        <ActorAvatar actor={avatarActor} name={comment.actor_name} size="sm" className="tessera-comment-avatar" />
         <Text type="supporting" weight="medium">
           {comment.actor_name}
         </Text>

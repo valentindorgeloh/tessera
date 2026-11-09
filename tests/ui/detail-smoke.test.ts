@@ -224,6 +224,7 @@ const comment = {
   actor_id: USER,
   actor_name: "You",
   actor_kind: "user",
+  actor_color: "blue",
   body_md: "A comment from the loader",
   body_version: 1,
   created_at: "2026-10-01T10:00:00.000Z",

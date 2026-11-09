@@ -10,13 +10,13 @@
  * the click, not during render.
  */
 import type { DropdownMenuItemData } from "@astryxdesign/core/DropdownMenu";
-import { Avatar } from "@astryxdesign/core/Avatar";
 import { ListItem } from "@astryxdesign/core/List";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { HStack } from "@astryxdesign/core/Stack";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
 import { RelativeTime } from "@/components/detail/RelativeTime";
+import { ActorAvatar } from "@/components/shell/ActorAvatar";
 import { ArchiveIcon, BellIcon, CheckIcon, ClockIcon, RestoreIcon } from "@/themes/catppuccin/icons";
 import { notificationDescription, notificationPhrase, snoozePresets, type InboxNote, type SnoozePresetId } from "./inbox-format";
 
@@ -46,6 +46,8 @@ export function NotificationRow({
   onUnsnooze,
 }: NotificationRowProps) {
   const actor = note.actor_name ?? "Someone";
+  const { actor_id: actorId, actor_kind: actorKind, actor_color: actorColor } = note;
+  const avatarActor = actorId !== null && actorKind !== null && actorColor !== null ? { id: actorId, name: actor, kind: actorKind, color: actorColor } : null;
   const phrase = notificationPhrase(note.kind, note.kind_count, note.event_count);
   const unread = note.read_at === null;
   const snooze = (id: SnoozePresetId) => {
@@ -80,7 +82,7 @@ export function NotificationRow({
       description={notificationDescription(note)}
       isSelected={isSelected}
       onClick={onOpen}
-      startContent={<Avatar name={actor} size="sm" />}
+      startContent={<ActorAvatar actor={avatarActor} name={actor} size="sm" />}
       endContent={
         <HStack gap={2} vAlign="center" className="tessera-inbox-row-meta" onClick={(event) => event.stopPropagation()}>
           <RelativeTime value={note.sort_at || note.created_at} type="supporting" color="secondary" hasTooltip={false} />

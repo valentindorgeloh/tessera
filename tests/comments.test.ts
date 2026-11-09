@@ -41,6 +41,8 @@ describe("comments", () => {
     expect(listed[0]?.replies.every((row) => row.replies.length === 0)).toBe(true);
     expect(listed[0]?.actor_name).toBe(ctx.actor.name);
     expect(listed[0]?.actor_kind).toBe("user");
+    expect(listed[0]?.actor_color).toBe(ctx.actor.color);
+    expect(listed[0]?.replies[1]?.actor_color).toBe(ctx.actor.color);
   });
 
   it("lets only the author update, with compare-and-swap, and records edited_at", () => {

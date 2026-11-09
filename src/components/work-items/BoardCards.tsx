@@ -7,7 +7,6 @@
  */
 
 import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
-import { Avatar } from "@astryxdesign/core/Avatar";
 import { AvatarGroup } from "@astryxdesign/core/AvatarGroup";
 import { ClickableCard } from "@astryxdesign/core/ClickableCard";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -17,6 +16,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
 import { formatEstimateValue } from "@/components/estimates/estimate-format";
 import type { ItemDragHandlers } from "@/components/dnd/use-pointer-drag";
+import { ActorAvatar } from "@/components/shell/ActorAvatar";
 import type { DisplayProperties, WorkItem } from "@/lib/tessera/types";
 import { DragHandleIcon } from "@/themes/catppuccin/icons";
 import { PriorityLabel, StateLabel, paletteTokenColor } from "./properties";
@@ -186,7 +186,7 @@ function CardProperties({ item, bundle, properties }: { item: WorkItem; bundle: 
           {assignees.length > 0 ? (
             <AvatarGroup size="xsm">
               {assignees.map((actor) => (
-                <Avatar key={actor.id} name={actor.name} size="xsm" tooltip={actor.name} />
+                <ActorAvatar key={actor.id} actor={actor} size="xsm" tooltip={actor.name} />
               ))}
             </AvatarGroup>
           ) : null}

@@ -249,7 +249,7 @@ describe("analytics tables", () => {
       by_state_group: { backlog: 1, started: 1, completed: 1 },
       by_priority: { none: 3 },
       trend: [],
-      top_assignees: [{ actor_id: "a1", name: "Valentin", open: 2, completed: 1 }],
+      top_assignees: [{ actor_id: "a1", name: "Valentin", kind: "user", color: "blue", open: 2, completed: 1 }],
       projects: [{ id: "p1", name: "Website", identifier: "WEB", logo: null, total: 3, open: 2, completed: 1 }],
     } as unknown as OverviewAnalytics;
     await mount(createElement(OverviewPanel, { result, projectIds: ["p1"], today: "2026-10-21" }));

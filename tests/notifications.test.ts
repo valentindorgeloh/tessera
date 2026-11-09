@@ -63,6 +63,7 @@ describe("notifications", () => {
 
     const mentioned = listNotifications(createTestContext(handles, agent.id));
     expect(mentioned.map((note) => note.kind)).toEqual(["mentioned"]);
+    expect(mentioned[0]).toMatchObject({ actor_id: ctx.actor.id, actor_kind: "user", actor_color: ctx.actor.color });
     const commented = listNotifications(createTestContext(handles, other.id)).filter((note) => note.kind === "commented");
     expect(commented).toHaveLength(1);
     expect(listNotifications(ctx).filter((note) => note.kind === "commented" || note.kind === "mentioned")).toHaveLength(0);

@@ -1,9 +1,9 @@
 "use client";
 
-import { Avatar } from "@astryxdesign/core/Avatar";
 import { MultiSelector, type MultiSelectorOptionData } from "@astryxdesign/core/MultiSelector";
 import { HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
+import { ActorAvatar, type AvatarActor } from "@/components/shell/ActorAvatar";
 import { useProjectRow } from "../project-provider";
 
 export type AssigneeControlProps = {
@@ -15,11 +15,11 @@ export type AssigneeControlProps = {
   label?: string;
 };
 
-/** Avatar plus name row for selector options and group headers. */
-export function ActorLabel({ name }: { name: string }) {
+/** Avatar plus name row for selector options and group headers. Pass `actor` when known, so an agent shows its glyph. */
+export function ActorLabel({ name, actor = null }: { name: string; actor?: AvatarActor | null }) {
   return (
     <HStack gap={1.5} vAlign="center">
-      <Avatar name={name} size="xsm" tooltip={false} />
+      <ActorAvatar actor={actor} name={name} size="xsm" tooltip={false} />
       <Text type="inherit" className="tessera-wi-label-text">
         {name}
       </Text>
@@ -45,7 +45,7 @@ export function AssigneeControl({ value, onChange, compact = false, readOnly = f
       isReadOnly={readOnly}
       triggerDisplay="labels"
       formatValue={(items) => items.map((item) => actorsById.get(item.value)?.name ?? item.label).join(", ")}
-      renderOption={(option) => <ActorLabel name={option.label ?? option.value} />}
+      renderOption={(option) => <ActorLabel name={option.label ?? option.value} actor={actorsById.get(option.value) ?? null} />}
       placeholder="Unassigned"
       hasSearch={options.length > 8}
     />

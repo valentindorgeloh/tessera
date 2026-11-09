@@ -10,7 +10,6 @@
  * the bundle no longer holds reads "Removed".
  */
 import { useId, useState, type ReactNode } from "react";
-import { Avatar } from "@astryxdesign/core/Avatar";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
@@ -18,6 +17,7 @@ import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
+import { ActorAvatar } from "@/components/shell/ActorAvatar";
 import { useProject } from "@/components/work-items/project-provider";
 import { paletteTokenColor, stateGroupLabel, stateGroupVariant } from "@/components/work-items/properties";
 import type { ProgressBreakdownRow } from "@/lib/tessera/types";
@@ -98,11 +98,12 @@ export function BreakdownTabs({ byState, assignees, labels, byAssignee, byLabel 
       ) : (
         <List density="compact" className="tessera-planning-panel-list">
           {assigneeRows.map((row) => {
-            const name = row.id === null ? "No assignee" : (actorsById.get(row.id)?.name ?? REMOVED);
+            const actor = row.id === null ? null : (actorsById.get(row.id) ?? null);
+            const name = row.id === null ? "No assignee" : (actor?.name ?? REMOVED);
             return (
               <ListItem
                 key={row.id ?? "none"}
-                startContent={<Avatar name={name} size="sm" tooltip={false} />}
+                startContent={<ActorAvatar actor={actor} name={name} size="sm" tooltip={false} />}
                 label={name}
                 endContent={<RowCount name={name} total={row.total} completed={row.completed} />}
               />

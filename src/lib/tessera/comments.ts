@@ -14,7 +14,7 @@ import { newId } from "./core/ids";
 import { withTx } from "./core/tx";
 import { actor, comment, mention } from "./db/schema";
 import { IdSchema } from "./schemas";
-import type { ActorKind, CommentRow } from "./types";
+import type { ActorKind, CommentRow, PaletteColor } from "./types";
 import { bodySnippet, syncMentions } from "./mentions";
 import { reactionsFor, type ReactionSummary } from "./reactions";
 import { getWorkItemRow, insertSubscriber, loadWritableWorkItem } from "./work-items";
@@ -38,11 +38,12 @@ export const UpdateCommentInput = z
 export type CommentView = CommentRow & {
   actor_name: string;
   actor_kind: ActorKind;
+  actor_color: PaletteColor;
   reactions: ReactionSummary[];
   replies: CommentView[];
 };
 
-type ActorInfo = { name: string; kind: ActorKind };
+type ActorInfo = { name: string; kind: ActorKind; color: PaletteColor };
 
 /** 140-character plain text of a comment body (mentions.ts `bodySnippet`). */
 export function commentSnippet(md: string): string {
@@ -71,8 +72,8 @@ function loadLiveForItem(ctx: TesseraContext, workItemId: string): CommentRow[] 
 function actorsById(ctx: TesseraContext, ids: readonly string[]): Map<string, ActorInfo> {
   const unique = [...new Set(ids)];
   if (unique.length === 0) return new Map();
-  const rows = ctx.db.select({ id: actor.id, name: actor.name, kind: actor.kind }).from(actor).where(inArray(actor.id, unique)).all();
-  return new Map(rows.map((row) => [row.id, { name: row.name, kind: row.kind }]));
+  const rows = ctx.db.select({ id: actor.id, name: actor.name, kind: actor.kind, color: actor.color }).from(actor).where(inArray(actor.id, unique)).all();
+  return new Map(rows.map((row) => [row.id, { name: row.name, kind: row.kind, color: row.color }]));
 }
 
 function nest(ctx: TesseraContext, rows: CommentRow[]): CommentView[] {
@@ -88,6 +89,7 @@ function nest(ctx: TesseraContext, rows: CommentRow[]): CommentView[] {
       ...row,
       actor_name: info.name,
       actor_kind: info.kind,
+      actor_color: info.color,
       reactions: reactions.get(row.id) ?? [],
       replies: [],
     };
@@ -108,7 +110,7 @@ function viewOf(ctx: TesseraContext, row: CommentRow): CommentView {
   if (row.parent_comment_id) {
     const info = getActor(ctx, row.actor_id);
     const reactions = reactionsFor(ctx, "comment", [row.id]).get(row.id) ?? [];
-    return { ...row, actor_name: info.name, actor_kind: info.kind, reactions, replies: [] };
+    return { ...row, actor_name: info.name, actor_kind: info.kind, actor_color: info.color, reactions, replies: [] };
   }
   const found = nest(ctx, loadLiveForItem(ctx, row.work_item_id)).find((view) => view.id === row.id);
   if (!found) throw notFound("comment", row.id);

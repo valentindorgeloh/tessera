@@ -288,7 +288,7 @@ function GroupHeading({ group, field, bundle }: { group: Group | undefined; fiel
       </Text>
     );
   }
-  if (field === "assignees" || field === "created_by") return <ActorLabel name={group.name} />;
+  if (field === "assignees" || field === "created_by") return <ActorLabel name={group.name} actor={bundle.actors.find((actor) => actor.id === group.id) ?? null} />;
   if (field === "state") {
     const state = bundle.states.find((candidate) => candidate.id === group.id);
     if (state) return <StateLabel state={state} />;

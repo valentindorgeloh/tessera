@@ -10,7 +10,6 @@ import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { List, ListItem } from "@astryxdesign/core/List";
-import { Avatar } from "@astryxdesign/core/Avatar";
 import { Link } from "@astryxdesign/core/Link";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Heading, Text } from "@astryxdesign/core/Text";
@@ -19,6 +18,7 @@ import { markHomeSeenAction } from "@/app/actions/home";
 import { DigestCard } from "@/components/ai/DigestCard";
 import { useAiStatus } from "@/components/ai/AiStatusProvider";
 import { RelativeTime } from "@/components/detail/RelativeTime";
+import { ActorAvatar } from "@/components/shell/ActorAvatar";
 import type { DigestView } from "@/lib/tessera/types";
 import { isIsoTimestamp, sinceDescription, sinceKeyParts, sinceRowParts, type SinceEntry, type SinceLastVisit as SinceData } from "./home-format";
 
@@ -95,7 +95,7 @@ function SinceRow({ entry }: { entry: SinceEntry }) {
       }
       description={sinceDescription(entry.fields, entry.count)}
       href={entry.target.href === "" ? undefined : entry.target.href}
-      startContent={<Avatar name={entry.actor.name} size="sm" tooltip={false} />}
+      startContent={<ActorAvatar actor={entry.actor} size="sm" tooltip={false} />}
       endContent={isIsoTimestamp(entry.last_at) ? <RelativeTime value={entry.last_at} type="supporting" color="secondary" hasTooltip={false} /> : null}
     />
   );

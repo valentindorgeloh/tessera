@@ -3,7 +3,7 @@
  * engine type: the page maps `getAnalytics` onto it when that export exists.
  * Client-safe: type imports only.
  */
-import type { CycleStatus, EstimateType, Logo, ModuleStatus, PaletteColor } from "@/lib/tessera/types";
+import type { ActorKind, CycleStatus, EstimateType, Logo, ModuleStatus, PaletteColor } from "@/lib/tessera/types";
 
 export const ANALYTICS_TABS = ["overview", "work-items", "cycles", "modules"] as const;
 export type AnalyticsTab = (typeof ANALYTICS_TABS)[number];
@@ -80,7 +80,7 @@ export type OverviewAnalytics = AnalyticsCommon & {
   by_state_group: AnalyticsDistribution;
   by_priority: AnalyticsDistribution;
   trend: TrendPoint[];
-  top_assignees: { actor_id: string; name: string; open: number; completed: number }[];
+  top_assignees: { actor_id: string; name: string; kind: ActorKind; color: PaletteColor; open: number; completed: number }[];
   projects: {
     id: string;
     name: string;

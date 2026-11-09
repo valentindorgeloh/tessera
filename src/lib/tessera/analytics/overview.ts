@@ -55,17 +55,17 @@ function countAgents(ctx: TesseraContext): number {
 
 function topAssignees(ctx: TesseraContext, where: ReturnType<typeof distributionPopulation>["where"]): AnalyticsOverview["top_assignees"] {
   const rows = ctx.db
-    .select({ actor_id: work_item_assignee.actor_id, name: actor.name, state_group: state.state_group, n: count() })
+    .select({ actor_id: work_item_assignee.actor_id, name: actor.name, kind: actor.kind, color: actor.color, state_group: state.state_group, n: count() })
     .from(work_item_assignee)
     .innerJoin(work_item, eq(work_item_assignee.work_item_id, work_item.id))
     .innerJoin(state, eq(work_item.state_id, state.id))
     .innerJoin(actor, eq(work_item_assignee.actor_id, actor.id))
     .where(where)
-    .groupBy(work_item_assignee.actor_id, actor.name, state.state_group)
+    .groupBy(work_item_assignee.actor_id, actor.name, actor.kind, actor.color, state.state_group)
     .all();
-  const folded = new Map<string, { actor_id: string; name: string; open: number; completed: number }>();
+  const folded = new Map<string, AnalyticsOverview["top_assignees"][number]>();
   for (const row of rows) {
-    const current = folded.get(row.actor_id) ?? { actor_id: row.actor_id, name: row.name, open: 0, completed: 0 };
+    const current = folded.get(row.actor_id) ?? { actor_id: row.actor_id, name: row.name, kind: row.kind, color: row.color, open: 0, completed: 0 };
     if (row.state_group === "completed") current.completed += row.n;
     else if (row.state_group !== "cancelled") current.open += row.n;
     folded.set(row.actor_id, current);

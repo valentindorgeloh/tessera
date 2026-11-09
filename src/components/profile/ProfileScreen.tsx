@@ -7,12 +7,12 @@
  * actor first, the tab strip full width under it.
  */
 import type { ReactNode } from "react";
-import { Avatar } from "@astryxdesign/core/Avatar";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { HStack } from "@astryxdesign/core/Stack";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Token } from "@astryxdesign/core/Token";
 import { RememberLabel } from "@/components/profile/RememberLabel";
+import { ActorAvatar } from "@/components/shell/ActorAvatar";
 import { ACCESS_LABEL, KIND_LABEL, PROFILE_TABS, TAB_LABELS } from "@/components/profile/profile-format";
 import { PanelBar, PanelHeader, PanelTitle } from "@/components/shell/PanelHeader";
 import type { ProfileActor, ProfileTab } from "@/lib/tessera/types";
@@ -37,7 +37,7 @@ export function ProfileScreen({ actor, tab, basePath, children }: ProfileScreenP
               <>
                 {/* One group for the actor, so the phone header's title row (shell.css tabs-below) keeps avatar, name and tokens together on one line. */}
                 <HStack gap={2} vAlign="center" className="tessera-profile-title">
-                  <Avatar name={actor.name} size="sm" tooltip={false} />
+                  <ActorAvatar actor={actor} size="sm" tooltip={false} />
                   <PanelTitle className="tessera-profile-name">{actor.name}</PanelTitle>
                   {/* "You" would repeat the title on the user's own profile. */}
                   {actor.kind === "user" ? null : <Token label={KIND_LABEL[actor.kind]} size="sm" />}

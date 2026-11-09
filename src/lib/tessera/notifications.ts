@@ -17,7 +17,7 @@ import { assertInTransaction, withTx } from "./core/tx";
 import { actor, mention, notification, page, project, work_item, work_item_assignee, work_item_subscriber } from "./db/schema";
 import { IdSchema, NotificationKindSchema, type NotificationKind } from "./schemas";
 import type { ActivityEntry } from "./activity";
-import type { ActorKind } from "./types";
+import type { ActorKind, PaletteColor } from "./types";
 
 const SNIPPET_LIMIT = 280;
 const LIST_LIMIT = 200;
@@ -41,8 +41,11 @@ export type NotificationView = {
   snippet: string;
   work_item_id: string | null;
   work_item_key: string | null;
+  /** The causing actor; the actor fields are null when that actor was removed. */
+  actor_id: string | null;
   actor_name: string | null;
   actor_kind: ActorKind | null;
+  actor_color: PaletteColor | null;
   read_at: string | null;
   archived_at: string | null;
   snoozed_till: string | null;
@@ -168,8 +171,10 @@ export function listNotifications(ctx: TesseraContext, input: z.input<typeof Lis
       note: notification,
       identifier: project.identifier,
       sequence_id: work_item.sequence_id,
+      actor_id: actor.id,
       actor_name: actor.name,
       actor_kind: actor.kind,
+      actor_color: actor.color,
     })
     .from(notification)
     .leftJoin(work_item, eq(notification.work_item_id, work_item.id))
@@ -187,8 +192,10 @@ export function listNotifications(ctx: TesseraContext, input: z.input<typeof Lis
     snippet: row.note.snippet,
     work_item_id: row.note.work_item_id,
     work_item_key: row.identifier !== null && row.sequence_id !== null ? formatKey(row.identifier, row.sequence_id) : null,
+    actor_id: row.actor_id,
     actor_name: row.actor_name,
     actor_kind: row.actor_kind,
+    actor_color: row.actor_color,
     read_at: row.note.read_at,
     archived_at: row.note.archived_at,
     snoozed_till: row.note.snoozed_till,
