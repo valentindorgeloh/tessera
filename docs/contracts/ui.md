@@ -2371,3 +2371,280 @@ Scratch only: `TESSERA_DB_PATH=data/superagent/acceptance.db` (fresh, migrated, 
 7. Runner settings saved with the fake runner on `--conflict` show "Changed elsewhere" and reload; team sections save and survive a reload.
 8. Fake runner stopped: "Runner not answering", no crash; a wrong token in the file: "Token rejected"; `--rewound`: "Tessera history rewound".
 9. 375: no horizontal page scroll; the table shows Item, Stage and Actions; menus, dialogs and the 44px touch areas follow the Theme rules; Latte and Frappé both read.
+
+## Superagent chat (decision 146)
+
+A chat with the superagent inside Tessera. One conversation is one work item; the messages are its description and comments. There is no new storage, no registry tool and no runner API change (runner v1 as above; the runner repo's schemas stay the source of truth). The page reads Tessera first and adds runner data on top, so it works with the runner offline.
+
+### Facts this section relies on (checked 2026-11-10)
+
+- The runner posts a question as a comment with `client_ref` `question:<requestId>:<questionId>`, as a reply to the root of the comment that led to it (`tessera-agents` `src/pipeline/scheduler.ts` `ask`). It sends `client_ref` only when its `tessera.clientRef` config is on (default off), and posts the question text verbatim, which is also `RequestDetail.question`.
+- While a request has an open question, the runner takes any comment of the owner on that item as the answer (`src/pipeline/follow-up.ts`). A reply whose parent is a comment the runner posted is routed to that request explicitly (`src/domain/routing.ts`). Threading is therefore a help, not a must.
+- `createCommentAction` and `createWorkItemAction` are `toolAction`s: the registry runs in process as the user (`runTool`, `USER_ACTOR_ID`) and calls `refresh()` after a write. That is "Tessera's own service layer as the user". MCP and the assistant are never involved.
+- `ChangesPoller` (shell) already re-renders the open screen within 5 s of any write by another actor, so new agent comments appear by themselves.
+- `CommentView` carries `client_ref`, `parent_comment_id`, `body_version` and `edited_at`. Threads are one level deep.
+- Astryx 0.6.8 has `@astryxdesign/core/Chat`: `ChatLayout` (`children`, `composer`, `emptyState`, `scrollRef`, `density`), `ChatMessageList` (`emptyState`, `align`, `density`), `ChatMessage` (`sender: "user" | "assistant" | "system"`, `avatar`, `name`, `metadata`), `ChatMessageBubble` (`name`, `metadata`, `variant`), `ChatMessageMetadata` (`timestamp`, `footer`, `status`), `ChatSystemMessage`, `ChatComposer` (`onSubmit`, `value`, `onChange`, `placeholder`, `isDisabled`, `footerActions`, `headerContext`, `status: { type: "error" | "warning"; message }`). Workers read `npx astryx component <Name>` before using any other prop.
+- The frame is the Inbox's (`InboxScreen`, `inbox.css`): `Layout height="fill"` with a resizable `LayoutPanel` list, a `ResizeHandle`, and a `LayoutContent` pane. Under 1024px one pane shows at a time, with a back button.
+
+### Data (lane C1)
+
+**Engine read** `src/lib/tessera/agent-conversations.ts` (exported from `src/lib/tessera/index.ts`). It is a plain service read, not a tool, and stays under 150 lines:
+
+```ts
+export type AgentConversationRow = {
+  work_item_id: string;
+  key: string;                 // formatKey(project.identifier, sequence_id)
+  name: string;
+  project_id: string;
+  project_name: string;
+  is_archived: boolean;        // work_item.archived_at !== null
+  last_comment: { actor_id: string; actor_name: string; snippet: string; created_at: string } | null; // newest live comment, snippet = commentSnippet(body_md)
+  last_activity_at: string;    // max(work_item.updated_at, last_comment.created_at)
+};
+export function listAgentConversations(
+  ctx: TesseraContext,
+  input: { actor_id: string; project_ids: readonly string[]; extra_work_item_ids?: readonly string[] },
+): AgentConversationRow[];
+```
+
+- **Which items.** Not deleted, not drafts, in a project of `project_ids` that is not deleted (archived items and projects are included). An item qualifies when any of these holds:
+  - `actor_id` is an assignee;
+  - a `mention` row names `actor_id` with `entity_type = 'work_item'` for the item;
+  - a `mention` row names `actor_id` with `entity_type = 'comment'` for a live comment of the item;
+  - the item's id is in `extra_work_item_ids`.
+- **Order and limit.** `last_activity_at` newest first, then `key`; at most 200 rows. Empty `project_ids` returns `[]` with no query.
+
+**Types** in `src/lib/superagent/types.ts`, client-safe. They import types only, from `./schemas` and `@/lib/tessera/types`:
+
+```ts
+export const SUPERAGENT_CHAT_PATH = "/agents/superagent/chat";
+export type ChatProject = { id: string; name: string; identifier: string; repo: string };
+export type ChatConversation = {
+  workItemId: string; itemKey: string; title: string; projectId: string; projectName: string; isArchived: boolean;
+  lastMessage: { actorName: string; snippet: string; at: string } | null;
+  lastActivityAt: string;
+  /** The item's newest runner request (largest createdAt), or null when it has none or the runner list failed. */
+  request: RequestSummary | null;
+};
+export type ChatEntry = {
+  /** The comment id, or `description` for the item's description. */
+  id: string;
+  kind: "description" | "comment" | "reply";
+  actorId: string; actorName: string; actorKind: ActorKind; actorColor: PaletteColor;
+  bodyMd: string;
+  createdAt: string;
+  isEdited: boolean;           // a comment with edited_at set; the description never
+};
+export type ChatOpen =
+  | { kind: "not_found"; itemKey: string }
+  | {
+      kind: "item";
+      workItemId: string; itemKey: string; title: string; projectId: string; projectName: string; isArchived: boolean;
+      entries: ChatEntry[];
+      /** The item's project actors, for mention rendering in the comment renderer. */
+      mentionActors: { id: string; name: string }[];
+      request: RequestSummary | null;
+      /** GET /v1/requests/:id of `request`; null when `request` is null. */
+      detail: RunnerResult<RequestDetail> | null;
+      /** Where the composer's message goes as a reply (the open question's thread root), or null for a top-level comment. */
+      replyToCommentId: string | null;
+    };
+export type SuperagentChatLoad = {
+  runnerUrl: string; tokenFile: string;
+  requests: RunnerResult<RequestSummary[]>;
+  /** The live `mcp:superagent` actor (kind agent), or null before the runner first connected. */
+  superagentActorId: string | null;
+  userActorId: string;
+  /** Mapped projects that are live (not archived, not deleted), in mapping order, with their repo. */
+  projects: ChatProject[];
+  conversations: ChatConversation[];
+  /** null on /agents/superagent/chat (no item in the URL). */
+  open: ChatOpen | null;
+};
+```
+
+**Loader** `src/lib/superagent/chat.ts` (`import "server-only"`): `export async function loadSuperagentChat({ itemKey }: { itemKey: string | null }): Promise<SuperagentChatLoad>`. `server.ts` exports its private `connect()` as `connectRunner()` for this; behaviour is unchanged.
+
+1. `connectRunner()`. Then, in parallel:
+   - runner `listRequests("all")`;
+   - one `readTessera` for:
+     - `agents`;
+     - the superagent actor: `kind = 'agent'`, `name = SUPERAGENT_ACTOR_NAME`, not deleted;
+     - `ctx.actor.id`;
+     - the mapped live projects as `ChatProject`;
+     - `listAgentConversations` (only when the actor exists, else `[]`);
+     - when `itemKey` is set: `getWorkItemByKey` (a `NOT_FOUND` becomes `{ kind: "not_found" }`, other errors propagate), `listComments`, and the project's actors.
+2. **Request-only items.** When the runner list loaded, the items of requests in mapped projects that are missing from the rows come from a second `readTessera`: `listAgentConversations` with `extra_work_item_ids` set to those ids. The two row sets are merged by id and sorted again.
+3. **Request per item.** `request` per conversation and for the open item is the newest request with that `workItemId`. For the open item with a request, `getRequest(request.id)` gives `detail`.
+4. **Entries.**
+   - The description comes first when `description_md.trim()` is not empty: `kind "description"`, actor `created_by`, at `created_at`.
+   - Then every live comment, roots and replies flattened, ordered by `created_at` and then `id`. `kind` is `"reply"` when `parent_comment_id` is set.
+5. **`replyToCommentId`.** Set only when `detail` loaded and `detail.data.question` is not null.
+   - The question comment is the newest live comment by the superagent actor whose `client_ref` starts with `question:<request.id>:`.
+   - If there is none, it is the newest live comment by that actor whose `body_md.trim()` equals `question.trim()`.
+   - The value is that comment's `parent_comment_id ?? id`.
+   - If neither comment exists, the value is null.
+6. A runner failure never throws: `requests` and `detail` carry it. A Tessera error propagates, as on every screen.
+
+**Fake runner.** `scripts/superagent-stub.ts` gains a repeatable `--bind <requestId>=<workItemId>,<itemKey>,<projectId>`. The bound request's summary and detail carry those three values, so acceptance can point fixtures at real items.
+
+**Refresh hook.** `src/components/superagent/use-runner-refresh.ts`: `export function useRunnerRefresh(intervalMs: number, isPaused: boolean): void`.
+- While not paused, it calls `superagentRefreshAction()` every `intervalMs`, inside a transition, when `document.visibilityState === "visible"`.
+- It is the screen's current loop, moved. `SuperagentScreen` uses it with `REFRESH_INTERVAL_MS` (15 s) and `isDialogOpen`, with no behaviour change.
+
+### Screen (lane C2)
+
+**Routes.**
+- `src/app/(tessera)/agents/superagent/chat/page.tsx` awaits `searchParams` (`new`: `"1"` or absent).
+- `src/app/(tessera)/agents/superagent/chat/[itemKey]/page.tsx` awaits `params`.
+
+Both do so under `Suspense` with a skeleton, then `await io()`, then `loadSuperagentChat`, and render `SuperagentChat`. The static segments win over `agents/[actorId]/[tab]`.
+
+**Components** live in `src/components/superagent/chat/`, each file under 300 lines: `SuperagentChat.tsx`, `ConversationList.tsx`, `ConversationPane.tsx`, `ConversationHeader.tsx`, `NewChatPane.tsx` and `ChatEntryView.tsx`. Pure helpers go in `src/components/superagent/chat-format.ts`.
+
+**`SuperagentChat`** (`"use client"`, props `{ load: SuperagentChatLoad; isNew: boolean }`) is the Inbox frame:
+- `Layout height="fill"` with class `tessera-chat`, plus `tessera-chat--open` when `load.open !== null || isNew`.
+- **header:** `PanelHeader label="Superagent chat"` > `PanelBar`. Start: `PanelTitle` "Superagent chat". End:
+  - a ghost sm `Button` "Control screen" with `href="/agents/superagent"`;
+  - a primary sm `Button` "New chat" with `PlusIcon` and `href="${SUPERAGENT_CHAT_PATH}?new=1"`. It is disabled when `superagentActorId === null` or `projects.length === 0`.
+- **start:** a `LayoutPanel` with class `tessera-chat-list` (resizable via `useResizable`, as the Inbox, label "Chats") holding `ConversationList`, then a `ResizeHandle` labelled "Resize chats".
+- **content:** a `LayoutContent padding={0}` with class `tessera-chat-thread`. It holds `ConversationPane` when `open` is set, else `NewChatPane`.
+- **Back button.** Above either pane, under 1024px only (CSS, as `.tessera-inbox-back`): a ghost sm `Button` "All chats" with `CaretLeftIcon` to `SUPERAGENT_CHAT_PATH`.
+- **Refresh.** `useRunnerRefresh(CHAT_REFRESH_INTERVAL_MS = 5_000, isDialogOpen || isSending)`. Tessera writes arrive through `ChangesPoller` already.
+
+**`ConversationList`** (props `{ load }`):
+- **Not connected.** When `superagentActorId === null`, an info `Banner` "The superagent hasn't connected yet", "It shows up after the runner first connects to Tessera. New chats start once it has."
+- **Runner failed.** When `load.requests` failed, one line of secondary `Text`: "{failureCopy(failure, context).title}: stages and costs are hidden."
+- **Rows.** A `List aria-label="Chats" hasDividers` of `ListItem`s, one per conversation (as `NotificationRow`; check `npx astryx component ListItem` for the selected and click props):
+  - label "{itemKey} {title}";
+  - description: "{entryName}: {snippet}" from `lastMessage`, else "No messages yet";
+  - end slot: `RelativeTime` of `lastActivityAt`, and the request's `StageLabel` when `request` is set.
+- **Selection.** The selected row is the open item. A click does `router.push(chatHref(itemKey))`.
+- **Empty.** `ListItem` "No chats yet", "Start one, or assign or mention the superagent on a work item in a mapped project."
+
+**`ConversationPane`** (props `{ open: ChatOpen; load; onDialogChange }`):
+- **Not found.** For `not_found`: a centred `EmptyState` "No such work item", "{itemKey} does not exist or was deleted." with `headingLevel={2}`.
+- **Item.** For an item: `ConversationHeader`, then `ChatLayout density="compact"`:
+  - `ChatMessageList` holds one `ChatEntryView` per entry, plus optimistic pending entries (`useOptimistic`). Its `emptyState` is "No messages yet".
+  - The `composer` is a `ChatComposer` (controlled):
+    - placeholder "Message the superagent";
+    - `headerContext` "Replies in the question's thread" when `replyToCommentId !== null`;
+    - `status` from `composerStatus(load.requests, context)`;
+    - `isDisabled` when `isArchived`, with placeholder "Archived work items take no comments."
+- **Sending.** Submit trims the text and ignores it when empty. It calls `createCommentAction({ work_item_id: workItemId, body_md, ...(replyToCommentId ? { parent_comment_id: replyToCommentId } : {}) })`.
+  - While pending, the text shows as a right-side bubble with `ChatMessageMetadata status="sending"`.
+  - On success the input clears; the action's `refresh()` brings the stored comment.
+  - On failure: a `Toast` "Could not send. {message}", the text goes back into the input, and the pending bubble goes away.
+- **Scrolling.** The composer stays docked at the bottom of the pane at both widths. If `LayoutContent` scrolls instead of `ChatLayout`, pass its scroll element as `scrollRef`; report which way works.
+
+**`ChatEntryView`** (props `{ entry; isMine; name; projectId; mentionActors }`):
+- `ChatMessage sender={isMine ? "user" : "assistant"}`; for the other side, `avatar` is `ActorAvatar` and `name` is set.
+- The `ChatMessageBubble` holds the existing comment renderer: `MarkdownEditor value={bodyMd} onChange={() => {}} readOnly compact projectId mentionActors onOpenEntity`. `onOpenEntity` does `router.push(entityHref(link))`.
+- `metadata` is a `ChatMessageMetadata` whose `timestamp` is `RelativeTime` of `createdAt`. Its `footer` lists, joined with " · ", whichever apply: "Description" for the description, "In a thread" for a reply, "edited" when edited.
+- `isMine` is `entry.actorId === load.userActorId`. `name` is `entryName(entry, superagentActorId)`.
+
+**`ConversationHeader`** (props `{ open; load; onDialog }`):
+- **Title.** A `Heading` level 2 with the key as a `Link` to `/work-items/{workItemId}`, then the title.
+- **Request row.** When `request` is set: `StageLabel stage hasReason`, `Text` `usdOf(costUsd, budgetUsd)`, `PullRequestLink pr`, and one sm `Button` per entry of `request.actions` in listed order, named "{ACTION_LABELS[a]} {itemKey}".
+  - The `primaryAction(actions)` button is primary; the others are secondary.
+  - Approve, Retry and Lift hold call `superagentRequestAction` and report through `useRunnerReport(context)` with the same texts as `RequestsTable`.
+  - Stop, Resize and Budget open `RequestDialogs` (`{ kind, request }`, the same `context`).
+- **No request.** When `request` is null and the list loaded: secondary `Text` "No runner request yet."
+- **Runner failed.** When the list failed, the header has no runner part; the composer status speaks.
+- **Wrapping.** The row wraps (`HStack` with wrap) and never scrolls the page sideways at 375.
+
+**`NewChatPane`** (props `{ load; onSending }`):
+- `ChatLayout` with an `emptyState` `EmptyState` "Start a chat", "Pick a project and say what you need. The superagent gets it as a new work item."
+- The composer is a `ChatComposer` with placeholder "What should the superagent do?". Its `footerActions` hold a sm `Selector` "Project" over `load.projects` (label "{name}", description `repo`, first one selected). `status` comes from `composerStatus`.
+- It is disabled in two cases:
+  - with `superagentActorId === null`, placeholder "The superagent hasn't connected yet.";
+  - with no projects, placeholder "Map a project to a repository first." and a `Link` "Open settings" to `/agents/superagent`.
+- **Submit.** It calls `createWorkItemAction({ project_id, name: chatTitle(text), description_md: text, assignee_ids: [superagentActorId] })`. On success: `router.push(chatHref(key))`, where `key` is the created item's key (read it from the tool's result). On failure: a `Toast` "Could not start the chat. {message}", and the text stays.
+
+**`chat-format.ts`** (pure, tested):
+- `chatHref(itemKey)` → `${SUPERAGENT_CHAT_PATH}/${encodeURIComponent(itemKey)}`.
+- `chatTitle(text)`:
+  - takes the first line with non-space text, trimmed, with leading `#`, `>`, `-` or `*` markers and spaces removed;
+  - clips to 80 characters, cut at the last space before 80 when there is one, plus "…";
+  - an empty result gives "Chat with the superagent".
+- `entryName(entry, superagentActorId)` → "Superagent" for that actor, else `actorName`.
+- `composerStatus(requests, context)` gives:
+  - null when the list loaded;
+  - `{ type: "warning", message: "Runner offline. It will read this when it's back." }` for `unreachable`, `timeout` and `unavailable`;
+  - else `{ type: "warning", message: "{failureCopy title}. The runner reads this once it is running." }`.
+
+**CSS.** `src/components/styles/superagent-chat.css`, imported once in `globals.css`. It holds the `tessera-chat*` rules, copied from `inbox.css`: `min-width: 0; min-height: 0`, the 1024px one-pane rule, and the back button hidden from 1024px up. Tokens only.
+
+### Navigation and send (lane C3)
+
+- **Control screen.** `SuperagentScreen`'s `PanelBar` end gets a secondary sm `Button` "Chat" with `href={SUPERAGENT_CHAT_PATH}`, before Refresh.
+- **Sidebar.** `Sidebar.tsx` gets a `RailItem` "Superagent chat" (`AssistantIcon`, href `SUPERAGENT_CHAT_PATH`) right after "Agents", selected on that path and below it. "Agents" is no longer selected there.
+- **Recents and Power K labels.** `recents.ts` labels `/agents/superagent/chat` "Superagent chat" and `/agents/superagent/chat/<KEY>` "Chat {KEY}", both with the agents icon. Tested in `tests/ui/recents.test.ts`.
+- **Send to superagent opens the chat.** `send-to-superagent.ts`:
+  - The `blocked` state with `SUPERAGENT_ALREADY_ASSIGNED` becomes `{ kind: "open" }`. `SUPERAGENT_ALREADY_ASSIGNED` is removed. "Not connected" stays `blocked`.
+  - `DetailHeader` gains `sendToSuperagentLabel?: string` (default "Send to superagent").
+  - `WorkItemDetail`, on `ready`, assigns as today. On success it shows the Toast and then does `router.push(chatHref(item key))`.
+  - On `open`, the row reads "Open superagent chat", enabled, and navigates.
+  - Tests in `tests/ui/detail-superagent.test.ts`.
+
+### Lane split and file ownership
+
+| Lane | Model | Owns |
+|---|---|---|
+| C1 (data) | sonnet, high | `src/lib/tessera/agent-conversations.ts`, one export line in `src/lib/tessera/index.ts`, `src/lib/superagent/{types,server,chat}.ts`, `scripts/superagent-stub.ts`, `src/components/superagent/use-runner-refresh.ts`, `src/components/superagent/SuperagentScreen.tsx` (the hook only), tests `tests/agent-conversations.test.ts`, `tests/superagent/chat-load.test.ts`, `tests/superagent/stub.test.ts` (`--bind`), `tests/superagent/server.test.ts` if `connectRunner` touches it |
+| C2 (chat screen) | sonnet, high | `src/app/(tessera)/agents/superagent/chat/**`, `src/components/superagent/chat/**`, `src/components/superagent/chat-format.ts`, `src/components/styles/superagent-chat.css`, the `@import` line in `src/app/globals.css`, `tests/ui/superagent-chat.test.ts` |
+| C3 (navigation and send) | sonnet, high | `src/components/superagent/SuperagentScreen.tsx` (the Chat button), `src/components/shell/Sidebar.tsx`, `src/components/shell/recents.ts`, `src/components/superagent/send-to-superagent.ts`, `src/components/detail/{DetailHeader,WorkItemDetail}.tsx`, tests `tests/ui/recents.test.ts`, `tests/ui/detail-superagent.test.ts` |
+| Root | opus | docs, bundle baseline, acceptance, commits |
+
+**Order.** C1 runs first. C2 and C3 start once it is green, in parallel. C3 imports `chatHref` from C2's `chat-format.ts`; until C2 lands, it builds the same string from `SUPERAGENT_CHAT_PATH` inline and switches to the import at integration. Every file stays under 600 lines.
+
+### Tests
+
+- **C1, engine read.** `listAgentConversations`:
+  - each qualifying path: assignee, item mention, comment mention, extra id;
+  - what never qualifies: a mention on a deleted comment, a deleted or draft item, an item in an unmapped project;
+  - archived items included;
+  - order and the 200 cap;
+  - empty `project_ids`.
+- **C1, loader.** `loadSuperagentChat` with a stubbed runner client and a seeded memory database:
+  - runner down, so the conversations still come from Tessera and `requests` carries the failure;
+  - request-only items merged;
+  - the newest request per item;
+  - entries: description first, replies flattened in time order;
+  - `replyToCommentId` by `client_ref`, by body, and null;
+  - `not_found` for an unknown key;
+  - no superagent actor, so no conversations.
+- **C1, stub and hook.** The stub's `--bind`. `useRunnerRefresh` pauses and needs visibility, with fake timers.
+- **C2.** The `chat-format` helpers: every branch of `chatTitle`, `composerStatus` for each failure state, `entryName`, `chatHref` encoding. A render smoke test of `SuperagentChat` with `createElement` covers: not connected (banner, New chat disabled), an open item (bubbles on both sides, header buttons from `actions`), not found, the archived composer disabled.
+- **C3.** Recents labels. `sendToSuperagentState` `open`. `DetailHeader` with `sendToSuperagentLabel`. The Sidebar selection for the chat path.
+
+### Acceptance (Frappé and Latte, 1440 and 375)
+
+Scratch only:
+- a fresh `TESSERA_DB_PATH=data/superagent/chat-acceptance.db` (demo seed);
+- `next dev` on 3311 with `TESSERA_AGENTS_TOKEN_FILE=data/superagent/api-token`;
+- the fake runner on 3391.
+
+Never port 3000 or `data/tessera.db`. Screenshots at each width and scheme for steps 2, 5 and 9.
+
+1. **Not connected.** Map a project on `/agents/superagent`. `/agents/superagent/chat` then shows "The superagent hasn't connected yet", New chat is disabled, and the list says "No chats yet".
+2. **New chat.** Run `scripts/mcp-call.ts --client superagent list_projects '{}'` and reload. New chat is now enabled. A two-line message in the mapped project lands on `/agents/superagent/chat/<KEY>`, and the item has:
+   - the first line as its title;
+   - the whole message as its description;
+   - `mcp:superagent` as its assignee.
+
+   The description is the first bubble, on the right.
+3. **Runner offline** (fake runner stopped). The composer says "Runner offline. It will read this when it's back.". A message sends and shows on the right, and the list still shows the chat.
+4. **Agent comment.** A comment by `--client superagent create_comment` on the item shows on the left within about 5 s, with no reload.
+5. **Runner up** (fake runner with `--bind rq_question=…` and `--bind rq_signoff=…` on two chat items):
+   - The header shows the stage, cost, PR and the listed buttons.
+   - The superagent's question comment (`client_ref` `question:rq_question:1`, the fixture's question text) is in the thread. The next message is stored as a reply to its root (`list_comments`).
+   - Approve on the signoff chat shows its Toast, and the stage moves within about 5 s.
+   - Stop asks first.
+6. **Mention.** A user comment that mentions the superagent on an unassigned item of a mapped project adds that item to the list.
+7. **Send to superagent.** On another item, it assigns and opens that item's chat. On an assigned item the row reads "Open superagent chat".
+8. **Links.** The sidebar "Superagent chat", the control screen's "Chat" and the Recents label work.
+9. **375 and both themes.**
+   - `/agents/superagent/chat` shows the list only; a chat shows the thread with "All chats"; New chat shows its pane with the back button.
+   - There is no horizontal page scroll, and the composer stays docked.
+   - Latte and Frappé both read.
