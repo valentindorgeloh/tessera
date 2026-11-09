@@ -37,8 +37,15 @@
  * the browser is idle or on the first pointer or focus contact with a list
  * row, and at once when the URL already names a peek; a peek opened before it
  * arrives shows the same skeleton as the slot before its mount node exists.
+ *
+ * Motion (decisions 132 and 133, ./peek-motion.ts): the side panel takes its
+ * final width at once and only the card slides, in on open and out on close;
+ * the close navigates when its slide finishes. Motion only changes the
+ * panel's `inert` and `data-motion` props and the card's WAAPI animations, so
+ * the detail is never remounted for it. Nothing slides on the first render,
+ * a mode switch, a switch of item, browser Back or under reduced motion.
  */
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
@@ -50,6 +57,7 @@ import { LayerDepthProvider } from "@astryxdesign/core/Layer";
 import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import { VStack } from "@astryxdesign/core/Stack";
+import { animateSlide, prefersReducedMotion } from "@/components/shell/layout-motion";
 import { recordVisit } from "@/components/shell/recents-store";
 import { IdSchema } from "@/lib/tessera/schemas";
 import { workItemPath } from "./DetailHeader";
@@ -59,6 +67,7 @@ import { clearPeekPush, movePeekPush, readPeekPush, stampPeekPush } from "./peek
 import { registerPeekHost } from "./peek-hosts";
 import { PEEK_MAX_WIDTH, PEEK_MIN_WIDTH, hasNoResizeRange, loadPeekPrefs, savePeekPrefs, usePeekPrefs } from "./peek-prefs";
 import { useCoverFocus, useIsPanelCover } from "./peek-cover";
+import { closeOutcome, peekCloseAnimates, peekOpenAnimates, slideOffset } from "./peek-motion";
 import { closesWithBack, currentHref, mountsPeek, peekHref } from "./peek-url";
 
 /** The item the URL names; `data: null` when it is unknown, deleted or belongs to another project. */
@@ -137,6 +146,17 @@ export function useIsPanelCapped(): [boolean, (element: HTMLElement | null) => v
   return [isCapped, watch];
 }
 
+/** The card's running slide; a close remembers the URL it closes. */
+type PeekMotion = { animation: Animation; kind: "open" } | { animation: Animation; kind: "close"; hrefAtClose: string };
+
+/** The side panel's computed end padding in px (4px for `padding={1}`), so the card slides from fully outside it. */
+function panelPadEnd(card: HTMLElement): number {
+  const host = card.closest<HTMLElement>(".tessera-peek-panel");
+  if (host === null) return 0;
+  const pad = Number.parseFloat(getComputedStyle(host).paddingInlineEnd);
+  return Number.isFinite(pad) ? pad : 0;
+}
+
 const subscribeNothing = () => () => {};
 
 /** False during the server render and hydration, true afterwards. */
@@ -195,12 +215,62 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
     if (isOpen) stampPeekPush(here, window.history.length);
   }, [here, isOpen]);
 
-  const close = () => {
+  // Side peek motion (decisions 132 and 133): the first render's state counts as already there, so a reload or a deep link
+  // with `?peek=` never slides.
+  const cardRef = useRef<HTMLElement | null>(null);
+  const wasOpen = useRef(isOpen);
+  const prevModal = useRef(isModal);
+  const motionRef = useRef<PeekMotion | null>(null);
+  // Set when a close slide starts; cleared only in the animation's callbacks. The panel stays inert (Escape off) until the URL
+  // has changed, which also ends `isClosing` by itself.
+  const [closingHref, setClosingHref] = useState<string | null>(null);
+  const isClosing = closingHref !== null && closingHref === here;
+
+  // Back to the entry the list pushed, else a replace; decided when it runs (after the slide, not at the click).
+  const navigateClose = () => {
     const target = peekHref(pathname, searchParams, null);
     const push = readPeekPush();
     clearPeekPush();
     if (closesWithBack(push, here, target, window.history.length)) router.back();
     else router.replace(target, { scroll: false });
+  };
+  const close = () => {
+    const running = motionRef.current;
+    // A second Escape or Close click while the card slides out, or while the router lands the URL, does nothing.
+    if (running?.kind === "close") return;
+    if (running !== null) {
+      motionRef.current = null;
+      running.animation.cancel();
+    }
+    const card = cardRef.current;
+    const isHidden = card === null || !card.isConnected || card.offsetParent === null;
+    if (card === null || !peekCloseAnimates({ isModal, reduced: prefersReducedMotion(), isHidden })) {
+      navigateClose();
+      return;
+    }
+    const hrefAtClose = here;
+    const animation = animateSlide(card, "none", slideOffset(panelPadEnd(card)), { fill: "forwards" });
+    if (animation === null) {
+      navigateClose();
+      return;
+    }
+    const motion: PeekMotion = { animation, kind: "close", hrefAtClose };
+    motionRef.current = motion;
+    setClosingHref(hrefAtClose);
+    const release = () => {
+      if (motionRef.current === motion) motionRef.current = null;
+      setClosingHref((current) => (current === hrefAtClose ? null : current));
+    };
+    // A cancel after the finish (the URL moved on, the route hid) no longer rejects `finished`; the event covers both cases.
+    animation.addEventListener("cancel", release);
+    animation.finished.then(() => {
+      // Cancelled between the finish and this callback (hidden or unmounted): never navigate.
+      if (motionRef.current !== motion) return;
+      const hrefNow = currentHref(window.location.pathname, window.location.search);
+      // The card stays out (`fill: "forwards"`) and the guard stays on until the URL has changed.
+      if (closeOutcome({ ended: "finished", hrefAtClose, hrefNow }) === "navigate") navigateClose();
+      else animation.cancel();
+    }, release);
   };
   const openItem = (id: string) => {
     const next = peekHref(pathname, searchParams, id);
@@ -231,7 +301,7 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
   }, [isModal]);
 
   // The Dialog owns Escape while it is open (its layer stack prevents the default), so the hotkey serves the side panel.
-  useHotkeys([{ keys: "escape", onPress: close, allowInInputs: true, isDisabled: !isOpen || isModal }]);
+  useHotkeys([{ keys: "escape", onPress: close, allowInInputs: true, isDisabled: !isOpen || isModal || isClosing }]);
 
   const panel = useResizable({
     defaultSize: prefs.width,
@@ -265,6 +335,17 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
     },
     [watchPanel, watchCover],
   );
+  const watchCard = useCallback(
+    (element: HTMLElement | null) => {
+      cardRef.current = element;
+      const stop = watchPanelAndCover(element);
+      return () => {
+        cardRef.current = null;
+        stop();
+      };
+    },
+    [watchPanelAndCover],
+  );
 
   // The covered list is inert (decision 11): out of the tab order and the accessibility tree while the panel is on top of it.
   // The attribute goes in the same commit as the close, before the focus returns to the row (useCoverFocus).
@@ -273,6 +354,44 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
   const [isDetailMounted, setDetailMounted] = useState(false);
   const hasFocusTarget = isDetailMounted || (peek !== null && peek.data === null);
   const rememberListOpener = useCoverFocus({ isOpen, isModal, isCovering: isListCovered }, hasFocusTarget ? slotNode : null);
+
+  // The open slide, after useCoverFocus so the focus keeps its own timing. `isDetailMounted` is not a dependency: the lazy
+  // detail replaces the skeleton inside the same card without restarting the slide.
+  useLayoutEffect(() => {
+    const animates = peekOpenAnimates({ wasOpen: wasOpen.current, isOpen, isModal, modeChanged: prevModal.current !== isModal, reduced: prefersReducedMotion() });
+    wasOpen.current = isOpen;
+    prevModal.current = isModal;
+    const card = cardRef.current;
+    if (!animates || card === null) return;
+    const animation = animateSlide(card, slideOffset(panelPadEnd(card)), "none");
+    if (animation === null) return;
+    const motion: PeekMotion = { animation, kind: "open" };
+    motionRef.current = motion;
+    const settle = () => {
+      if (motionRef.current === motion) motionRef.current = null;
+    };
+    animation.finished.then(settle, settle);
+  }, [isOpen, isModal]);
+
+  // A close slide is done once the URL leaves the one it closed: the card went with the panel, or (another item opened by
+  // other means) it returns. The cancel's callback clears `closingHref`; this effect sets no state.
+  useLayoutEffect(() => {
+    const motion = motionRef.current;
+    if (motion === null || motion.kind !== "close" || motion.hrefAtClose === here) return;
+    motionRef.current = null;
+    motion.animation.cancel();
+  }, [here]);
+
+  // Hide (Next's <Activity>) and unmount run this cleanup: a running slide is cancelled, so a close started just before
+  // the user left the route never navigates.
+  useLayoutEffect(
+    () => () => {
+      const motion = motionRef.current;
+      motionRef.current = null;
+      motion?.animation.cancel();
+    },
+    [],
+  );
 
   const detail = peek ? (
     peek.data ? (
@@ -286,8 +405,18 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
     isOpen && !isModal ? (
       <>
         {isPanelCapped || isPanelCover ? null : <ResizeHandle resizable={panel.props} direction="horizontal" isReversed hasDivider={false} label="Resize the work item panel" />}
-        <LayoutPanel resizable={panel.props} hasDivider={false} padding={1} isScrollable={false} label="Work item" role="complementary" className={isPanelCover ? "tessera-peek-panel tessera-peek-panel--cover" : "tessera-peek-panel"}>
-          <Card ref={watchPanelAndCover} padding={0} height="100%" elevation="low" className="tessera-peek-card">
+        <LayoutPanel
+          resizable={panel.props}
+          hasDivider={false}
+          padding={1}
+          isScrollable={false}
+          label="Work item"
+          role="complementary"
+          className={isPanelCover ? "tessera-peek-panel tessera-peek-panel--cover" : "tessera-peek-panel"}
+          inert={isClosing}
+          data-motion={isClosing ? "closing" : undefined}
+        >
+          <Card ref={watchCard} padding={0} height="100%" elevation="low" className="tessera-peek-card">
             <PeekSlot node={slotNode} />
           </Card>
         </LayoutPanel>
