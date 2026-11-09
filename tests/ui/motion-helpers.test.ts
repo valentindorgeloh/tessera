@@ -2,7 +2,9 @@
 /**
  * The shared motion base (src/components/motion/*, src/components/styles/motion.css):
  * - useEnterFlag: false on the server render and on hydration, true when a
- *   surface opens after mount, cleared by the surface's own animationend;
+ *   surface opens after mount (a mount that is already open is the caller's to
+ *   gate: PeekHost and AssistantProvider do), cleared by the surface's own
+ *   animationend;
  * - playExit: resolves at once with no animation or under Reduce Motion, at
  *   the end of the running CSS animation otherwise, rejects on a cancel and
  *   removes the attribute so a reveal does not replay the exit;
@@ -17,7 +19,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { clearExit, EXITING_ATTRIBUTE, ignoreCancelled, isExitCancelled, playExit } from "@/components/motion/play-exit";
-import { useEnterFlag } from "@/components/motion/use-enter-flag";
+import { useEnterFlag, type EnterFlagProps } from "@/components/motion/use-enter-flag";
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -144,10 +146,16 @@ describe("useEnterFlag", () => {
     root = null;
     host?.remove();
     host = null;
+    returned = [];
+    vi.restoreAllMocks();
   });
+
+  /** What the hook returned on each render of the surface, in order (the hydration render included). */
+  let returned: EnterFlagProps[] = [];
 
   function Surface({ open }: { open: boolean }) {
     const enter = useEnterFlag(open);
+    returned.push(enter);
     return createElement("section", { id: "surface", ...enter }, createElement("span", { id: "child" }));
   }
   const surface = () => host!.querySelector<HTMLElement>("#surface")!;
@@ -169,34 +177,51 @@ describe("useEnterFlag", () => {
       for (const type of ["animationend", "webkitAnimationEnd"]) target.dispatchEvent(new Event(type, { bubbles: true }));
     });
 
-  it("is absent in the server markup and stays absent while hydrating (a ?peek= deep link, a stored open panel)", () => {
-    const html = renderToString(createElement(Surface, { open: true }));
-    expect(html).not.toContain("data-enter");
+  const HYDRATION_MISMATCH = /hydrated but some attributes|didn't match|did not match|Hydration failed/;
+
+  /**
+   * Hydrates the server markup of a surface and reports what React said about it. React never patches an attribute
+   * that differs after a hydration mismatch, it only logs, so the DOM alone cannot show one: the check is the log
+   * (`console.error` in development builds) plus what the hook returned on every render.
+   */
+  function hydrate(open: boolean) {
+    const html = renderToString(createElement(Surface, { open }));
+    returned = []; // the server render above is not the hydration render
     host = document.createElement("div");
     host.innerHTML = html;
     document.body.append(host);
-    const errors: unknown[] = [];
-    act(() => {
-      root = hydrateRoot(host!, createElement(Surface, { open: true }), { onRecoverableError: (error) => errors.push(error) });
+    const recoverable: unknown[] = [];
+    const logged: string[] = [];
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      logged.push(args.map(String).join(" "));
     });
-    expect(errors).toEqual([]);
+    act(() => {
+      root = hydrateRoot(host!, createElement(Surface, { open }), { onRecoverableError: (error) => recoverable.push(error) });
+    });
+    return { html, recoverable, mismatches: logged.filter((line) => HYDRATION_MISMATCH.test(line)) };
+  }
+
+  it("is absent in the server markup and returns nothing while hydrating a surface the server rendered open (a ?peek= deep link)", () => {
+    const { html, recoverable, mismatches } = hydrate(true);
+    expect(html).not.toContain("data-enter");
+    expect(returned.length).toBeGreaterThan(0); // the hydration render ran through the hook
+    for (const props of returned) expect(props).not.toHaveProperty("data-enter");
+    expect(mismatches).toEqual([]);
+    expect(recoverable).toEqual([]);
     expect(surface().hasAttribute("data-enter")).toBe(false);
   });
 
   it("enters when the open happens after hydration", () => {
-    const html = renderToString(createElement(Surface, { open: false }));
-    host = document.createElement("div");
-    host.innerHTML = html;
-    document.body.append(host);
-    act(() => {
-      root = hydrateRoot(host!, createElement(Surface, { open: false }));
-    });
+    const { mismatches } = hydrate(false);
+    expect(mismatches).toEqual([]);
     expect(surface().hasAttribute("data-enter")).toBe(false);
     rerender(true);
     expect(surface().getAttribute("data-enter")).toBe("");
   });
 
-  it("enters for a host that mounts open after hydration (the assistant panel renders only while open)", () => {
+  // The helper cannot tell a mount that is open from a toggle: it enters. A caller that must not slide for a mount that is
+  // already open (PeekHost: `hasBeenClosed`; AssistantProvider: the snapshot's `enters`) passes `open` false for it.
+  it("enters for a client mount with open true, so a caller that must not slide gates the flag itself", () => {
     mountClient(true);
     expect(surface().getAttribute("data-enter")).toBe("");
   });

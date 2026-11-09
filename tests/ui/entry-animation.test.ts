@@ -12,14 +12,18 @@ import { createRoot, hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { Banner } from "@astryxdesign/core/Banner";
 import { useEntryAnimation, type EntryAnimationPreset } from "@astryxdesign/core/hooks";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
+/** What the hook returned on each render of `Entering`, in order. */
+let returned: unknown[] = [];
+
 function Entering({ preset }: { preset: EntryAnimationPreset }) {
   const entry = useEntryAnimation(preset);
+  returned.push(entry);
   return createElement(Banner, { id: "banner", status: "error", title: "Could not save", xstyle: entry ?? undefined });
 }
 
@@ -29,6 +33,8 @@ const classesOf = (host: HTMLElement) => (host.querySelector("#banner")?.classNa
 const hosts: HTMLElement[] = [];
 afterEach(() => {
   for (const host of hosts.splice(0)) host.remove();
+  returned = [];
+  vi.restoreAllMocks();
 });
 function newHost(html = ""): HTMLElement {
   const host = document.createElement("div");
@@ -49,9 +55,21 @@ describe("useEntryAnimation through xstyle", () => {
     const html = renderToString(createElement(Entering, { preset: "slideDown" }));
     const host = newHost(html);
     const before = classesOf(host);
-    await act(async () => {
-      hydrateRoot(host, createElement(Entering, { preset: "slideDown" }));
+    returned = []; // the server render above is not the hydration render
+    // React never patches an attribute that differs after a hydration mismatch, it only logs (`console.error` in a
+    // development build), so the class list alone cannot fail: the check is the log and what the hook returned.
+    const logged: string[] = [];
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      logged.push(args.map(String).join(" "));
     });
+    const recoverable: unknown[] = [];
+    await act(async () => {
+      hydrateRoot(host, createElement(Entering, { preset: "slideDown" }), { onRecoverableError: (error) => recoverable.push(error) });
+    });
+    expect(returned.length).toBeGreaterThan(0); // the hydration render ran through the hook
+    expect(returned.every((entry) => entry === null)).toBe(true);
+    expect(logged.filter((line) => /hydrated but some attributes|didn't match|did not match|Hydration failed/.test(line))).toEqual([]);
+    expect(recoverable).toEqual([]);
     expect(classesOf(host)).toEqual(before);
   });
 

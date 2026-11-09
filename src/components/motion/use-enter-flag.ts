@@ -18,12 +18,15 @@
  *
  * The flag is true only for an open that happens on the client:
  * - never on the server render or on the client render that hydrates server
- *   HTML (a `?peek=` deep link, a stored open assistant panel), which must
- *   match the server markup (React error 418) and must not move;
- * - not for a surface that is already open when its host first mounts through
- *   hydration; but a host that mounts after hydration with `open` true (the
- *   assistant panel renders only while open) is an open after mount, so it slides;
- * - true again each time `open` goes from false to true;
+ *   HTML (a `?peek=` deep link the server rendered open), which must match the
+ *   server markup (React error 418) and must not move;
+ * - true for a client mount with `open` true, and again each time `open` goes
+ *   from false to true. The helper cannot tell a host that mounts open after
+ *   hydration (a navigation to a `?peek=` page, the assistant panel whose stored
+ *   open state loads after mount) from a user's toggle, so the caller passes
+ *   `open` only for a user's open: PeekHost waits until its host has been closed
+ *   once (`hasBeenClosed`), and AssistantProvider's snapshot carries `enters`,
+ *   false for the stored open state that comes back after a reload;
  * - cleared by the surface's own `animationend`, so an Activity reveal later
  *   (display none to shown restarts a CSS animation) does not replay the slide.
  *   Under Reduce Motion nothing runs and the flag just stays, harmlessly:
