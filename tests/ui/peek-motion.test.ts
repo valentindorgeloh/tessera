@@ -364,6 +364,11 @@ describe("the leaving panel", () => {
     });
     expect(nav.router.replace).toHaveBeenCalledTimes(1);
     expect(nav.router.back).not.toHaveBeenCalled();
+
+    // The exit has ended, so only the shownId effect can bring the panel back when another item shows.
+    await show(item(OTHER));
+    expect(panel()?.hasAttribute("inert")).toBe(false);
+    expect(panel()?.hasAttribute("data-exiting")).toBe(false);
   });
 
   it("does nothing on a second Escape while it leaves (the first Escape closes)", async () => {

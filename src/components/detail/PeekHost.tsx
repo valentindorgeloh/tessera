@@ -89,6 +89,7 @@ export type PeekHostProps = {
 /**
  * A change that follows a popstate within this long is the browser's Back or Forward, the same window the page change fade uses
  * (src/components/shell/PageFade.tsx). Next restores a cached route within a frame and an uncached one after the fetch.
+ * Known limit: an uncached Back or Forward that commits more than a second later animates like a click (accepted, as there).
  */
 const POPSTATE_WINDOW_MS = 1000;
 
