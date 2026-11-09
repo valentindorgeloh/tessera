@@ -114,9 +114,9 @@ export function ProjectFrame({ children }: { children: ReactNode }) {
                   />
                   <TabList value={active?.key ?? ""} onChange={() => {}} size="sm" layout="hug" aria-label={`${project.name} pages`} className="tessera-project-tabs">
                     {tabs.map((tab) => (
-                      // focusTrigger "always": the roving strip gives the other tabs tabindex -1, which Tooltip's "auto" reads as not focusable. TabList finds a tab by [data-tab-value], so the wrapper does not matter to it.
+                      // No focusTrigger: since Astryx 0.7.6 "auto" decides when focus arrives, and focus that lands on the Tab itself counts, so an arrow key in the roving strip (the other tabs have tabindex -1) opens the tooltip. TabList finds a tab by [data-tab-value], so the wrapper does not matter to it.
                       // isOpen false (not just isEnabled) when the tab is current or the band is not folded: isEnabled only stops a tooltip from opening, so one opened by keyboard on the tab that then becomes current would stay over the title. undefined keeps it uncontrolled otherwise.
-                      <Tooltip key={tab.key} content={tab.label} isEnabled={isFoldBand && tab.key !== active?.key} isOpen={isFoldBand && tab.key !== active?.key ? undefined : false} focusTrigger="always">
+                      <Tooltip key={tab.key} content={tab.label} isEnabled={isFoldBand && tab.key !== active?.key} isOpen={isFoldBand && tab.key !== active?.key ? undefined : false}>
                         <Tab
                           value={tab.key}
                           label={tab.label}

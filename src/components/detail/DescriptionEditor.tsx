@@ -16,6 +16,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
+import { EntryBanner } from "@/components/shared/EntryBanner";
 import { useProject } from "@/components/work-items/project-provider";
 import { MarkdownEditor, entityRoute, useDescriptionSave, type EntityLink, type MarkdownEditorHandle } from "@/components/editor";
 import { matchWorkItemRef, toCandidates } from "./search-hits";
@@ -80,9 +81,10 @@ export function DescriptionEditor({ workItemId, text, version, readOnly = false,
 
   let banner = null;
   if (state.status === "conflict" || state.theirs !== null) {
-    // Astryx 0.7 Banners announce nothing on their own; this one appears while the person types, so it asks to be read.
+    // Astryx 0.7 Banners announce nothing on their own; this one appears while the person types, so it asks to be read (role="alert") and slides in.
     banner = (
-      <Banner
+      <EntryBanner
+        key="conflict"
         status="warning"
         role="alert"
         title={state.status === "conflict" ? "Changed elsewhere" : "Updated elsewhere"}

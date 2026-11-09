@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
+import { ScrollableArea } from "@astryxdesign/core/ScrollableArea";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
@@ -12,6 +12,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { Timestamp } from "@astryxdesign/core/Timestamp";
 import { listActorsAction, restorePageVersionAction, restoreWorkItemVersionAction } from "@/app/actions/history";
 import { RelativeTime } from "@/components/detail/RelativeTime";
+import { EntryBanner } from "@/components/shared/EntryBanner";
 import { AlertDialog, Dialog, DialogHeader } from "@/components/shell/dialogs";
 import type { HistoryActivity, HistoryResponse, VersionInfo } from "@/lib/tessera/types";
 import { diffLines } from "./diff-lines";
@@ -38,21 +39,24 @@ function previousText(versions: VersionInfo[], selected: VersionInfo): string {
 function PageActivity({ rows, actorNames }: { rows: readonly HistoryActivity[]; actorNames: ReadonlyMap<string, string> }) {
   if (rows.length === 0) return <Text>No activity yet.</Text>;
   return (
-    <VStack gap={1} className="tessera-history-activity" aria-label="Page activity" role="list">
-      {rows.map((row) => (
-        <HStack key={row.seq} gap={2} vAlign="start" role="listitem" className="tessera-history-activity-row">
-          <Text size="sm" className="tessera-history-activity-text">
-            <Text as="span" weight="medium">
-              {actorNames.size === 0 ? "" : activityActorName(row.actor_id, actorNames)}
-            </Text>{" "}
-            {describePageActivity(row)}
-          </Text>
-          <Text type="supporting" color="secondary" size="sm">
-            <RelativeTime value={row.created_at} hasTooltip={false} />
-          </Text>
-        </HStack>
-      ))}
-    </VStack>
+    // The feed scrolls inside the dialog, so it is a ScrollableArea: it takes the Tab stop while it overflows, and the arrow keys then scroll it.
+    <ScrollableArea axis="block" label="Page activity" className="tessera-history-activity">
+      <VStack gap={1} role="list">
+        {rows.map((row) => (
+          <HStack key={row.seq} gap={2} vAlign="start" role="listitem" className="tessera-history-activity-row">
+            <Text size="sm" className="tessera-history-activity-text">
+              <Text as="span" weight="medium">
+                {actorNames.size === 0 ? "" : activityActorName(row.actor_id, actorNames)}
+              </Text>{" "}
+              {describePageActivity(row)}
+            </Text>
+            <Text type="supporting" color="secondary" size="sm">
+              <RelativeTime value={row.created_at} hasTooltip={false} />
+            </Text>
+          </HStack>
+        ))}
+      </VStack>
+    </ScrollableArea>
   );
 }
 
@@ -136,10 +140,10 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
         header={<DialogHeader title={`Version history · ${entity.title}`} onOpenChange={onOpenChange} hasDivider />}
         content={
           <LayoutContent>
-            {/* Astryx 0.7 Banners announce nothing on their own; these two answer a load and a restore, so they ask to be read. */}
-            {error ? <Banner status="warning" role="alert" title="Could not load history" description={error} /> : null}
+            {/* Astryx 0.7 Banners announce nothing on their own; these two answer a load and a restore, so they ask to be read (role="alert") and slide in. */}
+            {error ? <EntryBanner status="warning" role="alert" title="Could not load history" description={error} /> : null}
             {conflict ? (
-              <Banner
+              <EntryBanner
                 status="warning"
                 role="alert"
                 title="This text changed since you opened the history"
@@ -157,40 +161,45 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
             {history && view === "versions" && history.versions.length === 0 ? <Text>No versions yet. They are kept when the description changes.</Text> : null}
             {history && view === "versions" && selected ? (
               <HStack gap={4} vAlign="stretch" className="tessera-history-split">
-                <VStack gap={2} className="tessera-history-pane tessera-history-list">
-                  {history.versions.map((row) => (
-                    // The author and the time sit inside the row, under the label, so the highlight holds all three (pages lane, visual audit).
-                    <VStack key={row.id} gap={0} className="tessera-history-row" data-selected={row.id === selectedId ? "" : undefined}>
-                      <Button variant="ghost" size="sm" label={`Version ${row.version}`} onClick={() => setSelectedId(row.id)} className="tessera-history-row-button" />
-                      <HStack gap={1} vAlign="center" className="tessera-history-row-meta">
-                        <Text type="supporting" color="secondary">
-                          {actorNames.size === 0 ? " " : (actorNames.get(row.actor_id) ?? UNKNOWN_ACTOR)}
-                        </Text>
-                        <Timestamp value={row.created_at} />
-                      </HStack>
-                    </VStack>
-                  ))}
-                </VStack>
-                <VStack gap={3} className="tessera-history-pane tessera-history-diff">
-                  <SegmentedControl label="Diff" size="sm" value={mode} onChange={(value) => setMode(value === "current" || value === "full" ? value : "changes")}>
-                    <SegmentedControlItem value="changes" label="Changes" />
-                    <SegmentedControlItem value="current" label="Compare with current" />
-                    <SegmentedControlItem value="full" label="Full text" />
-                  </SegmentedControl>
-                  <VStack gap={0}>
-                    {lines.map((line, index) => (
-                      <Text key={index} type="code" className="tessera-diff-line" data-change={line.kind === "same" ? undefined : line.kind}>
-                        {line.words
-                          ? line.words.map((word, wordIndex) => (
-                              <Text key={wordIndex} type="code" className="tessera-diff-word" data-change={word.kind === "same" ? undefined : word.kind}>
-                                {word.text}
-                              </Text>
-                            ))
-                          : line.text || " "}
-                      </Text>
+                {/* Both panes scroll on their own inside the dialog, so each is a ScrollableArea: it takes the Tab stop while it overflows and the arrow keys then scroll it (a bare overflow box has no keyboard in Safari and Firefox). */}
+                <ScrollableArea axis="block" label="Versions" className="tessera-history-pane tessera-history-list">
+                  <VStack gap={2}>
+                    {history.versions.map((row) => (
+                      // The author and the time sit inside the row, under the label, so the highlight holds all three (pages lane, visual audit).
+                      <VStack key={row.id} gap={0} className="tessera-history-row" data-selected={row.id === selectedId ? "" : undefined}>
+                        <Button variant="ghost" size="sm" label={`Version ${row.version}`} onClick={() => setSelectedId(row.id)} className="tessera-history-row-button" />
+                        <HStack gap={1} vAlign="center" className="tessera-history-row-meta">
+                          <Text type="supporting" color="secondary">
+                            {actorNames.size === 0 ? " " : (actorNames.get(row.actor_id) ?? UNKNOWN_ACTOR)}
+                          </Text>
+                          <Timestamp value={row.created_at} />
+                        </HStack>
+                      </VStack>
                     ))}
                   </VStack>
-                </VStack>
+                </ScrollableArea>
+                <ScrollableArea axis="block" label="Selected version" className="tessera-history-pane tessera-history-diff">
+                  <VStack gap={3}>
+                    <SegmentedControl label="Diff" size="sm" value={mode} onChange={(value) => setMode(value === "current" || value === "full" ? value : "changes")}>
+                      <SegmentedControlItem value="changes" label="Changes" />
+                      <SegmentedControlItem value="current" label="Compare with current" />
+                      <SegmentedControlItem value="full" label="Full text" />
+                    </SegmentedControl>
+                    <VStack gap={0}>
+                      {lines.map((line, index) => (
+                        <Text key={index} type="code" className="tessera-diff-line" data-change={line.kind === "same" ? undefined : line.kind}>
+                          {line.words
+                            ? line.words.map((word, wordIndex) => (
+                                <Text key={wordIndex} type="code" className="tessera-diff-word" data-change={word.kind === "same" ? undefined : word.kind}>
+                                  {word.text}
+                                </Text>
+                              ))
+                            : line.text || " "}
+                        </Text>
+                      ))}
+                    </VStack>
+                  </VStack>
+                </ScrollableArea>
               </HStack>
             ) : null}
             <AlertDialog

@@ -413,13 +413,14 @@ function commandIcon(item: CommandSearchItem): IconType {
   return (group && SECTION_ICONS[group]) || CompassIcon;
 }
 
+/** A palette row re-renders on every keystroke and the palette is its own list of choices, so a row never gets Astryx's truncation tooltip (`hasTruncateTooltip={false}`: CSS clamp only, nothing measured). */
 function CommandRow({ item }: { item: CommandSearchItem }) {
   const aux = item.auxiliaryData;
   if (aux?.kind === "recent") {
     return (
       <HStack gap={2} vAlign="center" width="100%" className="tessera-cmd-row">
         <Icon icon={ROUTE_ICONS[aux.icon]} size="sm" color="secondary" />
-        <Text maxLines={1} className="tessera-cmd-label">
+        <Text maxLines={1} hasTruncateTooltip={false} className="tessera-cmd-label">
           {item.label}
         </Text>
       </HStack>
@@ -435,12 +436,12 @@ function CommandRow({ item }: { item: CommandSearchItem }) {
             {hit.key}
           </Text>
         ) : null}
-        <Text maxLines={1} className="tessera-cmd-label">
+        <Text maxLines={1} hasTruncateTooltip={false} className="tessera-cmd-label">
           {hit.title}
         </Text>
         {/* A project's subtitle is its identifier, already shown as the key. */}
         {hit.subtitle && hit.subtitle !== hit.key ? (
-          <Text type="supporting" color="secondary" maxLines={1} className="tessera-cmd-meta">
+          <Text type="supporting" color="secondary" maxLines={1} hasTruncateTooltip={false} className="tessera-cmd-meta">
             {hit.subtitle}
           </Text>
         ) : null}
@@ -450,7 +451,7 @@ function CommandRow({ item }: { item: CommandSearchItem }) {
   return (
     <HStack gap={2} vAlign="center" width="100%" className="tessera-cmd-row">
       <Icon icon={commandIcon(item)} size="sm" color="secondary" />
-      <Text maxLines={1} className="tessera-cmd-label">
+      <Text maxLines={1} hasTruncateTooltip={false} className="tessera-cmd-label">
         {item.label}
       </Text>
       {aux?.kind === "command" && aux.hint ? (
