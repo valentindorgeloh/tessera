@@ -19,7 +19,7 @@ import { defaultRangeExtractor, measureElement as measureDefault, useVirtualizer
 import { cssVars } from "@/components/shared/css-vars";
 import { usePrinting } from "./print-store";
 import { BOARD_GAP_ESTIMATE, ESTIMATE, INITIAL_OVERSCAN, OVERSCAN, type VirtualKind } from "./virtual-config";
-import { cssPx, initialRange, isOpenEnd, paddings, partitionKept, withKept } from "./virtual-math";
+import { cssPx, gateWindow, initialRange, isOpenEnd, paddings, partitionKept, withKept } from "./virtual-math";
 import { useAnchorGap, useAnchorHead, useAnchorNear, useAnchorOffset, useScrollerMeasured, useScrollerStore, useScrollerViewport, useScrollPaddingStart } from "./VirtualScrollerProvider";
 
 export type UseVirtualRowsOptions = {
@@ -126,24 +126,28 @@ function initialWindow(input: { count: number; getKey: (index: number) => string
 }
 
 /** After the first measure: TanStack's items split by its range bounds; the window is empty while not near. */
-function liveWindow(virtualizer: Virtualizer<HTMLElement, Element>, count: number, overscan: number, scrollMargin: number, isNear: boolean): Window {
+function liveWindow(virtualizer: Virtualizer<HTMLElement, Element>, count: number, overscan: number, scrollMargin: number, isNear: boolean, keep: readonly number[]): Window {
   const totalSize = virtualizer.getTotalSize();
   const items = virtualizer.getVirtualItems();
   const r = virtualizer.range;
   const first = r ? Math.max(0, r.startIndex - overscan) : 0;
   const last = r ? Math.min(count - 1, r.endIndex + overscan) : -1;
   const byIndex = new Map<number, VirtualItem>(items.map((item) => [item.index, item]));
-  const parts = partitionKept(
-    items.map((item) => item.index),
-    first,
-    last,
+  const parts = gateWindow(
+    partitionKept(
+      items.map((item) => item.index),
+      first,
+      last,
+    ),
+    isNear,
+    keep,
   );
   const toRow = (index: number, kept: boolean): VirtualRow => {
     const item = byIndex.get(index) as VirtualItem;
     const start = item.start - scrollMargin;
     return kept ? { index, key: String(item.key), start, size: item.size, keptTop: start } : { index, key: String(item.key), start, size: item.size };
   };
-  const windowIndexes = isNear ? parts.window : [];
+  const windowIndexes = parts.window;
   const pad = paddings(
     windowIndexes.map((i) => byIndex.get(i) as VirtualItem),
     totalSize,
@@ -217,7 +221,7 @@ export function useVirtualRows(options: UseVirtualRowsOptions): VirtualRowsResul
     ? { keptBefore: NO_ROWS, window: estimatedRows(indexRange(0, count - 1), getKey, size, 0, false), keptAfter: NO_ROWS, totalSize: count * size, before: 0, after: 0 }
     : !isMeasured
       ? initialWindow({ count, getKey, size, gap, start: estimateStart, viewport, overscan: INITIAL_OVERSCAN[kind], keep: keepList })
-      : liveWindow(virtualizer, count, OVERSCAN[kind], scrollMargin, isNear);
+      : liveWindow(virtualizer, count, OVERSCAN[kind], scrollMargin, isNear, keepList);
   const { keptBefore, keptAfter } = w;
   const rendered = keptBefore.length === 0 && keptAfter.length === 0 ? w.window : [...keptBefore, ...w.window, ...keptAfter];
   const lastRendered = rendered.at(-1)?.index ?? -1;

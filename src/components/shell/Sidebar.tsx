@@ -161,7 +161,7 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
-  const { navPrefs, isNavOpen, openCreateProject } = useShell();
+  const { navPrefs, openCreateProject } = useShell();
   const [ordered, applyOrder] = useOptimistic(projects, (_current: Project[], next: Project[]) => next);
   const { lastProjectId: lastProject } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const resize = useSidebarResize();
@@ -169,7 +169,8 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
   const isDrawer = useSideNavRenderMode() !== "default";
   const canHover = useMediaQuery("(hover: hover)", false);
   const { panelHandlers, edgeHandlers } = useFloatingNav({ panelId: "tessera-sidebar" });
-  const hasEdge = navPrefs.dock === "floating" && !isDrawer && !isNavOpen && canHover;
+  // The strip stays while the panel is open: it is part of the hover area, so a pointer resting there keeps the panel open.
+  const hasEdge = navPrefs.dock === "floating" && !isDrawer && canHover;
   const activeProjectId = projectIdFromPath(pathname);
 
   useEffect(() => {

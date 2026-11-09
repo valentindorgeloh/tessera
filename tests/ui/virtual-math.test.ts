@@ -8,6 +8,7 @@ import { ESTIMATE, INITIAL_BOARD_BODY, INITIAL_OVERSCAN, INITIAL_VIEWPORT, START
 import {
   cssPx,
   estimateStarts,
+  gateWindow,
   initialRange,
   isNavKey,
   isNearViewport,
@@ -127,6 +128,13 @@ describe("withKept and partitionKept", () => {
   it("splits kept rows before, inside and after the window", () => {
     expect(partitionKept([1, 5, 6, 7, 20], 5, 7)).toEqual({ before: [1], window: [5, 6, 7], after: [20] });
     expect(partitionKept([5, 6], 5, 7)).toEqual({ before: [], window: [5, 6], after: [] });
+  });
+
+  it("gateWindow keeps a kept row in range while the anchor is not near yet", () => {
+    const parts = { before: [1], window: [3, 4, 5], after: [20] };
+    expect(gateWindow(parts, true, [3])).toBe(parts);
+    expect(gateWindow(parts, false, [3])).toEqual({ before: [1, 3], window: [], after: [20] });
+    expect(gateWindow(parts, false, [])).toEqual({ before: [1], window: [], after: [20] });
   });
 });
 

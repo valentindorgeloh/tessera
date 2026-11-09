@@ -112,17 +112,19 @@ export function useFloatingNav({ panelId }: { panelId: string }): FloatingNavHan
     };
   }, [isFloating]);
 
+  const scheduleClose = () => {
+    if (!isFloating || !isLiveOpen()) return;
+    clearTimer(closeTimer);
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = null;
+      if (isLiveOpen() && !floatingStaysOpen(liveState(panel()))) close("pointer");
+    }, FLOAT_CLOSE_DELAY_MS);
+  };
+
   return {
     panelHandlers: {
       onPointerEnter: () => clearTimer(closeTimer),
-      onPointerLeave: () => {
-        if (!isFloating || !isLiveOpen()) return;
-        clearTimer(closeTimer);
-        closeTimer.current = window.setTimeout(() => {
-          closeTimer.current = null;
-          if (isLiveOpen() && !floatingStaysOpen(liveState(panel()))) close("pointer");
-        }, FLOAT_CLOSE_DELAY_MS);
-      },
+      onPointerLeave: scheduleClose,
       onBlur: (event) => {
         if (!isFloating || !isLiveOpen()) return;
         const relatedInToggle = isInToggle(event.relatedTarget);
@@ -140,16 +142,21 @@ export function useFloatingNav({ panelId }: { panelId: string }): FloatingNavHan
         close("escape");
       },
     },
+    // The panel sits 8px in from the edge, so a pointer resting on the strip is outside it; while open the strip counts as panel.
     edgeHandlers: {
       onPointerEnter: () => {
-        if (!isFloating || isLiveOpen()) return;
+        if (!isFloating) return;
+        if (isLiveOpen()) return clearTimer(closeTimer);
         clearTimer(openTimer);
         openTimer.current = window.setTimeout(() => {
           openTimer.current = null;
           if (getNavPrefs().dock === "floating" && !getNavOpen()) setNavOpen(true, { focus: "none" });
         }, FLOAT_OPEN_DELAY_MS);
       },
-      onPointerLeave: () => clearTimer(openTimer),
+      onPointerLeave: () => {
+        clearTimer(openTimer);
+        scheduleClose();
+      },
     },
   };
 }

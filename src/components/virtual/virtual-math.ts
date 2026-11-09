@@ -78,6 +78,16 @@ export function partitionKept(indexes: readonly number[], first: number, last: n
   return { before, window, after };
 }
 
+/**
+ * The near-viewport gate (decision 135) over a partition: off, the window is empty, but a kept index inside the range
+ * still renders as a kept row. The range follows a scroll at once while the gate flips a frame later, so without
+ * this a focused row scrolled back into range would unmount for one frame and drop focus.
+ */
+export function gateWindow(parts: { before: number[]; window: number[]; after: number[] }, isNear: boolean, keep: readonly number[]): { before: number[]; window: number[]; after: number[] } {
+  if (isNear) return parts;
+  return { before: [...parts.before, ...parts.window.filter((i) => keep.includes(i))], window: [], after: parts.after };
+}
+
 type Span = { start: number; end: number };
 
 /** The anchor's padding around the window. Item spans include `scrollMargin`, `totalSize` does not. */
