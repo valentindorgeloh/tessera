@@ -310,18 +310,29 @@ describe("appearances use Astryx's useEntryAnimation through xstyle", () => {
     expect(extra(row)).not.toBe(extra(bar));
   });
 
-  it("a real row or card never takes an entry style", async () => {
-    await nextFrame();
-    await render(screen({}));
-    const rows = [...document.querySelectorAll(".tessera-wi-row")];
-    expect(rows).toHaveLength(items.length);
-    const plain = classesOf(rows[0]);
-    for (const row of rows) expect(classesOf(row)).toEqual(plain);
-    // The same rows mounted fresh after the first paint (as on scroll or after the agent refresh) stay plain too.
-    await act(async () => root?.unmount());
-    root = null;
-    container?.remove();
-    await render(screen({}));
-    for (const row of document.querySelectorAll(".tessera-wi-row")) expect(classesOf(row)).toEqual(plain);
+  /**
+   * The classes of what `selector` matches in the server render of `make()` (where the hook is null, so there is no entry
+   * style), and in the same tree rendered on the client after the first paint, the way rows mount on scroll, on "Show
+   * more" and on the agent refresh. A row or card that called `useEntryAnimation` would carry the style in the second
+   * and not in the first. (Rendering twice on the client cannot show it: both renders would carry it.)
+   */
+  async function plainClasses(make: () => ReturnType<typeof createElement>, selector: string) {
+    const onServer = [...newHost(renderToString(make())).querySelectorAll(selector)].map(classesOf);
+    await nextFrame(); // past the first paint, so only the server render and hydration keep the hook null
+    await render(make());
+    const mounted = [...container!.querySelectorAll(selector)].map(classesOf);
+    return { onServer, mounted };
+  }
+
+  it("a real list row never takes an entry style: its classes match the server render's", async () => {
+    const { onServer, mounted } = await plainClasses(() => screen({}), ".tessera-wi-row");
+    expect(onServer).toHaveLength(items.length);
+    expect(mounted).toEqual(onServer);
+  });
+
+  it("a real board card never takes an entry style: its classes match the server render's", async () => {
+    const { onServer, mounted } = await plainClasses(() => screen({ layout: "board" }), ".tessera-board-card");
+    expect(onServer).toHaveLength(items.length);
+    expect(mounted).toEqual(onServer);
   });
 });

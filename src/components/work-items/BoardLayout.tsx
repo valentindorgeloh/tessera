@@ -49,6 +49,7 @@ import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } 
 import { GroupFooter, GroupPoints } from "./GroupFooter";
 import { NoResults } from "./NoResults";
 import { QuickAdd } from "./QuickAdd";
+import { settleStartX } from "./settle-offset";
 import { acceptsGroupMove, isOpenGroupValue, openMemberships } from "./quick-add";
 import type { LayoutProps, MoveInput, ProjectBundle, QuickAddGroup } from "./types";
 
@@ -73,6 +74,9 @@ function trackHeadHeight(row: HTMLElement | null): (() => void) | void {
   observer.observe(row);
   return () => observer.disconnect();
 }
+
+/** What clips a card on the board: the column's body, or the swimlane cell (an Astryx Card with `overflow: clip`). */
+const CLIPPING_BODY = ".tessera-board-column-body, .tessera-board-cell";
 
 const STATE_GROUPS: ReadonlySet<string> = new Set<StateGroup>(["backlog", "unstarted", "started", "completed", "cancelled", "triage"]);
 
@@ -218,8 +222,11 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
     const node = getItemElement(pending.key);
     if (!node) return;
     const slot = node.getBoundingClientRect();
+    // The column body (or, in a swimlane, the lane's cell) clips the card, so a start beyond its edge would be cut off for
+    // the whole glide (./settle-offset.ts).
+    const body = node.closest(CLIPPING_BODY)?.getBoundingClientRect();
     settleRef.current = node;
-    settleFrom.current = { x: pending.from.left - slot.left, y: pending.from.top - slot.top };
+    settleFrom.current = { x: settleStartX(pending.from.left - slot.left, slot, body), y: pending.from.top - slot.top };
   });
   const settle = useAnimator(settleRef);
   useLayoutEffect(() => {

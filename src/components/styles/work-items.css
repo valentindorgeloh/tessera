@@ -355,9 +355,13 @@
   overflow-wrap: anywhere;
 }
 
-/* Quick-add placeholder rows: visible at once, inert until the server item replaces them. */
+/*
+ * Quick-add placeholder rows: visible at once, inert until the server item replaces them. They are dimmed with
+ * `filter`, not `opacity`: Astryx's fadeIn entry animation drives `opacity` from 0 to 1, so an `opacity: 0.6` here
+ * would climb to 1 and drop back to 0.6 when the animation ends. The filter composes with the fade and ends at 0.6.
+ */
 .tessera-wi-row-pending {
-  opacity: 0.6;
+  filter: opacity(0.6);
 }
 
 .tessera-wi-pending-key {

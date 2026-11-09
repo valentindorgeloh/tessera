@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { boardColumn, createProjectViaMcp, dragByPointer, expect, mcp, openLayout, test, workItemsUrl } from "./fixtures";
+import { boardColumn, createProjectViaMcp, dragByPointer, expect, mcp, openLayout, test, waitForDialog } from "./fixtures";
 import { waitForAppHydrated } from "./helpers-d";
 
 /**
@@ -140,13 +140,19 @@ test("a layout change fades the scroller; first load, a filter and the agent ref
   expect(first.frames, "the sampler ran").toBeGreaterThan(10);
   expect(first.min, "nothing fades on first load").toBe(1);
 
-  // A filter keeps the layout: the content stays still.
+  // A filter keeps the layout: the content stays still. It is applied inside the loaded page (a client-side change that
+  // rewrites the URL state), after the samples are reset: a hard navigation would only repeat the first-load check.
   await resetSamples(page);
-  await page.goto(workItemsUrl(project.id, { layout: "list", group_by: "priority" }) + "&q=" + Buffer.from(JSON.stringify({ filters: { priority: ["urgent"] }, display: { layout: "list", group_by: "priority" } })).toString("base64url"));
-  await expect(page.locator("[data-list-ready]").first()).toBeVisible();
-  await waitForAppHydrated(page);
+  await page.getByRole("button", { name: /^Advanced/ }).click();
+  const dialog = await waitForDialog(page, "Advanced filters");
+  await expect(dialog.getByRole("combobox", { name: "Field" })).toContainText("Priority"); // the first condition: Priority is Urgent
+  await dialog.getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByText("Urgent one", { exact: true })).toBeVisible();
+  await expect(page.getByText("Low one", { exact: true })).toHaveCount(0); // the filter took effect, in this document
   await page.waitForTimeout(600);
-  expect((await sampled(page)).min).toBe(1);
+  const filtered = await sampled(page);
+  expect(filtered.frames, "the sampler ran through the filter").toBeGreaterThan(10);
+  expect(filtered.min, "a filter does not fade the scroller").toBe(1);
 
   // The agent refresh: another process writes, the open page re-renders with the new row, still.
   await openLayout(page, project.id, "list", { group_by: "priority" });
@@ -167,8 +173,8 @@ test("a layout change fades the scroller; first load, a filter and the agent ref
   await expectSettled(page);
 });
 
-/** Frames of the dropped card after the pointer is released: its inline translate and its top-left corner. */
-type SettleFrame = { translate: string; left: number; top: number };
+/** Frames of the dropped card after the pointer is released: its inline translate, its box and the column body that clips it. */
+type SettleFrame = { translate: string; left: number; right: number; top: number; bodyLeft: number; bodyRight: number };
 
 async function recordSettle(page: Page, cardText: string): Promise<void> {
   await page.addInitScript((text: string) => {
@@ -182,7 +188,8 @@ async function recordSettle(page: Page, cardText: string): Promise<void> {
           const card = [...document.querySelectorAll(".tessera-board-card")].find((element) => element.textContent?.includes(text)) as HTMLElement | undefined;
           if (card) {
             const rect = card.getBoundingClientRect();
-            frames.push({ translate: card.style.translate, left: rect.left, top: rect.top });
+            const body = card.closest(".tessera-board-column-body")?.getBoundingClientRect();
+            frames.push({ translate: card.style.translate, left: rect.left, right: rect.right, top: rect.top, bodyLeft: body?.left ?? NaN, bodyRight: body?.right ?? NaN });
           }
           if (performance.now() - start < 1_500) requestAnimationFrame(tick);
         };
@@ -190,7 +197,7 @@ async function recordSettle(page: Page, cardText: string): Promise<void> {
       },
       true,
     );
-    type SettleFrame = { translate: string; left: number; top: number };
+    type SettleFrame = { translate: string; left: number; right: number; top: number; bodyLeft: number; bodyRight: number };
   }, cardText);
 }
 
@@ -223,6 +230,33 @@ test("a dropped board card glides from where the overlay let go into its slot", 
   const distances = glide.map((frame) => Math.hypot(frame.left - rest.left, frame.top - rest.top));
   expect(distances[distances.length - 1]!).toBeLessThan(distances[0]!);
   expect(rest.translate).toBe("");
+});
+
+test("a drop near the column's edge starts the glide inside the column: the whole card shows from the first frame", async ({ page }) => {
+  const project = await createProjectViaMcp();
+  await mcp("create_work_item", { project_id: project.id, name: "Edge glider" });
+  await recordSettle(page, "Edge glider");
+  await openLayout(page, project.id, "board");
+  await waitForAppHydrated(page);
+
+  const card = boardColumn(page, "Backlog").locator(".tessera-board-card").filter({ hasText: "Edge glider" });
+  await expect(card).toBeVisible();
+  // Let go 25px from the target column's right edge: the overlay's left edge is about 150px right of the slot, far beyond
+  // the column body's 8px padding, so an unclamped start would sit outside the body (which clips it) until it slid back.
+  const targetBody = boardColumn(page, "In Progress").locator(".tessera-board-column-body");
+  await dragByPointer(page, card, targetBody, { offset: { x: 150, y: 60 } });
+
+  const landed = boardColumn(page, "In Progress").locator(".tessera-board-card").filter({ hasText: "Edge glider" });
+  await expect(landed).toBeVisible();
+  await expect.poll(() => landed.evaluate((element) => (element as HTMLElement).style.translate), { timeout: 5_000 }).toBe("");
+
+  const frames = await page.evaluate(() => (window as unknown as { __settle: SettleFrame[] }).__settle);
+  const glide = frames.filter((frame) => frame.translate !== "");
+  expect(glide.length, `frames with a translate: ${JSON.stringify(frames.slice(0, 6))}`).toBeGreaterThanOrEqual(3);
+  for (const frame of glide) {
+    expect(frame.left, `the card starts inside the body on the left: ${JSON.stringify(frame)}`).toBeGreaterThanOrEqual(frame.bodyLeft - 0.5);
+    expect(frame.right, `the card starts inside the body on the right: ${JSON.stringify(frame)}`).toBeLessThanOrEqual(frame.bodyRight + 0.5);
+  }
 });
 
 test("a card reordered inside its column settles too, and a cancelled drag does not", async ({ page }) => {
@@ -312,4 +346,93 @@ test("the quick-add placeholder fades in on Astryx's entry animation; real rows 
   expect(animation.position).toBe("sticky");
   await page.waitForTimeout(600);
   await expect.poll(() => bar.evaluate((element) => getComputedStyle(element).transform)).toBe("none");
+});
+
+/**
+ * Samples the quick-add placeholder (`selector`) at every frame from the moment it exists: its effective opacity (the
+ * computed opacity times the filter's opacity(x), the way the page dims it) and whether a CSS animation is still running.
+ */
+async function recordPlaceholder(page: Page, selector: string): Promise<void> {
+  await page.addInitScript((selector: string) => {
+    const frames: Array<{ alpha: number; running: boolean }> = [];
+    (window as unknown as { __placeholder: typeof frames }).__placeholder = frames;
+    const tick = () => {
+      const element = document.querySelector(selector);
+      if (element) {
+        const style = getComputedStyle(element);
+        const dim = /opacity\(([\d.]+)\)/.exec(style.filter);
+        frames.push({ alpha: parseFloat(style.opacity) * (dim ? parseFloat(dim[1]!) : 1), running: element.getAnimations().some((animation) => animation instanceof CSSAnimation) });
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, selector);
+}
+
+/** Holds the first Server Action POST after `hold()` until `release()`, so the placeholder outlives its own fade. */
+async function holdNextAction(page: Page): Promise<{ hold: () => void; release: () => void }> {
+  let armed = false;
+  let release: () => void = () => {};
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  await page.route("**/*", async (route) => {
+    const request = route.request();
+    if (armed && request.method() === "POST" && request.headers()["next-action"] !== undefined) {
+      armed = false;
+      await gate;
+    }
+    await route.continue();
+  });
+  return { hold: () => (armed = true), release: () => release() };
+}
+
+/**
+ * The placeholder's fade ends at its resting dimming with no pop: Astryx's fadeIn drives `opacity` from 0 to 1, so a rule
+ * that rested at `opacity: 0.6` climbed to 1 and dropped to 0.6 when the animation ended. Every sampled frame stays at or
+ * below 0.6 (within a rounding margin) and, once the animation is over, sits at 0.6.
+ */
+async function expectNoPop(page: Page): Promise<void> {
+  const read = () => page.evaluate(() => (window as unknown as { __placeholder: Array<{ alpha: number; running: boolean }> }).__placeholder.slice());
+  await expect.poll(async () => (await read()).filter((frame) => !frame.running).length, { timeout: 10_000 }).toBeGreaterThan(3);
+  const frames = await read();
+  expect(frames.some((frame) => frame.running), "the fade ran").toBe(true);
+  const peak = Math.max(...frames.map((frame) => frame.alpha));
+  expect(peak, `no frame is brighter than the resting dimming: ${frames.map((frame) => frame.alpha.toFixed(2)).join(",")}`).toBeLessThanOrEqual(0.62);
+  const settled = frames.slice(frames.findIndex((frame) => !frame.running));
+  for (const frame of settled) expect(frame.alpha, "at rest after the fade").toBeCloseTo(0.6, 1);
+}
+
+test("the quick-add placeholder row fades to its resting dimming without a pop", async ({ page }) => {
+  const project = await createProjectViaMcp();
+  await mcp("create_work_item", { project_id: project.id, name: "First" });
+  await recordPlaceholder(page, ".tessera-wi-row-pending");
+  const gate = await holdNextAction(page);
+  await openLayout(page, project.id, "list", { group_by: null });
+  await waitForAppHydrated(page);
+
+  await page.getByRole("button", { name: "New work item" }).last().click();
+  await page.getByRole("textbox", { name: "New work item" }).fill("Held row");
+  gate.hold();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".tessera-wi-row-pending")).toBeVisible();
+  await expectNoPop(page);
+  gate.release();
+  await expect(page.locator(".tessera-wi-row-pending")).toHaveCount(0);
+});
+
+test("the quick-add placeholder card fades to its resting dimming without a pop", async ({ page }) => {
+  const project = await createProjectViaMcp();
+  await recordPlaceholder(page, ".tessera-board-card-pending");
+  const gate = await holdNextAction(page);
+  await openLayout(page, project.id, "board");
+  await waitForAppHydrated(page);
+
+  // The column has two such buttons (the header's plus and the footer's quick-add row); the footer's opens the input.
+  await page.getByRole("button", { name: "Add a work item to Backlog", exact: true }).last().click();
+  await page.getByRole("textbox", { name: "Add a work item to Backlog" }).fill("Held card");
+  gate.hold();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".tessera-board-card-pending")).toBeVisible();
+  await expectNoPop(page);
+  gate.release();
+  await expect(page.locator(".tessera-board-card-pending")).toHaveCount(0);
 });

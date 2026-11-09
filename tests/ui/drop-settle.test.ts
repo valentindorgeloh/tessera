@@ -5,7 +5,9 @@
  * - `usePointerDrag` measures the drag overlay at the moment of the drop and hands the rectangle to `onDrop`
  *   (`overlayRect`), and exposes the registered item element (`getItemElement`); both are additive;
  * - BoardLayout jumps the dropped card back to the overlay's place and springs it to rest (`set`, then `animate` to 0
- *   with no velocity), only for a drop that goes through, never under Reduce Motion.
+ *   with no velocity), only for a drop that goes through, never under Reduce Motion;
+ * - the start is clamped horizontally so the card begins inside its column body (a scroller that clips it): a drop near
+ *   the column's edge no longer starts the glide cut off.
  *
  * jsdom has no layout, so rectangles are stubbed (tests/helpers/pointer-drag-dom.ts) and the animator is a spy;
  * tests/e2e/motion-work-items.spec.ts runs the real thing in a browser.
@@ -16,6 +18,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { box, drag, pointerEvent, stubRects, type Box } from "../helpers/pointer-drag-dom";
 import type { DragDropEvent } from "@/components/dnd/use-pointer-drag";
 import type { LayoutProps, MoveInput, ProjectBundle } from "@/components/work-items/types";
+import { settleStartX } from "@/components/work-items/settle-offset";
 import type { ActorRow, Display, Project, State, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 
 // The real hooks, except the animator: a spy handle.
@@ -68,6 +71,7 @@ beforeEach(() => {
     }) as MediaQueryList) as typeof window.matchMedia;
   animator.set.mockClear();
   animator.animate.mockClear();
+  overlayBox = OVERLAY;
 });
 
 afterEach(async () => {
@@ -231,26 +235,37 @@ function makeItem(id: string, index: number, state: string): WorkItem {
 /** Which card ids sit in which state column. */
 type Placement = { todo: string[]; done: string[] };
 
-function resultOf(placement: Placement): WorkItemListResult {
+/** `lanes`: one swimlane (by priority) holds every card, so each column's cards sit in a lane cell instead of the column body. */
+function resultOf(placement: Placement, lanes: boolean): WorkItemListResult {
   const items = [...placement.todo.map((id, i) => makeItem(id, i, TODO)), ...placement.done.map((id, i) => makeItem(id, i + 10, DONE))];
-  const group = (id: string, name: string, ids: string[]) => ({ field: "state" as const, id, name, color: null, count: ids.length, item_ids: ids, has_more: false });
+  const group = (id: string, name: string, ids: string[]) => ({
+    field: "state" as const,
+    id,
+    name,
+    color: null,
+    count: ids.length,
+    item_ids: ids,
+    has_more: false,
+    ...(lanes ? { sub_groups: [{ field: "priority" as const, id: "none", name: "No priority", color: null, count: ids.length, item_ids: ids, has_more: false }] } : {}),
+  });
   return { items, total: items.length, cursor: 1, groups: [group(TODO, "Todo", placement.todo), group(DONE, "Done", placement.done)] } as unknown as WorkItemListResult;
 }
 
 const DISPLAY: Display = { ...DEFAULT_DISPLAY, layout: "board", group_by: "state" };
+const LANES_DISPLAY: Display = { ...DISPLAY, sub_group_by: "priority" };
 
 const moves: MoveInput[] = [];
 let placementOf: ((moved: Placement) => void) | null = null;
 
 /** The board with the optimistic copy a drop commits at once: the move lands in the same commit as the drag state clearing. */
-function BoardHarness({ initial, after }: { initial: Placement; after: Placement }) {
+function BoardHarness({ initial, after, lanes = false }: { initial: Placement; after: Placement; lanes?: boolean }) {
   const [placement, setPlacement] = useState(initial);
   useEffect(() => {
     placementOf = setPlacement;
   }, []);
   const props: LayoutProps = {
-    result: resultOf(placement),
-    display: DISPLAY,
+    result: resultOf(placement, lanes),
+    display: lanes ? LANES_DISPLAY : DISPLAY,
     bundle: makeBundle(),
     onMove: (input) => {
       moves.push(input);
@@ -263,22 +278,28 @@ function BoardHarness({ initial, after }: { initial: Placement; after: Placement
 }
 
 const COLUMN_X = [0, 400];
+/** The column body's padding (padding={2}, 8px): the card sits this far inside it on both sides. */
+const PAD = 8;
 const OVERLAY = box(430, 150, 350, 80);
+let overlayBox: Box = OVERLAY;
 
-/** Column bodies side by side; a card sits in its column's x at a fixed step; the overlay is where the pointer let go. */
+/** What clips the cards: a column's body, or a swimlane's cell. */
+const BODY = ".tessera-board-column-body, .tessera-board-cell";
+
+/** Bodies side by side; a card sits inside its body, inset by its padding, at a fixed step; the overlay is where the pointer let go. */
 function boardRects(): () => void {
   return stubRects((el) => {
-    if (el.classList.contains("tessera-board-column-body")) {
-      const index = [...document.querySelectorAll(".tessera-board-column-body")].indexOf(el);
+    if (el.matches(BODY)) {
+      const index = [...document.querySelectorAll(BODY)].indexOf(el);
       return box(COLUMN_X[index] ?? 0, 50, 350, 600);
     }
     if (el.classList.contains("tessera-board-card")) {
-      const body = el.closest(".tessera-board-column-body");
-      const column = [...document.querySelectorAll(".tessera-board-column-body")].indexOf(body as Element);
+      const body = el.closest(BODY);
+      const column = [...document.querySelectorAll(BODY)].indexOf(body as Element);
       const row = [...(body?.querySelectorAll(".tessera-board-card") ?? [])].indexOf(el);
-      return box(COLUMN_X[column] ?? 0, 60 + row * 90, 350, 80);
+      return box((COLUMN_X[column] ?? 0) + PAD, 60 + row * 90, 350 - 2 * PAD, 80);
     }
-    if (el.classList.contains("tessera-drag-overlay")) return OVERLAY;
+    if (el.classList.contains("tessera-drag-overlay")) return overlayBox;
     return null;
   });
 }
@@ -298,12 +319,48 @@ describe("BoardLayout drop settle", () => {
     expect(animator.set).not.toHaveBeenCalled();
     await dropOnDone("a");
     expect(moves).toHaveLength(1);
-    // The card is now the first one of the Done column: its slot is at x 400, y 60; the overlay was at 430, 150.
+    // The card is now the first one of the Done column: its slot is at x 408, y 60; the overlay was at 430, 150. The
+    // horizontal offset (22) is beyond the body's padding, so it is clamped to it; the vertical one is kept.
     expect(animator.set).toHaveBeenCalledTimes(1);
-    expect(animator.set).toHaveBeenCalledWith({ x: OVERLAY.left - 400, y: OVERLAY.top - 60 });
+    expect(animator.set).toHaveBeenCalledWith({ x: PAD, y: OVERLAY.top - 60 });
     expect(animator.animate).toHaveBeenCalledTimes(1);
     expect(animator.animate).toHaveBeenCalledWith({ x: 0, y: 0 }); // no velocity: it would overshoot
     expect(animator.set.mock.invocationCallOrder[0]).toBeLessThan(animator.animate.mock.invocationCallOrder[0]);
+  });
+
+  it("starts inside the column body: an overlay that let go beyond either edge is clamped to it, one inside is kept", async () => {
+    const SLOT_X = COLUMN_X[1]! + PAD;
+    const cases: Array<{ name: string; left: number; x: number }> = [
+      { name: "far right of the column", left: 700, x: PAD },
+      { name: "far left of the column", left: 120, x: -PAD },
+      { name: "within the padding", left: SLOT_X + 5, x: 5 },
+      { name: "on the slot", left: SLOT_X, x: 0 },
+    ];
+    for (const { name, left, x } of cases) {
+      overlayBox = box(left, 150, 350, 80);
+      restoreRects = boardRects();
+      moves.length = 0;
+      animator.set.mockClear();
+      await mountNode(createElement(BoardHarness, { initial: { todo: ["a", "b"], done: [] }, after: { todo: ["b"], done: ["a"] } }));
+      await dropOnDone("a");
+      expect(animator.set, name).toHaveBeenCalledWith({ x, y: 150 - 60 });
+      restoreRects?.();
+      restoreRects = null;
+      const current = root;
+      await act(async () => current?.unmount());
+      root = null;
+      container?.remove();
+    }
+  });
+
+  it("clamps the same way in a swimlane, where the lane's cell clips the card", async () => {
+    restoreRects = boardRects();
+    moves.length = 0;
+    await mountNode(createElement(BoardHarness, { initial: { todo: ["a", "b"], done: [] }, after: { todo: ["b"], done: ["a"] }, lanes: true }));
+    expect(document.querySelectorAll(".tessera-board-cell")).toHaveLength(2);
+    await dropOnDone("a");
+    expect(moves).toHaveLength(1);
+    expect(animator.set).toHaveBeenCalledWith({ x: PAD, y: OVERLAY.top - 60 });
   });
 
   it("does not settle on a plain render, a refresh or a press that never travels", async () => {
@@ -338,5 +395,31 @@ describe("BoardLayout drop settle", () => {
     await dropOnDone("a");
     expect(moves).toHaveLength(1);
     expect(animator.set).not.toHaveBeenCalled();
+  });
+});
+
+describe("settleStartX", () => {
+  const slot = { left: 108, right: 442 };
+  const clip = { left: 100, right: 450 };
+
+  it("keeps the offset when the card has no clipping body", () => {
+    expect(settleStartX(300, slot, null)).toBe(300);
+    expect(settleStartX(-300, slot, undefined)).toBe(-300);
+  });
+
+  it("keeps an offset that leaves the card inside the body", () => {
+    expect(settleStartX(0, slot, clip)).toBe(0);
+    expect(settleStartX(7, slot, clip)).toBe(7);
+    expect(settleStartX(-8, slot, clip)).toBe(-8);
+  });
+
+  it("clamps an offset that would push the card past either edge", () => {
+    expect(settleStartX(300, slot, clip)).toBe(8);
+    expect(settleStartX(-300, slot, clip)).toBe(-8);
+    expect(settleStartX(9, slot, clip)).toBe(8);
+  });
+
+  it("starts in the slot when the card is wider than its body", () => {
+    expect(settleStartX(50, { left: 90, right: 460 }, clip)).toBe(0);
   });
 });
