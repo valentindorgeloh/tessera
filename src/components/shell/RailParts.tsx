@@ -58,8 +58,7 @@ export function ExpandedOnly({ children }: { children: ReactNode }) {
  * A sidebar destination row (S3). Since Astryx 0.7.5 a collapsed SideNavItem
  * names itself in a tooltip on its own link, opened by hover or keyboard focus,
  * so this renders the bare row; the 0.6.8 wrapper Tooltip would now show a
- * second one. It stays the seam for the rail-label attribute P12 plans
- * (decision 128).
+ * second one. It stays the seam for the rail-label attribute P12 plans.
  */
 export function RailItem(props: ComponentProps<typeof SideNavItem>) {
   return <SideNavItem {...props} />;
