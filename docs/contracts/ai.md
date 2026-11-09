@@ -73,7 +73,7 @@ Built in P1 (`src/lib/tessera/tools/describe-filters.ts`, tool `describe_filters
   filters: { <every Filters key>: { type: "ids" | "enum" | "date" | "text" | "boolean", of?: "state" | "label" | "actor" | "cycle" | "module" | "project", description } },
            // `parent` is an ids filter without `of` (work item ids)
   display: { layout: Layout[], group_by: GroupBy[], sub_group_by: SubGroupBy[], order_by: OrderBy[], type: (null | "active" | "backlog")[],
-             show_empty_groups: boolean[], sub_items: boolean[], calendar: { layout: ("month" | "week")[], show_weekends: boolean[] }, properties: string[] },
+             show_empty_groups: boolean[], sub_items: boolean[], calendar: { layout: ("week" | "month" | "quarter")[], show_weekends: boolean[] }, properties: string[] },
   default_display: Display,            // what a list shows when nothing is saved; a DisplayPatch merges over it
   examples: [{ title: "Open high-priority items assigned to me", filters: Filters, display: DisplayPatch },
              { title: "Overdue work on a board by state", ... }, { title: "Due in the next two weeks, grouped by assignee, top-level items only", ... }],

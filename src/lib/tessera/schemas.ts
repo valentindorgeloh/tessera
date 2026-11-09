@@ -134,7 +134,7 @@ export {
 export const GroupBySchema = z.enum(GROUPABLE_FIELDS);
 export const SubGroupBySchema = z.enum(["state", "state_group", "priority", "labels", "cycle", "module", "assignees", "created_by", "created_at", "target_date"]);
 export const OrderBySchema = z.enum(ORDER_BY_VALUES);
-export const CalendarLayoutSchema = z.enum(["month", "week"]);
+export const CalendarLayoutSchema = z.enum(["week", "month", "quarter"]);
 export const GanttZoomSchema = z.enum(["week", "month", "quarter"]);
 
 /** Which columns and badges a layout shows. */
@@ -156,7 +156,7 @@ export const DisplayPropertiesSchema = z.object({
 });
 
 export const CalendarDisplaySchema = z.object({
-  layout: CalendarLayoutSchema.default("month").describe("Month or week grid."),
+  layout: CalendarLayoutSchema.default("month").describe("Week, month or quarter grid."),
   show_weekends: z.boolean().default(true).describe("Show Saturday and Sunday columns."),
 });
 

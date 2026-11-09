@@ -89,6 +89,11 @@
   background: var(--color-background-surface);
 }
 
+/* Quarter zoom (decision 139): 13 or 14 short rows, so the cell floor is half the month's. */
+.tessera-cal[data-view="quarter"] .tessera-cal-day {
+  min-height: calc(var(--spacing-8) * 2);
+}
+
 .tessera-cal-day[data-weekend],
 .tessera-cal-day[data-outside] {
   background: var(--color-background-muted);

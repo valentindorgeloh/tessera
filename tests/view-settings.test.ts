@@ -166,6 +166,12 @@ describe("saveViewSettings", () => {
     expect(rawRow(ctx, "project", projectId)).toBeUndefined();
   });
 
+  it("round-trips the quarter calendar zoom (decision 139)", () => {
+    const { ctx, projectId } = setup();
+    expect(saveViewSettings(ctx, "project", projectId, { display: { calendar: { layout: "quarter" } } }).display.calendar.layout).toBe("quarter");
+    expect(getViewSettings(ctx, "project", projectId).display.calendar).toEqual({ layout: "quarter", show_weekends: true });
+  });
+
   it("keys rows by (scope_type, scope_id) so scopes never bleed into each other", () => {
     const { ctx, projectId } = setup();
     const other = createProject(ctx, { name: "Other", identifier: "OTH" });

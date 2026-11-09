@@ -6,20 +6,32 @@
  *   the grab cursor to that alone); a read-only chip has no Move control and no
  *   grab cursor, but a click still opens the peek (pointer cursor);
  * - the "+N more" button keeps "+N more" as its accessible name while its visible
- *   text splits into the count and a word that narrow cells hide.
+ *   text splits into the count and a word that narrow cells hide;
+ * - the quarter zoom (decision 139): 13 or 14 week rows, muted days outside the
+ *   quarter, "Nov 1" labels, two chips per cell, and only a "+N" count per cell
+ *   when the calendar is narrower than 600px (a ResizeObserver stub reports it);
+ * - closed popovers mount no content (docs/field-guide/performance.md).
  */
 import { act, createElement, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { DEFAULT_DISPLAY } from "@/lib/tessera/schemas";
 import type { WorkItem } from "@/lib/tessera/types";
+import type { Display } from "@/lib/tessera/types";
 import type { ProjectBundle } from "@/components/work-items/types";
+
+/** The page's query string (`?cal=` anchors the period); each test sets it, `afterEach` clears it. */
+const nav = vi.hoisted(() => ({ search: "" }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
   usePathname: () => "/projects/p/work-items",
-  useSearchParams: () => new URLSearchParams(""),
+  useSearchParams: () => new URLSearchParams(nav.search),
 }));
+
+/** ResizeObserver stub: `resizeCalendar(width)` reports a content-box width to the observers of the calendar root. */
+type ObserverEntry = { callback: ResizeObserverCallback; target: Element | null; self: ResizeObserver };
+const observers: ObserverEntry[] = [];
 
 const { CalendarLayout } = await import("@/components/work-items/CalendarLayout");
 const { ProjectScope } = await import("@/components/work-items/project-provider");
@@ -82,21 +94,46 @@ const items = [1, 2, 3, 4, 5, 6].map((n) => item(n, "2026-10-17"));
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-function calendar(readOnly: boolean, onOpen: (id: string) => void = vi.fn()): ReactNode {
+function calendar(
+  readOnly: boolean,
+  onOpen: (id: string) => void = vi.fn(),
+  options: { display?: Display; items?: WorkItem[]; onQuickAdd?: ComponentProps<typeof CalendarLayout>["onQuickAdd"] } = {},
+): ReactNode {
   const scopeProps = { bundle } as ComponentProps<typeof ProjectScope>;
+  const shown = options.items ?? items;
   return createElement(
     ProjectScope,
     scopeProps,
     createElement(CalendarLayout, {
-      result: { items, total: items.length, cursor: 1, relations: [] },
-      display: DEFAULT_DISPLAY,
+      result: { items: shown, total: shown.length, cursor: 1, relations: [] },
+      display: options.display ?? DEFAULT_DISPLAY,
       bundle,
       onMove: vi.fn(),
       onUpdate: vi.fn(),
       onOpen,
+      onQuickAdd: options.onQuickAdd,
       readOnly,
     }),
   );
+}
+
+function zoom(layout: Display["calendar"]["layout"]): Display {
+  return { ...DEFAULT_DISPLAY, layout: "calendar", calendar: { layout, show_weekends: true } };
+}
+
+async function resizeCalendar(width: number) {
+  await act(async () => {
+    for (const entry of observers) {
+      if (entry.target instanceof HTMLElement && entry.target.classList.contains("tessera-cal")) {
+        entry.callback([{ contentRect: { width } } as unknown as ResizeObserverEntry], entry.self);
+      }
+    }
+  });
+}
+
+/** The day cell of `day`, found through its quick-add button (render with `onQuickAdd`). */
+function cellOf(el: HTMLElement, day: string): HTMLElement | null {
+  return el.querySelector(`button[aria-label="Add on ${day}"]`)?.closest<HTMLElement>(".tessera-cal-day") ?? null;
 }
 
 async function render(node: ReactNode) {
@@ -114,14 +151,21 @@ beforeAll(() => {
   if (typeof window.matchMedia !== "function") {
     window.matchMedia = ((query: string) => ({ matches: false, media: query, addEventListener() {}, removeEventListener() {} }) as unknown as MediaQueryList) as typeof window.matchMedia;
   }
-  if (typeof globalThis.ResizeObserver !== "function") {
-    class ResizeObserverStub {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
+  class ResizeObserverStub {
+    private readonly entries: ObserverEntry[] = [];
+    constructor(private readonly callback: ResizeObserverCallback) {}
+    observe(target: Element) {
+      const entry = { callback: this.callback, target, self: this as unknown as ResizeObserver };
+      this.entries.push(entry);
+      observers.push(entry);
     }
-    globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+    unobserve() {}
+    disconnect() {
+      for (const entry of this.entries) observers.splice(observers.indexOf(entry), 1);
+      this.entries.length = 0;
+    }
   }
+  globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
 });
 
 afterEach(async () => {
@@ -135,6 +179,8 @@ afterEach(async () => {
   document.body.replaceChildren();
   root = null;
   container = null;
+  nav.search = "";
+  observers.length = 0;
 });
 
 describe("calendar chips", () => {
@@ -145,8 +191,12 @@ describe("calendar chips", () => {
     const chips = [...el.querySelectorAll(inCell)];
     expect(chips).toHaveLength(4);
     expect(chips.every((chip) => chip.hasAttribute("data-draggable"))).toBe(true);
-    // The two chips of the "+2 more" popover are not dragged anywhere.
-    const all = [...el.querySelectorAll(".tessera-cal-open")];
+    // The closed "+2 more" popover mounts nothing; opened, its two chips are not dragged anywhere.
+    expect(el.ownerDocument.querySelectorAll(".tessera-cal-open")).toHaveLength(4);
+    await act(async () => {
+      el.querySelector<HTMLButtonElement>("button.tessera-cal-overflow")?.click();
+    });
+    const all = [...el.ownerDocument.querySelectorAll(".tessera-cal-open")];
     expect(all).toHaveLength(6);
     expect(all.filter((chip) => !chip.hasAttribute("data-draggable"))).toHaveLength(2);
   });
@@ -191,5 +241,85 @@ describe("calendar +N more button", () => {
     expect(button?.getAttribute("aria-label") ?? button?.textContent?.trim()).toContain("+2 more");
     const word = button?.querySelector(".tessera-cal-overflow-word");
     expect(word?.textContent?.trim()).toBe("more");
+  });
+});
+
+describe("calendar popovers mount their content only while open", () => {
+  it("renders no Move to date field while its popover is closed", async () => {
+    await render(calendar(false));
+    expect(document.querySelectorAll("input")).toHaveLength(0);
+    expect(document.body.textContent).not.toContain("Move to date");
+  });
+});
+
+describe("calendar quarter zoom (decision 139)", () => {
+  /** Three items on Mon Nov 2 and one on Tue Nov 3. */
+  const quarterItems = [item(1, "2026-11-02"), item(2, "2026-11-02"), item(3, "2026-11-02"), item(4, "2026-11-03")];
+
+  async function quarter() {
+    nav.search = "cal=2026-11-10";
+    return render(calendar(false, vi.fn(), { display: zoom("quarter"), items: quarterItems, onQuickAdd: vi.fn() }));
+  }
+
+  it("draws Q4 2026 as 14 week rows with month labels and muted days outside the quarter", async () => {
+    const el = await quarter();
+    expect(el.querySelector("h3")?.textContent).toBe("Q4 2026 (Oct – Dec)");
+    expect(el.querySelector(".tessera-cal")?.getAttribute("data-view")).toBe("quarter");
+    expect(el.querySelectorAll(".tessera-cal-week")).toHaveLength(14);
+    expect([...el.querySelectorAll(".tessera-cal-num")].map((num) => num.textContent)).toContain("Nov 1");
+    expect(cellOf(el, "2026-09-28")?.hasAttribute("data-outside")).toBe(true);
+    expect(cellOf(el, "2026-10-01")?.hasAttribute("data-outside")).toBe(false);
+    expect(cellOf(el, "2027-01-03")?.hasAttribute("data-outside")).toBe(true);
+    expect(el.querySelector('button[aria-label="Previous quarter"]')).not.toBeNull();
+    expect(el.querySelector('button[aria-label="Next quarter"]')).not.toBeNull();
+  });
+
+  it("shows two chips per cell before '+N more'", async () => {
+    const el = await quarter();
+    const cell = cellOf(el, "2026-11-02");
+    expect(cell?.querySelectorAll(":scope > .tessera-cal-item")).toHaveLength(2);
+    const overflow = cell?.querySelector<HTMLButtonElement>("button.tessera-cal-overflow");
+    expect(overflow?.textContent?.trim()).toBe("+1 more");
+  });
+
+  it("shows only a '+N' count per cell when the calendar is narrower than 600px", async () => {
+    const el = await quarter();
+    await resizeCalendar(500);
+    expect(el.querySelectorAll(".tessera-cal-day .tessera-cal-item")).toHaveLength(0);
+    const three = cellOf(el, "2026-11-02")?.querySelector<HTMLButtonElement>("button.tessera-cal-overflow");
+    expect(three?.getAttribute("aria-label")).toBe("3 work items on 2026-11-02");
+    expect(three?.textContent?.trim()).toBe("+3");
+    const one = cellOf(el, "2026-11-03")?.querySelector<HTMLButtonElement>("button.tessera-cal-overflow");
+    expect(one?.getAttribute("aria-label")).toBe("1 work item on 2026-11-03");
+    // Wide again: the chips come back.
+    await resizeCalendar(800);
+    expect(cellOf(el, "2026-11-02")?.querySelectorAll(":scope > .tessera-cal-item")).toHaveLength(2);
+  });
+});
+
+describe("calendar week and month zoom (unchanged by the quarter)", () => {
+  const sixOnOct1 = [1, 2, 3, 4, 5, 6].map((n) => item(n, "2026-10-01"));
+
+  it("keeps four chips before '+N more' and mutes days outside the anchor's month in the week", async () => {
+    nav.search = "cal=2026-10-01";
+    const el = await render(calendar(false, vi.fn(), { display: zoom("week"), items: sixOnOct1, onQuickAdd: vi.fn() }));
+    expect(el.querySelectorAll(".tessera-cal-week")).toHaveLength(1);
+    expect(cellOf(el, "2026-09-28")?.hasAttribute("data-outside")).toBe(true);
+    expect(cellOf(el, "2026-10-01")?.hasAttribute("data-outside")).toBe(false);
+    expect(cellOf(el, "2026-10-01")?.querySelectorAll(":scope > .tessera-cal-item")).toHaveLength(4);
+    expect(el.querySelector("button.tessera-cal-overflow")?.textContent?.trim()).toBe("+2 more");
+    // A narrow week keeps its chips: the count-only cell is the quarter's alone.
+    await resizeCalendar(500);
+    expect(cellOf(el, "2026-10-01")?.querySelectorAll(":scope > .tessera-cal-item")).toHaveLength(4);
+  });
+
+  it("keeps four chips before '+N more' and plain day numbers in the month", async () => {
+    nav.search = "cal=2026-10-01";
+    const el = await render(calendar(false, vi.fn(), { display: zoom("month"), items: sixOnOct1, onQuickAdd: vi.fn() }));
+    expect(el.querySelectorAll(".tessera-cal-week")).toHaveLength(5);
+    expect(cellOf(el, "2026-10-01")?.querySelectorAll(":scope > .tessera-cal-item")).toHaveLength(4);
+    expect(el.querySelector("button.tessera-cal-overflow")?.textContent?.trim()).toBe("+2 more");
+    expect([...el.querySelectorAll(".tessera-cal-num")].map((num) => num.textContent)).not.toContain("Nov 1");
+    expect(el.querySelector('button[aria-label="Previous month"]')).not.toBeNull();
   });
 });

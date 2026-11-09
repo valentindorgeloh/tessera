@@ -79,6 +79,13 @@ describe("decodeUrlState", () => {
     expect(decodeUrlState(encoded)).toEqual({ display: { properties: { labels: false }, calendar: { layout: "week" } } });
   });
 
+  it("decodes the quarter calendar zoom and rejects an unknown one (decision 139)", () => {
+    const quarter = Buffer.from(JSON.stringify({ display: { calendar: { layout: "quarter" } } })).toString("base64url");
+    expect(decodeUrlState(quarter)).toEqual({ display: { calendar: { layout: "quarter" } } });
+    const year = Buffer.from(JSON.stringify({ display: { calendar: { layout: "year" } } })).toString("base64url");
+    expect(decodeUrlState(year)).toEqual({});
+  });
+
   it("drops empty nested patches and unknown property keys", () => {
     const encoded = Buffer.from(JSON.stringify({ display: { properties: { bogus: true }, calendar: {} } })).toString("base64url");
     expect(decodeUrlState(encoded)).toEqual({});

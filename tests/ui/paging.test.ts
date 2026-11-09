@@ -126,6 +126,12 @@ describe("calendar period and rich filters", () => {
     expect(listPaging(month, "2026-10-14", "2026-10-10", 0)).toEqual({ limit: CALENDAR_CAP, calendar_window: { from: "2026-09-27", to: "2026-10-31" } });
   });
 
+  it("windows the whole weeks of the quarter around ?cal= (decision 139)", () => {
+    const quarter: Display = { ...month, calendar: { layout: "quarter", show_weekends: true } };
+    // Q4 2026: Thu Oct 1 to Thu Dec 31; Monday first reaches back to Mon Sep 28 and on to Sun Jan 3 (14 weeks).
+    expect(calendarWindow(quarter, "2026-11-10", "2026-01-01")).toEqual({ from: "2026-09-28", to: "2027-01-03" });
+  });
+
   it("sends the window only for the calendar", () => {
     expect(listPaging(month, "2026-10-14", "2026-10-10")).toEqual({ limit: CALENDAR_CAP, calendar_window: { from: "2026-09-28", to: "2026-11-01" } });
     expect(listPaging({ ...DEFAULT_DISPLAY, layout: "table", group_by: null }, "2026-10-14", "2026-10-10")).toEqual({ limit: 200 });

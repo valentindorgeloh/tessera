@@ -54,7 +54,7 @@ export function pageSizeFor(display: Display): { limit?: number; per_group_limit
 
 /**
  * The first and last day the calendar shows around `?cal=` (any day inside the period, default today): the whole
- * weeks of a month, or the one week. The server loads only the items targeted in this window plus the unscheduled
+ * weeks of a week, a month or a quarter (up to 14 weeks). The server loads only the items targeted in this window plus the unscheduled
  * ones (decision 112); the calendar draws items by target date only. `weekStartsOn` is the workspace `week_start`,
  * so the window matches the grid the client draws.
  */

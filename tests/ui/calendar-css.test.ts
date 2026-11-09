@@ -122,6 +122,14 @@ describe("calendar gutter, header and today (visual audit T9-T11)", () => {
   it("puts the phone week rule after the wide ones so it wins at equal specificity", () => {
     expect(source.indexOf('@media (max-width: 480px)')).toBeGreaterThan(source.indexOf('.tessera-cal[data-view="week"] > .tessera-cal-week {'));
   });
+
+  it("halves the cell floor in the quarter zoom and keys it on data-view, with no data-zoom (decision 139)", () => {
+    expect(topRule('.tessera-cal[data-view="quarter"] .tessera-cal-day')).toMatch(/min-height:\s*calc\(var\(--spacing-8\) \* 2\)/);
+    expect(topRule(".tessera-cal-day")).toMatch(/min-height:\s*calc\(var\(--spacing-8\) \* 4\)/);
+    // The quarter rule comes after the base cell rule, so it wins at the higher specificity anyway and reads in order.
+    expect(source.indexOf('.tessera-cal[data-view="quarter"] .tessera-cal-day')).toBeGreaterThan(source.indexOf(".tessera-cal-day {"));
+    expect(source).not.toMatch(/data-zoom/);
+  });
 });
 
 describe("calendar touch (decision 14)", () => {

@@ -51,7 +51,7 @@ export const DisplayPropertiesPatchSchema = z
   .describe("Properties to show (true) or hide (false); omitted ones keep their stored value.");
 
 export const CalendarDisplayPatchSchema = z.object({
-  layout: CalendarLayoutSchema.optional().describe("Month or week grid."),
+  layout: CalendarLayoutSchema.optional().describe("Week, month or quarter grid."),
   show_weekends: z.boolean().optional().describe("Show Saturday and Sunday columns."),
 });
 
