@@ -60,7 +60,7 @@ Surprises that cost agents time before. One line each, newest at the end of its 
 - `ListItem` clips a plain string label to one line; pass a `<Text>` to wrap. `TextInput width="fill"` sets no CSS width; use `width="100%"`. A column-flex anchor centres with `justify-content`; `align-items: center` there clips the title.
 - Astryx width conditions only name breakpoints: the theme's `sm` is 481, so the compiled `(width < 481px)` is max-width 480px (`adaptations.widthBreakpoints`).
 - Astryx 0.6.8 Text props omit `title` (TS2322); a spread that slips it past the types is glue, so the shortened Since actor has no tooltip. `Text textWrap="nowrap"` keeps a key like "WEB-12" from breaking at its hyphen. A Tooltip renders a wrapper div per Tab even when disabled, so tab-neighbour selectors target the wrappers (shell.css).
-- Astryx 0.7.x changed several things this repo leans on (disabled controls are `aria-disabled`, status roles derived, new motion tokens, Collapsible wrapper, coarse-pointer hit layers): docs/field-guide/astryx-0.7.md.
+- Astryx 0.7.x changed several things this repo leans on (disabled controls are `aria-disabled`, status roles derived, new motion tokens, Collapsible wrapper, coarse-pointer hit layers, and motion traps: a translated panel adds scroll range, an Activity re-show replays a CSS animation, `fadeIn` ends at opacity 1): docs/field-guide/astryx-0.7.md.
 - Long lists are slow in the browser, not the server. Row text: CSS one-line class or `OneLineText`, never `Text maxLines` without `hasTruncateTooltip={false}`; per-row popovers: `content={isOpen ? … : null}`; memoised rows need stable props (`stable.ts`, `useProjectRow()`); no `:has()` on the list scroller. Details and measuring rules: docs/field-guide/performance.md.
 
 ## Shell

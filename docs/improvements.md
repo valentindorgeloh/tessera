@@ -6,6 +6,8 @@ Updated on 2026-10-28 with the performance round (commit after 21f8ae3): its ope
 
 Updated on 2026-10-29 with performance round 2 (roadmap lanes B and C, decisions 141 and 142, commit after 6331186): "Performance" is rewritten from its profile and review, its results are under "Closed".
 
+Updated on 2026-11-09 with the Astryx 0.7.11 motion adoption: its open follow-ups are under "Astryx follow-ups"; the decisions are 143 to 148 in `docs/PLAN.md`.
+
 ## Open
 
 ### Accessibility, 375 px and visual
@@ -27,6 +29,10 @@ Source: docs/drafts/perf-report-2026-10-28.md (sections 1, 5 and 6) and its prof
 - The list routes' first-load JavaScript dropped by 27 to 30% (work-items 669 KB gzip) but missed the roadmap's 560 KB target; the 553 KB estimate could not be reproduced. Low.
 - The ProjectFrame heading and the "Work items" Text in `WorkItemsScreen` still use `Text maxLines`: up to 64 ms at CPU 1x on a 10k list (about 300 ms at 4x, upper bound). Low.
 - Per-row popovers were made lazy in the list, table, gantt and modules timeline only; other popovers with heavy closed content are not audited. Low.
+
+### Astryx follow-ups (2026-11-09)
+- Adopt Astryx `List` `animatedLayout` and `ListItem` `itemKey` for the inbox and proposal lists, and `LayoutPanel` slide-on-collapse, once they ship in an Astryx release (they are not in 0.7.11); they also close the gap below a removed row (decision 143) and give the inbox and proposal rows exit fades (decision 148). Low.
+- Give `useDescriptionSave` and `use-work-item-search` an event callback (a handler that runs when a save settles or a search returns), so `DescriptionEditor` and the parent and relation pickers can announce through `useAnnounce` from it instead of keeping their `aria-live` status lines; announcing from an effect is not allowed (ui.md "Motion"). Low.
 
 ### Operations
 - Backup file names do not name their database: every backup is `tessera-<kind>-<stamp>.db` in `backups/` next to the database file (`src/lib/tessera/db/backups.ts`), so two databases in one folder (`data/tessera.db` and a perf or acceptance copy in `data/`) share one folder whose list, rotation and restore mix their copies. Put the source file's base name in the backup name and filter by it. Medium.
@@ -54,7 +60,7 @@ The `npm run db:demo` run (about 70 routes at 1440 and 375 in both schemes on a 
 ## Planned for P12 (docs/drafts/p12-plan.md)
 - Dock/undock (floating) sidebar.
 - Three sidebar modes: full, 48 px icons, 60 px icons with labels (persisted, on the existing collapse rail).
-- Layout and content transitions (about 300 ms, ease-in-out, honouring `prefers-reduced-motion`).
+- Layout and content transitions (about 300 ms, honouring `prefers-reduced-motion`; what was built instead is in decisions 145 and 146).
 - Virtual scrolling for long lists, boards, tables and gantt rows, working with paging (decisions 112–114).
 - Calendar zoom Week / Month / Quarter, consistent with the gantt zoom (decision 90).
 
