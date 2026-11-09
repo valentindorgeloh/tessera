@@ -19,13 +19,16 @@ import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { useListFocus } from "@astryxdesign/core/hooks";
-import { List, ListItem } from "@astryxdesign/core/List";
+import { ListItem } from "@astryxdesign/core/List";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { formatEstimateValue } from "@/components/estimates/estimate-format";
 import { ActorAvatar } from "@/components/shell/ActorAvatar";
+import { useEdgeKeys } from "@/components/virtual/home-end";
+import { VIRTUAL_LIST_MIN } from "@/components/virtual/virtual-config";
+import { estimateStarts, shouldVirtualize } from "@/components/virtual/virtual-math";
 import { groupLimitKey } from "@/lib/tessera/core/group";
 import type { Display, Group, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { visibleGroups, nothingMatches } from "./list-groups";
@@ -36,6 +39,7 @@ import { ActorLabel, CycleControl, DateControl, PriorityControl, PriorityLabel, 
 import { isOverdue } from "./properties/date-format";
 import { splitShownNames } from "./properties/membership-rules";
 import { GroupFooter, GroupPoints } from "./GroupFooter";
+import { ListGroupRows, virtualRowProps, type WindowRowProps } from "./ListGroupRows";
 import { UNGROUPED_KEY, loadedOfTotal } from "./paging";
 import { NoResults } from "./NoResults";
 import { OneLineText } from "./OneLineText";
@@ -122,7 +126,7 @@ function GroupHeader({ group, display, selection, ids }: { group: Group; display
 // Rows
 // ---------------------------------------------------------------------------
 
-type RowProps = {
+export type RowProps = {
   item: WorkItem;
   display: Display;
   onUpdate: (id: string, patch: UpdateWorkItemPatch) => void;
@@ -134,6 +138,9 @@ type RowProps = {
   /** The selection hook's fixed-identity toggle (use-selection.ts); present exactly when `selected` is. */
   onToggle?: (id: string, shift: boolean) => void;
 };
+
+/** A row plus its window props (ListGroupRows, decisions 135 and 137). */
+export type WorkItemRowProps = RowProps & WindowRowProps;
 
 function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowProps, "item" | "display" | "onUpdate" | "readOnly">) {
   const { bundle, labelsById, actorsById, modulesById, statesById } = useProjectRow();
@@ -266,7 +273,7 @@ function RowTitle({ name }: { name: string }) {
  * (the handlers keep one identity, WorkItemsScreen and use-selection.ts). Everything else it reads comes through
  * `useProjectRow()`, which does not change on a write that leaves the row alone.
  */
-const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, selected, onToggle }: RowProps) {
+export const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, selected, onToggle, ...windowed }: WorkItemRowProps) {
   // The key button owns the row's action: surface clicks delegate to it and it is the row's only tab stop.
   const openRef = useRef<HTMLButtonElement>(null);
   if (isOptimisticId(item.id)) {
@@ -274,7 +281,7 @@ const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen,
     return (
       <ListItem
         label={<RowTitle name={item.name} />}
-        className="tessera-wi-row tessera-wi-row-pending"
+        {...virtualRowProps("tessera-wi-row tessera-wi-row-pending", windowed)}
         startContent={
           <Text type="supporting" color="secondary" className="tessera-wi-pending-key">
             Saving…
@@ -291,7 +298,7 @@ const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen,
   return (
     <ListItem
       label={<RowTitle name={item.name} />}
-      className="tessera-wi-row"
+      {...virtualRowProps("tessera-wi-row", windowed)}
       data-selected={selected ? "" : undefined}
       interactiveRef={openRef}
       startContent={
@@ -344,7 +351,20 @@ type GroupSectionProps = {
   selection?: LayoutProps["selection"];
   /** "Show more" for a group with unloaded rows (decision 112); absent when everything is loaded. */
   more?: { loaded: number; total: number; isLoading: boolean; onLoadMore: () => void };
+  /** The list's window (ListGroupRows): threshold result, estimated row start, aria-setsize. */
+  isVirtual: boolean;
+  estimateStart: number;
+  setSize: number;
 };
+
+function quickAddGroupOf(group: Group | null): QuickAddGroup {
+  return group ? { field: group.field, value: group.id === NONE_GROUP_ID ? null : group.id } : { field: null, value: null };
+}
+
+/** No row when the list cannot create items, or when this group pins a state the scope refuses (a closed state in a cycle). */
+function showsQuickAdd(group: Group | null, readOnly: boolean, onQuickAdd: LayoutProps["onQuickAdd"], canQuickAdd: LayoutProps["canQuickAdd"]): boolean {
+  return !readOnly && onQuickAdd !== undefined && canQuickAdd?.(quickAddGroupOf(group)) !== false;
+}
 
 function GroupSection({
   group,
@@ -359,30 +379,26 @@ function GroupSection({
   readOnly,
   selection,
   more,
+  isVirtual,
+  estimateStart,
+  setSize,
 }: GroupSectionProps) {
-  const quickAddGroup: QuickAddGroup = group ? { field: group.field, value: group.id === NONE_GROUP_ID ? null : group.id } : { field: null, value: null };
-  // No row when the list cannot create items, or when this group pins a state the scope refuses (a closed state in a cycle).
-  const showQuickAdd = !readOnly && onQuickAdd !== undefined && canQuickAdd?.(quickAddGroup) !== false;
+  const quickAddGroup = quickAddGroupOf(group);
+  const showQuickAdd = showsQuickAdd(group, readOnly, onQuickAdd, canQuickAdd);
   const body = (
     <VStack gap={0}>
-      {items.length > 0 ? (
-        <List density="compact" hasDividers>
-          {items.map((item) => (
-            <WorkItemRow
-              key={item.id}
-              item={item}
-              display={display}
-              onUpdate={onUpdate}
-              onOpen={onOpen}
-              readOnly={readOnly}
-              selected={selection ? selection.selected.has(item.id) : undefined}
-              onToggle={selection?.onToggle}
-            />
-          ))}
-        </List>
-      ) : null}
+      <ListGroupRows
+        anchorId={`list:${group ? group.id : "flat"}`}
+        items={items}
+        setSize={setSize}
+        isVirtual={isVirtual}
+        isOpen={isOpen}
+        estimateStart={estimateStart}
+        row={{ display, onUpdate, onOpen, readOnly, selection }}
+        Row={WorkItemRow}
+      />
       {more ? <GroupFooter variant="list" display={display} loaded={more.loaded} total={more.total} isLoading={more.isLoading} onLoadMore={more.onLoadMore} /> : null}
-      {showQuickAdd ? <QuickAdd onSubmit={(name) => onQuickAdd(quickAddGroup, name)} /> : null}
+      {showQuickAdd && onQuickAdd ? <QuickAdd onSubmit={(name) => onQuickAdd(quickAddGroup, name)} /> : null}
     </VStack>
   );
   if (!group) return body;
@@ -428,7 +444,12 @@ export function ListLayout({
     hasCaretGuard: true,
   });
 
-  const groups = visibleGroups(result, display);
+  const groups = useMemo(() => visibleGroups(result, display), [result, display]);
+  // One items array per group, kept while the result is: ListGroupRows keys its window on it (decision 136).
+  const groupItems = useMemo(
+    () => (groups ?? []).map((group) => group.item_ids.flatMap((id) => (itemsById.has(id) ? [itemsById.get(id) as WorkItem] : []))),
+    [groups, itemsById],
+  );
 
   const toggle = (id: string, isOpen: boolean) => {
     setCollapsed((previous) => {
@@ -442,11 +463,32 @@ export function ListLayout({
   const hasNoItems = result.items.length === 0;
   const isEmpty = hasNoItems && (groups === null || groups.length === 0);
   const hasNoMatches = nothingMatches(result, groups, onClearFilters !== undefined);
+  const shownGroups = groups && !hasNoMatches ? groups : null;
+
+  // Decision 135: window every group once the list holds more than VIRTUAL_LIST_MIN loaded rows across all groups.
+  const isVirtual = shouldVirtualize(shownGroups ? groupItems.reduce((sum, items) => sum + items.length, 0) : result.items.length, VIRTUAL_LIST_MIN);
+  const starts = estimateStarts(
+    shownGroups
+      ? shownGroups.map((group, i) => {
+          const isOpen = !collapsed.has(group.id);
+          const hasFooter = isOpen && group.has_more && onLoadMore !== undefined;
+          return { rows: groupItems[i].length, isOpen, hasBand: true, hasFooter, hasQuickAdd: isOpen && showsQuickAdd(group, readOnly, onQuickAdd, canQuickAdd) };
+        })
+      : [{ rows: result.items.length, isOpen: true, hasBand: false, hasFooter: false, hasQuickAdd: false }],
+    "list",
+  );
+  // Home/End in a virtual list scroll the scroller and focus the first or last loaded row once it is mounted and still.
+  const onKeyDown = useEdgeKeys({
+    isVirtual,
+    focusSelector: ".tessera-wi-open",
+    lastCount: () => (shownGroups ? (groupItems.filter((items, i) => items.length > 0 && !collapsed.has(shownGroups[i].id)).at(-1)?.length ?? 0) : result.items.length),
+    onOtherKey: handleKeyDown,
+  });
 
   return (
     <VStack
       ref={listRef}
-      onKeyDown={handleKeyDown}
+      onKeyDown={onKeyDown}
       onFocus={handleFocus}
       gap={groups ? 2 : 0}
       className={selection && selection.selected.size > 0 ? "tessera-wi-list tessera-wi-list--selecting" : "tessera-wi-list"}
@@ -463,14 +505,14 @@ export function ListLayout({
         />
       ) : null}
       {groups ? (
-        (hasNoMatches ? [] : groups).map((group) => (
+        (shownGroups ?? []).map((group, i) => (
           <GroupSection
             key={`${group.field}:${group.id}`}
             group={group}
-            items={group.item_ids.flatMap((id) => {
-              const item = itemsById.get(id);
-              return item ? [item] : [];
-            })}
+            items={groupItems[i]}
+            isVirtual={isVirtual}
+            estimateStart={starts[i]}
+            setSize={Math.max(group.count, groupItems[i].length)}
             display={display}
             isOpen={!collapsed.has(group.id)}
             onToggle={(isOpen) => toggle(group.id, isOpen)}
@@ -491,6 +533,9 @@ export function ListLayout({
         <GroupSection
           group={null}
           items={result.items}
+          isVirtual={isVirtual}
+          estimateStart={starts[0]}
+          setSize={Math.max(result.total, result.items.length)}
           display={display}
           isOpen
           onToggle={() => {}}

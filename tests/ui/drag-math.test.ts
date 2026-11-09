@@ -1,9 +1,14 @@
 /**
  * Pure drag-and-drop maths (src/components/dnd/drag-math.ts): drop target
  * resolution, insertion index, neighbour ids for move_work_item, the reorder
- * reducer and the auto-scroll ramp.
+ * reducer, the auto-scroll ramp, and the target index in a windowed container (`indexForSlot`). Plus one hook
+ * case: `usePointerDrag`'s `itemHandlers` hands a row the same object on every call (src/components/dnd/
+ * use-pointer-drag.ts), so a memo row keeps its props.
  */
+import { createElement } from "react";
+import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { usePointerDrag, type ItemDragHandlers } from "@/components/dnd/use-pointer-drag";
 import {
   applyMove,
   autoScrollFor,
@@ -12,6 +17,7 @@ import {
   dropIndexFor,
   dropIndexForGrid,
   exceedsThreshold,
+  indexForSlot,
   isNoopDrop,
   neighboursAt,
   rectContains,
@@ -248,5 +254,45 @@ describe("dropIndexForGrid", () => {
     expect(dropIndexForGrid({ x: 400, y: 16 }, chips)).toBe(3);
     expect(dropIndexForGrid({ x: 50, y: 56 }, chips)).toBe(3);
     expect(dropIndexForGrid({ x: 300, y: 56 }, chips)).toBe(4);
+  });
+});
+
+describe("indexForSlot", () => {
+  const ids = ["a", "b", "c", "d", "e", "f"];
+
+  it("is the slot itself when every item is rendered", () => {
+    for (let slot = 0; slot < ids.length; slot += 1) expect(indexForSlot(ids, ids, slot)).toBe(slot);
+    expect(indexForSlot(ids, ids, ids.length)).toBe(ids.length);
+  });
+
+  it("maps a slot of a windowed middle to the item's full index", () => {
+    const rendered = ["c", "d", "e"];
+    expect(indexForSlot(ids, rendered, 0)).toBe(2);
+    expect(indexForSlot(ids, rendered, 2)).toBe(4);
+  });
+
+  it("drops past the last rendered item right after it", () => {
+    expect(indexForSlot(ids, ["c", "d", "e"], 3)).toBe(5);
+    expect(indexForSlot(ids, ["b", "c"], 9)).toBe(3);
+  });
+
+  it("drops into an empty container at its end", () => {
+    expect(indexForSlot([], [], 0)).toBe(0);
+    expect(indexForSlot(ids, [], 0)).toBe(ids.length);
+  });
+});
+
+describe("usePointerDrag itemHandlers", () => {
+  it("returns the same object for the same item and container", () => {
+    const seen: ItemDragHandlers[] = [];
+    function Probe() {
+      const { itemHandlers } = usePointerDrag({ onDrop: () => {}, itemsOf: () => [] });
+      seen.push(itemHandlers("a", "c"), itemHandlers("a", "c"), itemHandlers("a", "d"));
+      return null;
+    }
+    renderToString(createElement(Probe));
+    expect(seen[0]).toBe(seen[1]);
+    expect(seen[2]).not.toBe(seen[0]);
+    expect(seen[2]!.onClickCapture).toBe(seen[0]!.onClickCapture);
   });
 });

@@ -5,11 +5,12 @@
  * WorkItemRow rendered. A row must skip its render when nothing it shows changed (a refresh with equal data, a
  * tick elsewhere, a write that only moved the cursor and the counts) and must still update when its item, its
  * tick, its project row context or the display properties it shows change. The Server Actions and the router
- * are mocked; jsdom has no layout.
+ * are mocked; jsdom has no layout. With 60 rows the list is windowed (decision 135): a window move renders only the
+ * rows that enter it (a TanStack instance with a set range stands in for scrolling).
  */
 import { act, createElement, isValidElement, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LayoutProps, ProjectBundle } from "@/components/work-items/types";
 import type { ActorRow, Display, Project, State, WorkItem } from "@/lib/tessera/types";
 
@@ -50,6 +51,32 @@ vi.mock("@astryxdesign/core/List", async (importOriginal) => {
     return createElement(actual.ListItem, props);
   };
   return { ...actual, ListItem: Counted };
+});
+// A TanStack instance whose range the test sets (off by default: the real one runs). jsdom has no layout, so the
+// window test also gives the scroller a size; see "a windowed list row" below.
+const fake = vi.hoisted(() => ({ on: false, range: { startIndex: 0, endIndex: 15 }, rerender: [] as (() => void)[], measure: null as null | ((el: Element | null) => void) }));
+vi.mock("@tanstack/react-virtual", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-virtual")>();
+  const React = await import("react");
+  type Options = { count: number; enabled: boolean; overscan: number; scrollMargin: number; getItemKey: (i: number) => string; rangeExtractor: (r: { startIndex: number; endIndex: number; overscan: number; count: number }) => number[] };
+  function useFake(options: Options) {
+    const [, force] = React.useReducer((n: number) => n + 1, 0 as number);
+    const [instance] = React.useState(() => {
+      fake.rerender.push(force);
+      const measureElement = vi.fn();
+      fake.measure = measureElement;
+      return { range: null as null | { startIndex: number; endIndex: number }, measureElement, measurementsCache: [], indexFromElement: () => -1, scrollToIndex: vi.fn(), getVirtualItems: () => [] as unknown[], getTotalSize: (): number => 0 };
+    });
+    const { startIndex, endIndex } = fake.range;
+    const indexes = options.enabled && options.count > 0 ? options.rangeExtractor({ startIndex, endIndex, overscan: options.overscan, count: options.count }) : [];
+    instance.range = options.enabled ? { startIndex, endIndex } : null;
+    instance.getVirtualItems = () => indexes.map((index) => ({ index, key: options.getItemKey(index), start: options.scrollMargin + index * 44, end: options.scrollMargin + (index + 1) * 44, size: 44, lane: 0 }));
+    instance.getTotalSize = () => options.count * 44;
+    return instance;
+  }
+  // Picked per call, never switched while a list is mounted (each test mounts its own).
+  const pick = (): ((o: Options) => unknown) => (fake.on ? useFake : (actual.useVirtualizer as unknown as (o: Options) => unknown));
+  return { ...actual, useVirtualizer: (options: Options) => pick()(options) };
 });
 // Record the props the screen hands the list, and render the real one.
 const layout = vi.hoisted(() => ({ props: [] as unknown[] }));
@@ -97,8 +124,8 @@ function makeBundle(): ProjectBundle {
   return { project, states, labels: [], cycles: [], modules: [], actors, cursor: 1, today: "2026-10-22", estimate: null, intake_open: 0, projects: [] };
 }
 
-function makeItems(): WorkItem[] {
-  return Array.from({ length: 20 }, (_, index) => ({
+function makeItems(length = 20): WorkItem[] {
+  return Array.from({ length }, (_, index) => ({
     id: `item-${index}`,
     project_id: PROJECT,
     sequence_id: index + 1,
@@ -134,8 +161,8 @@ const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 type ScreenProps = ComponentProps<typeof WorkItemsScreen>;
 type World = { items: WorkItem[]; display: Display; bundle: ProjectBundle };
 
-function world(groupBy: Display["group_by"] = null): World {
-  return { items: makeItems(), display: { ...DEFAULT_DISPLAY, layout: "list", group_by: groupBy }, bundle: makeBundle() };
+function world(groupBy: Display["group_by"] = null, length = 20): World {
+  return { items: makeItems(length), display: { ...DEFAULT_DISPLAY, layout: "list", group_by: groupBy }, bundle: makeBundle() };
 }
 
 /** What the server hands the client after a refresh: a fresh copy of the same data, with the world's changes. */
@@ -354,5 +381,56 @@ describe("a memoized list row", () => {
     first("item-4");
     expect(nav.push).toHaveBeenCalledTimes(1);
     expect(String(nav.push.mock.calls[0]![0])).toBe("/projects/p/work-items?q=abc&peek=item-4");
+  });
+});
+
+describe("a windowed list row", () => {
+  const frames = new Map<number, FrameRequestCallback>();
+  let next = 1;
+  const runFrames = () => {
+    const callbacks = [...frames.values()];
+    frames.clear();
+    for (const cb of callbacks) cb(0);
+  };
+  const height = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
+  const parent = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetParent");
+
+  beforeEach(() => {
+    fake.on = true;
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      frames.set(next, cb);
+      return next++;
+    });
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id));
+    // Every element gets a layout, so the scroller store measures (jsdom has none).
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 600 });
+    Object.defineProperty(HTMLElement.prototype, "offsetParent", { configurable: true, get: () => document.body });
+  });
+
+  afterEach(() => {
+    fake.on = false;
+    fake.range = { startIndex: 0, endIndex: 15 };
+    fake.rerender = [];
+    fake.measure = null;
+    frames.clear();
+    vi.unstubAllGlobals();
+    if (height) Object.defineProperty(HTMLElement.prototype, "clientHeight", height);
+    if (parent) Object.defineProperty(HTMLElement.prototype, "offsetParent", parent);
+  });
+
+  it("renders only the rows that enter when the window moves", async () => {
+    await mount(world(null, 60));
+    await act(async () => runFrames());
+    expect(fake.measure).not.toBeNull();
+    expect(rows()).toHaveLength(20);
+    expect(rows()[0]!.getAttribute("data-index")).toBe("0");
+    counts.byName.clear();
+    fake.range = { startIndex: 8, endIndex: 19 };
+    await act(async () => fake.rerender.forEach((force) => force()));
+    expect(rows()).toHaveLength(20);
+    expect(rows()[0]!.getAttribute("data-index")).toBe("4");
+    expect(rows()[19]!.getAttribute("data-index")).toBe("23");
+    expect(rowRenders()).toBe(4);
+    expect([...counts.byName.keys()].sort()).toEqual(["Item 20", "Item 21", "Item 22", "Item 23"]);
   });
 });

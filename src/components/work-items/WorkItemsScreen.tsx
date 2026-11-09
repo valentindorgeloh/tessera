@@ -19,7 +19,7 @@
  * way to create an item. The sub-header's title and count are props too
  * (default "Work items" and the list's total).
  */
-import { startTransition, useEffect, useMemo, useOptimistic, useState, type ReactNode } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useOptimistic, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
@@ -31,11 +31,13 @@ import { createWorkItemAction, moveWorkItemAction, updateWorkItemAction } from "
 import { notePeekPush } from "@/components/detail/peek-history";
 import { currentHref, peekHref, withSearchParam } from "@/components/detail/peek-url";
 import { HStack } from "@astryxdesign/core/Stack";
+import { useFadeOnChange } from "@/components/shell/layout-motion";
 import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
+import { VirtualScrollerProvider } from "@/components/virtual/VirtualScrollerProvider";
 import { SaveViewButton } from "@/components/views/SaveViewButton";
 import { normalizeFilters } from "@/components/views/view-state";
 import { isMultiValuedGroup } from "@/lib/tessera/core/group";
-import type { CreateWorkItemInputType, Display, Filters, GroupBy, ListScope, RichFilters, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
+import type { CreateWorkItemInputType, Display, Filters, GroupBy, ListScope, OrderBy, RichFilters, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 import { ExportDialog } from "@/components/exports/ExportDialog";
 import { ExportIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { BoardLayout } from "./BoardLayout";
@@ -178,7 +180,10 @@ export function WorkItemsScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the param only; the URL state is read when it appears
   }, [requestedLayout]);
   // Open modules and cycles: groups of an archived module or a completed or archived cycle get no quick-add row.
-  const quickAddContext: QuickAddContext = { projectId, states: bundle.states, ...openMemberships(bundle), scopeDefaults };
+  const quickAddContext: QuickAddContext = useMemo(() => ({ projectId, states: bundle.states, ...openMemberships(bundle), scopeDefaults }), [projectId, bundle, scopeDefaults]);
+  // Called while the layouts render (ListLayout, BoardLayout, CalendarLayout), so a plain callback over the context,
+  // never a stable one: it changes only with the bundle, when the layouts re-render anyway (decision 136).
+  const canQuickAdd = useCallback((group: QuickAddGroup) => quickAddAllowed(group, quickAddContext), [quickAddContext]);
   const stateGroupOf: StateGroupOf = (stateId) => statesById.get(stateId)?.state_group;
   const listScope: ListScope = listScopeProp ?? { type: "project", project_id: projectId };
   const paged = usePagedList({ scope: listScope, display, filters, richFilters: effectiveRichFilters(richFilters, urlState.rich_filters), server: result });
@@ -230,7 +235,8 @@ export function WorkItemsScreen({
     });
   });
 
-  const onMove = (input: MoveInput) => {
+  // Event handlers only (a drop, a quick-add submit, a sort change): one identity, so memo rows and columns keep their props.
+  const onMove = useStableCallback((input: MoveInput) => {
     if (readOnly || isOptimisticId(input.id)) return;
     const move: MoveInput = { ...input, before_id: realNeighbour(input.before_id), after_id: realNeighbour(input.after_id) };
     const source = optimistic.items.find((item) => item.id === move.id);
@@ -253,9 +259,9 @@ export function WorkItemsScreen({
       });
       if (!result.ok) fail("Could not move the work item", result.message);
     });
-  };
+  });
 
-  const onQuickAdd = (group: QuickAddGroup, name: string) => {
+  const onQuickAdd = useStableCallback((group: QuickAddGroup, name: string) => {
     if (readOnly) return;
     const input = quickAddInput(group, name, quickAddContext);
     if (!input) {
@@ -304,7 +310,8 @@ export function WorkItemsScreen({
       const result = await createWorkItemAction(input);
       if (!result.ok) fail("Could not create the work item", result.message);
     });
-  };
+  });
+  const onOrderChange = useStableCallback((orderBy: OrderBy) => applyDisplay({ order_by: orderBy }));
 
   const onOpen = useStableCallback((id: string) => {
     if (isOptimisticId(id)) return;
@@ -343,14 +350,14 @@ export function WorkItemsScreen({
     onUpdate,
     onOpen,
     onQuickAdd: canCreateItems ? onQuickAdd : undefined,
-    canQuickAdd: (group) => quickAddAllowed(group, quickAddContext),
+    canQuickAdd,
     readOnly,
     showProject: showProjectColumn,
     selection: selectionOn ? { selected: selection.selected, onToggle: selection.toggleId, onToggleIds: selection.toggleIds } : undefined,
     onLoadMore: paged.loadMore,
     onLoadMoreUngrouped: paged.loadMoreUngrouped,
     isLoadingMore: paged.isLoading,
-    onOrderChange: (orderBy) => applyDisplay({ order_by: orderBy }),
+    onOrderChange,
     onClearFilters,
   };
   // The dialog starts in the scope: `{ ...scopeDefaults, ...createDefaults }` with module ids united.
@@ -359,6 +366,9 @@ export function WorkItemsScreen({
   const showSaveView =
     saveView && bundle.project.views_enabled && !readOnly && (Object.keys(normalizeFilters(filters)).length > 0 || urlState.display !== undefined || urlState.rich_filters !== undefined);
   const [exportOpen, setExportOpen] = useState(false);
+  // The scroller in state (a ref callback may set state): the virtual windows' store and the layout fade need it.
+  const [scroller, setScroller] = useState<HTMLElement | null>(null);
+  useFadeOnChange(scroller, `${display.layout}|${display.calendar.layout}|${display.gantt.zoom}`);
 
   return (
     <>
@@ -402,19 +412,21 @@ export function WorkItemsScreen({
           </PanelHeader>
         }
         content={
-          <LayoutContent padding={0} isScrollable label={`${title} list`} className={scrollerClass}>
-            {display.layout === "list" ? (
-              <ListLayout {...layoutProps} />
-            ) : display.layout === "board" ? (
-              <BoardLayout {...layoutProps} />
-            ) : display.layout === "table" ? (
-              <TableLayout {...layoutProps} />
-            ) : display.layout === "calendar" ? (
-              <CalendarLayout {...layoutProps} />
-            ) : (
-              <GanttLayout {...layoutProps} />
-            )}
-            {selectionOn && selection.selected.size > 0 ? <BulkBar items={optimistic.items} selected={selection.selected} onClear={selection.clear} loaded={loadedCount} total={optimistic.total} /> : null}
+          <LayoutContent ref={setScroller} padding={0} isScrollable label={`${title} list`} className={scrollerClass}>
+            <VirtualScrollerProvider scroller={scroller}>
+              {display.layout === "list" ? (
+                <ListLayout {...layoutProps} />
+              ) : display.layout === "board" ? (
+                <BoardLayout {...layoutProps} />
+              ) : display.layout === "table" ? (
+                <TableLayout {...layoutProps} />
+              ) : display.layout === "calendar" ? (
+                <CalendarLayout {...layoutProps} />
+              ) : (
+                <GanttLayout {...layoutProps} />
+              )}
+              {selectionOn && selection.selected.size > 0 ? <BulkBar items={optimistic.items} selected={selection.selected} onClear={selection.clear} loaded={loadedCount} total={optimistic.total} /> : null}
+            </VirtualScrollerProvider>
           </LayoutContent>
         }
       />

@@ -5,3 +5,32 @@
  * values that the TS side sets through cssVars (src/components/shared/css-vars.ts).
  * Tokens only.
  */
+
+/* A virtual container: rows stay in normal flow and the window is padded by the rows it does not render. */
+.tessera-virtual {
+  position: relative;
+  overflow-anchor: none;
+  padding-block-start: var(--tessera-virtual-before, 0);
+  padding-block-end: var(--tessera-virtual-after, 0);
+}
+
+/* A kept row outside the window (the last-focused row, the dragged gantt bar's row) sits at its measured offset. */
+.tessera-virtual-kept {
+  position: absolute;
+  inset-inline: 0;
+  top: var(--tessera-virtual-top, 0);
+}
+
+/* Astryx drops the divider of the last list row (:last-child); in an open-ended window that row is not the last one. */
+.tessera-virtual[data-virtual-open-end] > li:last-child {
+  border-bottom-width: var(--border-width);
+}
+
+/* The virtual table's spacer rows (decision 137: aria-hidden, role="presentation"). */
+.tessera-table-spacer,
+.tessera-table-spacer > td {
+  height: var(--tessera-virtual-spacer, 0);
+  padding: 0;
+  border: 0;
+  background: none;
+}

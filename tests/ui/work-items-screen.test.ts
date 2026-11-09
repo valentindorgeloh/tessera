@@ -30,11 +30,17 @@ vi.mock("@/app/actions/views", () => ({
   updateViewAction: action(),
 }));
 // The list layout is F3's; here it only records the props the screen hands every layout.
-type RecordedLayoutProps = { readOnly?: boolean; onQuickAdd?: unknown; onMove: (input: MoveInput) => void };
-const layout = vi.hoisted(() => ({ props: null as null | RecordedLayoutProps }));
+type RecordedLayoutProps = {
+  readOnly?: boolean;
+  onQuickAdd?: unknown;
+  canQuickAdd?: (group: { field: string | null; value: string | null }) => boolean;
+  onMove: (input: MoveInput) => void;
+};
+const layout = vi.hoisted(() => ({ props: null as null | RecordedLayoutProps, first: null as null | RecordedLayoutProps }));
 vi.mock("@/components/work-items/ListLayout", () => ({
   ListLayout: (props: RecordedLayoutProps) => {
     layout.props = props;
+    layout.first ??= props;
     return null;
   },
 }));
@@ -200,6 +206,7 @@ afterEach(async () => {
   vi.mocked(moveWorkItemAction).mockClear();
   nav.router.replace.mockClear();
   layout.props = null;
+  layout.first = null;
 });
 
 describe("WorkItemsScreen panel header", () => {
@@ -321,5 +328,28 @@ describe("WorkItemsScreen moves", () => {
       layout.props?.onMove({ id: ITEM, group_by: "state", value: STATE });
     });
     expect(moveWorkItemAction).toHaveBeenLastCalledWith(expect.objectContaining({ sub_group_by: undefined, sub_value: undefined, sub_from_value: undefined }));
+  });
+});
+
+describe("WorkItemsScreen quick add", () => {
+  const DONE = "88888888-8888-7888-8888-888888888888";
+  const withDone: ProjectBundle = {
+    ...bundle,
+    states: [...states, { ...states[0]!, id: DONE, name: "Done", name_key: "done", state_group: "completed", is_default: false, sort_order: "a1" }],
+  };
+
+  it("answers canQuickAdd from the scope on the first render", async () => {
+    await render({ scopeDefaults: { cycle_id: CYCLE } }, withDone);
+    const canQuickAdd = layout.first?.canQuickAdd;
+    expect(canQuickAdd).toBeTypeOf("function");
+    // A cycle refuses a closed state: that group shows no quick-add row, an open one does.
+    expect(canQuickAdd?.({ field: "state", value: STATE })).toBe(true);
+    expect(canQuickAdd?.({ field: "state", value: DONE })).toBe(false);
+    expect(canQuickAdd?.({ field: null, value: null })).toBe(true);
+  });
+
+  it("allows the closed state outside a cycle", async () => {
+    await render({}, withDone);
+    expect(layout.first?.canQuickAdd?.({ field: "state", value: DONE })).toBe(true);
   });
 });

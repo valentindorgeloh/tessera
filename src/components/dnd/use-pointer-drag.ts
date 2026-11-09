@@ -26,7 +26,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
-import { autoScrollFor, containerAt, dropIndexFor, dropIndexForGrid, exceedsThreshold, isNoopDrop, neighboursAt, withoutId, type Axis, type DropTarget, type Point } from "./drag-math";
+import { autoScrollFor, containerAt, dropIndexFor, dropIndexForGrid, exceedsThreshold, indexForSlot, isNoopDrop, neighboursAt, withoutId, type Axis, type DropTarget, type Point } from "./drag-math";
 
 export type { DropTarget } from "./drag-math";
 
@@ -205,7 +205,8 @@ export function usePointerDrag(options: UsePointerDragOptions): UsePointerDragRe
     });
     const axis = optionsRef.current.axis ?? "y";
     const slot = axis === "grid" ? dropIndexForGrid(point, rects) : dropIndexFor(point, rects, axis);
-    const index = slot < rendered.length ? ids.indexOf(rendered[slot]) : ids.length;
+    // Over the rendered items only: a windowed column (decision 136) drops right after its last rendered card.
+    const index = indexForSlot(ids, rendered, slot);
     return { container, index };
   }, []);
 
@@ -376,12 +377,24 @@ export function usePointerDrag(options: UsePointerDragOptions): UsePointerDragRe
     event.stopPropagation();
   }, []);
 
+  // One handlers object per (id, container), built once, so a memoised card keeps its `handlers` prop (decision 136).
+  // The entries call the latest `onPointerDown` through a ref synced after commit.
+  const onPointerDownRef = useRef(onPointerDown);
+  useEffect(() => {
+    onPointerDownRef.current = onPointerDown;
+  }, [onPointerDown]);
+  const handlersCache = useRef(new Map<string, ItemDragHandlers>());
   const itemHandlers = useCallback(
-    (id: string, container: string): ItemDragHandlers => ({
-      onPointerDown: (event) => onPointerDown(event, id, container),
-      onClickCapture,
-    }),
-    [onClickCapture, onPointerDown],
+    (id: string, container: string): ItemDragHandlers => {
+      const key = `${container}\n${id}`;
+      let handlers = handlersCache.current.get(key);
+      if (!handlers) {
+        handlers = { onPointerDown: (event) => onPointerDownRef.current(event, id, container), onClickCapture };
+        handlersCache.current.set(key, handlers);
+      }
+      return handlers;
+    },
+    [onClickCapture],
   );
 
   // Detach listeners if the layout unmounts mid-drag.

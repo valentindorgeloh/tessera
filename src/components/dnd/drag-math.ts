@@ -120,6 +120,18 @@ export function neighboursAt(ids: ReadonlyArray<string>, index: number): { befor
 }
 
 /**
+ * The insertion index in `ids` (the items that stay) for a drop `slot` measured over the `rendered` subset only.
+ * A slot past the last rendered item lands right after it, not at the container's true end, so a windowed column
+ * (decision 136) drops below its last rendered card; with every item rendered this is the plain slot. No rendered
+ * item: the end of `ids`.
+ */
+export function indexForSlot(ids: ReadonlyArray<string>, rendered: ReadonlyArray<string>, slot: number): number {
+  if (slot < rendered.length) return ids.indexOf(rendered[slot]);
+  if (rendered.length === 0) return ids.length;
+  return ids.indexOf(rendered[rendered.length - 1]) + 1;
+}
+
+/**
  * True when dropping `draggedId` at `target` leaves the order unchanged:
  * same container and the slot it already occupies (measured against the
  * remaining items, so index n and the original position n are the same slot).
