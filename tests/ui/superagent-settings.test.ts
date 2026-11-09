@@ -121,7 +121,8 @@ afterEach(async () => {
 describe("settings helpers", () => {
   it("accepts only a loopback runner URL, and an empty field", () => {
     for (const url of ["", "  ", "http://127.0.0.1:3391", "http://localhost:3090/", " http://127.0.0.1:3090 "]) expect(format.runnerUrlError(url), url).toBeNull();
-    for (const url of ["http://example.com:3391", "https://127.0.0.1:3090", "http://127.0.0.2:3090", "http://127.0.0.1", "127.0.0.1:3090"]) expect(format.runnerUrlError(url), url).toBe(format.RUNNER_URL_ERROR);
+    for (const url of ["http://example.com:3391", "https://127.0.0.1:3090", "http://127.0.0.2:3090", "http://127.0.0.1", "127.0.0.1:3090", "http://127.0.0.1:0", "http://127.0.0.1:65536"]) expect(format.runnerUrlError(url), url).toBe(format.RUNNER_URL_ERROR);
+    expect(format.runnerUrlError("http://localhost:65535")).toBeNull();
   });
 
   it("requires a repository as name or owner/name", () => {
@@ -130,6 +131,9 @@ describe("settings helpers", () => {
     expect(format.repoError("tessera")).toBeNull();
     expect(format.repoError(" owner/tessera.app-2 ")).toBeNull();
     for (const repo of ["a/b/c", "has space", "owner/", "/name", "naïve"]) expect(format.repoError(repo), repo).toBe(format.REPO_ERROR);
+    // The schema's segment and length rules (review round) are refused with the same words, which name them.
+    for (const repo of [".", "..", "-x", "owner/..", "owner/-x", ".owner/x", "a".repeat(141)]) expect(format.repoError(repo), repo).toBe(format.REPO_ERROR);
+    expect(format.repoError("owner/.github")).toBeNull();
   });
 
   it("starts with the mapped projects that exist, live or archived, and counts only the deleted ones as dropped", () => {

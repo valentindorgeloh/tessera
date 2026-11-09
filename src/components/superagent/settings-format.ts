@@ -8,8 +8,9 @@ import { AGENT_RUNNER_DEFAULT_URL, AgentRepoSchema, AgentRunnerUrlSchema } from 
 import type { AgentProject, AgentSettings } from "@/lib/tessera/types";
 import { failureCopy, failureToast, type FailureContext, type ProjectOption } from "./superagent-format";
 
-export const RUNNER_URL_ERROR = "Use http://127.0.0.1:<port> or http://localhost:<port>.";
-export const REPO_ERROR = "Use a name or owner/name: letters, digits, _, . and -.";
+// The words name every rule of AgentRunnerUrlSchema and AgentRepoSchema (schema.md "AgentSettings"), so a refused value says why.
+export const RUNNER_URL_ERROR = "Use http://127.0.0.1:<port> or http://localhost:<port>, port 1 to 65535.";
+export const REPO_ERROR = "Use name or owner/name, up to 140 letters, digits, _, . and -. No part can be . or .. or start with -, and the owner cannot start with a dot.";
 export const REPO_REQUIRED = "Enter a repository.";
 
 /** One editable row of the "Projects and repositories" form; `key` is stable while the row is edited. */

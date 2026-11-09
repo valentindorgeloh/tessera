@@ -19,11 +19,11 @@ The control API is never a tool. No registry tool's name contains `superagent` o
 | `drizzle/0014_superagent.sql` | `comment.client_ref` with the unique partial index `comment_client_ref_uq (actor_id, work_item_id, client_ref) WHERE client_ref IS NOT NULL`, and `workspace_settings.agents` (JSON, nullable). |
 | `src/lib/tessera/comments.ts` | `ClientRefSchema`, `CreateCommentResult`, `DeletedCommentRef`. With a ref: the stored comment comes back with no side effects, a deleted one as `{ deleted: true }`, a different body as `CONFLICT`. |
 | `src/lib/tessera/workspace/settings.ts` | `setAgentSettings` (user only, checked in the service because Apply bypasses `userOnly`), `normalizeAgentSettings`, `agentRepoFor`. Tool `set_agent_settings`; `get_workspace_settings` returns `agents`. |
-| `src/lib/tessera/schemas.ts` | `AGENT_RUNNER_DEFAULT_URL` (`http://127.0.0.1:3090`), `AgentRunnerUrlSchema` (loopback, port 1 to 65535), `AgentRepoSchema` (`name` or `owner/name`, no `.`/`..` or leading `-` segment), `AgentProjectSchema`, `AgentSettingsSchema`. |
+| `src/lib/tessera/schemas.ts` | `AGENT_RUNNER_DEFAULT_URL` (`http://127.0.0.1:3090`), `AgentRunnerUrlSchema` (loopback, port 1 to 65535), `AgentRepoSchema` (`name` or `owner/name`, at most 140 characters, no `.`/`..` or leading `-` segment, no owner starting with `.`), `AgentProjectSchema`, `AgentSettingsSchema`. |
 | `src/lib/superagent/` | The control client. `schemas.ts`: zod mirror of runner API v1. `types.ts`: the only module components may import (eslint). `client.ts`: one method per route, 5 s timeout, failures as states. `token.ts`: reads the token file per call. `server.ts` (`server-only`): `withRunner`, `loadSuperagent`. |
 | `src/app/actions/superagent.ts` | Eight Server Actions (pause, request action, resize, budget, triage retry, save settings, save prompts, refresh). Each validates, calls the runner, then `refresh()`. |
 | `src/app/(tessera)/agents/superagent/page.tsx`, `src/components/superagent/*` | The screen: banners, Needs you (requests table and triage), Health and spend, History of one request, Routing, Settings (Tessera mapping and runner settings) and Team sections. Polls every 15 s while visible and no dialog is open. |
-| `src/components/detail/{DetailHeader,WorkItemDetail}.tsx`, `send-to-superagent.ts` | "Send to superagent" in the More menu of items in mapped projects: assigns the item to `mcp:superagent`. |
+| `src/components/detail/{DetailHeader,WorkItemDetail}.tsx`, `src/components/detail/use-detail-actions.ts`, `src/components/superagent/send-to-superagent.ts` | "Send to superagent" in the More menu of items in mapped projects: assigns the item to `mcp:superagent` through the detail's optimistic assignee path (`setAssigneesReporting`). |
 | `scripts/superagent-stub.ts`, `tests/fixtures/superagent/*.json` | A fake runner for acceptance and tests (`node:http`, in-memory, the v1 auth rules). Not part of the app. |
 
 ## 3. Operating it
@@ -47,7 +47,7 @@ npx tsx scripts/superagent-stub.ts --port 3391 --token-file data/superagent/api-
 
 - The token never reaches a result, an error message, a log line, a prop or the browser bundle. Messages and codes from the runner are scrubbed of it.
 - Runner calls send `Authorization: Bearer`, `x-agents-request: 1`, no `Origin`, use `redirect: "error"`, and time out after 5 s. A path id that is empty, `.` or `..` is refused before any call.
-- `set_agent_settings` and `setAgentSettings` refuse every actor but the user, before validation.
+- `set_agent_settings` and `setAgentSettings` refuse every actor but the user. The registry (`runToolWithContext`) and the service check the actor before their own validation; over MCP the SDK checks the input schema first, so a malformed call from an agent gets the SDK's "Input validation error" and a well-formed one `RULE user_only`.
 - A repeated `create_comment` with the same `client_ref` and body writes nothing (no activity, notification, mention, subscription or change row).
 - `list_changes.cursor` never moves backwards; `latest_seq` is the real newest seq.
 

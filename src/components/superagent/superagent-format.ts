@@ -2,7 +2,8 @@
  * Pure helpers of the Superagent screen (decision 145; docs/contracts/ui.md
  * "Superagent control", "Shared helpers"). No React and no Astryx, so Vitest
  * reaches them and the page can use `parseScope`. Lane U2's forms import
- * `failureCopy`, `formatUsd` and `ProjectOption` from here.
+ * `failureCopy`, `failureToast`, `sectionNote`, `formatUsd`, `FailureContext`
+ * and `ProjectOption` from here.
  */
 import type { AgentSettings } from "@/lib/tessera/types";
 import {
