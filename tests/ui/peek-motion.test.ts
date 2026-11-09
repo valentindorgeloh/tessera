@@ -94,6 +94,14 @@ beforeAll(async () => {
   Element.prototype.getAnimations = function getAnimations(this: Element) {
     return this.hasAttribute("data-exiting") && fakeExit !== null ? [fakeExit] : [];
   };
+  // One open and close here pays the first detail load (about 1.3 s alone, over 5 s in a loaded full run) under this
+  // hook's limit, so it cannot time out a test and leave a half-mounted tree to fail the ones after it.
+  layout.width = 1000;
+  await openPeek();
+  await act(async () => root?.unmount());
+  container?.remove();
+  container = null;
+  root = null;
 }, 60_000);
 
 beforeEach(() => {
