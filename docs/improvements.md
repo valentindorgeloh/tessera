@@ -48,7 +48,7 @@ The `npm run db:demo` run (about 70 routes at 1440 and 375 in both schemes on a 
 - Home quick links whose URL is an internal path show the raw path with the project UUID as their subtitle. Low.
 
 ## Waiting for the user
-- Astryx upstream: approve filing the issue and PR drafted in docs/drafts/astryx-upstream-2026-10-24.md (public, on your GitHub account): the ContextMenu `moveTo`/`start`/`cancel` prop warning, lazy `Text maxLines` measuring, lazy closed layers. Later, approve the Astryx upgrade download once a release has the fixes; then `OneLineText` goes back to `Text maxLines`.
+- Astryx upstream (docs/drafts/astryx-upstream-2026-10-24.md): Astryx 0.7.11 is installed (2026-11-09). It fixed the ContextMenu `moveTo`/`start`/`cancel` warning (0.7.0, no issue needed), unmeasured `Text maxLines` with `hasTruncateTooltip={false}` (0.7.2) and deferred closed-layer `readPortalWritingContext` (0.7.5). Still open and worth filing: Popover, Selector and Tooltip content mounts while closed (no `lazyMount`). `OneLineText` goes back to `Text maxLines` only after a profile on 0.7.11.
 - Live P5 acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is built and `assistant.spec.ts` and `round-features.spec.ts` pass on it.
 
 ## Planned for P12 (docs/drafts/p12-plan.md)

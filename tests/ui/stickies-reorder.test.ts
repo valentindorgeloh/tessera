@@ -10,7 +10,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StickyView } from "@/lib/tessera/types";
-import { box, drag, pressKey, stubRects } from "../helpers/pointer-drag-dom";
+import { box, drag, pointerEvent, pressKey, stubRects } from "../helpers/pointer-drag-dom";
 
 const ok = { ok: true as const, data: {}, cursor: 1 };
 const mocks = vi.hoisted(() => ({
@@ -157,7 +157,7 @@ describe("stickies drag reorder", () => {
     await drag(grip(host, "s1"), { x: 5, y: 5 }, [{ x: 60, y: 30 }, { x: 120, y: 80 }], { release: false });
     await pressKey(document.body, "Escape");
     await act(async () => {
-      window.dispatchEvent(new MouseEvent("pointerup", { bubbles: true }));
+      pointerEvent("pointerup", 0, 0, window);
     });
     expect(mocks.moveStickyAction).not.toHaveBeenCalled();
     expect(order(host)).toEqual(["s1", "s2", "s3", "s4"]);

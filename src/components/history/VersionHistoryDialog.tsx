@@ -136,10 +136,12 @@ export function VersionHistoryDialog({ isOpen, onOpenChange, entity }: VersionHi
         header={<DialogHeader title={`Version history · ${entity.title}`} onOpenChange={onOpenChange} hasDivider />}
         content={
           <LayoutContent>
-            {error ? <Banner status="warning" title="Could not load history" description={error} /> : null}
+            {/* Astryx 0.7 Banners announce nothing on their own; these two answer a load and a restore, so they ask to be read. */}
+            {error ? <Banner status="warning" role="alert" title="Could not load history" description={error} /> : null}
             {conflict ? (
               <Banner
                 status="warning"
+                role="alert"
                 title="This text changed since you opened the history"
                 description={entity.type === "page" ? "Reload the page and open history again." : "Reload the work item and open history again."}
               />

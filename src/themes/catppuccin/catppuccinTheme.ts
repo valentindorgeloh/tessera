@@ -32,8 +32,16 @@ import {
  * HIT area (WCAG 2.5.5 level AAA, the platform guidance) without growing: the
  * control keeps its drawn size, so the 1440 density and the 375 row look stay.
  * The hit area is an absolutely positioned `::before` centred on the control
- * (Astryx uses no `::before` on any control keyed below; they are all
- * positioned already but `top-nav-heading` and `side-nav-heading`, which get `position: relative`).
+ * (the controls keyed below are all positioned already but `top-nav-heading`
+ * and `side-nav-heading`, which get `position: relative`). Astryx 0.7.9-0.7.11
+ * draws a touch band of its own under a coarse pointer on a Button (so on a
+ * toggle button and an input's clear button), a segment, a list row, a labelled
+ * checkbox and a radio row, but it stops at half the gap to a neighbour, so it
+ * can fall short of 44px (the top bar's sidebar toggle reaches 36px), and
+ * Tessera's 44px box is the contract the e2e hit probes hold it to. The two
+ * bands sit on different pseudo-elements and both stay, with one collision:
+ * Astryx paints a pressed Button's tint on its `::before`, where the box below
+ * is. shell.css hands the pseudo-element back to Astryx while a press runs.
  * Its insets are
  * `min(0px, (100% - 44px) / 2)`: negative, so the box reaches 44px, when the
  * control is smaller, and zero when it is already 44px or more, so a wide
@@ -86,7 +94,6 @@ const TOUCH_TARGET_COMPONENTS = {
   "toggle-button": {base: hitArea},
   "input-clear-button": {base: hitArea},
 } as const;
-
 const hairline = {
   borderWidth: "var(--border-width)",
   borderStyle: "solid",
@@ -153,18 +160,15 @@ export const catppuccinTheme = defineTheme({
     // secondary text and button labels drop below 4.5:1 (Frappé warning and
     // success, Latte error). Inside a banner, secondary text reads as primary
     // and secondary buttons sit on the plain surface; Astryx's own themes
-    // scope banner tokens the same way.
+    // scope banner tokens the same way. The header text and the status icon
+    // take --color-on-<status>-muted, which palette.ts sets to the chip label
+    // of the status hue, so the Latte yellow and green glyphs that stayed under
+    // 3:1 on their tint no longer need a rule of their own.
     banner: {
       base: {
         "--color-text-secondary": "var(--color-text-primary)",
         "--color-neutral": "var(--color-background-surface)",
       },
-    },
-    // Latte yellow and green glyphs stay under 3:1 on their tint, so the status
-    // icon takes the matching text colour, as FieldStatus messages do.
-    "banner-icon": {
-      "status:warning": {color: "var(--color-text-yellow)"},
-      "status:success": {color: "var(--color-text-green)"},
     },
     // Balanced corners: only avatars and badges are round, so the top bar
     // logo, the tab strip's scroll arrows and calendar days are rounded squares.

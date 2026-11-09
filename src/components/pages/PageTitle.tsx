@@ -53,7 +53,7 @@ export function PageTitle({ name, readOnly, onRename }: PageTitleProps) {
           }
         }}
         hasAutoFocus
-        className="tessera-page-title-input"
+        controlClassName="tessera-page-title-input"
       />
     );
   }

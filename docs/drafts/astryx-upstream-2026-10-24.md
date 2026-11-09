@@ -1,6 +1,8 @@
 # Astryx upstream: ContextMenu long-press props and two render costs (2026-10-24)
 
-Status: ready to file, not filed. Filing posts on GitHub, so the user decides when; nothing below is sent by an agent.
+Status (2026-11-09): Astryx 0.7.11 is installed. Section 1 is fixed upstream (0.7.0, verified in `dist/ContextMenu/ContextMenu.js:505-513`), so do not file it. Section 2 is half fixed: 0.7.2 stops measuring when `hasTruncateTooltip={false}` (proposal 1; verified in `dist/Text/Text.js:131`) and 0.7.6 batches the remaining measuring after commit (#9013), but a `maxLines` Text with its tooltip still measures on mount (proposal 2 is open). Section 3 is half fixed: 0.7.5 defers `readPortalWritingContext` for closed layers (#9012, #8519), but `usePopover`, `useSelectorPresentation` and `useTooltip` still mount closed content (the `lazyMount` ask is open; 0.7.6 added `keepsMountAfterShow` and only ContextMenu and HoverCard use `lazyMount`). Section 4 steps 1 to 7 were done in the 0.7.11 upgrade; step 8 waits for a profile. Whatever stays open is still unfiled: filing posts on GitHub, so the user decides when; nothing below is sent by an agent.
+
+Original status: ready to file, not filed.
 
 Target: github.com/facebook/astryx (MIT), package `@astryxdesign/core`, verified against the installed 0.6.8 (`node_modules/@astryxdesign/core`, its `src/` and `dist/`) with React 19.3.0. Line numbers are from 0.6.8.
 
@@ -13,6 +15,8 @@ Contents:
 4. Tessera follow-up after an upgrade that ships the fix.
 
 ## 1. Bug: ContextMenu passes `start`, `moveTo` and `cancel` to its trigger element
+
+**Fixed in Astryx 0.7.0 (#7322), confirmed in the installed 0.7.11. Nothing to file.** The text below is the 0.6.8 record.
 
 ### Issue text
 
@@ -202,6 +206,8 @@ The Tessera tripwire predicate turns false on the installed dist with this patch
 
 ## 2. Perf: `Text` measures truncation when no tooltip can use it
 
+**Partly fixed in 0.7.11.** Proposal 1 shipped in 0.7.2 (`maxLines` with `hasTruncateTooltip={false}` neither measures nor observes) and 0.7.6 batches measuring after commit (#9013). Proposal 2 (measure on hover and focus only) and the same for `Heading` are not verified; profile before filing. The text below is the 0.6.8 record.
+
 ### Issue text
 
 **Title:** Text with maxLines measures truncation on mount even with hasTruncateTooltip={false}
@@ -232,6 +238,8 @@ Proposal:
 
 ## 3. Perf: Selector, Popover and Tooltip mount their closed content
 
+**Partly fixed in 0.7.11.** The `readPortalWritingContext` cost is gone for closed layers (0.7.5: read on first open, #9012; #8519 re-renders only the slot). `lazyMount` for Popover, Selector and Tooltip is still not used (0.7.11 `usePopover.tsx`, `useSelectorPresentation.ts`, `useTooltip.tsx`), and 0.7.6 notes say closed Tooltips, Selectors and ComplexSelectors "render once on mount". Re-measure the closed-layer DOM before filing the remainder. The text below is the 0.6.8 record.
+
 ### Issue text
 
 **Title:** Use useLayer's lazyMount for closed Selector, Popover and Tooltip content
@@ -254,6 +262,8 @@ Proposal:
    - Do callers measure the closed popover?
 
 ## 4. Tessera follow-up after an upgrade that ships the fix
+
+Done in the 2026-11-09 upgrade to 0.7.11: steps 1 to 7 (the codemods ran, `REACT_PROP_WARNING` and the tripwire are gone, `tests/e2e-tolerated.test.ts` asserts the warnings are no longer tolerated, the field-guide and ui.md lines are updated). The as-built mentions in step 7 were reworded rather than dropped. Step 8 is open until a profile on 0.7.11 shows `Text maxLines` is cheap enough.
 
 In one change, after the Astryx release with fix 1:
 

@@ -2,10 +2,10 @@
 
 Surprises from the performance rounds of 2026-10-24 to 2026-10-29. Reports: docs/drafts/perf-report-2026-10-24.md and docs/drafts/perf-report-2026-10-28.md. The time goes to the browser, not the server (a 10k list read takes 5 ms), and Tessera's own components are about 1.4% of busy time; Astryx layers and React do the rest.
 
-## Astryx 0.6.8
-- `Text maxLines` measures every Text on mount, a forced layout each, even with `hasTruncateTooltip={false}`. Row text uses a CSS one-line class (`tessera-wi-title`, `tessera-wi-cell-text`, `tessera-wi-label-text`) and `OneLineText`, which measures only on hover and then shows the tooltip.
-- `Popover` keeps closed content mounted. Per-row popovers pass `content={isOpen ? … : null}`. Selector listboxes and tooltips still mount closed (about 8.5 layers per row, 63% of the DOM on a 200-row list) until Astryx uses `lazyMount` (docs/drafts/astryx-upstream-2026-10-24.md).
-- Every layer runs `readPortalWritingContext` (two `getComputedStyle` calls) when it mounts, then a second render pass. It is the largest forced style cost on a long list.
+## Astryx 0.7.11 (the measurements above are from 0.6.8)
+- `Text maxLines` measured every Text on mount (a forced layout each), even with `hasTruncateTooltip={false}`. Since 0.7.2 `maxLines` with `hasTruncateTooltip={false}` neither measures nor observes (CSS alone clamps), and 0.7.6 batches the remaining measuring after commit. Row text still uses the CSS one-line classes (`tessera-wi-title`, `tessera-wi-cell-text`, `tessera-wi-label-text`) and `OneLineText` (measures on hover only, keeps the tooltip); replace `OneLineText` only after a profile on 0.7.11.
+- `Popover`, `Selector` and `Tooltip` content still mounts while closed (no `lazyMount` in `usePopover`, `useSelectorPresentation` or `useTooltip`; only ContextMenu and HoverCard defer). Per-row popovers keep `content={isOpen ? … : null}`.
+- A closed layer no longer reads `readPortalWritingContext` (two `getComputedStyle` calls) on mount: since 0.7.5 it reads it on first open. That was the largest forced style cost on a long list; re-measure before adding more row-level workarounds.
 
 ## React and Next
 - A memoised row only skips a render when its props keep their identity, and every refresh hands client components fresh copies of the same data. Pass refreshed data through `shareStructure` or `useShared`, and row handlers through `useStableCallback` (src/components/work-items/stable.ts); rows read the lean `useProjectRow()` context, not `useProject()`, whose bundle changes on every write.

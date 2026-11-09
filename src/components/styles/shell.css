@@ -605,6 +605,20 @@
  */
 @media (pointer: coarse), (max-width: 480px) {
   /*
+   * Press feedback on a button (Astryx 0.7.9-0.7.11). Under a coarse pointer Astryx paints a pressed button's tint on
+   * the button's own `::before` (absolute, inset 0, behind the label), the pseudo-element the 44px hit areas here and
+   * in the theme also use, and these rules outrank Astryx's. While a press runs Astryx writes `data-astryx-press` (the
+   * one hook it gives; it is private, so this is the only place that reads it, and only a coarse pointer writes it):
+   * the tint takes the button's own box again and `content` is restored where a `tessera-hit--none` rule dropped the
+   * pseudo. The hit area is not lost: Astryx's own band on the label wrapper stays, and a finger already down keeps
+   * its target.
+   */
+  .astryx-button[data-astryx-press]::before {
+    content: "" !important;
+    inset: 0 !important;
+  }
+
+  /*
    * Switch and Checkbox keep their look. Each draws an invisible native input
    * centred on the control; that input is the hit area, so it grows to 44px
    * (Astryx raises it to 24px by itself) without moving anything.

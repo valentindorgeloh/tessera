@@ -87,7 +87,7 @@ export function RecentsList({ filter = "all", limit = HOME_RECENTS, controls }: 
   const emptyLabel = recents.length === 0 ? "Nothing here yet" : "Nothing in this filter";
   const emptyDescription = recents.length === 0 ? "The pages and work items you open show up here." : "Try another kind of page.";
   const list = (
-    <List header={lead === null ? heading : undefined} aria-label={lead === null ? undefined : "Recent"} hasDividers edgeCompensation="inline">
+    <List header={lead === null ? heading : undefined} aria-label={lead === null ? undefined : "Recent"} hasDividers edge="outset">
       {shown.length === 0 ? (
         <ListItem label={emptyLabel} description={emptyDescription} />
       ) : (

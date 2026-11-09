@@ -3,10 +3,11 @@ import { isTolerated } from "./e2e/tolerated";
 
 /** The e2e console filter (decision 123) tolerates only the field-guide list. Not under tests/e2e: Playwright would pick up a .test.ts there. */
 describe("e2e tolerated console list", () => {
-  it("tolerates the Astryx Table tableContextMenu warnings as Playwright prints them", () => {
-    expect(isTolerated("React does not recognize the `%s` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `%s` instead. moveTo moveto")).toBe(true);
-    expect(isTolerated("Invalid value for prop `%s` on <%s> tag. Either remove it from the element, or pass a string or number value to keep it in the DOM. start div")).toBe(true);
-    expect(isTolerated("Received `%s` for a non-boolean attribute `%s`. true cancel")).toBe(true);
+  it("no longer tolerates the ContextMenu long-press prop warnings (fixed in Astryx 0.7.0)", () => {
+    // Astryx 0.6.8 spread useLongPress's start/moveTo/cancel onto the ContextMenu trigger; 0.7.x passes only the touch handlers.
+    expect(isTolerated("React does not recognize the `%s` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `%s` instead. moveTo moveto")).toBe(false);
+    expect(isTolerated("Invalid value for prop `%s` on <%s> tag. Either remove it from the element, or pass a string or number value to keep it in the DOM. start div")).toBe(false);
+    expect(isTolerated("Received `%s` for a non-boolean attribute `%s`. true cancel")).toBe(false);
   });
 
   it("tolerates the prerender measure warning and the nameless form field note", () => {

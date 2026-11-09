@@ -1,0 +1,12 @@
+# Field guide: Astryx 0.7.x
+
+Surprises from the 0.6.8 to 0.7.11 upgrade (2026-11-09; the user chose the latest release over the 14-day rule, docs/PLAN.md "Verified versions"). Run `npm run astryx -- docs <topic>` for the API; this lists what changed under Tessera's feet.
+
+- A disabled or busy control that carries a reason or tooltip stays focusable with `aria-disabled="true"` instead of the `disabled` attribute (Button.js:479-523; 0.7.9 extends it to Tab, SideNavItem, Switch and more): assert `aria-disabled`, not `toBeDisabled()`, and a `:disabled` or `[disabled]` rule no longer matches it.
+- Status roles are derived from the theme's fills unless the theme sets them (0.7.5): `--color-text-<status>`, `--color-icon-<status>`, `--color-border-<status>`, `--color-<status>-muted`. Info is its own status, no longer the accent. Set a role in `src/themes/catppuccin/palette.ts` only to override the derived colour.
+- Under a coarse pointer Astryx paints its own press layer and hit area on `::before` and `::after` of Button, IconButton, list rows, checkboxes, radios, SegmentedControl and clear buttons (0.7.9 to 0.7.11). Tessera's `tessera-hit` rules also use `::before`: hit-test with `elementFromPoint` (see Drag and touch) and do not style a pseudo-element Astryx already uses.
+- `Collapsible` still keeps closed content mounted, and since 0.7.11 its region wraps the children in one inner element: a `region > *` or `:first-child` selector must name that wrapper. The trigger is not wrapped.
+- Motion tokens are theme-driven: `--ease-entrance`, `--ease-move`, `--ease-exit`, `--duration-exit`. `useAnimatedLayout` and the `animatedLayout` prop (Collapsible, TreeList, Table row expansion) and `createAnimator`/`useAnimator` exist and are opt-in; the SideNav rail collapse animates by itself (0.7.5), so Tessera's own collapse timing must not fight it. Reduce Motion is built in (instant with a mouse).
+- Astryx creates a few DOM nodes outside React: the `display: contents` wrapper around `[data-astryx-layer-root]`, `[data-astryx-live-region]` and `[data-astryx-modal-live-region]`. They never get a `__reactFiber` key, so `waitForAppHydrated` (tests/e2e/helpers-d.ts) must skip them.
+- While the SideNav rail animates (0.7.5), an `aria-hidden` copy of the "Work" nav sits beside the live one: select `nav[aria-label="Work"]:not([aria-hidden="true"] *)` (round6.spec.ts `navWidth`).
+- The ContextMenu `moveTo`/`start`/`cancel` React warnings are gone (0.7.0); no Astryx console warning is tolerated any more.

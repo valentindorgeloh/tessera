@@ -203,7 +203,7 @@ Quirks that cost agents time:
 - Peek/`q` are separate URL params; any writer of `q` must use `withSearchParam` so `peek` survives.
 - `useOptimistic` only reverts through the server re-render; a failed action relies on the Toast plus the transition ending.
 - `toEngineMove` can return null (nothing to do); `onMove` then silently ignores the drop.
-- Dev-only console noise: Astryx Table `tableContextMenu` warnings and React's negative time stamp `measure` error after `notFound()`.
+- Dev-only console noise: React's negative time stamp `measure` error after `notFound()` (the Astryx Table `tableContextMenu` warnings went with Astryx 0.7.0).
 - Open issues in `docs/PLAN-STATUS.md` touching this area: peek-narrows-board (above), `.claude/**` worktrees scanned by eslint/tsc, the Next dev reload loop (clear `.next/dev`).
 
 ## 8. Where to read more

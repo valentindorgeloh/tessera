@@ -118,8 +118,10 @@ export function CommentComposer({
   return (
     <VStack gap={2} ref={root} className="tessera-comment-composer">
       {conflict !== null ? (
+        // Astryx 0.7 Banners announce nothing on their own; this one answers a save, so it asks to be read.
         <Banner
           status="warning"
+          role="alert"
           title="This comment changed"
           description="Someone else saved this comment while you were editing."
           endContent={conflict.body !== null ? <Button variant="secondary" size="sm" label="Load theirs" onClick={loadTheirs} /> : undefined}

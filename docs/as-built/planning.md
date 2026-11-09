@@ -195,7 +195,7 @@ Quirks:
 - Candidates are capped at 500 (`CANDIDATE_LIMIT`, duplicated in the module page) and archived work items at 2000; the dialog shows at most 500 rows (`MAX_ROWS`). The module page re-declares candidate loading instead of sharing `cycle-data.ts`.
 - A transfer only applies to completed cycles with open items; "Restore" of a cycle can fail with `CONFLICT` if its dates are taken now.
 - In an archived project the detail Banner of an archived cycle or module offers no Restore (the engine refuses it), but the rows of Archives > Cycles and Modules still show Restore and Delete and the engine answers `ARCHIVED`.
-- App anchors carry a stray `to` attribute (Astryx `LinkProvider` with `next/link`); the Astryx Table `ContextMenu` warnings are tolerated dev noise (docs/field-guide/index.md).
+- App anchors carry a stray `to` attribute (Astryx `LinkProvider` with `next/link`). (The Astryx Table `ContextMenu` warnings that were tolerated on 0.6.8 are gone since 0.7.0.)
 - No `instant = false` is needed on any of these pages.
 
 ## 8. Where to read more

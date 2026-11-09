@@ -9,7 +9,7 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { box, drag, stubRects } from "../helpers/pointer-drag-dom";
+import { box, drag, pointerEvent, stubRects } from "../helpers/pointer-drag-dom";
 
 const ok = { ok: true as const, data: {}, cursor: 1 };
 const mocks = vi.hoisted(() => ({ updateWorkspaceSettingsAction: vi.fn(), toast: vi.fn() }));
@@ -155,7 +155,7 @@ describe("manage widgets drag reorder", () => {
     expect(marked).toHaveLength(1);
     expect(marked[0]?.textContent).toContain("Recent");
     await act(async () => {
-      window.dispatchEvent(new MouseEvent("pointerup", { bubbles: true }));
+      pointerEvent("pointerup", 0, 0, window);
     });
   });
 

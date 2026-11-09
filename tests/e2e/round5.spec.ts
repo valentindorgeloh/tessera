@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { createProjectViaMcp, expect, mcp, openWorkItems, test, waitForDialog } from "./fixtures";
 import { horizontalOverflow, inboxRows } from "./helpers-b";
 import { strictHitBoxMisses } from "./helpers-c";
@@ -36,6 +36,29 @@ async function userActorId(): Promise<string> {
 async function expectCoarsePointer(page: Page): Promise<void> {
   const coarse = await page.evaluate(() => window.matchMedia("(pointer: coarse)").matches);
   expect(coarse, "(pointer: coarse) matches").toBe(true);
+}
+
+/**
+ * Waits until a control's box has not moved for ten frames. Since Astryx 0.7.5 the sidebar's rail collapses and
+ * expands with a slide, and a hit area measured while the top bar is still sliding is not the resting one.
+ */
+async function settled(locator: Locator): Promise<void> {
+  await locator.evaluate(
+    (element) =>
+      new Promise<void>((resolve) => {
+        let last = "";
+        let still = 0;
+        const tick = () => {
+          const box = element.getBoundingClientRect();
+          const now = [box.x, box.y, box.width, box.height].join();
+          still = now === last ? still + 1 : 0;
+          last = now;
+          if (still >= 10) resolve();
+          else requestAnimationFrame(tick);
+        };
+        tick();
+      }),
+  );
 }
 
 test.describe("assigned notifications (decisions 50 and 51)", () => {
@@ -195,9 +218,12 @@ test.describe("coarse pointer top-bar heading (touch option A)", () => {
         await expectCoarsePointer(page);
 
         const brand = page.locator(".tessera-topbar-heading a.astryx-top-nav-heading");
-        for (const state of ["Collapse sidebar", "Expand sidebar"]) {
+        // The toggle is labelled "Close sidebar" / "Open sidebar" (TopBar.tsx); the spec still used the old Astryx names.
+        for (const state of ["Close sidebar", "Open sidebar"]) {
           const toggle = page.getByRole("button", { name: state, exact: true });
           await expect(toggle, state).toBeVisible();
+          await settled(toggle);
+          await settled(brand);
           const [collapse] = await hitAreaRects(toggle);
           const [heading] = await hitAreaRects(brand);
           expect(collapse, `${state} area`).toBeDefined();
@@ -206,7 +232,7 @@ test.describe("coarse pointer top-bar heading (touch option A)", () => {
           expect(collapse!.right, `${state} area right edge vs brand area left edge`).toBeLessThanOrEqual(heading!.left);
           expect(await strictHitBoxMisses(toggle), state).toEqual([]);
           expect(await strictHitBoxMisses(brand), `brand next to ${state}`).toEqual([]);
-          if (state === "Collapse sidebar") await toggle.click();
+          if (state === "Close sidebar") await toggle.click();
         }
       });
     });

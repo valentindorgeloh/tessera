@@ -135,7 +135,7 @@ function CycleForm({ projectId, onOpenChange, cycle }: Omit<CycleDialogProps, "i
             />
             <TextArea label="Description" value={description} onChange={setDescription} rows={3} isOptional placeholder="Goal of the cycle (Markdown)" />
             <DateRangeInput
-              className="tessera-cycle-dates"
+              controlClassName="tessera-cycle-dates"
               label="Dates"
               description="Days of other cycles are not available. Leave empty to keep the cycle a draft."
               value={range}

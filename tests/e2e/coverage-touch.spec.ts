@@ -100,3 +100,35 @@ test("/drafts at 375 px: no sideways scroll, and every control's 44x44 box hits 
   const dialog = await waitForDialog(page, "New draft");
   expect(await hitBoxMisses(dialog), "New draft dialog controls whose 44x44 box misses them").toEqual([]);
 });
+
+// Astryx 0.7.9-0.7.11 paints a pressed Button's tint on the button's own `::before`, the pseudo-element Tessera's 44px
+// hit area also uses (catppuccinTheme.ts, shell.css). While a finger is down the tint must be the button's box, not the
+// hit area; at rest the hit area is 44px. A real touch through CDP, so Astryx's press controller writes its press.
+test("a pressed button's tint is its own box and its resting hit area is 44px", async ({ page }) => {
+  await page.goto("/");
+  const button = page.getByRole("button", { name: "Help and keyboard shortcuts" });
+  await expect(button).toBeVisible();
+  const box = await button.boundingBox();
+  expect(box, "the button has a box").not.toBeNull();
+  const pseudo = () =>
+    button.evaluate((element) => {
+      const style = getComputedStyle(element, "::before");
+      return { press: element.getAttribute("data-astryx-press"), width: parseFloat(style.width), height: parseFloat(style.height) };
+    });
+
+  const resting = await pseudo();
+  expect(resting.press, "no press at rest").toBeNull();
+  expect([resting.width, resting.height], "resting hit area").toEqual([44, 44]);
+
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 }] });
+    // Astryx waits 150 ms before it paints a press.
+    await expect.poll(async () => (await pseudo()).press, { timeout: 5_000 }).toBe("on");
+    const pressed = await pseudo();
+    expect([pressed.width, pressed.height], "pressed tint box").toEqual([box!.width, box!.height]);
+  } finally {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await cdp.detach();
+  }
+});

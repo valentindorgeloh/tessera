@@ -360,6 +360,10 @@ export async function waitForAppHydrated(page: Page, timeout = 45_000): Promise<
         (element) =>
           !element.closest("script, noscript, template, style, next-route-announcer, .ProseMirror, .tessera-peek-node, .tessera-editor-drag, .drag-handle") &&
           !(element.parentElement === document.body && (element.tagName === "DIV" || element.tagName === "SPAN") && !element.hasChildNodes()) &&
+          // Nodes Astryx 0.7 creates outside React: the layer host wrapper and its live regions.
+          !(element.style?.display === "contents" && element.firstElementChild?.hasAttribute("data-astryx-layer-root")) &&
+          !element.hasAttribute("data-astryx-live-region") &&
+          !element.hasAttribute("data-astryx-modal-live-region") &&
           // The wrapper the drag-handle extension puts around the handle inside the editor surface.
           element.querySelector(":scope > .tessera-editor-drag") === null,
       )

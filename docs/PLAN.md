@@ -25,7 +25,7 @@ The repo today is a small handbook app (markdown pages under `content/`, 4,172 l
 
 | Layer | Choice | Why |
 |---|---|---|
-| App | Next.js 16.4, React 19.3, Astryx 0.6.8 (pinned exactly; upgraded from 0.6.0 on 2026-10-11) | Keep what works; Cache Components rules below |
+| App | Next.js 16.4, React 19.3, Astryx 0.7.11 (pinned exactly; upgraded from 0.6.8 on 2026-11-09, from 0.6.0 on 2026-10-11) | Keep what works; Cache Components rules below |
 | Engine | TypeScript service layer `src/lib/tessera/` over SQLite via Drizzle ORM 0.45.4 + better-sqlite3 13.0.3, WAL, FTS5 | One language for UI, MCP and AI tools; sub-second in-memory tests; `node:sqlite` rejected (experimental on Node 22.13, no FTS5) |
 | Editor | Tiptap 3.31.4 + official `@tiptap/markdown` | 40× Milkdown's usage, 66 MIT extensions, the editor Plane uses, best known to agents; markdown stays the storage format |
 | AI | `@anthropic-ai/sdk` 0.133.0, `betaZodTool` + `client.beta.messages.toolRunner`, `claude-opus-5-5`, adaptive thinking, `client.messages.parse` + `zodOutputFormat` for structured output | Official SDK, zero-arg client resolves the key or the `ant auth login` profile |
@@ -58,6 +58,7 @@ The repo today is a small handbook app (markdown pages under `content/`, 4,172 l
 | Licence audit | 628 installed packages: every direct dependency and every planned addition is MIT, ISC, Apache-2.0 or CC0. Acceptable flagged transitives: `@img/sharp-libvips-*` (LGPL-3.0, Next's optional image optimiser, dynamically linked, unused), `axe-core` (MPL-2.0, dev-only lint), `dompurify` (MPL-2.0 or Apache-2.0, we take Apache). BlockNote excluded (MPL core, GPL-or-proprietary XL packages). Plane (AGPL) contributes facts only. |
 | Recharts | 3.10.1, MIT, peer `react ^16.8 || ^17 || ^18 || ^19`. Alternatives checked: `@visx/xychart` 4.0.0 (MIT), `d3` 7.9.0 (ISC). |
 | Unused deps today | `@milkdown/crepe`, `@heroicons/react`, `@stylexjs/stylex` imported nowhere; `lucide-react` only by the unused `src/themes/neutral`. Removed in P0. `@milkdown/kit` and `@milkdown/react` removed in P6 with the handbook. |
+| Astryx | `@astryxdesign/core` and `@astryxdesign/cli` 0.7.11 (Nov 9, 2026), both pinned exactly; 174 components. The user chose the latest release over the 14-day rule on 2026-11-09 (the research report recommended 0.7.4). Codemods ran, the theme was rebuilt with the new `upload` icon, and the ContextMenu long-press tolerance went away (fixed in 0.7.0). What changed for this repo: docs/field-guide/astryx-0.7.md. |
 | Next dev tooling | `next dev` exposes an MCP server at `/_next/mcp` (`get_compilation_issues`, `compile_route`); `next-dev-loop` skill pairs it with `agent-browser`. |
 
 **Cache Components rules (bundled Next 16.4 docs)**

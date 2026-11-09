@@ -331,9 +331,11 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
   const lossy = state.lossy;
   let banner = null;
   if (state.status === "conflict" || state.theirs !== null) {
+    // Astryx 0.7 Banners announce nothing on their own; this one appears while the person types, so it asks to be read.
     banner = (
       <Banner
         status="warning"
+        role="alert"
         title={state.status === "conflict" ? "Changed elsewhere" : "Updated elsewhere"}
         description="Someone else saved this page while you were editing."
         endContent={

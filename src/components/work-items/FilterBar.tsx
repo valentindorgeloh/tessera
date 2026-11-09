@@ -275,6 +275,8 @@ export function FilterBar({ filters, urlState, resultCount, showProject = false,
     <HStack gap={2} vAlign="center" className="tessera-wi-filter">
       <PowerSearch
         className="tessera-wi-search"
+        // Astryx 0.7.8 defaults to "adaptive" (a trigger and a bottom sheet on phones); the tokenizer field stays on every device until that is decided on its own.
+        presentation="popover"
         config={config}
         filters={tokens}
         onChange={(next) => write(withExplicitClears(filters, fromTokens(filters, next)))}

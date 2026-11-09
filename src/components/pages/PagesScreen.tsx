@@ -133,7 +133,7 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
   );
   const actions = (
     <HStack gap={2} vAlign="center" wrap="wrap" className="tessera-pages-actions">
-      <TextInput label="Search pages" isLabelHidden size="sm" placeholder="Search pages" value={query} onChange={setQuery} startIcon={SearchIcon} hasClear className="tessera-pages-search" />
+      <TextInput label="Search pages" isLabelHidden size="sm" placeholder="Search pages" value={query} onChange={setQuery} startIcon={SearchIcon} hasClear controlClassName="tessera-pages-search" />
       {newButton}
     </HStack>
   );

@@ -214,7 +214,7 @@ Not covered by Vitest: `Sidebar`, `CommandBar` rendering, `ChangesPoller` itself
 - Side peek narrows the list instead of overlaying it.
 - Leaving Source mode re-serialises Markdown and can save a second version ("edited the description 2 times"); `@tiptap/markdown` writes two blank lines between blocks.
 - The modal's initial focus lands on the breadcrumb's project link. Chrome reports one "form field should have an id or name" issue on the peek.
-- Dev-only console noise to tolerate is listed in docs/field-guide/index.md (Astryx `Table` `tableContextMenu` warnings, React's "negative time stamp" error on the first visit of an unknown `/browse/<key>`).
+- Dev-only console noise to tolerate is listed in docs/field-guide/index.md (React's "negative time stamp" error on the first visit of an unknown `/browse/<key>`; the Astryx `Table` `tableContextMenu` warnings went with Astryx 0.7.0).
 - The Dialog wrapper's known limits: focus after Back goes to `<body>`, and the touch BottomSheet presentation is not covered.
 - Doctor shows one `theme-fonts` warning (fonts load through `next/font`). Accepted.
 - Visual debt that is still visible is tracked in docs/improvements.md; the 2026-10-11 "open items" list was removed from PLAN-STATUS as stale.

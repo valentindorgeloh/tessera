@@ -705,10 +705,12 @@ docs/PLAN.md and the code are collected at the end.
   re-run 2026-10-11: pass 18, warn 2, fail 0).
   Fonts load through `next/font`, as AGENTS.md records; accepted until Astryx
   recognises `next/font`.
-- Astryx 0.6.8 `ContextMenu` prop warnings in development: an upstream fix; P3
-  adds no `ContextMenu`. React's occasional "negative time stamp" performance
-  error in development: known React issue, noted since P2a, not in production.
-  These two are the only dev-console entries the P3 acceptance tolerates.
+- Astryx 0.6.8 `ContextMenu` prop warnings in development: fixed upstream in
+  0.7.0 and gone since the 2026-11-09 upgrade to 0.7.11; P3 adds no
+  `ContextMenu`. React's occasional "negative time stamp" performance error in
+  development: known React issue, noted since P2a, not in production. That is
+  the only dev-console entry from Astryx or React the P3 acceptance tolerates
+  now.
 
 ### Scope and deferrals
 
@@ -2115,10 +2117,11 @@ merge (2026-10-11)". Port rules:
 - Power K: cycle and module hits open their project route, and its "Recent" group
   leaves out the page on screen and its peek (the rework).
 - The two Astryx `ContextMenu` dev warnings listed under "Carried items" (an
-  unknown `moveTo` prop; invalid `start` and `cancel` props on a `div`) still appear
-  after the merge. They come from the Astryx `Table` (`tableContextMenu`), so they
-  show once the work items Table layout renders; they did not come from the tab
-  bar. They stay the only tolerated console entries.
+  unknown `moveTo` prop; invalid `start` and `cancel` props on a `div`) still
+  appeared after the merge (Astryx 0.6.8). They came from the Astryx `Table`
+  (`tableContextMenu`), so they showed once the work items Table layout rendered;
+  they did not come from the tab bar. Astryx 0.7.0 fixed them and nothing from
+  Astryx is tolerated any more.
 - Narrow panels (browser check at 375 and at 1100 with a side peek):
   - Project frame: the token and the name no longer shrink
     (`tessera-project-frame-token`, `tessera-project-frame-title`, the name capped

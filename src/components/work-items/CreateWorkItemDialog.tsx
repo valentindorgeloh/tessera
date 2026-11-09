@@ -231,7 +231,7 @@ function CreateWorkItemForm({ projectId, mode = "work_item", onOpenChange, defau
         <LayoutContent isScrollable>
           <VStack gap={4}>
             <FormLayout>
-              <TextInput label="Name" className="tessera-wi-field" value={draft.name} onChange={(name) => patch({ name })} hasAutoFocus isRequired placeholder="What needs to be done?" onEnter={submit} />
+              <TextInput label="Name" controlClassName="tessera-wi-field" value={draft.name} onChange={(name) => patch({ name })} hasAutoFocus isRequired placeholder="What needs to be done?" onEnter={submit} />
               <TextArea label="Description" value={draft.description} onChange={(description) => patch({ description })} rows={4} isOptional placeholder="Add context, links or acceptance criteria" />
               {/* One wrapping row of the same compact chips the list rows use (class tessera-wi-props), dates included, so every control shares a height and a row centre. */}
               <HStack gap={2} vAlign="center" wrap="wrap" className="tessera-wi-props tessera-wi-form-props">

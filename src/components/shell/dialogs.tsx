@@ -90,7 +90,8 @@ function useRestoreOpenerFocus(dialogRef: { current: HTMLDialogElement | null },
  */
 function restoreFocus(opener: HTMLElement | null) {
   const active = document.activeElement;
-  const lost = active === null || active === document.body || !active.isConnected;
+  // A button of a dialog that has just closed stays `activeElement` until the browser's next rendering step (focus fixup), so it counts as lost too.
+  const lost = active === null || active === document.body || !active.isConnected || active.closest("dialog:not([open])") !== null;
   if (!lost) return;
   const target = opener?.isConnected ? opener : lastFocusOutside;
   if (target?.isConnected) target.focus();
