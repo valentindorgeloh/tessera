@@ -9,6 +9,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { DropdownMenu, DropdownMenuCheckboxItem } from "@astryxdesign/core/DropdownMenu";
+import { useEntryAnimation } from "@astryxdesign/core/hooks";
 import { HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
@@ -39,6 +40,9 @@ export type BulkBarProps = {
 export function BulkBar({ items, selected, onClear, variant = "active", loaded, total }: BulkBarProps) {
   const toast = useToast();
   const { bundle } = useProject();
+  // The bar mounts when the first row is ticked, so it rises into place (Astryx's `slideUp`: null on first paint and
+  // while hydrating, off under Reduce Motion). It leaves at once when the selection clears.
+  const entry = useEntryAnimation("slideUp");
   const [isPending, startTransition] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [transfer, setTransfer] = useState<"copy" | "move" | null>(null);
@@ -75,7 +79,7 @@ export function BulkBar({ items, selected, onClear, variant = "active", loaded, 
 
   return (
     <>
-      <HStack gap={2} vAlign="center" wrap="wrap" className="tessera-bulk-bar" role="region" aria-label="Bulk actions">
+      <HStack gap={2} vAlign="center" wrap="wrap" className="tessera-bulk-bar" role="region" aria-label="Bulk actions" xstyle={entry ?? undefined}>
         {/* The count, its note and Clear: part of the bar's own row on wide screens (display: contents), the first row of a phone's two (bulk.css). */}
         <HStack gap={2} vAlign="center" className="tessera-bulk-summary">
           <Text weight="medium">{count} selected</Text>

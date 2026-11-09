@@ -18,10 +18,11 @@
  * replaces them.
  */
 
-import { useCallback, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { HStack } from "@astryxdesign/core/Stack";
 import {
   Table,
@@ -56,15 +57,6 @@ interface TableRow extends Record<string, unknown> {
   item: WorkItem;
   groupKey: string;
 }
-
-function subscribeWide(onChange: () => void): () => void {
-  const query = window.matchMedia(PIN_COLUMNS_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-const readWide = () => window.matchMedia(PIN_COLUMNS_QUERY).matches;
-/** The server (and the first client render) pins, as a tablet or desktop does; a phone unpins right after hydration. */
-const serverWide = () => true;
 
 /** Group headers injected by the grouped-rows plugin read every unknown field as "" (never an object). */
 function isDataRow(row: TableRow): boolean {
@@ -395,7 +387,8 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
     columns: columns.map(({ key, width, resizable }) => ({ key, width, resizable })),
   });
   // Pinned key columns need room to leave something to scroll; on a phone the whole row scrolls (reference section 8).
-  const pinColumns = useSyncExternalStore(subscribeWide, readWide, serverWide);
+  // The server (and the first client render) pins, as a tablet or desktop does; a phone unpins right after hydration.
+  const pinColumns = useMediaQuery(PIN_COLUMNS_QUERY, true);
   const stickyPlugin = useTableStickyColumns<TableRow>({ startKeys: pinColumns ? ["key"] : [] });
 
   /** A pointer click on the row opens the item (the key button is the keyboard route); editable cells keep their clicks. */

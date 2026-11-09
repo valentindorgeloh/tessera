@@ -19,11 +19,11 @@
  * way to create an item. The sub-header's title and count are props too
  * (default "Work items" and the list's total).
  */
-import { startTransition, useEffect, useMemo, useOptimistic, useState, type ReactNode } from "react";
+import { startTransition, useEffect, useMemo, useOptimistic, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
-import { useHotkeys } from "@astryxdesign/core/hooks";
+import { useAnimatedLayout, useHotkeys } from "@astryxdesign/core/hooks";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
@@ -62,6 +62,7 @@ import { TableLayout } from "./TableLayout";
 import type { LayoutProps, MoveInput, QuickAddGroup, ScopeDefaults, SettingsScope, UpdateWorkItemPatch } from "./types";
 import { decodeUrlState, encodeUrlState } from "./url-state";
 import { usePagedList } from "./use-paged-list";
+import { useViewFade } from "./use-view-fade";
 
 export type WorkItemsScreenProps = {
   projectId: string;
@@ -359,6 +360,14 @@ export function WorkItemsScreen({
   const showSaveView =
     saveView && bundle.project.views_enabled && !readOnly && (Object.keys(normalizeFilters(filters)).length > 0 || urlState.display !== undefined || urlState.rich_filters !== undefined);
   const [exportOpen, setExportOpen] = useState(false);
+  // The element that scrolls the layout. One handle for the list's groups (docs/contracts/ui.md "Motion"): a group
+  // opening or closing glides and the groups below follow. The handle keeps its identity, so no row sees a new prop.
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const groupsLayout = useAnimatedLayout({ containerRef: scrollerRef });
+  // The layout, the calendar's period and view and the Gantt's zoom fade the scroller (./use-view-fade.ts); a filter, a
+  // sort, a grouping or a data refresh keeps the key and so keeps the content still.
+  const viewKey = display.layout === "calendar" ? `calendar:${display.calendar.layout}:${searchParams.get("cal") ?? ""}` : display.layout === "gantt" ? `gantt:${display.gantt.zoom}` : display.layout;
+  useViewFade(scrollerRef, viewKey);
 
   return (
     <>
@@ -402,9 +411,9 @@ export function WorkItemsScreen({
           </PanelHeader>
         }
         content={
-          <LayoutContent padding={0} isScrollable label={`${title} list`} className={scrollerClass}>
+          <LayoutContent ref={scrollerRef} padding={0} isScrollable label={`${title} list`} className={scrollerClass}>
             {display.layout === "list" ? (
-              <ListLayout {...layoutProps} />
+              <ListLayout {...layoutProps} animatedLayout={groupsLayout} />
             ) : display.layout === "board" ? (
               <BoardLayout {...layoutProps} />
             ) : display.layout === "table" ? (
