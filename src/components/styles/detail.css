@@ -40,11 +40,21 @@
 }
 
 /*
- * The slide in and out comes from motion.css (`tessera-motion-slide-end` on the panel, PeekHost): the panel is clipped by the
- * content card (`.tessera-panel`, overflow hidden). One that is leaving takes no more clicks, which belong to the list again.
+ * The slide in and out comes from motion.css (`tessera-motion-slide-end` on the panel, PeekHost; a panel that covers the list
+ * fades instead, `tessera-motion-fade`). One that is leaving takes no more clicks, which belong to the list again.
  */
 .tessera-peek-panel[data-exiting] {
   pointer-events: none;
+}
+
+/*
+ * The nested Layout around the list and the panel sits inside the project frame's scroller (the shell's only scroller), so
+ * a panel at translate 100% counted towards that scroller's scrollable overflow for the whole slide, and the focus that
+ * peek-cover.ts moves into the detail scrolled it sideways. `clip` cuts the overflow on the x axis without making this box a
+ * scroll container: sticky headers still stick to the real scroller, and the list keeps its own.
+ */
+.tessera-peek-layout {
+  overflow-x: clip;
 }
 
 /*

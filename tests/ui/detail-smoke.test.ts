@@ -750,8 +750,13 @@ describe("PeekHost", () => {
     expect(nav.router.back).toHaveBeenCalledTimes(1);
     expect(nav.router.replace).not.toHaveBeenCalled();
 
-    // Opened from a shared link or after the filters changed: no record of a push, so the list URL replaces the entry.
+    // Opened from a shared link or after the filters changed: no record of a push (the close above cleared it), so the list URL
+    // replaces the entry. The first panel is still leaving, and a second close while it leaves does nothing, so a fresh host
+    // stands for this second open.
+    await act(async () => root?.unmount());
+    container?.remove();
     nav.router.back.mockClear();
+    await render(await host());
     await act(async () => {
       document.querySelector<HTMLButtonElement>('button[aria-label="Close"]')?.click();
     });

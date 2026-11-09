@@ -14,6 +14,10 @@ import { waitForAppHydrated } from "./helpers-d";
  * `animationend` before the panel goes (a cut exit would end in `animationcancel`). Switching the peek to another
  * item dips the shared mount node and fades it back.
  *
+ * Where the peek covers the list (a container under 640 px: 768 and 375 px here) it fades in and out instead of
+ * sliding. The slide never widens the project's scroller (the nested Layout clips the x axis), the leaving panel is
+ * inert, and nothing animates for the browser's Back and Forward (an open, an item switch).
+ *
  * An in-page recorder (installed before the first script of every document) logs the panels' CSS animation events
  * and when each panel appears and goes, each with its time, so a one-frame animation or an unmount that cut one still
  * shows. An exit that ran to its end took the full 140 ms between its start and the panel going and logged no cancel
@@ -65,14 +69,83 @@ const clearEvents = (page: Page): Promise<void> =>
     (window as unknown as { __panelTimes: number[] }).__panelTimes.length = 0;
   });
 
+/** What `recordFrames` samples of the peek: at each of its animation starts and on every frame while it enters or exits. */
+type Frame = {
+  phase: string;
+  entering: boolean;
+  exiting: boolean;
+  inert: boolean;
+  focusInside: boolean;
+  translate: string;
+  opacity: number;
+  /** The project frame's scroller (the nearest LayoutContent above the peek's nested Layout). */
+  scrollWidth: number;
+  clientWidth: number;
+  scrollLeft: number;
+};
+
+/**
+ * Samples the peek panel and the project's scroller into window.__frames: at each `animationstart` of the panel
+ * (`start <keyframes>`) and on every animation frame while it carries `data-enter` or `data-exiting` (`frame`).
+ */
+async function recordFrames(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const frames: unknown[] = [];
+    (window as unknown as { __frames: unknown[] }).__frames = frames;
+    const sample = (phase: string, panel: Element) => {
+      const scroller = document.querySelector(".tessera-peek-layout")?.closest(".astryx-layout-content");
+      const style = getComputedStyle(panel);
+      frames.push({
+        phase,
+        entering: panel.hasAttribute("data-enter"),
+        exiting: panel.hasAttribute("data-exiting"),
+        inert: panel.hasAttribute("inert"),
+        focusInside: panel.contains(document.activeElement),
+        translate: style.translate,
+        opacity: parseFloat(style.opacity),
+        scrollWidth: scroller?.scrollWidth ?? -1,
+        clientWidth: scroller?.clientWidth ?? -1,
+        scrollLeft: scroller?.scrollLeft ?? -1,
+      });
+    };
+    document.addEventListener(
+      "animationstart",
+      (event) => {
+        if (event.target instanceof Element && event.target.matches(".tessera-peek-panel")) sample(`start ${(event as AnimationEvent).animationName}`, event.target);
+      },
+      true,
+    );
+    const tick = () => {
+      const panel = document.querySelector(".tessera-peek-panel");
+      if (panel && (panel.hasAttribute("data-enter") || panel.hasAttribute("data-exiting"))) sample("frame", panel);
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+const framesOf = (page: Page): Promise<Frame[]> => page.evaluate(() => [...(window as unknown as { __frames: Frame[] }).__frames]);
+const clearFrames = (page: Page): Promise<void> => page.evaluate(() => void ((window as unknown as { __frames: unknown[] }).__frames.length = 0));
+
+/** The project's scroller never gained width and never scrolled sideways, at an animation start and mid-animation. */
+function expectScrollerStill(frames: Frame[]): void {
+  expect(frames.some((frame) => frame.phase.startsWith("start")), "an animation start was sampled").toBe(true);
+  expect(frames.some((frame) => frame.phase === "frame"), "a mid-animation frame was sampled").toBe(true);
+  for (const frame of frames) {
+    expect(frame.clientWidth, `the scroller was found: ${JSON.stringify(frame)}`).toBeGreaterThan(0);
+    expect(frame.scrollWidth, `scrollWidth <= clientWidth: ${JSON.stringify(frame)}`).toBeLessThanOrEqual(frame.clientWidth);
+    expect(frame.scrollLeft, `scrollLeft stays 0: ${JSON.stringify(frame)}`).toBe(0);
+  }
+}
+
 /**
  * The panel's exit ran to its end: one slide-out start, no cancel, the panel gone last, and at least 60 ms
  * between the start event and the panel going (the exit is 140 ms, but `animationstart` is dispatched a frame or two
  * after the animation began, so a loaded run measures about 95 ms; an exit that was skipped measures about 0).
  */
-async function expectExitRanToEnd(page: Page, name: "peek" | "assistant"): Promise<void> {
+async function expectExitRanToEnd(page: Page, name: "peek" | "assistant", keyframes = "tessera-slide-out-end"): Promise<void> {
   const { log, times } = await page.evaluate(() => ({ log: [...(window as unknown as { __panelEvents: string[] }).__panelEvents], times: [...(window as unknown as { __panelTimes: number[] }).__panelTimes] }));
-  const start = log.indexOf(`${name} start tessera-slide-out-end`);
+  const start = log.indexOf(`${name} start ${keyframes}`);
   expect(start, `${name} exit started: ${log.join(", ")}`).toBeGreaterThanOrEqual(0);
   expect(log.filter((event) => event.includes(" cancel ")), "no cancelled animation").toEqual([]);
   expect(log.at(-1)).toBe(`${name} gone`);
@@ -137,6 +210,7 @@ test.describe("the peek", () => {
 
   test("slides out on Escape and on the Close button, and the exit runs to its end before the panel goes", async ({ page }) => {
     await recordPanels(page);
+    await recordFrames(page);
     const project = await projectWithTwoItems();
     await openWorkItems(page, project.id);
     await waitForAppHydrated(page);
@@ -146,11 +220,19 @@ test.describe("the peek", () => {
     await expect(peekPanel(page).getByRole("heading", { name: "Slide me in" })).toBeVisible();
     await expectSettled(page, PEEK);
     await clearEvents(page);
+    await clearFrames(page);
     await peekPanel(page).getByRole("button", { name: "Close" }).first().click();
     await expect(page).not.toHaveURL(/peek=/);
     await expect(page.locator(PEEK)).toHaveCount(0);
     await expectExitRanToEnd(page, "peek");
     await expect(keyButton(page, project.identifier, 1)).toBeFocused();
+    // The leaving panel is inert from its first frame on, with no focus inside it.
+    const leaving = (await framesOf(page)).filter((frame) => frame.exiting);
+    expect(leaving.length, "the exit was sampled").toBeGreaterThan(0);
+    for (const frame of leaving) {
+      expect(frame.inert, `inert while leaving: ${JSON.stringify(frame)}`).toBe(true);
+      expect(frame.focusInside, `no focus inside while leaving: ${JSON.stringify(frame)}`).toBe(false);
+    }
 
     // Escape, from the detail.
     await keyButton(page, project.identifier, 2).click();
@@ -223,6 +305,171 @@ test.describe("the peek", () => {
     await expect.poll(() => node.evaluate((element) => (element as HTMLElement).style.opacity)).toBe("");
     // The panel did not slide or leave for it.
     expect(await events(page)).toEqual([]);
+  });
+});
+
+test.describe("the peek and the project's scroller", () => {
+  test("slides in and out at 1280 px without widening the scroller or scrolling it sideways", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await recordPanels(page);
+    await recordFrames(page);
+    const project = await projectWithTwoItems();
+    await openWorkItems(page, project.id);
+    await waitForAppHydrated(page);
+    await clearEvents(page);
+    await clearFrames(page);
+
+    await keyButton(page, project.identifier, 1).click();
+    await expect(peekPanel(page).getByRole("heading", { name: "Slide me in" })).toBeVisible();
+    await expect.poll(() => events(page)).toEqual(["peek appeared", "peek start tessera-slide-in-end", "peek end tessera-slide-in-end"]);
+    await expectSettled(page, PEEK);
+    const entering = await framesOf(page);
+    expectScrollerStill(entering);
+    expect(entering.some((frame) => frame.translate !== "none"), "the slide moved the panel").toBe(true);
+
+    await clearFrames(page);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(PEEK)).toHaveCount(0);
+    await expectExitRanToEnd(page, "peek");
+    const leaving = await framesOf(page);
+    expectScrollerStill(leaving);
+    expect(leaving.some((frame) => frame.translate !== "none"), "the exit moved the panel").toBe(true);
+  });
+
+  test("control: without the clip the same slide widens the scroller", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await recordFrames(page);
+    const project = await projectWithTwoItems();
+    await openWorkItems(page, project.id);
+    await waitForAppHydrated(page);
+    await page.addStyleTag({ content: ".tessera-peek-layout { overflow-x: visible !important; }" });
+    await clearFrames(page);
+    await keyButton(page, project.identifier, 1).click();
+    await expect(peekPanel(page).getByRole("heading", { name: "Slide me in" })).toBeVisible();
+    await expectSettled(page, PEEK);
+    const entering = await framesOf(page);
+    expect(entering.some((frame) => frame.scrollWidth > frame.clientWidth), `the sampler sees the overflow the clip removes: ${JSON.stringify(entering[0])}`).toBe(true);
+  });
+
+  for (const [width, height] of [
+    [768, 1024],
+    [375, 812],
+  ] as const) {
+    test(`at ${width} px the peek covers the list and fades in and out: opacity moves, translate never does`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await recordPanels(page);
+      await recordFrames(page);
+      const project = await projectWithTwoItems();
+      await openWorkItems(page, project.id);
+      await waitForAppHydrated(page);
+      await clearEvents(page);
+      await clearFrames(page);
+
+      await keyButton(page, project.identifier, 1).click();
+      await expect(peekPanel(page).getByRole("heading", { name: "Slide me in" })).toBeVisible();
+      await expect.poll(() => events(page)).toEqual(["peek appeared", "peek start tessera-fade-in", "peek end tessera-fade-in"]);
+      await expectSettled(page, PEEK);
+      const entering = await framesOf(page);
+      expectScrollerStill(entering);
+      for (const frame of entering) expect(frame.translate, `no translate while it fades in: ${JSON.stringify(frame)}`).toBe("none");
+      expect(entering.some((frame) => frame.opacity < 1), "the panel faded in").toBe(true);
+
+      await clearEvents(page);
+      await clearFrames(page);
+      await peekPanel(page).getByRole("button", { name: "Close" }).first().click();
+      await expect(page.locator(PEEK)).toHaveCount(0);
+      await expectExitRanToEnd(page, "peek", "tessera-fade-out");
+      const leaving = await framesOf(page);
+      expectScrollerStill(leaving);
+      for (const frame of leaving) expect(frame.translate, `no translate while it fades out: ${JSON.stringify(frame)}`).toBe("none");
+      expect(leaving.some((frame) => frame.opacity < 1), "the panel faded out").toBe(true);
+      await expect(keyButton(page, project.identifier, 1)).toBeFocused();
+    });
+  }
+});
+
+test.describe("the browser's Back and Forward", () => {
+  test("nothing slides for an open that Forward brings, and a click after them still slides", async ({ page }) => {
+    await recordPanels(page);
+    const project = await projectWithTwoItems();
+    await openWorkItems(page, project.id);
+    await waitForAppHydrated(page);
+    await keyButton(page, project.identifier, 1).click();
+    await expect(peekPanel(page).getByRole("heading", { name: "Slide me in" })).toBeVisible();
+    await expectSettled(page, PEEK);
+
+    // Open, close (the close goes Back, which is the panel's own and counts for nothing), Forward.
+    await page.keyboard.press("Escape");
+    await expect(page.locator(PEEK)).toHaveCount(0);
+    await expectExitRanToEnd(page, "peek");
+    await clearEvents(page);
+    await page.goForward();
+    await expect(page).toHaveURL(/peek=/);
+    await expect(peekPanel(page).getByRole("heading", { name: "Slide me in" })).toBeVisible();
+    await page.waitForTimeout(600);
+    expect((await events(page)).filter((event) => / (start|end|cancel) /.test(event))).toEqual([]);
+    await expectSettled(page, PEEK);
+
+    // The browser's own Back closes it at once, with no exit; Forward brings it again, still without a slide.
+    await clearEvents(page);
+    await page.goBack();
+    await expect(page).not.toHaveURL(/peek=/);
+    await expect(page.locator(PEEK)).toHaveCount(0);
+    await page.goForward();
+    await expect(page).toHaveURL(/peek=/);
+    await expect(peekPanel(page).getByRole("heading", { name: "Slide me in" })).toBeVisible();
+    await page.waitForTimeout(600);
+    expect((await events(page)).filter((event) => / (start|end|cancel) /.test(event))).toEqual([]);
+    await expectSettled(page, PEEK);
+
+    // A click on a row once the history step has passed is a user's open again: it slides.
+    await page.waitForTimeout(1_100);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(PEEK)).toHaveCount(0);
+    await clearEvents(page);
+    await keyButton(page, project.identifier, 2).click();
+    await expect(peekPanel(page).getByRole("heading", { name: "Switch to me" })).toBeVisible();
+    await expect.poll(() => events(page)).toEqual(["peek appeared", "peek start tessera-slide-in-end", "peek end tessera-slide-in-end"]);
+  });
+
+  test("the mount node does not dip when Back or Forward moves between two peeked items", async ({ page }) => {
+    await recordPanels(page);
+    await page.addInitScript(() => {
+      const state = { min: 1 };
+      (window as unknown as { __nodeFade: typeof state }).__nodeFade = state;
+      const tick = () => {
+        const node = document.querySelector(".tessera-peek-node");
+        if (node) state.min = Math.min(state.min, parseFloat(getComputedStyle(node).opacity));
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    const dipped = () => page.evaluate(() => (window as unknown as { __nodeFade: { min: number } }).__nodeFade.min);
+    const project = await projectWithTwoItems();
+    await openWorkItems(page, project.id);
+    await waitForAppHydrated(page);
+    await keyButton(page, project.identifier, 1).click();
+    await expect(peekPanel(page).getByRole("heading", { name: "Slide me in" })).toBeVisible();
+    // A click on the second row switches in place: that is a user's switch and it dips.
+    await keyButton(page, project.identifier, 2).click();
+    await expect(peekPanel(page).getByRole("heading", { name: "Switch to me" })).toBeVisible();
+    await expect.poll(dipped).toBeLessThan(1);
+    const node = page.locator(".tessera-peek-node");
+    await expect.poll(() => node.evaluate((element) => (element as HTMLElement).style.opacity)).toBe("");
+    await page.evaluate(() => void ((window as unknown as { __nodeFade: { min: number } }).__nodeFade.min = 1));
+
+    // Back to the first item, Forward to the second: both restore a place, and neither dips it.
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`peek=${project.ids[0]}`));
+    await expect(peekPanel(page).getByRole("heading", { name: "Slide me in" })).toBeVisible();
+    await page.waitForTimeout(700);
+    expect(await dipped()).toBe(1);
+    await page.goForward();
+    await expect(page).toHaveURL(new RegExp(`peek=${project.ids[1]}`));
+    await expect(peekPanel(page).getByRole("heading", { name: "Switch to me" })).toBeVisible();
+    await page.waitForTimeout(700);
+    expect(await dipped()).toBe(1);
+    await expectSettled(page, PEEK);
   });
 });
 

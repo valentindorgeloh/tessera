@@ -32,15 +32,18 @@
  * mounted, the host is counted in ./peek-hosts.ts, which Power K reads before
  * it opens a work item hit as a peek.
  *
- * Motion (docs/contracts/ui.md "Motion"): the side panel and the cover slide in from the
- * end edge when the peek OPENS in a host that is already mounted (`useEnterFlag`; a `?peek=`
- * deep link, hydration and any mount with the peek already open never slide) and out when it closes (Escape, the header Close, the not-found
- * Close). A close starts its navigation at once and runs the CSS exit meanwhile
- * (`playExit`, 140 ms, held out until the panel unmounts); the host keeps the leaving item
- * on screen until the exit ends, so a Back that lands within a frame does not cut it. A
- * second close during the exit does nothing; a hidden route or an unmount ends the exit and
- * never navigates again. The modal keeps the Astryx Dialog's own motion. Switching to another
- * item while the peek is open fades the shared mount node (`useAnimator`, 0.4 to 1).
+ * Motion (docs/contracts/ui.md "Motion"): the side panel slides in from the end edge when the peek OPENS in a host that is
+ * already mounted (`useEnterFlag`) and out when it closes (Escape, the header Close, the not-found Close). A panel that covers
+ * the list (a narrow container, ./peek-cover.ts) fades in and out instead: a slide would show the squeezed list as a blank strip.
+ * Nothing animates for a `?peek=` deep link, hydration, any mount with the peek already open, or the browser's Back and Forward
+ * (a popstate): an open or an item change that follows one stays still, and a close that goes Back itself (`closesWithBack`) is
+ * not counted as one. A close starts its navigation at once and runs the CSS exit meanwhile (`playExit`, 140 ms, held out until
+ * the panel unmounts); the host keeps the leaving item on screen until the exit ends, so a Back that lands within a frame does not
+ * cut it. The leaving panel is inert from the first frame of the exit until the URL drops the item or names another, so focus
+ * cannot land in it, and a second close (Escape or a button) does nothing in that time. A hidden route or an unmount ends the exit
+ * and never navigates again. The modal keeps the Astryx Dialog's own motion. Switching to another item while the peek is open
+ * fades the shared mount node (`useAnimator`, 0.4 to 1). The nested Layout clips the slide on the x axis (detail.css), so the
+ * project's scroller never gains width while the panel travels.
  *
  * The detail is a separate chunk (./peek-detail-lazy.tsx, decision 142): the
  * editor stays out of the list routes' first load. The chunk is fetched when
@@ -60,7 +63,7 @@ import { LayerDepthProvider } from "@astryxdesign/core/Layer";
 import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import { VStack } from "@astryxdesign/core/Stack";
-import { clearExit, ignoreCancelled, playExit } from "@/components/motion/play-exit";
+import { EXITING_ATTRIBUTE, clearExit, ignoreCancelled, playExit } from "@/components/motion/play-exit";
 import { useEnterFlag } from "@/components/motion/use-enter-flag";
 import { recordVisit } from "@/components/shell/recents-store";
 import { IdSchema } from "@/lib/tessera/schemas";
@@ -82,6 +85,26 @@ export type PeekHostProps = {
   peek: PeekData | null;
   children: ReactNode;
 };
+
+/**
+ * A change that follows a popstate within this long is the browser's Back or Forward, the same window the page change fade uses
+ * (src/components/shell/PageFade.tsx). Next restores a cached route within a frame and an uncached one after the fetch.
+ */
+const POPSTATE_WINDOW_MS = 1000;
+
+/** A popstate this soon after the panel's own `router.back()` is that Back, not the browser's. It arrives within a task or two. */
+const OWN_BACK_WINDOW_MS = 1000;
+
+/** The leaving panel: held out by `playExit` and inert, so focus and clicks stay out of it until the URL drops the item. */
+function hold(panel: HTMLElement): void {
+  panel.setAttribute("inert", "");
+}
+
+/** Takes the panel back: the exit marker and the inertness go, and it shows as it is. */
+function release(panel: HTMLElement): void {
+  clearExit(panel);
+  panel.removeAttribute("inert");
+}
 
 /**
  * The panel for an id this project cannot show. An item of another project
@@ -196,26 +219,58 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
     },
     [],
   );
-  // Another item (or none) is named: a panel left held out by an exit that the URL never confirmed shows again.
+  // Another item is named: a panel left held out by an exit that the URL never confirmed shows again, and takes focus and clicks.
   const shownId = peek?.id ?? null;
   useEffect(() => {
     if (shownId === null) return;
     exit.current?.abort();
-    if (panelRef.current !== null) clearExit(panelRef.current);
+    if (panelRef.current !== null) release(panelRef.current);
   }, [shownId]);
 
   // Switching items in place fades the shared mount node (the detail remounts under it, key={id}); a layout effect, so the
-  // new item is first painted at the dip. Not on open or close, and not on a refresh (the id is the same).
+  // new item is first painted at the dip. Not on open or close, not on a refresh (the id is the same), and not on the
+  // browser's Back or Forward, which restore an item instead of going to one (the page change fade reads a popstate the same way).
   const mountRef = useRef<HTMLElement | null>(mountNode);
   const fade = useAnimator(mountRef);
   const lastId = useRef(shownId);
+  const poppedAt = useRef(Number.NEGATIVE_INFINITY);
+  /** True from the moment a dip starts until the end of that task (a macrotask cannot run between two listeners of one event). */
+  const dippedThisTask = useRef(false);
   useLayoutEffect(() => {
     const before = lastId.current;
     lastId.current = shownId;
     if (before === null || shownId === null || before === shownId) return;
+    if (performance.now() - poppedAt.current < POPSTATE_WINDOW_MS) return;
     fade.set({ opacity: 0.4 });
     void fade.animate({ opacity: 1 });
+    dippedThisTask.current = true;
+    setTimeout(() => {
+      dippedThisTask.current = false;
+    }, 0);
   }, [shownId, fade]);
+
+  // The browser's Back and Forward (a popstate that is not the panel's own `router.back()`): `isHistoryStep` is true for a
+  // moment, so an open they bring does not slide (below), and `poppedAt` keeps the item fade out of it. Next's own popstate
+  // listener is registered first and may commit the new URL before this one runs, in the same task: the dip it started is
+  // ended here before the browser paints it, and the open's slide is dropped by the next render.
+  const ownBackAt = useRef(Number.NEGATIVE_INFINITY);
+  const historyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [isHistoryStep, setHistoryStep] = useState(false);
+  useEffect(() => {
+    const onPopState = () => {
+      if (performance.now() - ownBackAt.current < OWN_BACK_WINDOW_MS) {
+        ownBackAt.current = Number.NEGATIVE_INFINITY;
+        return;
+      }
+      poppedAt.current = performance.now();
+      if (dippedThisTask.current) fade.set({ opacity: 1 });
+      setHistoryStep(true);
+      clearTimeout(historyTimer.current);
+      historyTimer.current = setTimeout(() => setHistoryStep(false), POPSTATE_WINDOW_MS);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [fade]);
 
   // The detail (editor included) is a separate chunk (./peek-detail-lazy.tsx): fetch it when idle or on the first row contact, so the
   // first peek finds it loaded. A peek already named by the URL (a deep link, a reload) needs it now.
@@ -243,17 +298,19 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
   }, [here, isOpen]);
 
   const close = () => {
-    // A second close while the panel is leaving does nothing (the first one already navigates).
-    if (exit.current !== null) return;
+    // A second close while the panel is leaving does nothing (the first one already navigates). The panel stays held out after
+    // its exit ends, until the URL drops the item, so the marker on the panel says it is leaving, not only the running exit.
+    if (exit.current !== null || panelRef.current?.hasAttribute(EXITING_ATTRIBUTE)) return;
     const target = peekHref(pathname, searchParams, null);
     const push = readPeekPush();
     clearPeekPush();
     const panel = panelRef.current;
     if (peek !== null && !isModal && panel !== null) {
-      // The detail stays on screen while it slides out, so focus inside it would still sit there when the list takes over:
-      // let it go now, and the focus return (peek-cover.ts) finds it free in the commit that closes.
+      // The detail stays on screen while it leaves, so focus inside it would still sit there when the list takes over:
+      // let it go now, and the focus return (peek-cover.ts) finds it free in the commit that closes. Inert keeps it out after.
       const active = document.activeElement;
       if (active instanceof HTMLElement && panel.contains(active)) active.blur();
+      hold(panel);
       const controller = new AbortController();
       exit.current = controller;
       setLeaving(peek);
@@ -262,12 +319,15 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
         setLeaving(null);
       };
       playExit(panel, { signal: controller.signal }).then(settle, (error: unknown) => {
+        release(panel);
         settle();
         ignoreCancelled(error);
       });
     }
-    if (closesWithBack(push, here, target, window.history.length)) router.back();
-    else router.replace(target, { scroll: false });
+    if (closesWithBack(push, here, target, window.history.length)) {
+      ownBackAt.current = performance.now();
+      router.back();
+    } else router.replace(target, { scroll: false });
   };
   const openItem = (id: string) => {
     const next = peekHref(pathname, searchParams, id);
@@ -349,12 +409,19 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
     )
   ) : null;
 
-  // True for the commit where the side panel opens after mount, until its slide ends. A host that mounts with the peek already
-  // open (a `?peek=` deep link, a navigation to one) never slides, hydrated or client-rendered (a freshly streamed page client-renders
-  // its list): the slide is for a user's open, so it waits until the host has been closed once.
+  // True for the commit where the side panel opens after mount, until its animation ends. A host that mounts with the peek already
+  // open (a `?peek=` deep link, a navigation to one) never animates, hydrated or client-rendered (a freshly streamed page client-renders
+  // its list): the enter is for a user's open, so it waits until the host has been closed once.
   const [hasBeenClosed, setHasBeenClosed] = useState(shown === null);
   if (!hasBeenClosed && shown === null) setHasBeenClosed(true);
-  const enter = useEnterFlag(hasBeenClosed && shown !== null && !isModal);
+  const opens = hasBeenClosed && shown !== null && !isModal;
+  // An open that the browser's Back or Forward brought stays still, and stays so for as long as that panel is open (the window
+  // `isHistoryStep` covers ends meanwhile, and the flag must not turn true again then). The state is derived while rendering,
+  // like useEnterFlag's own: no effect sets it.
+  const [entry, setEntry] = useState({ opens, byHistory: false });
+  const byHistory = opens && (isHistoryStep || (entry.opens && entry.byHistory));
+  if (entry.opens !== opens || entry.byHistory !== byHistory) setEntry({ opens, byHistory });
+  const enter = useEnterFlag(opens && !byHistory);
   const sidePanel =
     shown !== null && !isModal ? (
       <>
@@ -367,7 +434,7 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
           isScrollable={false}
           label="Work item"
           role="complementary"
-          className={isPanelCover ? "tessera-peek-panel tessera-peek-panel--cover tessera-motion-slide-end" : "tessera-peek-panel tessera-motion-slide-end"}
+          className={isPanelCover ? "tessera-peek-panel tessera-peek-panel--cover tessera-motion-fade" : "tessera-peek-panel tessera-motion-slide-end"}
           {...enter}
         >
           <Card ref={watchPanelAndCover} padding={0} height="100%" elevation="low" className="tessera-peek-card">
@@ -381,6 +448,7 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
     <>
       <Layout
         height="fill"
+        className="tessera-peek-layout"
         content={
           <LayoutContent padding={0} isScrollable inert={isListCovered} {...rememberListOpener}>
             {children}

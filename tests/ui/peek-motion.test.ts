@@ -3,7 +3,9 @@
  * The peek's motion (src/components/detail/PeekHost.tsx, docs/contracts/ui.md "Motion"): the side panel slides in when
  * it opens after mount, and a close starts its navigation at once while the CSS exit runs; the host keeps the leaving
  * item on screen until the exit ends, a second close does nothing, a cancelled exit closes nothing, and focus still
- * returns to the row (decision 11). Switching items in place dips the shared mount node and fades it back.
+ * returns to the row (decision 11). Switching items in place dips the shared mount node and fades it back. A panel that
+ * covers the list fades instead of sliding, the leaving panel is inert, and nothing animates for the browser's Back and
+ * Forward (a popstate), which the panel's own Back (a close) is not.
  * jsdom runs no CSS animation: `getAnimations` is stubbed with a fake exit the test finishes or cancels, and the
  * animator is a spy. tests/e2e/motion-panels.spec.ts runs the real stylesheet in a browser.
  */
@@ -11,6 +13,7 @@ import { act, createElement, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PeekData } from "@/components/detail/PeekHost";
+import { notePeekPush } from "@/components/detail/peek-history";
 
 const nav = vi.hoisted(() => ({
   router: { push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() },
@@ -94,6 +97,7 @@ beforeAll(async () => {
 }, 60_000);
 
 beforeEach(() => {
+  nav.search = "";
   nav.router.push.mockClear();
   nav.router.replace.mockClear();
   nav.router.back.mockClear();
@@ -298,5 +302,209 @@ describe("switching items in place", () => {
     await show(null);
     await show(item(OTHER));
     expect(animator.set).not.toHaveBeenCalled();
+  });
+});
+
+describe("the cover", () => {
+  it("fades a panel that covers the list, and slides one that sits beside it", async () => {
+    layout.width = 400;
+    await mount(await host(null));
+    await show(peek);
+    expect(panel()?.className).toContain("tessera-peek-panel--cover");
+    expect(panel()?.className).toContain("tessera-motion-fade");
+    expect(panel()?.className).not.toContain("tessera-motion-slide-end");
+    expect(panel()?.hasAttribute("data-enter")).toBe(true);
+    await show(null);
+
+    layout.width = 1000;
+    await act(async () => root?.unmount());
+    root = null;
+    container?.remove();
+    await mount(await host(null));
+    await show(peek);
+    expect(panel()?.className).toContain("tessera-motion-slide-end");
+    expect(panel()?.className).not.toContain("tessera-motion-fade");
+  });
+});
+
+describe("the leaving panel", () => {
+  it("is inert from the start of the exit, and the list is not", async () => {
+    fakeExit = runExit();
+    await openPeek();
+    expect(panel()?.hasAttribute("inert")).toBe(false);
+    await act(async () => closeButton()?.click());
+    expect(panel()?.hasAttribute("inert")).toBe(true);
+    expect(panel()?.hasAttribute("data-exiting")).toBe(true);
+    expect(list()?.hasAttribute("inert")).toBe(false);
+  });
+
+  it("takes no focus: the focus that was inside it is let go when the exit starts", async () => {
+    fakeExit = runExit();
+    await openPeek();
+    await act(async () => closeButton()?.focus());
+    expect(panel()?.contains(document.activeElement)).toBe(true);
+    await act(async () => closeButton()?.click());
+    expect(panel()?.contains(document.activeElement)).toBe(false);
+  });
+
+  it("stays inert and held out after its exit ended while the URL still names the item, and a second close or Escape does nothing", async () => {
+    fakeExit = runExit();
+    await openPeek();
+    await act(async () => closeButton()?.click());
+    expect(nav.router.replace).toHaveBeenCalledTimes(1);
+    // The exit is over but the navigation has not landed (a slow Back or a slow fetch): the panel is still in the tree.
+    await act(async () => exit.current?.finish());
+    expect(panel()).not.toBeNull();
+    expect(panel()?.hasAttribute("data-exiting")).toBe(true);
+    expect(panel()?.hasAttribute("inert")).toBe(true);
+
+    await act(async () => closeButton()?.click());
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
+    });
+    expect(nav.router.replace).toHaveBeenCalledTimes(1);
+    expect(nav.router.back).not.toHaveBeenCalled();
+  });
+
+  it("does nothing on a second Escape while it leaves (the first Escape closes)", async () => {
+    fakeExit = runExit();
+    await openPeek();
+    const press = () =>
+      act(async () => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
+      });
+    await press();
+    expect(nav.router.replace).toHaveBeenCalledTimes(1);
+    await press();
+    expect(nav.router.replace).toHaveBeenCalledTimes(1);
+  });
+
+  it("is taken back, focusable again, when the exit is cancelled or the URL names another item", async () => {
+    fakeExit = runExit();
+    await openPeek();
+    await act(async () => closeButton()?.click());
+    await act(async () => exit.current?.cancel());
+    expect(panel()?.hasAttribute("inert")).toBe(false);
+    expect(panel()?.hasAttribute("data-exiting")).toBe(false);
+
+    // A new close can start again, and another item shown during that exit brings the panel back.
+    fakeExit = runExit();
+    await act(async () => closeButton()?.click());
+    expect(panel()?.hasAttribute("inert")).toBe(true);
+    await show(item(OTHER));
+    expect(panel()?.hasAttribute("inert")).toBe(false);
+    expect(panel()?.hasAttribute("data-exiting")).toBe(false);
+  });
+
+  it("returns focus to the row's key button, as before the panel was inert", async () => {
+    layout.width = 400;
+    await mount(await host(null));
+    const key = document.querySelector<HTMLButtonElement>('[data-testid="row-key"]');
+    await act(async () => key?.focus());
+    await show(peek);
+    await act(async () => vi.dynamicImportSettled());
+    fakeExit = runExit();
+    await act(async () => closeButton()?.click());
+    await show(null);
+    expect(panel()?.hasAttribute("inert")).toBe(true);
+    expect(document.activeElement).toBe(key);
+  });
+});
+
+describe("the browser's Back and Forward", () => {
+  const popstate = () =>
+    act(async () => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+  it("does not slide an open that follows a popstate (Forward into a ?peek= entry), and slides again for the next click", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await mount(await host(null));
+      await popstate();
+      await show(peek);
+      expect(panel()).not.toBeNull();
+      expect(panel()?.hasAttribute("data-enter")).toBe(false);
+      // The window ends while the panel is open: the slide must not start late.
+      await act(async () => {
+        vi.advanceTimersByTime(1100);
+      });
+      expect(panel()?.hasAttribute("data-enter")).toBe(false);
+      // Close, and a click that opens it again is an open like any other.
+      await show(null);
+      await show(peek);
+      expect(panel()?.hasAttribute("data-enter")).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("drops the slide of an open that committed before the popstate listener ran", async () => {
+    await mount(await host(null));
+    await show(peek);
+    expect(panel()?.hasAttribute("data-enter")).toBe(true);
+    await popstate();
+    expect(panel()?.hasAttribute("data-enter")).toBe(false);
+  });
+
+  it("does not count the panel's own Back (a close that goes Back) as a browser step: the next open slides", async () => {
+    const list = "/projects/p/work-items";
+    const open = `${list}?peek=${ITEM}`;
+    await mount(await host(null));
+    notePeekPush(list, open);
+    nav.search = `peek=${ITEM}`;
+    await show(peek);
+    await act(async () => vi.dynamicImportSettled());
+    await act(async () => closeButton()?.click());
+    expect(nav.router.back).toHaveBeenCalledTimes(1);
+    expect(nav.router.replace).not.toHaveBeenCalled();
+    // router.back() lands: the browser fires the popstate for it.
+    await popstate();
+    nav.search = "";
+    await show(null);
+    nav.search = `peek=${OTHER}`;
+    await show(item(OTHER));
+    expect(panel()?.hasAttribute("data-enter")).toBe(true);
+  });
+
+  it("does not dip the mount node for an item change that follows a popstate, and dips again once the window has passed", async () => {
+    const now = vi.spyOn(performance, "now");
+    try {
+      now.mockReturnValue(10_000);
+      await openPeek();
+      await popstate();
+      now.mockReturnValue(10_300);
+      await show(item(OTHER)); // Back or Forward between two peek entries
+      expect(animator.set).not.toHaveBeenCalled();
+      expect(animator.animate).not.toHaveBeenCalled();
+      now.mockReturnValue(12_500);
+      await show(item(ITEM)); // a click, well after
+      expect(animator.set).toHaveBeenCalledTimes(1);
+      expect(animator.animate).toHaveBeenCalledTimes(1);
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  it("ends a dip that the router committed before the popstate listener ran, in the same task", async () => {
+    // The host's "end of the task" timer is held, so the popstate below arrives in the task that dipped (as it does in a browser).
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await openPeek();
+      await show(item(OTHER));
+      expect(animator.set).toHaveBeenCalledWith({ opacity: 0.4 });
+      animator.set.mockClear();
+      await popstate();
+      expect(animator.set).toHaveBeenCalledWith({ opacity: 1 });
+      // Once that task is over a popstate has no dip to end.
+      animator.set.mockClear();
+      await act(async () => {
+        vi.advanceTimersByTime(10);
+      });
+      await popstate();
+      expect(animator.set).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
