@@ -9,6 +9,7 @@
 import { act, createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { FailureContext, ProjectOption } from "@/components/superagent/superagent-format";
 import type { RunnerFailure, RunnerPromptsDoc, RunnerResult, RunnerSettingsDoc } from "@/lib/superagent/types";
 import type { AgentSettings } from "@/lib/tessera/types";
 
@@ -23,6 +24,7 @@ vi.mock("@astryxdesign/core/Toast", async (importOriginal) => {
   return { ...real, useToast: () => toastSpy };
 });
 
+const { AGENT_RUNNER_DEFAULT_URL } = await import("@/lib/tessera/schemas");
 const { AgentSettingsSection } = await import("@/components/superagent/AgentSettingsSection");
 const { TeamSectionsSection } = await import("@/components/superagent/TeamSectionsSection");
 const format = await import("@/components/superagent/settings-format");
@@ -30,10 +32,15 @@ const format = await import("@/components/superagent/settings-format");
 const WEB = "11111111-1111-7111-8111-111111111111";
 const API = "22222222-2222-7222-8222-222222222222";
 const GONE = "33333333-3333-7333-8333-333333333333";
-const projects = [
-  { id: WEB, name: "Website", identifier: "WEB" },
-  { id: API, name: "Backend", identifier: "API" },
+const OLD = "44444444-4444-7444-8444-444444444444";
+/** The page passes live projects first, then archived ones; `GONE` is in neither list (deleted). */
+const projects: ProjectOption[] = [
+  { id: WEB, name: "Website", identifier: "WEB", archived: false },
+  { id: API, name: "Backend", identifier: "API", archived: false },
+  { id: OLD, name: "Legacy", identifier: "OLD", archived: true },
 ];
+/** What `SuperagentScreen` passes: the real token path and runner URL of the load. */
+const context: FailureContext = { tokenFile: "/Users/me/.tessera-agents/api-token", runnerUrl: "http://127.0.0.1:3391" };
 const agents: AgentSettings = { runner_url: "http://127.0.0.1:3090", projects: [{ project_id: WEB, repo: "tessera" }] };
 const settingsDoc: RunnerSettingsDoc = { settings: { budgetsUsd: { S: 2, M: 6, L: 15 }, dailyCapUsd: 25, maxParallel: 2, signoffM: true }, revision: 7 };
 const promptsDoc: RunnerPromptsDoc = {
@@ -125,31 +132,43 @@ describe("settings helpers", () => {
     for (const repo of ["a/b/c", "has space", "owner/", "/name", "naïve"]) expect(format.repoError(repo), repo).toBe(format.REPO_ERROR);
   });
 
-  it("starts with the mapped projects that still exist and counts the dropped ones", () => {
-    const stored: AgentSettings = { runner_url: "http://127.0.0.1:3090", projects: [{ project_id: WEB, repo: "tessera" }, { project_id: GONE, repo: "old" }] };
+  it("starts with the mapped projects that exist, live or archived, and counts only the deleted ones as dropped", () => {
+    const stored: AgentSettings = { runner_url: "http://127.0.0.1:3090", projects: [{ project_id: WEB, repo: "tessera" }, { project_id: GONE, repo: "old" }, { project_id: OLD, repo: "legacy" }] };
     const { rows, dropped } = format.mappingRows(stored, projects);
-    expect(rows).toEqual([{ key: 0, project_id: WEB, repo: "tessera" }]);
+    expect(rows).toEqual([
+      { key: 0, project_id: WEB, repo: "tessera" },
+      { key: 1, project_id: OLD, repo: "legacy" },
+    ]);
     expect(dropped).toBe(1);
+    expect(format.mappingRows({ runner_url: "http://127.0.0.1:3090", projects: [{ project_id: OLD, repo: "legacy" }] }, projects).dropped).toBe(0);
     expect(format.mappingRows(null, projects)).toEqual({ rows: [], dropped: 0 });
     expect(format.droppedMappingsText(0)).toBeNull();
     expect(format.droppedMappingsText(1)).toBe("1 mapped project no longer exists and is dropped on save.");
     expect(format.droppedMappingsText(2)).toBe("2 mapped projects no longer exist and are dropped on save.");
   });
 
-  it("builds the set_agent_settings input: the URL only when typed, the repo trimmed", () => {
+  it("builds the set_agent_settings input: the typed URL, the default for a blank field (as the placeholder says), the repo trimmed", () => {
     const rows = [{ key: 0, project_id: WEB, repo: " tessera " }];
-    expect(format.mappingInput("", rows)).toEqual({ projects: [{ project_id: WEB, repo: "tessera" }] });
-    expect(format.mappingInput(" http://127.0.0.1:3391 ", rows)).toEqual({ runner_url: "http://127.0.0.1:3391", projects: [{ project_id: WEB, repo: "tessera" }] });
+    const mapped = [{ project_id: WEB, repo: "tessera" }];
+    for (const blank of ["", "   "]) expect(format.mappingInput(blank, rows), JSON.stringify(blank)).toEqual({ runner_url: AGENT_RUNNER_DEFAULT_URL, projects: mapped });
+    expect(format.mappingInput(" http://127.0.0.1:3391 ", rows)).toEqual({ runner_url: "http://127.0.0.1:3391", projects: mapped });
     expect(format.mappingErrors("http://example.com:1", [{ key: 0, project_id: WEB, repo: "" }])).toEqual({ url: format.RUNNER_URL_ERROR, repos: [format.REPO_REQUIRED], any: true });
   });
 
-  it("offers each row its own project and the projects no other row maps", () => {
+  it("offers each row its own project and the live projects no other row maps, never an archived one to another row", () => {
     const rows = [{ key: 0, project_id: WEB, repo: "a" }];
     expect(format.projectChoices(projects, rows, rows[0]).map((project) => project.id)).toEqual([WEB, API]);
     const both = [...rows, { key: 1, project_id: API, repo: "b" }];
     expect(format.projectChoices(projects, both, both[0]).map((project) => project.id)).toEqual([WEB]);
     expect(format.firstFreeProject(projects, rows)?.id).toBe(API);
+    // The archived project is unmapped here, and still no row is offered it and "Add project" has nothing to add.
     expect(format.firstFreeProject(projects, both)).toBeUndefined();
+    // A row that maps an archived project keeps it as its own choice (next to the live ones), and no other row gets it.
+    const withArchived = [...rows, { key: 1, project_id: OLD, repo: "legacy" }];
+    expect(format.projectChoices(projects, withArchived, withArchived[1]).map((project) => project.id)).toEqual([API, OLD]);
+    expect(format.projectChoices(projects, withArchived, withArchived[0]).map((project) => project.id)).toEqual([WEB, API]);
+    expect(format.projectLabel(projects[0])).toBe("Website");
+    expect(format.projectLabel(projects[2])).toBe("Legacy (archived)");
   });
 
   it("sends every non-empty text of the shown repos and passes the others through unchanged", () => {
@@ -163,19 +182,30 @@ describe("settings helpers", () => {
     expect(format.storedTeamText(stored, "tessera", "delivery")).toBe("");
   });
 
-  it("words a failed save: a stale revision as Changed elsewhere, anything else as an error naming what was tried", () => {
-    expect(format.saveFailureToast("Could not save", failure("conflict").failure, "http://127.0.0.1:3090")).toEqual({ type: "info", body: "Changed elsewhere. The latest values are loaded." });
-    expect(format.saveFailureToast("Could not save the runner settings", failure("validation", "budget too low").failure, "http://127.0.0.1:3090")).toEqual({
+  it("words a failed save: a stale revision as Changed elsewhere, anything else as an error naming what was tried, with the real token file and URL", () => {
+    expect(format.saveFailureToast("Could not save", failure("conflict").failure, context)).toEqual({ type: "info", body: "Changed elsewhere. The latest values are loaded." });
+    expect(format.saveFailureToast("Could not save the runner settings", failure("validation", "budget too low").failure, context)).toEqual({
       type: "error",
       body: "Could not save the runner settings. Not accepted. budget too low",
     });
-    expect(format.notAvailableText(failure("not_set_up").failure, "http://127.0.0.1:3090")).toBe("Not available: Runner not set up.");
+    expect(format.saveFailureToast("Could not save the team sections", failure("unauthorized").failure, context).body).toBe(
+      "Could not save the team sections. Token rejected. The runner rejected Tessera's token. Restart the runner or check /Users/me/.tessera-agents/api-token.",
+    );
+    expect(format.saveFailureToast("Could not save the runner settings", failure("unreachable").failure, context).body).toBe(
+      "Could not save the runner settings. Runner not answering. Nothing answers at http://127.0.0.1:3391. Check that the runner is running.",
+    );
   });
 });
 
 describe("AgentSettingsSection", () => {
-  const section = (overrides: { agents?: AgentSettings | null; runnerSettings?: RunnerResult<RunnerSettingsDoc> } = {}) =>
-    createElement(AgentSettingsSection, { agents: overrides.agents === undefined ? agents : overrides.agents, projects, runnerSettings: overrides.runnerSettings ?? loaded(settingsDoc) });
+  const section = (overrides: { agents?: AgentSettings | null; runnerSettings?: RunnerResult<RunnerSettingsDoc>; state?: RunnerResult<unknown>; projects?: ProjectOption[] } = {}) =>
+    createElement(AgentSettingsSection, {
+      agents: overrides.agents === undefined ? agents : overrides.agents,
+      projects: overrides.projects ?? projects,
+      runnerSettings: overrides.runnerSettings ?? loaded(settingsDoc),
+      state: overrides.state ?? loaded({}),
+      context,
+    });
 
   it("shows the stored mapping and the runner values", async () => {
     const el = await render(section());
@@ -186,6 +216,11 @@ describe("AgentSettingsSection", () => {
     expect(input(el, "Budget for S (USD)")).not.toBeNull();
     expect(input(el, "Parallel requests")?.value).toBe("2");
     expect(el.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
+  });
+
+  it("puts no width cap on the forms: they take the section's width", async () => {
+    const el = await render(section());
+    expect(el.querySelector('[style*="max-width"]')).toBeNull();
   });
 
   it("shows a field error for a non-loopback URL and sends nothing", async () => {
@@ -216,7 +251,8 @@ describe("AgentSettingsSection", () => {
     const el = await render(section());
     await click(button(el, "Add project"));
     expect(button(el, "Remove Backend")).not.toBeNull();
-    // Every project is mapped now.
+    // Every live project is mapped now; the archived one is not offered.
+    expect(button(el, "Remove Legacy")).toBeNull();
     expect(button(el, "Add project")?.getAttribute("aria-disabled") ?? button(el, "Add project")?.disabled).toBeTruthy();
     await click(button(el, "Save mapping"));
     expect(saveMapping).not.toHaveBeenCalled();
@@ -236,13 +272,51 @@ describe("AgentSettingsSection", () => {
     expect(saveMapping).toHaveBeenCalledWith({ runner_url: "http://127.0.0.1:3090", projects: [{ project_id: WEB, repo: "tessera" }] });
   });
 
-  it("works without any stored mapping", async () => {
+  it("keeps a mapping to an archived project as a row, labels it and saves it unchanged", async () => {
+    const stored: AgentSettings = { runner_url: "http://127.0.0.1:3090", projects: [{ project_id: OLD, repo: "legacy" }, { project_id: WEB, repo: "tessera" }] };
+    const el = await render(section({ agents: stored }));
+    expect(el.textContent).not.toContain("no longer exist");
+    expect(el.querySelectorAll('input[placeholder="name or owner/name"]')).toHaveLength(2);
+    expect(button(el, "Remove Legacy")).not.toBeNull();
+    // The row's own Selector names the project as archived; the live row does not.
+    expect(el.textContent).toContain("Legacy (archived)");
+    expect(el.textContent).not.toContain("Website (archived)");
+    await click(button(el, "Save mapping"));
+    expect(saveMapping).toHaveBeenCalledWith({ runner_url: "http://127.0.0.1:3090", projects: [{ project_id: OLD, repo: "legacy" }, { project_id: WEB, repo: "tessera" }] });
+  });
+
+  it("counts only a mapping whose project is in neither list as gone, next to an archived one that stays", async () => {
+    const stored: AgentSettings = { runner_url: "http://127.0.0.1:3090", projects: [{ project_id: GONE, repo: "old" }, { project_id: OLD, repo: "legacy" }] };
+    const el = await render(section({ agents: stored }));
+    expect(el.textContent).toContain("1 mapped project no longer exists and is dropped on save.");
+    expect(el.querySelectorAll('input[placeholder="name or owner/name"]')).toHaveLength(1);
+    await click(button(el, "Save mapping"));
+    expect(saveMapping).toHaveBeenCalledWith({ runner_url: "http://127.0.0.1:3090", projects: [{ project_id: OLD, repo: "legacy" }] });
+  });
+
+  it("adds the first live project, never an archived one, and says why nothing is left to add", async () => {
+    const onlyOld: ProjectOption[] = [projects[2]];
+    const el = await render(section({ agents: null, projects: onlyOld }));
+    expect(button(el, "Add project")?.getAttribute("aria-disabled") ?? button(el, "Add project")?.disabled).toBeTruthy();
+    await click(button(el, "Add project"));
+    expect(button(el, "Remove Legacy")).toBeNull();
+    expect(el.textContent).toContain("No project is mapped yet.");
+  });
+
+  it("works without any stored mapping, and a blank Runner URL saves the default the placeholder shows", async () => {
     const el = await render(section({ agents: null }));
     expect(input(el, "Runner URL")?.value).toBe("");
-    expect(input(el, "Runner URL")?.placeholder).toBe("http://127.0.0.1:3090");
+    expect(input(el, "Runner URL")?.placeholder).toBe(AGENT_RUNNER_DEFAULT_URL);
     expect(el.textContent).toContain("No project is mapped yet.");
     await click(button(el, "Save mapping"));
-    expect(saveMapping).toHaveBeenCalledWith({ projects: [] });
+    expect(saveMapping).toHaveBeenCalledWith({ runner_url: AGENT_RUNNER_DEFAULT_URL, projects: [] });
+  });
+
+  it("saves the default URL when the user clears a stored one", async () => {
+    const el = await render(section());
+    await type(input(el, "Runner URL") as HTMLInputElement, "");
+    await click(button(el, "Save mapping"));
+    expect(saveMapping).toHaveBeenCalledWith({ runner_url: AGENT_RUNNER_DEFAULT_URL, projects: [{ project_id: WEB, repo: "tessera" }] });
   });
 
   it("saves the runner settings with the loaded revision", async () => {
@@ -269,6 +343,20 @@ describe("AgentSettingsSection", () => {
     expect(toastSpy).toHaveBeenLastCalledWith({ type: "error", body: "Could not save the runner settings. Not accepted. dailyCapUsd must be positive" });
   });
 
+  it("names the real token file and runner URL in a failed save's Toast, never a placeholder", async () => {
+    saveSettings.mockResolvedValueOnce(failure("unauthorized"));
+    const el = await render(section());
+    await click(button(el, "Save runner settings"));
+    expect(toastSpy).toHaveBeenLastCalledWith({
+      type: "error",
+      body: "Could not save the runner settings. Token rejected. The runner rejected Tessera's token. Restart the runner or check /Users/me/.tessera-agents/api-token.",
+    });
+    saveSettings.mockResolvedValueOnce(failure("timeout"));
+    await click(button(el, "Save runner settings"));
+    expect(toastSpy).toHaveBeenLastCalledWith({ type: "error", body: "Could not save the runner settings. Runner timed out. The runner at http://127.0.0.1:3391 did not answer within 5 seconds." });
+    expect(JSON.stringify(toastSpy.mock.calls)).not.toContain("the token file");
+  });
+
   it("replaces the fields when the runner's revision changes", async () => {
     const el = await render(section());
     expect(input(el, "Parallel requests")?.value).toBe("2");
@@ -279,20 +367,44 @@ describe("AgentSettingsSection", () => {
     expect(input(el, "Parallel requests")?.value).toBe("5");
   });
 
-  it("disables the runner form with the failure text while its settings failed, and keeps the mapping form working", async () => {
+  const runnerFields = ["Budget for S (USD)", "Budget for M (USD)", "Budget for L (USD)", "Daily cap (USD)", "Parallel requests"];
+
+  it("says only the failure's title and disables the runner form while its own settings failed (the state loaded), and keeps the mapping form working", async () => {
     const el = await render(section({ runnerSettings: failure("not_set_up") }));
-    expect(el.textContent).toContain("Not available: Runner not set up.");
-    for (const label of ["Budget for S (USD)", "Budget for M (USD)", "Budget for L (USD)", "Daily cap (USD)", "Parallel requests"]) expect(input(el, label)?.disabled, label).toBe(true);
+    expect(el.textContent).toContain("Runner not set up");
+    expect(el.textContent).not.toContain("Not available");
+    for (const label of runnerFields) expect(input(el, label)?.disabled, label).toBe(true);
     expect(button(el, "Save runner settings")?.disabled).toBe(true);
     await click(button(el, "Save runner settings"));
     expect(saveSettings).not.toHaveBeenCalled();
     await click(button(el, "Save mapping"));
     expect(saveMapping).toHaveBeenCalledTimes(1);
   });
+
+  it("says 'Not available: {title}.' while the runner's state failed", async () => {
+    const el = await render(section({ state: failure("unreachable"), runnerSettings: failure("unreachable") }));
+    expect(el.textContent).toContain("Not available: Runner not answering.");
+  });
+
+  it("says 'Not available: {title}.' and shows nothing of the runner's while its state failed, even when the settings loaded", async () => {
+    const el = await render(section({ state: failure("timeout") }));
+    expect(el.textContent).toContain("Not available: Runner timed out.");
+    // As the screen's other parts: the form shows no values and cannot save.
+    for (const label of runnerFields) expect(input(el, label)?.disabled, label).toBe(true);
+    expect(input(el, "Parallel requests")?.value).toBe("");
+    await click(button(el, "Save runner settings"));
+    expect(saveSettings).not.toHaveBeenCalled();
+  });
+
+  it("draws no failure line while the state and the settings loaded", async () => {
+    const el = await render(section());
+    expect(el.textContent).not.toContain("Not available");
+    expect(el.textContent).not.toContain("Runner not set up");
+  });
 });
 
 describe("TeamSectionsSection", () => {
-  const section = (prompts: RunnerResult<RunnerPromptsDoc>, repos: string[]) => createElement(TeamSectionsSection, { prompts, repos });
+  const section = (prompts: RunnerResult<RunnerPromptsDoc>, repos: string[], state: RunnerResult<unknown> = loaded({})) => createElement(TeamSectionsSection, { prompts, repos, state, context });
 
   it("shows one collapsible per repository with the three stored texts", async () => {
     const el = await render(section(loaded(promptsDoc), ["other/repo", "tessera"]));
@@ -339,13 +451,41 @@ describe("TeamSectionsSection", () => {
     expect(el.querySelector("textarea")?.value).toBe("Latest.");
   });
 
-  it("disables the texts and Save with the failure text while the prompts failed", async () => {
+  it("puts no width cap on the section: it takes the screen's width", async () => {
+    const el = await render(section(loaded(promptsDoc), ["tessera"]));
+    expect(el.querySelector('[style*="max-width"]')).toBeNull();
+  });
+
+  it("disables the texts and Save with the failure's title while the prompts failed (the state loaded)", async () => {
     const el = await render(section(failure("unreachable"), ["tessera"]));
-    expect(el.textContent).toContain("Not available: Runner not answering.");
+    expect(el.textContent).toContain("Runner not answering");
+    expect(el.textContent).not.toContain("Not available");
     expect([...el.querySelectorAll("textarea")].every((area) => area.disabled)).toBe(true);
     expect(button(el, "Save team sections")?.disabled).toBe(true);
     await click(button(el, "Save team sections"));
     expect(savePrompts).not.toHaveBeenCalled();
+  });
+
+  it("says 'Not available: {title}.' while the runner's state failed, even when the prompts loaded, and cannot save", async () => {
+    const el = await render(section(loaded(promptsDoc), ["tessera"], failure("not_set_up")));
+    expect(el.textContent).toContain("Not available: Runner not set up.");
+    expect([...el.querySelectorAll("textarea")].every((area) => area.disabled && area.value === "")).toBe(true);
+    await click(button(el, "Save team sections"));
+    expect(savePrompts).not.toHaveBeenCalled();
+  });
+
+  it("names the real token file and runner URL in a failed save's Toast, never a placeholder", async () => {
+    savePrompts.mockResolvedValueOnce(failure("unauthorized"));
+    const el = await render(section(loaded(promptsDoc), ["tessera"]));
+    await click(button(el, "Save team sections"));
+    expect(toastSpy).toHaveBeenLastCalledWith({
+      type: "error",
+      body: "Could not save the team sections. Token rejected. The runner rejected Tessera's token. Restart the runner or check /Users/me/.tessera-agents/api-token.",
+    });
+    savePrompts.mockResolvedValueOnce(failure("unreachable"));
+    await click(button(el, "Save team sections"));
+    expect(toastSpy).toHaveBeenLastCalledWith({ type: "error", body: "Could not save the team sections. Runner not answering. Nothing answers at http://127.0.0.1:3391. Check that the runner is running." });
+    expect(JSON.stringify(toastSpy.mock.calls)).not.toContain("the token file");
   });
 
   it("asks for a mapped repository when there is none", async () => {

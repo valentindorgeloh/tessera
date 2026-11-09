@@ -132,6 +132,9 @@ function issueText(error: z.ZodError): string {
   return path === "" ? issue.message : `${path}: ${issue.message}`;
 }
 
+/** What `failure.code` may hold from a runner error body: an upper-case code, short, so free text cannot ride along. */
+const RUNNER_CODE = /^[A-Z][A-Z0-9_]{0,63}$/;
+
 const same = <T>(data: T): T => data;
 
 export function createRunnerClient(options: RunnerClientOptions): RunnerClient {
@@ -139,9 +142,19 @@ export function createRunnerClient(options: RunnerClientOptions): RunnerClient {
   const root = options.baseUrl.replace(/\/+$/, "");
   const timeoutMs = options.timeoutMs ?? RUNNER_TIMEOUT_MS;
 
-  /** Every failure goes through here, so the token cannot reach a message even if the runner echoes it. */
+  /**
+   * Every failure goes through here, so the token cannot reach a message or a code even if the runner echoes it.
+   * A `code` that is not shaped like a runner code, or that carries the token, becomes null.
+   */
   function fail(state: RunnerFailureState, message: string, status: number | null = null, code: string | null = null): RunnerResult<never> {
-    return { ok: false, failure: { state, message: token === "" ? message : message.split(token).join("[token]"), status, code } };
+    const keepCode = code !== null && RUNNER_CODE.test(code) && (token === "" || !code.includes(token));
+    return { ok: false, failure: { state, message: token === "" ? message : message.split(token).join("[token]"), status, code: keepCode ? code : null } };
+  }
+
+  /** Runs `run` with the id encoded for a path. An id that is empty, `.` or `..` is `validation` with no call: encoding keeps dots and fetch would resolve them to another route. */
+  function withId<T>(id: string, run: (encoded: string) => Promise<RunnerResult<T>>): Promise<RunnerResult<T>> {
+    if (id === "" || id === "." || id === "..") return Promise.resolve(fail("validation", "Invalid id"));
+    return run(encodeURIComponent(id));
   }
 
   function thrown(error: unknown): RunnerResult<never> {
@@ -203,13 +216,11 @@ export function createRunnerClient(options: RunnerClientOptions): RunnerClient {
     return { ok: true, data: pick(parsed.data) };
   }
 
-  const requestPath = (id: string) => `/v1/requests/${encodeURIComponent(id)}`;
-
   return {
     getState: () => call("GET", "/v1/state", RunnerStateSchema, same),
     listRequests: (scope) =>
       call("GET", `/v1/requests?scope=${encodeURIComponent(scope)}`, RequestsEnvelopeSchema, (envelope) => envelope.requests),
-    getRequest: (id) => call("GET", requestPath(id), RequestDetailEnvelopeSchema, (envelope) => envelope.request),
+    getRequest: (id) => withId(id, (key) => call("GET", `/v1/requests/${key}`, RequestDetailEnvelopeSchema, (envelope) => envelope.request)),
     getStats: () => call("GET", "/v1/stats", RunnerStatsSchema, same),
     listTriage: () => call("GET", "/v1/triage", TriageListEnvelopeSchema, (envelope) => envelope.triage),
     getSettings: () => call("GET", "/v1/settings", RunnerSettingsDocSchema, same),
@@ -218,10 +229,14 @@ export function createRunnerClient(options: RunnerClientOptions): RunnerClient {
     putPrompts: (teamSections, baseRevision) => call("PUT", "/v1/prompts", RunnerPromptsDocSchema, same, { teamSections, baseRevision }),
     setPaused: (paused) => call("POST", "/v1/pause", PausedEnvelopeSchema, same, { paused }),
     requestAction: (id, action) =>
-      call("POST", `${requestPath(id)}/${action === "lift_hold" ? "lift-hold" : action}`, RequestEnvelopeSchema, (envelope) => envelope.request),
-    resize: (id, size) => call("POST", `${requestPath(id)}/resize`, RequestEnvelopeSchema, (envelope) => envelope.request, { size }),
-    setBudget: (id, usd) => call("POST", `${requestPath(id)}/budget`, RequestEnvelopeSchema, (envelope) => envelope.request, { usd }),
+      withId(id, (key) =>
+        call("POST", `/v1/requests/${key}/${action === "lift_hold" ? "lift-hold" : action}`, RequestEnvelopeSchema, (envelope) => envelope.request),
+      ),
+    resize: (id, size) =>
+      withId(id, (key) => call("POST", `/v1/requests/${key}/resize`, RequestEnvelopeSchema, (envelope) => envelope.request, { size })),
+    setBudget: (id, usd) =>
+      withId(id, (key) => call("POST", `/v1/requests/${key}/budget`, RequestEnvelopeSchema, (envelope) => envelope.request, { usd })),
     retryTriage: (id) =>
-      call("POST", `/v1/triage/${encodeURIComponent(id)}/retry`, TriageEnvelopeSchema, (envelope) => envelope.triage),
+      withId(id, (key) => call("POST", `/v1/triage/${key}/retry`, TriageEnvelopeSchema, (envelope) => envelope.triage)),
   };
 }

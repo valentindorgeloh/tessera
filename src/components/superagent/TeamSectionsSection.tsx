@@ -9,7 +9,9 @@
  * does not show passed through unchanged, and the loaded revision. The form is
  * keyed by the revision, so a conflict (or any change by the runner) replaces
  * the texts with the latest ones. Disabled with the failure text while the
- * runner's prompts failed to load.
+ * runner's prompts (or its state) failed to load; the words and the Toasts
+ * name the real token path and runner URL, which the screen passes as
+ * `context`.
  */
 import { useState, useTransition } from "react";
 import { Button } from "@astryxdesign/core/Button";
@@ -22,28 +24,33 @@ import { TextArea } from "@astryxdesign/core/TextArea";
 import { useToast } from "@astryxdesign/core/Toast";
 import { superagentSavePromptsAction } from "@/app/actions/superagent";
 import type { RunnerPromptsDoc, RunnerResult, TeamSection } from "@/lib/superagent/types";
-import { AGENT_RUNNER_DEFAULT_URL } from "@/lib/tessera/schemas";
-import { TEAM_SECTION_FIELDS, mergeTeamSections, notAvailableText, saveFailureToast, storedTeamText } from "./settings-format";
+import { TEAM_SECTION_FIELDS, mergeTeamSections, saveFailureToast, storedTeamText } from "./settings-format";
+import { sectionNote, type FailureContext } from "./superagent-format";
 
 export type TeamSectionsSectionProps = {
   prompts: RunnerResult<RunnerPromptsDoc>;
   /** The mapped repositories plus those already in `teamSections`, sorted. */
   repos: string[];
+  /** The runner's state load: when it failed the screen's banner explains and this section says "Not available". */
+  state: RunnerResult<unknown>;
+  /** The token path and runner URL the failure words name. */
+  context: FailureContext;
 };
 
 /** Up to this many repositories start open; more start closed, except one that already has text. */
 const OPEN_REPOS = 4;
-const FORM_MAX_WIDTH = 560;
 const TEXT_ROWS = 4;
 
-export function TeamSectionsSection({ prompts, repos }: TeamSectionsSectionProps) {
+export function TeamSectionsSection({ prompts, repos, state, context }: TeamSectionsSectionProps) {
+  const note = sectionNote(state, prompts, context);
+  // As the screen's other parts: nothing of the runner's is shown (or saved) while its state failed.
+  const doc = note === null && prompts.ok ? prompts.data : null;
   return (
-    <VStack gap={3} maxWidth={FORM_MAX_WIDTH}>
+    <VStack gap={3}>
       <Heading level={2}>Team sections</Heading>
-      {/* ASSUMPTION: the props carry no runner URL, so the failure words use the default one (they name it only for "not answering" and "timed out"). */}
-      {prompts.ok ? null : (
+      {note === null ? null : (
         <Text type="supporting" color="secondary">
-          {notAvailableText(prompts.failure, AGENT_RUNNER_DEFAULT_URL)}
+          {note}
         </Text>
       )}
       {repos.length === 0 ? (
@@ -51,7 +58,7 @@ export function TeamSectionsSection({ prompts, repos }: TeamSectionsSectionProps
           Map a project to a repository to write its team sections.
         </Text>
       ) : (
-        <TeamSectionsForm key={prompts.ok ? `rev:${prompts.data.revision}` : "unavailable"} prompts={prompts} repos={repos} />
+        <TeamSectionsForm key={doc === null ? "unavailable" : `rev:${doc.revision}`} doc={doc} repos={repos} context={context} />
       )}
     </VStack>
   );
@@ -62,24 +69,26 @@ function editKey(repo: string, section: TeamSection["section"]): string {
   return JSON.stringify([repo, section]);
 }
 
-function TeamSectionsForm({ prompts, repos }: TeamSectionsSectionProps) {
+type TeamSectionsFormProps = { doc: RunnerPromptsDoc | null; repos: string[]; context: FailureContext };
+
+function TeamSectionsForm({ doc, repos, context }: TeamSectionsFormProps) {
   const toast = useToast();
   const [isPending, startSave] = useTransition();
-  const stored = prompts.ok ? prompts.data.teamSections : [];
+  const stored = doc === null ? [] : doc.teamSections;
   // Only what the user changed is kept here; every other field reads the stored text, so a repository mapped meanwhile appears without a reset.
   const [edits, setEdits] = useState<Readonly<Record<string, string>>>({});
-  const isDisabled = !prompts.ok;
+  const isDisabled = doc === null;
   const textOf = (repo: string, section: TeamSection["section"]) => edits[editKey(repo, section)] ?? storedTeamText(stored, repo, section);
 
   const save = () => {
-    if (!prompts.ok) return;
+    if (doc === null) return;
     startSave(async () => {
-      const result = await superagentSavePromptsAction({ team_sections: mergeTeamSections(repos, textOf, stored), base_revision: prompts.data.revision });
+      const result = await superagentSavePromptsAction({ team_sections: mergeTeamSections(repos, textOf, stored), base_revision: doc.revision });
       if (result.ok) {
         toast({ type: "info", body: "Team sections saved" });
         return;
       }
-      toast(saveFailureToast("Could not save the team sections", result.failure, AGENT_RUNNER_DEFAULT_URL));
+      toast(saveFailureToast("Could not save the team sections", result.failure, context));
     });
   };
 

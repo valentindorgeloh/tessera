@@ -56,7 +56,7 @@ export const RUNNER_FAILURE_STATES = [
 ] as const;
 export type RunnerFailureState = (typeof RUNNER_FAILURE_STATES)[number];
 
-/** `message` is the runner's own text or a short technical one; `status` and `code` are as received (null when there was no answer). */
+/** `message` is the runner's own text or a short technical one; `status` is as received and `code` the runner's `error.code` when it is shaped like one (`[A-Z][A-Z0-9_]{0,63}`) and free of the token; both null when there was no answer or no such code. */
 export type RunnerFailure = { state: RunnerFailureState; message: string; status: number | null; code: string | null };
 export type RunnerResult<T> = { ok: true; data: T } | { ok: false; failure: RunnerFailure };
 

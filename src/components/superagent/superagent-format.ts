@@ -21,8 +21,8 @@ import {
   type TriageRow,
 } from "@/lib/superagent/types";
 
-/** A live project the mapping form can pick (the page maps `listProjects` to this). */
-export type ProjectOption = { id: string; name: string; identifier: string };
+/** A project the mapping form knows (the page maps `listProjects`, live and archived, to this); only live ones can be picked, an archived one stays on a row that already maps it. */
+export type ProjectOption = { id: string; name: string; identifier: string; archived: boolean };
 
 /** The status variants the screen uses for a stage, a health state and the spend bar. */
 export type DotVariant = "success" | "warning" | "error" | "accent" | "neutral";

@@ -16,7 +16,7 @@ The feature set follows Plane Community Edition, minus accounts, invitations, ad
 - **Workspace:** Home with widgets (since your last visit, your work, recents, quick links, stickies), favourites with folders, Your work, analytics.
 - **Agents:** agents are first-class actors with an access level (read, intake or write), a directory at `/agents` and profiles. Each agent gets a generated robot avatar, picked from its id and tinted in its colour, so bots read apart from people and from each other.
 - **Assistant:** a side panel (`mod+j`) and Ask in Power K that stream answers and propose changes you approve with Apply (destructive ones ask again), with undo of the last batch. It appears only when an Anthropic credential resolves.
-- **MCP:** 192 tools in one registry that the UI, the MCP server and the assistant share.
+- **MCP:** 193 tools in one registry that the UI, the MCP server and the assistant share.
 - **Operations:** auto-archive and auto-close automations, HMAC-signed outbound webhooks, CSV and JSON exports, rotated backups, full-text search, the Power K command palette and keyboard shortcuts, and live refresh when another process (an agent) changes data.
 
 ## Requirements

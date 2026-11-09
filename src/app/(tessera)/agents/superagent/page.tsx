@@ -33,7 +33,11 @@ async function SuperagentData({ searchParams }: Props) {
     loadSuperagent({ scope, requestId }),
     readTessera((ctx) => ({
       agents: getWorkspaceSettings(ctx).agents,
-      projects: listProjects(ctx, {}).map((project): ProjectOption => ({ id: project.id, name: project.name, identifier: project.identifier })),
+      // Live projects first, then archived ones: a mapping to an archived project stays (`setAgentSettings` allows it), so the form must know them.
+      projects: [
+        ...listProjects(ctx, {}).map((project): ProjectOption => ({ id: project.id, name: project.name, identifier: project.identifier, archived: false })),
+        ...listProjects(ctx, { archived: true }).map((project): ProjectOption => ({ id: project.id, name: project.name, identifier: project.identifier, archived: true })),
+      ],
     })),
   ]);
   return <SuperagentScreen runner={runner} agents={own.agents} projects={own.projects} scope={scope} requestId={requestId} />;

@@ -4,9 +4,9 @@
  * 6). No React and no Astryx, so Vitest reaches them.
  */
 import type { RunnerFailure, TeamSection } from "@/lib/superagent/types";
-import { AgentRepoSchema, AgentRunnerUrlSchema } from "@/lib/tessera/schemas";
+import { AGENT_RUNNER_DEFAULT_URL, AgentRepoSchema, AgentRunnerUrlSchema } from "@/lib/tessera/schemas";
 import type { AgentProject, AgentSettings } from "@/lib/tessera/types";
-import { failureCopy, failureToast, type ProjectOption } from "./superagent-format";
+import { failureCopy, failureToast, type FailureContext, type ProjectOption } from "./superagent-format";
 
 export const RUNNER_URL_ERROR = "Use http://127.0.0.1:<port> or http://localhost:<port>.";
 export const REPO_ERROR = "Use a name or owner/name: letters, digits, _, . and -.";
@@ -16,13 +16,15 @@ export const REPO_REQUIRED = "Enter a repository.";
 export type MappingRow = { key: number; project_id: string; repo: string };
 
 /**
- * The rows the mapping form starts with: the stored entries whose project is
- * still live. `dropped` counts the others, which a save leaves out.
+ * The rows the mapping form starts with: the stored entries whose project
+ * exists, live or archived (`setAgentSettings` allows an archived project, so
+ * its mapping stays and saves unchanged). `dropped` counts the entries whose
+ * project is in neither list (deleted), which a save leaves out.
  */
 export function mappingRows(agents: AgentSettings | null, projects: readonly ProjectOption[]): { rows: MappingRow[]; dropped: number } {
-  const live = new Set(projects.map((project) => project.id));
+  const known = new Set(projects.map((project) => project.id));
   const stored = agents?.projects ?? [];
-  const kept = stored.filter((entry) => live.has(entry.project_id));
+  const kept = stored.filter((entry) => known.has(entry.project_id));
   return { rows: kept.map((entry, index) => ({ key: index, project_id: entry.project_id, repo: entry.repo })), dropped: stored.length - kept.length };
 }
 
@@ -32,7 +34,7 @@ export function droppedMappingsText(dropped: number): string | null {
   return dropped === 1 ? "1 mapped project no longer exists and is dropped on save." : `${dropped} mapped projects no longer exist and are dropped on save.`;
 }
 
-/** The runner URL field's error; an empty field is fine (the stored or default URL stays). */
+/** The runner URL field's error; an empty field is fine (it saves the default URL, as its placeholder says). */
 export function runnerUrlError(value: string): string | null {
   const url = value.trim();
   return url === "" || AgentRunnerUrlSchema.safeParse(url).success ? null : RUNNER_URL_ERROR;
@@ -52,40 +54,38 @@ export function mappingErrors(url: string, rows: readonly MappingRow[]): { url: 
   return { url: urlProblem, repos, any: urlProblem !== null || repos.some((problem) => problem !== null) };
 }
 
-/** The `set_agent_settings` input: the URL only when the field has one (omitted keeps the stored URL), the whole map. */
-export function mappingInput(url: string, rows: readonly MappingRow[]): { runner_url?: string; projects: AgentProject[] } {
+/** The `set_agent_settings` input: the URL (a blank field saves the default, as the placeholder says), the whole map. */
+export function mappingInput(url: string, rows: readonly MappingRow[]): { runner_url: string; projects: AgentProject[] } {
   const projects = rows.map((row) => ({ project_id: row.project_id, repo: row.repo.trim() }));
   const runnerUrl = url.trim();
-  return runnerUrl === "" ? { projects } : { runner_url: runnerUrl, projects };
+  return { runner_url: runnerUrl === "" ? AGENT_RUNNER_DEFAULT_URL : runnerUrl, projects };
 }
 
-/** The projects a row can pick: its own and every live project no other row maps. */
+/** A project's name in a picker; an archived one says so. */
+export function projectLabel(project: ProjectOption): string {
+  return project.archived ? `${project.name} (archived)` : project.name;
+}
+
+/** The projects a row can pick: its own (even archived) and every live project no other row maps. Archived projects are never offered to another row. */
 export function projectChoices(projects: readonly ProjectOption[], rows: readonly MappingRow[], row: MappingRow): ProjectOption[] {
-  return projects.filter((project) => project.id === row.project_id || !rows.some((other) => other.project_id === project.id));
+  return projects.filter((project) => project.id === row.project_id || (!project.archived && !rows.some((other) => other.project_id === project.id)));
 }
 
-/** The first live project no row maps yet, for "Add project"; undefined when every project is mapped. */
+/** The first live project no row maps yet, for "Add project"; undefined when every live project is mapped. */
 export function firstFreeProject(projects: readonly ProjectOption[], rows: readonly MappingRow[]): ProjectOption | undefined {
-  return projects.find((project) => !rows.some((row) => row.project_id === project.id));
+  return projects.find((project) => !project.archived && !rows.some((row) => row.project_id === project.id));
 }
-
-/** The token path is not part of the forms' props, so words that name it say "the token file". */
-const TOKEN_FILE_PHRASE = "the token file";
 
 /**
  * The Toast after a failed save: a stale revision reads "Changed elsewhere.
  * The latest values are loaded." (the action's `refresh()` loads them, and the
- * form is keyed by the revision); every other failure names what was tried.
+ * form is keyed by the revision); every other failure names what was tried,
+ * with the screen's real token path and runner URL.
  */
-export function saveFailureToast(what: string, failure: RunnerFailure, runnerUrl: string): { type: "info" | "error"; body: string } {
-  const copy = failureCopy(failure, { tokenFile: TOKEN_FILE_PHRASE, runnerUrl });
+export function saveFailureToast(what: string, failure: RunnerFailure, context: FailureContext): { type: "info" | "error"; body: string } {
+  const copy = failureCopy(failure, context);
   if (failure.state === "conflict") return { type: "info", body: `${copy.title}. ${copy.body}` };
   return { type: "error", body: failureToast(what, copy) };
-}
-
-/** A section's one line while its load failed: "Not available: Runner not set up." */
-export function notAvailableText(failure: RunnerFailure, runnerUrl: string): string {
-  return `Not available: ${failureCopy(failure, { tokenFile: TOKEN_FILE_PHRASE, runnerUrl }).title}.`;
 }
 
 export const TEAM_SECTION_FIELDS = [

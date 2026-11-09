@@ -8,7 +8,7 @@
  * `createElement` as detail-smoke.test.ts does; the Server Action wrappers, the
  * router and the Toast hook are mocked.
  */
-import { act, createElement, type ComponentProps, type ReactNode } from "react";
+import { act, createElement, Fragment, useEffect, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectBundle } from "@/components/work-items/types";
@@ -62,6 +62,7 @@ vi.mock("@astryxdesign/core/Toast", async (importOriginal) => {
 const { ProjectProvider } = await import("@/components/work-items/project-provider");
 const { DetailHeader, WorkItemDetail } = await import("@/components/detail");
 const { setAssigneesAction } = await import("@/app/actions/work-items");
+const { useCommandContext } = await import("@/components/shell/command-context");
 const { SUPERAGENT_ALREADY_ASSIGNED, SUPERAGENT_NOT_CONNECTED, sendToSuperagentState, sentToSuperagentText } = await import("@/components/superagent/send-to-superagent");
 const { SUPERAGENT_ACTOR_NAME } = await import("@/lib/superagent/types");
 
@@ -231,11 +232,10 @@ describe("sendToSuperagentState", () => {
     expect(sendToSuperagentState({ repo: undefined, actors, assigneeIds: [], readOnly: false })).toEqual({ kind: "hidden" });
   });
 
-  it("is blocked until the superagent has connected (an agent named mcp:superagent; a user or a deleted agent of that name does not count)", () => {
+  it("is blocked until the superagent has connected (an agent named mcp:superagent; a user of that name or another agent does not count)", () => {
     const blocked = { kind: "blocked", reason: SUPERAGENT_NOT_CONNECTED };
     expect(sendToSuperagentState({ repo: REPO, actors: [person], assigneeIds: [], readOnly: false })).toEqual(blocked);
     expect(sendToSuperagentState({ repo: REPO, actors: [person, { ...superagent, kind: "user" }], assigneeIds: [], readOnly: false })).toEqual(blocked);
-    expect(sendToSuperagentState({ repo: REPO, actors: [person, { ...superagent, deleted_at: NOW }], assigneeIds: [], readOnly: false })).toEqual(blocked);
     expect(sendToSuperagentState({ repo: REPO, actors: [person, { ...superagent, name: "mcp:other" }], assigneeIds: [], readOnly: false })).toEqual(blocked);
   });
 
@@ -319,6 +319,44 @@ describe("WorkItemDetail Send to superagent", () => {
     });
     expect(toastSpy).toHaveBeenCalledWith({ type: "error", body: "Could not send to the superagent: Not allowed" });
     expect(toastSpy).not.toHaveBeenCalledWith(expect.objectContaining({ body: expect.stringContaining("Sent to the superagent") }));
+  });
+
+  it("goes through the optimistic assignee path, so a quick second edit keeps the superagent", async () => {
+    // The first write stays in flight, as it does until the refresh lands.
+    type Outcome = Awaited<ReturnType<typeof setAssigneesAction>>;
+    let release: (outcome: Outcome) => void = () => {};
+    vi.mocked(setAssigneesAction).mockImplementationOnce(
+      () =>
+        new Promise<Outcome>((resolve) => {
+          release = resolve;
+        }),
+    );
+    let context: ReturnType<typeof useCommandContext> = null;
+    function Capture() {
+      const value = useCommandContext();
+      useEffect(() => {
+        context = value;
+      });
+      return null;
+    }
+    const item = itemOf({ assignee_ids: [] });
+    const tree = inProject(bundleOf(), createElement(Fragment, null, createElement(WorkItemDetail, { data: detailData(item), host: "page", onOpenItem: vi.fn() }), createElement(Capture)));
+    const rows = await moreMenuRows(await render(tree));
+    await act(async () => {
+      sendRow(rows)?.click();
+    });
+    expect(setAssigneesAction).toHaveBeenLastCalledWith({ work_item_id: ITEM, actor_ids: [AGENT] });
+    // "Assign to me" (the shortcut) is computed from the detail's latest assignees: the superagent is in them while the send is in flight.
+    await act(async () => {
+      context?.actions["item.assignMe"]?.();
+    });
+    expect(setAssigneesAction).toHaveBeenCalledTimes(2);
+    expect(setAssigneesAction).toHaveBeenLastCalledWith({ work_item_id: ITEM, actor_ids: [AGENT, USER] });
+    expect(toastSpy).not.toHaveBeenCalledWith(expect.objectContaining({ body: expect.stringContaining("Sent to the superagent") }));
+    await act(async () => {
+      release(ok as unknown as Outcome);
+    });
+    expect(toastSpy).toHaveBeenCalledWith({ type: "info", body: "Sent to the superagent (tessera)." });
   });
 
   it("is disabled with 'not connected' while the project's actors have no mcp:superagent", async () => {

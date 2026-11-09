@@ -16,7 +16,11 @@ function failure(state: RunnerFailure["state"], message: string): RunnerResult<n
   return { ok: false, failure: { state, message, status: null, code: null } };
 }
 
-/** Runner URL, token file and a client for them, or why there is none. The token is read here and goes nowhere but the client. */
+/**
+ * Runner URL, token file and a client for them, or why there is none (a runner failure is a state, never thrown).
+ * The URL comes from a Tessera database read, whose error propagates like on every other screen. The token is read
+ * here and goes nowhere but the client.
+ */
 async function connect(): Promise<{ runnerUrl: string; tokenFile: string; client: RunnerResult<RunnerClient> }> {
   const tokenFile = tokenFilePath();
   const runnerUrl = await readTessera((ctx) => getWorkspaceSettings(ctx).agents?.runner_url ?? AGENT_RUNNER_DEFAULT_URL);
@@ -33,7 +37,8 @@ function viaClient<T>(client: RunnerResult<RunnerClient>, run: (client: RunnerCl
 /**
  * Runs `run` with a client for the configured runner. A missing or empty
  * token file is `not_set_up` and an unreadable one `token_unreadable`, both
- * without any request.
+ * without any request. Runner failures come back as states; a Tessera
+ * database error from reading the runner URL propagates.
  */
 export async function withRunner<T>(run: (client: RunnerClient) => Promise<RunnerResult<T>>): Promise<RunnerResult<T>> {
   const { client } = await connect();

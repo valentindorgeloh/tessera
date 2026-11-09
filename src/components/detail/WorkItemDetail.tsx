@@ -29,7 +29,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { VersionHistoryDialog } from "@/components/history/VersionHistoryDialog";
 import { ProjectTransferDialog } from "@/components/detail/ProjectTransferDialog";
 import { copyWorkItemAction } from "@/app/actions/detail";
-import { archiveWorkItemAction, deleteWorkItemAction, setAssigneesAction, unarchiveWorkItemAction } from "@/app/actions/work-items";
+import { archiveWorkItemAction, deleteWorkItemAction, unarchiveWorkItemAction } from "@/app/actions/work-items";
 import { ARCHIVE_OPEN_ITEM_REASON, canArchiveWorkItem } from "@/components/planning/archive-rules";
 import { registerCommandContext } from "@/components/shell/command-context";
 import { registerEntityLabel } from "@/components/shell/entity-labels";
@@ -156,15 +156,11 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
     );
   };
 
-  // "Send to superagent" (decision 145): the runner treats the superagent's assignment as the request, so a send is an assignment.
+  // "Send to superagent" (decision 145): the runner treats the superagent's assignment as the request, so a send is an assignment, through the detail's optimistic assignee path (a quick second edit builds on it).
   const send = sendToSuperagentState({ repo: bundle.superagent_repo, actors: bundle.actors, assigneeIds: item.assignee_ids, readOnly });
   const sendToSuperagent = () => {
     if (send.kind !== "ready") return;
-    actions.run(
-      () => setAssigneesAction({ work_item_id: item.id, actor_ids: send.actorIds }),
-      () => toast({ type: "info", body: sentToSuperagentText(send.repo) }),
-      "Could not send to the superagent",
-    );
+    actions.setAssigneesReporting(send.actorIds, "Could not send to the superagent", () => toast({ type: "info", body: sentToSuperagentText(send.repo) }));
   };
 
   // Archive and restore share one pending flag, so the Banner's Restore shows its spinner and cannot fire twice.

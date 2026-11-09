@@ -121,6 +121,48 @@ describe("requests: method, URL, headers and body", () => {
   });
 });
 
+describe("path ids", () => {
+  const dotIds = ["", ".", ".."];
+  const settings = fixture<{ settings: never }>("settings");
+  /** Every method that puts an id in the path. */
+  const byId: [string, (client: RunnerClient, id: string) => Promise<unknown>][] = [
+    ["getRequest", (c, id) => c.getRequest(id)],
+    ["requestAction approve", (c, id) => c.requestAction(id, "approve")],
+    ["requestAction retry", (c, id) => c.requestAction(id, "retry")],
+    ["requestAction stop", (c, id) => c.requestAction(id, "stop")],
+    ["requestAction lift_hold", (c, id) => c.requestAction(id, "lift_hold")],
+    ["resize", (c, id) => c.resize(id, "M")],
+    ["setBudget", (c, id) => c.setBudget(id, 5)],
+    ["retryTriage", (c, id) => c.retryTriage(id)],
+  ];
+
+  it.each(byId)("%s refuses an empty, . or .. id as validation without a call", async (_name, run) => {
+    for (const id of dotIds) {
+      const { client, calls } = answering(fixture("request-detail"));
+      const result = (await run(client, id)) as RunnerResult<unknown>;
+      expect(failureOf(result), JSON.stringify(id)).toMatchObject({ state: "validation", status: null, code: null });
+      expect(failureOf(result).message).not.toBe("");
+      expect(calls, JSON.stringify(id)).toHaveLength(0);
+    }
+  });
+
+  it("still sends an id that only contains dots, is encoded, or merely starts with one", async () => {
+    for (const id of ["...", ".a", "a.", "%2e%2e", "a/..", "../x"]) {
+      const { client, calls } = answering(fixture("request-detail"));
+      await client.getRequest(id);
+      expect(calls, id).toHaveLength(1);
+      expect(calls[0].url, id).toBe(`${BASE}/v1/requests/${encodeURIComponent(id)}`);
+      expect(new URL(calls[0].url).pathname.split("/"), id).toHaveLength(4);
+    }
+  });
+
+  it("leaves the routes without an id alone", async () => {
+    const { client, calls } = answering(settings);
+    await client.getSettings();
+    expect(calls).toHaveLength(1);
+  });
+});
+
 describe("fixtures through the client", () => {
   it("returns each fixture's data, unwrapped from its envelope", async () => {
     const requests = fixture<{ requests: { id: string }[] }>("requests");
@@ -210,6 +252,34 @@ describe("error answers", () => {
       code: "TEAPOT",
     });
     expect(failureOf(await answering({ error: { code: "TEAPOT", message: "short and stout" } }, 500).client.getState()).state).toBe("http_error");
+  });
+
+  it("keeps only a code shaped like a runner code, and never one that carries the token", async () => {
+    const codeOf = async (code: string, token = TOKEN) => {
+      const stub = stubFetch(() => jsonResponse({ error: { code, message: "No" } }, 409));
+      const result = await createRunnerClient({ baseUrl: BASE, token, fetch: stub.fetch }).getState();
+      return { failure: failureOf(result), json: JSON.stringify(result) };
+    };
+    // Shaped like a code: kept (also an unknown one, which maps by status).
+    expect((await codeOf("TEAPOT")).failure).toMatchObject({ state: "conflict", code: "TEAPOT" });
+    expect((await codeOf("E".repeat(64))).failure.code).toBe("E".repeat(64));
+    // Lowercase junk, free text, a leading digit or underscore, an empty code and an over-long one: null, the state still maps by status.
+    for (const junk of ["not_a_code", "Mixed_Case", "HAS SPACE", "9LIVES", "_LEAD", "", "E".repeat(65), "line\nbreak", "ÉCOLE"]) {
+      const { failure } = await codeOf(junk);
+      expect(failure, JSON.stringify(junk)).toMatchObject({ state: "conflict", status: 409, code: null });
+    }
+    // A code that carries the token (the shared fake token, and an upper-case one that passes the shape check): null, token nowhere.
+    for (const [code, token] of [
+      [TOKEN, TOKEN],
+      [`CODE_${TOKEN}`, TOKEN],
+      ["ERR_SECRETTOKEN42", "SECRETTOKEN42"],
+      ["SECRETTOKEN42", "SECRETTOKEN42"],
+    ]) {
+      const { failure, json } = await codeOf(code, token);
+      expect(failure, code).toMatchObject({ state: "conflict", code: null });
+      expect(json.includes(token), code).toBe(false);
+      expect(json.includes(code), code).toBe(false);
+    }
   });
 
   const byStatus: [number, RunnerFailureState][] = [

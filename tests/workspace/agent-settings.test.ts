@@ -100,6 +100,27 @@ describe("agent settings schemas", () => {
     }
   });
 
+  it("AgentRunnerUrlSchema takes ports 1 to 65535 only", () => {
+    for (const port of ["1", "80", "3090", "9999", "10000", "59999", "60000", "64999", "65000", "65499", "65500", "65529", "65530", "65535"]) {
+      for (const host of ["127.0.0.1", "localhost"]) expect(AgentRunnerUrlSchema.safeParse(`http://${host}:${port}`).success, `${host}:${port}`).toBe(true);
+    }
+    expect(AgentRunnerUrlSchema.safeParse("http://localhost:65535/").success).toBe(true);
+    for (const port of ["0", "00", "03090", "65536", "65540", "69999", "70000", "99999", "100000"]) {
+      for (const host of ["127.0.0.1", "localhost"]) expect(AgentRunnerUrlSchema.safeParse(`http://${host}:${port}`).success, `${host}:${port}`).toBe(false);
+    }
+  });
+
+  it("AgentRepoSchema keeps the repo inside one folder: no . or .. segment, no leading hyphen, owner not starting with . or -", () => {
+    for (const ok of ["tessera", "owner/tessera", "owner/.github", "my_org/repo-1.2", "_x/_y", "9lives/n", "a/b...", "owner/a-b"]) {
+      expect(AgentRepoSchema.safeParse(ok).success, ok).toBe(true);
+    }
+    for (const bad of [".", "..", "../..", "owner/..", "owner/.", "../name", "./name", "-rf", "owner/-x", "-owner/name", ".owner/name", "-", "owner/-"]) {
+      expect(AgentRepoSchema.safeParse(bad).success, bad).toBe(false);
+    }
+    const refused = AgentRepoSchema.safeParse("..");
+    expect(refused.success ? "" : refused.error.issues[0]?.message).toContain("owner/name");
+  });
+
   it("AgentSettingsSchema allows at most 50 projects and describes every field", () => {
     const entry = (n: number) => ({ project_id: newId(), repo: `repo-${n}` });
     expect(AgentSettingsSchema.safeParse({ runner_url: AGENT_RUNNER_DEFAULT_URL, projects: Array.from({ length: 50 }, (_, n) => entry(n)) }).success).toBe(true);
@@ -139,6 +160,21 @@ describe("normalizeAgentSettings", () => {
         projects: [{ project_id: A, repo: "r" }],
       });
     }
+  });
+
+  it("drops a stored entry that the repo rules refuse, and a stored URL with a port out of range", () => {
+    const result = normalizeAgentSettings({
+      runner_url: "http://127.0.0.1:65536",
+      projects: [
+        { project_id: A, repo: ".." },
+        { project_id: B, repo: "owner/.." },
+        { project_id: newId(), repo: "-rf" },
+        { project_id: newId(), repo: ".owner/name" },
+        { project_id: newId(), repo: "owner/.github" },
+      ],
+    });
+    expect(result?.runner_url).toBe(AGENT_RUNNER_DEFAULT_URL);
+    expect(result?.projects.map((entry) => entry.repo)).toEqual(["owner/.github"]);
   });
 
   it("drops bad and repeated project entries and keeps the first of a repeat, in order", () => {
@@ -274,6 +310,8 @@ describe("setAgentSettings", () => {
     const { ctx, web } = setup();
     expect(thrown(() => setAgentSettings(ctx, { projects: [{ project_id: web.id, repo: "a/b/c" }] }))?.code).toBe("VALIDATION");
     expect(thrown(() => setAgentSettings(ctx, { projects: [{ project_id: web.id, repo: "https://github.com/o/n" }] }))?.code).toBe("VALIDATION");
+    for (const repo of [".", "..", "owner/..", "-rf"]) expect(thrown(() => setAgentSettings(ctx, { projects: [{ project_id: web.id, repo }] }))?.code, repo).toBe("VALIDATION");
+    for (const runner_url of ["http://127.0.0.1:0", "http://localhost:65536"]) expect(thrown(() => setAgentSettings(ctx, { runner_url, projects: [] }))?.code, runner_url).toBe("VALIDATION");
     expect(thrown(() => setAgentSettings(ctx, { projects: [{ project_id: web.id, repo: "web", branch: "main" } as never] }))?.code).toBe("VALIDATION");
     expect(thrown(() => setAgentSettings(ctx, { projects: [], token: "secret" } as never))?.code).toBe("VALIDATION");
     expect(thrown(() => setAgentSettings(ctx, {} as never))?.code).toBe("VALIDATION");

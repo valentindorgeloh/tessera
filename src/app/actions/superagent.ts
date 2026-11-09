@@ -8,7 +8,10 @@
  * action validates its input first (a bad one is a `validation` failure with
  * no runner call), runs the call, then `refresh()`es outside any try, also
  * after a runner failure, so the screen shows what the runner now says.
- * Every action returns a `RunnerResult` and never throws to the client.
+ * Every action returns a `RunnerResult`: a runner failure (and an unreadable
+ * token file) comes back as a state, never as a thrown error. Reading the
+ * runner URL is a Tessera database read, and a database error propagates
+ * like on every other screen.
  */
 import { refresh } from "next/cache";
 import { z } from "zod";

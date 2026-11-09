@@ -21,6 +21,8 @@ const pause = vi.fn(async () => ({ ok: true as const, data: { paused: true } }))
 const refreshAction = vi.fn(async () => undefined);
 const resizeAction = vi.fn(async () => done);
 const budgetAction = vi.fn(async () => done);
+/** The Toast hook returns one spy, so a test reads what the screen announced without a viewport. */
+const toastSpy = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
@@ -38,6 +40,10 @@ vi.mock("@/app/actions/superagent", () => ({
   superagentSavePromptsAction: vi.fn(async () => done),
 }));
 vi.mock("@/app/actions/workspace-settings", () => ({ setAgentSettingsAction: vi.fn(async () => ({ ok: true as const, data: {}, cursor: 1 })) }));
+vi.mock("@astryxdesign/core/Toast", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@astryxdesign/core/Toast")>();
+  return { ...real, useToast: () => toastSpy };
+});
 
 const { SuperagentScreen } = await import("@/components/superagent/SuperagentScreen");
 
@@ -71,7 +77,7 @@ async function render(runner: SuperagentLoad, extra: { scope?: "open" | "recent"
   const node: ReactNode = createElement(SuperagentScreen, {
     runner,
     agents: { runner_url: "http://127.0.0.1:3391", projects: [{ project_id: "0192f6a8-0000-7000-8000-00000000a001", repo: "tessera" }] },
-    projects: [{ id: "0192f6a8-0000-7000-8000-00000000a001", name: "Tessera", identifier: "TES" }],
+    projects: [{ id: "0192f6a8-0000-7000-8000-00000000a001", name: "Tessera", identifier: "TES", archived: false }],
     scope: extra.scope ?? "open",
     requestId: extra.requestId ?? null,
   });
@@ -137,6 +143,7 @@ beforeEach(() => {
   refreshAction.mockClear();
   resizeAction.mockClear();
   budgetAction.mockClear();
+  toastSpy.mockClear();
 });
 
 afterEach(async () => {
@@ -376,6 +383,31 @@ describe("SuperagentScreen", () => {
     expect(refreshAction).toHaveBeenCalledTimes(3);
   });
 
+  it("does not reload while one of the screen's dialogs is open, and picks the reload up again once it closes", async () => {
+    vi.useFakeTimers();
+    const el = await render(loaded());
+    await act(async () => {
+      button(el, "Actions for TES-142").click();
+    });
+    await act(async () => {
+      menuItem(el, "TES-142", "Stop…").click();
+    });
+    const dialog = el.ownerDocument.querySelector("dialog") as HTMLElement;
+    expect(dialog.textContent).toContain("Stop TES-142?");
+    await act(async () => {
+      vi.advanceTimersByTime(45_000);
+    });
+    expect(refreshAction).not.toHaveBeenCalled();
+    await act(async () => {
+      button(dialog, "Cancel").click();
+    });
+    expect(el.ownerDocument.querySelector("dialog")).toBeNull();
+    await act(async () => {
+      vi.advanceTimersByTime(15_000);
+    });
+    expect(refreshAction).toHaveBeenCalledTimes(1);
+  });
+
   it("does not reload while the tab is hidden", async () => {
     vi.useFakeTimers();
     const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
@@ -385,5 +417,99 @@ describe("SuperagentScreen", () => {
     });
     expect(refreshAction).not.toHaveBeenCalled();
     visibility.mockRestore();
+  });
+});
+
+describe("SuperagentScreen Toasts", () => {
+  const unavailable = { ok: false as const, failure: { state: "unavailable" as const, message: "The runner is shutting down.", status: 503, code: "UNAVAILABLE" } };
+  const rejected = { ok: false as const, failure: { state: "unauthorized" as const, message: "Bad token", status: 401, code: "UNAUTHORIZED" } };
+
+  it("says '<Action> sent for <item>' after a row action that went through", async () => {
+    const el = await render(loaded());
+    await act(async () => {
+      button(el, "Approve TES-142").click();
+    });
+    expect(toastSpy).toHaveBeenCalledWith({ type: "info", body: "Approve sent for TES-142" });
+    await act(async () => {
+      button(el, "Retry TES-119").click();
+    });
+    expect(toastSpy).toHaveBeenLastCalledWith({ type: "info", body: "Retry sent for TES-119" });
+    await act(async () => {
+      button(el, "Re-triage TES-149").click();
+    });
+    expect(toastSpy).toHaveBeenLastCalledWith({ type: "info", body: "Re-triage sent for TES-149" });
+  });
+
+  it("says 'Stop sent for <item>' once the Stop dialog's call went through", async () => {
+    const el = await render(loaded());
+    await act(async () => {
+      button(el, "Actions for TES-142").click();
+    });
+    await act(async () => {
+      menuItem(el, "TES-142", "Stop…").click();
+    });
+    await act(async () => {
+      button(el.ownerDocument.querySelector("dialog") as HTMLElement, "Stop request").click();
+    });
+    expect(toastSpy).toHaveBeenCalledWith({ type: "info", body: "Stop sent for TES-142" });
+  });
+
+  it("says 'Runner paused' after Pause and 'Runner resumed' after Resume", async () => {
+    const el = await render(loaded());
+    await act(async () => {
+      button(el, "Pause").click();
+    });
+    expect(pause).toHaveBeenCalledWith({ paused: true });
+    expect(toastSpy).toHaveBeenCalledWith({ type: "info", body: "Runner paused" });
+    await act(async () => {
+      root?.unmount();
+    });
+    container?.remove();
+    toastSpy.mockClear();
+    const state = fixture<RunnerState>("state");
+    const paused = await render(loaded({ state: ok({ ...state, paused: true, pauseReason: "manual" }) }));
+    await act(async () => {
+      button(paused, "Resume").click();
+    });
+    expect(pause).toHaveBeenLastCalledWith({ paused: false });
+    expect(toastSpy).toHaveBeenCalledWith({ type: "info", body: "Runner resumed" });
+  });
+
+  it("words a failed action as '<what was tried>. <title>. <body>'", async () => {
+    requestAction.mockResolvedValueOnce(unavailable as unknown as typeof done);
+    const el = await render(loaded());
+    await act(async () => {
+      button(el, "Approve TES-142").click();
+    });
+    expect(toastSpy).toHaveBeenCalledWith({ type: "error", body: "Could not approve TES-142. Runner unavailable. The runner is shutting down." });
+    expect(toastSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: "info" }));
+  });
+
+  it("names the screen's real token file in a failure's Toast", async () => {
+    requestAction.mockResolvedValueOnce(rejected as unknown as typeof done);
+    const el = await render(loaded());
+    await act(async () => {
+      button(el, "Lift hold TES-138").click();
+    });
+    expect(toastSpy).toHaveBeenCalledWith({
+      type: "error",
+      body: "Could not lift the hold on TES-138. Token rejected. The runner rejected Tessera's token. Restart the runner or check /Users/me/.tessera-agents/api-token.",
+    });
+  });
+
+  it("keeps the Stop dialog open and words a failed Stop", async () => {
+    requestAction.mockResolvedValueOnce(unavailable as unknown as typeof done);
+    const el = await render(loaded());
+    await act(async () => {
+      button(el, "Actions for TES-142").click();
+    });
+    await act(async () => {
+      menuItem(el, "TES-142", "Stop…").click();
+    });
+    await act(async () => {
+      button(el.ownerDocument.querySelector("dialog") as HTMLElement, "Stop request").click();
+    });
+    expect(toastSpy).toHaveBeenCalledWith({ type: "error", body: "Could not stop TES-142. Runner unavailable. The runner is shutting down." });
+    expect(el.ownerDocument.querySelector("dialog")).not.toBeNull();
   });
 });

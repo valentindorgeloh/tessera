@@ -126,8 +126,8 @@ export function SuperagentScreen({ runner, agents, projects, scope, requestId }:
         <RunnerHealth state={state.data} note={state.note} triage={triage.data} triageNote={triage.note} context={context} />
         <RequestHistory requestId={requestId} detail={runner.request} note={runner.state.ok ? null : state.note} context={context} />
         <RunnerRouting stats={stats.data} note={stats.note} />
-        <AgentSettingsSection agents={agents} projects={projects} runnerSettings={runner.settings} />
-        <TeamSectionsSection prompts={runner.prompts} repos={teamRepos(agents, runner.prompts)} />
+        <AgentSettingsSection agents={agents} projects={projects} runnerSettings={runner.settings} state={runner.state} context={context} />
+        <TeamSectionsSection prompts={runner.prompts} repos={teamRepos(agents, runner.prompts)} state={runner.state} context={context} />
       </VStack>
       <RequestDialogs dialog={dialog} context={context} onClose={() => setDialog(null)} />
     </PanelPage>

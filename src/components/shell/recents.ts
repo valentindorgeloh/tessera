@@ -122,7 +122,7 @@ function decodeSegment(segment: string): string {
 
 /**
  * Label and icon for a route. Known routes: `/` (Home; `/home` still
- * resolves to Home), `/projects`,
+ * resolves to Home), `/agents/superagent` ("Superagent"), `/projects`,
  * `/projects/archives` ("Archived projects"), `/projects/[id]`,
  * `/projects/[id]/work-items`, `/projects/[id]/work-items/[workItemId]`,
  * `/projects/[id]/cycles(/[cycleId])` and `/projects/[id]/modules(/[moduleId])`
@@ -150,6 +150,8 @@ export function resolveRoute(pathname: string, lookup: RouteLookup): RouteInfo {
   if (root === "your-work") return { label: projectId === undefined ? "Your work" : `Your work · ${titleCase(projectId)}`, icon: "your-work" };
   if (root === "agents") {
     if (projectId === undefined) return { label: "Agents", icon: "agents" };
+    // A static segment next to `[actorId]` (decision 145); real actor ids are uuids, so the literal word is the superagent screen.
+    if (projectId === "superagent") return { label: "Superagent", icon: "agents" };
     const actor = lookup.actorLabel?.(projectId) ?? lookup.entityLabel?.(projectId) ?? "Agent";
     return { label: section === undefined ? actor : `${actor} · ${titleCase(section)}`, icon: "agents" };
   }

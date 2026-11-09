@@ -8,9 +8,12 @@
  *   repository per project), always available; saved through
  *   `setAgentSettingsAction`.
  * - "Runner": the runner's settings, disabled with the failure text while its
- *   load failed; saved through `superagentSaveSettingsAction` with the loaded
- *   revision. The form is keyed by the revision, so a conflict (or any change
- *   by the runner) replaces the fields with the latest values.
+ *   load (or the runner's state) failed; saved through
+ *   `superagentSaveSettingsAction` with the loaded revision. The form is keyed
+ *   by the revision, so a conflict (or any change by the runner) replaces the
+ *   fields with the latest values.
+ * The failure words (the section's line, the Toasts) name the real token path
+ * and runner URL, which the screen passes as `context`.
  */
 import { useState, useTransition } from "react";
 import { Button } from "@astryxdesign/core/Button";
@@ -38,37 +41,41 @@ import {
   mappingErrors,
   mappingInput,
   mappingRows,
-  notAvailableText,
   projectChoices,
+  projectLabel,
   saveFailureToast,
   type MappingRow,
 } from "./settings-format";
-import { formatUsd, type ProjectOption } from "./superagent-format";
+import { formatUsd, sectionNote, type FailureContext, type ProjectOption } from "./superagent-format";
 
 export type AgentSettingsSectionProps = {
   agents: AgentSettings | null;
   projects: ProjectOption[];
   runnerSettings: RunnerResult<RunnerSettingsDoc>;
+  /** The runner's state load: when it failed the screen's banner explains and this section says "Not available". */
+  state: RunnerResult<unknown>;
+  /** The token path and runner URL the failure words name. */
+  context: FailureContext;
 };
 
-/** Below this container width the paired fields stack: the mapping's project and repository, the three budgets, the cap and the parallel limit. */
+/** Container threshold in px (not a width cap): below it the paired fields stack, i.e. the mapping's project and repository, the three budgets, the cap and the parallel limit. */
 const PAIR_FORM_WIDTH = 480;
-/** The forms are a settings column, not a full-width sheet. */
-const FORM_MAX_WIDTH = 560;
 /** Per-request and daily spend limits the form accepts, in USD (the budget action's own ceiling). */
 const MAX_USD = 10000;
 const MIN_USD = 0.01;
 const MAX_PARALLEL = 8;
 
-export function AgentSettingsSection({ agents, projects, runnerSettings }: AgentSettingsSectionProps) {
+export function AgentSettingsSection({ agents, projects, runnerSettings, state, context }: AgentSettingsSectionProps) {
   const { ref, isNarrow } = useNarrowContainer(PAIR_FORM_WIDTH);
-  const runnerUrl = agents?.runner_url ?? AGENT_RUNNER_DEFAULT_URL;
+  const note = sectionNote(state, runnerSettings, context);
+  // As the screen's other parts: nothing of the runner's is shown (or saved) while its state failed.
+  const doc = note === null && runnerSettings.ok ? runnerSettings.data : null;
   return (
     <VStack gap={4} ref={ref}>
       <Heading level={2}>Settings</Heading>
       {/* Keyed by what was stored and by which projects exist, so a saved mapping reloads the rows; a poll that returns the same data keeps the user's edits. */}
       <MappingForm key={JSON.stringify([agents, projects.map((project) => project.id)])} agents={agents} projects={projects} isNarrow={isNarrow} />
-      <RunnerForm key={runnerSettings.ok ? `rev:${runnerSettings.data.revision}` : "unavailable"} runnerSettings={runnerSettings} runnerUrl={runnerUrl} isNarrow={isNarrow} />
+      <RunnerForm key={doc === null ? "unavailable" : `rev:${doc.revision}`} doc={doc} note={note} context={context} isNarrow={isNarrow} />
     </VStack>
   );
 }
@@ -107,7 +114,7 @@ function MappingForm({ agents, projects, isNarrow }: MappingFormProps) {
   };
 
   return (
-    <VStack gap={3} maxWidth={FORM_MAX_WIDTH}>
+    <VStack gap={3}>
       <Heading level={3}>Projects and repositories</Heading>
       <FormLayout>
         <TextInput
@@ -138,7 +145,7 @@ function MappingForm({ agents, projects, isNarrow }: MappingFormProps) {
                 <FormLayout direction={isNarrow ? "vertical" : "horizontal"}>
                   <Selector
                     label="Project"
-                    options={projectChoices(projects, rows, row).map((choice) => ({ value: choice.id, label: choice.name }))}
+                    options={projectChoices(projects, rows, row).map((choice) => ({ value: choice.id, label: projectLabel(choice) }))}
                     value={row.project_id}
                     onChange={(value) => update(row.key, { project_id: value })}
                   />
@@ -167,7 +174,7 @@ function MappingForm({ agents, projects, isNarrow }: MappingFormProps) {
             label="Add project"
             icon={<PlusIcon />}
             isDisabled={free === undefined}
-            tooltip={free === undefined ? (projects.length === 0 ? "Create a project first" : "Every project is mapped") : undefined}
+            tooltip={free === undefined ? (projects.every((project) => project.archived) ? "Create a project first" : "Every project is mapped") : undefined}
             onClick={add}
           />
           <Button variant="primary" size="sm" label="Save mapping" isLoading={isPending} onClick={save} />
@@ -177,12 +184,11 @@ function MappingForm({ agents, projects, isNarrow }: MappingFormProps) {
   );
 }
 
-type RunnerFormProps = { runnerSettings: RunnerResult<RunnerSettingsDoc>; runnerUrl: string; isNarrow: boolean };
+type RunnerFormProps = { doc: RunnerSettingsDoc | null; note: string | null; context: FailureContext; isNarrow: boolean };
 
-function RunnerForm({ runnerSettings, runnerUrl, isNarrow }: RunnerFormProps) {
+function RunnerForm({ doc, note, context, isNarrow }: RunnerFormProps) {
   const toast = useToast();
   const [isPending, startSave] = useTransition();
-  const doc = runnerSettings.ok ? runnerSettings.data : null;
   const [values, setValues] = useState<RunnerSettings | null>(doc?.settings ?? null);
   const isDisabled = doc === null || values === null;
   const direction = isNarrow ? "vertical" : "horizontal";
@@ -197,7 +203,7 @@ function RunnerForm({ runnerSettings, runnerUrl, isNarrow }: RunnerFormProps) {
         toast({ type: "info", body: "Runner settings saved" });
         return;
       }
-      toast(saveFailureToast("Could not save the runner settings", result.failure, runnerUrl));
+      toast(saveFailureToast("Could not save the runner settings", result.failure, context));
     });
   };
   const usd = (label: string, value: number | null, onChange: (usd: number) => void) => (
@@ -205,11 +211,11 @@ function RunnerForm({ runnerSettings, runnerUrl, isNarrow }: RunnerFormProps) {
   );
 
   return (
-    <VStack gap={3} maxWidth={FORM_MAX_WIDTH}>
+    <VStack gap={3}>
       <Heading level={3}>Runner</Heading>
-      {runnerSettings.ok ? null : (
+      {note === null ? null : (
         <Text type="supporting" color="secondary">
-          {notAvailableText(runnerSettings.failure, runnerUrl)}
+          {note}
         </Text>
       )}
       <FormLayout>

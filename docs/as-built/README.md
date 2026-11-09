@@ -17,6 +17,7 @@ Snapshot: working tree after fix round 6, 2026-10-23 (round 5 committed, plus un
 | Workspace | [workspace.md](workspace.md) | P9: Home, favourites, profiles, analytics, stickies, quick links, workspace settings |
 | Operations | [operations.md](operations.md) | P10: calendar, gantt, modules timeline, rich filters, automations, exports, webhooks |
 | Hardening | [hardening.md](hardening.md) | P11: paging, backups, retention, undo engine, perf budgets, e2e (21 specs), bundle gate |
+| Superagent | [superagent.md](superagent.md) | idempotent agent comments, agent settings, the runner control client, `/agents/superagent`, Send to superagent, operating the runner from Tessera |
 
 Process: docs/process/swarm.md. Surprises: docs/field-guide/index.md. Plans: docs/drafts/. Open work: docs/improvements.md.
 

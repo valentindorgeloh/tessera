@@ -165,6 +165,12 @@ describe("resolveRoute", () => {
     expect(resolveRoute("/workspace-views", lookup)).toEqual({ label: "Workspace views", icon: "views" });
     expect(resolveRoute("/workspace-views/all", lookup)).toEqual({ label: "All", icon: "views" });
     expect(resolveRoute("/agents", lookup)).toEqual({ label: "Agents", icon: "agents" });
+    expect(resolveRoute("/agents/superagent", lookup)).toEqual({ label: "Superagent", icon: "agents" });
+    expect(resolveRoute("/agents/superagent?scope=recent&request=r1", lookup)).toEqual({ label: "Superagent", icon: "agents" });
+    // An actor's id is a uuid, so it still takes the actor's name (or "Agent").
+    const withActor: RouteLookup = { ...lookup, actorLabel: (id) => (id === ITEM ? "Deploy bot" : undefined) };
+    expect(resolveRoute(`/agents/${ITEM}/summary`, withActor)).toEqual({ label: "Deploy bot · Summary", icon: "agents" });
+    expect(resolveRoute(`/agents/${CYCLE}`, withActor)).toEqual({ label: "Agent", icon: "agents" });
     expect(resolveRoute("/stickies", lookup)).toEqual({ label: "Stickies", icon: "stickies" });
     expect(resolveRoute("/settings/general", lookup)).toEqual({ label: "Settings · General", icon: "settings" });
     expect(resolveRoute("/settings/exports", lookup)).toEqual({ label: "Exports", icon: "exports" });

@@ -22,15 +22,15 @@ export type SendToSuperagentState =
 export type SendToSuperagentInput = {
   /** `bundle.superagent_repo`: the repository mapped to the item's project, null or undefined when none. */
   repo: string | null | undefined;
-  actors: readonly Pick<ActorRow, "id" | "kind" | "name" | "deleted_at">[];
+  /** `bundle.actors`: the project's live actors (`listActors` leaves deleted ones out). */
+  actors: readonly Pick<ActorRow, "id" | "kind" | "name">[];
   assigneeIds: readonly string[];
   readOnly: boolean;
 };
 
 export function sendToSuperagentState({ repo, actors, assigneeIds, readOnly }: SendToSuperagentInput): SendToSuperagentState {
   if (readOnly || repo === null || repo === undefined) return { kind: "hidden" };
-  // A deleted actor cannot be assigned, so it counts as not connected.
-  const superagent = actors.find((actor) => actor.kind === "agent" && actor.name === SUPERAGENT_ACTOR_NAME && actor.deleted_at === null);
+  const superagent = actors.find((actor) => actor.kind === "agent" && actor.name === SUPERAGENT_ACTOR_NAME);
   if (superagent === undefined) return { kind: "blocked", reason: SUPERAGENT_NOT_CONNECTED };
   if (assigneeIds.includes(superagent.id)) return { kind: "blocked", reason: SUPERAGENT_ALREADY_ASSIGNED };
   return { kind: "ready", repo, actorIds: [...assigneeIds, superagent.id] };
