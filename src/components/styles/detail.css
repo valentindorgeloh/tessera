@@ -40,6 +40,14 @@
 }
 
 /*
+ * The slide in and out comes from motion.css (`tessera-motion-slide-end` on the panel, PeekHost): the panel is clipped by the
+ * content card (`.tessera-panel`, overflow hidden). One that is leaving takes no more clicks, which belong to the list again.
+ */
+.tessera-peek-panel[data-exiting] {
+  pointer-events: none;
+}
+
+/*
  * A container under 640px (a tablet with the sidebar open: about 490px at 768)
  * cannot hold the list beside the panel, which left the board strip 32px and
  * the table 20px wide. The panel then covers the list like it does on a phone

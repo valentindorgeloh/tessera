@@ -32,24 +32,36 @@
  * mounted, the host is counted in ./peek-hosts.ts, which Power K reads before
  * it opens a work item hit as a peek.
  *
+ * Motion (docs/contracts/ui.md "Motion"): the side panel and the cover slide in from the
+ * end edge when the peek OPENS in a host that is already mounted (`useEnterFlag`; a `?peek=`
+ * deep link, hydration and any mount with the peek already open never slide) and out when it closes (Escape, the header Close, the not-found
+ * Close). A close starts its navigation at once and runs the CSS exit meanwhile
+ * (`playExit`, 140 ms, held out until the panel unmounts); the host keeps the leaving item
+ * on screen until the exit ends, so a Back that lands within a frame does not cut it. A
+ * second close during the exit does nothing; a hidden route or an unmount ends the exit and
+ * never navigates again. The modal keeps the Astryx Dialog's own motion. Switching to another
+ * item while the peek is open fades the shared mount node (`useAnimator`, 0.4 to 1).
+ *
  * The detail is a separate chunk (./peek-detail-lazy.tsx, decision 142): the
  * editor stays out of the list routes' first load. The chunk is fetched when
  * the browser is idle or on the first pointer or focus contact with a list
  * row, and at once when the URL already names a peek; a peek opened before it
  * arrives shows the same skeleton as the slot before its mount node exists.
  */
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
 import { Dialog } from "@/components/shell/dialogs";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { useHotkeys } from "@astryxdesign/core/hooks";
+import { useAnimator, useHotkeys } from "@astryxdesign/core/hooks";
 import { LayerDepthProvider } from "@astryxdesign/core/Layer";
 import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import { VStack } from "@astryxdesign/core/Stack";
+import { clearExit, ignoreCancelled, playExit } from "@/components/motion/play-exit";
+import { useEnterFlag } from "@/components/motion/use-enter-flag";
 import { recordVisit } from "@/components/shell/recents-store";
 import { IdSchema } from "@/lib/tessera/schemas";
 import { workItemPath } from "./DetailHeader";
@@ -166,9 +178,44 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
   const slotNode = isClient ? mountNode : null;
   const here = currentHref(pathname, searchParams);
 
+  // The side panel's exit (see the header). `leaving` keeps the item on screen after the URL dropped it, until the exit ends.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const exit = useRef<AbortController | null>(null);
+  const [leaving, setLeaving] = useState<PeekData | null>(null);
+  // What the panel shows: the URL's item, or the one that is leaving once the URL dropped it.
+  const shown = peek ?? leaving;
+
   useEffect(() => {
     loadPeekPrefs();
   }, []);
+
+  // An exit that is still running when the host goes (an unmount, a route Activity hides) is cancelled: nothing closes twice.
+  useEffect(
+    () => () => {
+      exit.current?.abort();
+    },
+    [],
+  );
+  // Another item (or none) is named: a panel left held out by an exit that the URL never confirmed shows again.
+  const shownId = peek?.id ?? null;
+  useEffect(() => {
+    if (shownId === null) return;
+    exit.current?.abort();
+    if (panelRef.current !== null) clearExit(panelRef.current);
+  }, [shownId]);
+
+  // Switching items in place fades the shared mount node (the detail remounts under it, key={id}); a layout effect, so the
+  // new item is first painted at the dip. Not on open or close, and not on a refresh (the id is the same).
+  const mountRef = useRef<HTMLElement | null>(mountNode);
+  const fade = useAnimator(mountRef);
+  const lastId = useRef(shownId);
+  useLayoutEffect(() => {
+    const before = lastId.current;
+    lastId.current = shownId;
+    if (before === null || shownId === null || before === shownId) return;
+    fade.set({ opacity: 0.4 });
+    void fade.animate({ opacity: 1 });
+  }, [shownId, fade]);
 
   // The detail (editor included) is a separate chunk (./peek-detail-lazy.tsx): fetch it when idle or on the first row contact, so the
   // first peek finds it loaded. A peek already named by the URL (a deep link, a reload) needs it now.
@@ -196,9 +243,29 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
   }, [here, isOpen]);
 
   const close = () => {
+    // A second close while the panel is leaving does nothing (the first one already navigates).
+    if (exit.current !== null) return;
     const target = peekHref(pathname, searchParams, null);
     const push = readPeekPush();
     clearPeekPush();
+    const panel = panelRef.current;
+    if (peek !== null && !isModal && panel !== null) {
+      // The detail stays on screen while it slides out, so focus inside it would still sit there when the list takes over:
+      // let it go now, and the focus return (peek-cover.ts) finds it free in the commit that closes.
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && panel.contains(active)) active.blur();
+      const controller = new AbortController();
+      exit.current = controller;
+      setLeaving(peek);
+      const settle = () => {
+        if (exit.current === controller) exit.current = null;
+        setLeaving(null);
+      };
+      playExit(panel, { signal: controller.signal }).then(settle, (error: unknown) => {
+        settle();
+        ignoreCancelled(error);
+      });
+    }
     if (closesWithBack(push, here, target, window.history.length)) router.back();
     else router.replace(target, { scroll: false });
   };
@@ -274,19 +341,35 @@ export function PeekHost({ projectId, peek, children }: PeekHostProps) {
   const hasFocusTarget = isDetailMounted || (peek !== null && peek.data === null);
   const rememberListOpener = useCoverFocus({ isOpen, isModal, isCovering: isListCovered }, hasFocusTarget ? slotNode : null);
 
-  const detail = peek ? (
-    peek.data ? (
-      <PeekDetail key={peek.id} data={peek.data} host={isModal ? "modal" : "peek"} onClose={close} onHostChange={changeHost} onOpenItem={openItem} onMountedChange={setDetailMounted} />
+  const detail = shown ? (
+    shown.data ? (
+      <PeekDetail key={shown.id} data={shown.data} host={isModal ? "modal" : "peek"} onClose={close} onHostChange={changeHost} onOpenItem={openItem} onMountedChange={setDetailMounted} />
     ) : (
-      <PeekNotFound key={peek.id} id={peek.id} onClose={close} />
+      <PeekNotFound key={shown.id} id={shown.id} onClose={close} />
     )
   ) : null;
 
+  // True for the commit where the side panel opens after mount, until its slide ends. A host that mounts with the peek already
+  // open (a `?peek=` deep link, a navigation to one) never slides, hydrated or client-rendered (a freshly streamed page client-renders
+  // its list): the slide is for a user's open, so it waits until the host has been closed once.
+  const [hasBeenClosed, setHasBeenClosed] = useState(shown === null);
+  if (!hasBeenClosed && shown === null) setHasBeenClosed(true);
+  const enter = useEnterFlag(hasBeenClosed && shown !== null && !isModal);
   const sidePanel =
-    isOpen && !isModal ? (
+    shown !== null && !isModal ? (
       <>
         {isPanelCapped || isPanelCover ? null : <ResizeHandle resizable={panel.props} direction="horizontal" isReversed hasDivider={false} label="Resize the work item panel" />}
-        <LayoutPanel resizable={panel.props} hasDivider={false} padding={1} isScrollable={false} label="Work item" role="complementary" className={isPanelCover ? "tessera-peek-panel tessera-peek-panel--cover" : "tessera-peek-panel"}>
+        <LayoutPanel
+          ref={panelRef}
+          resizable={panel.props}
+          hasDivider={false}
+          padding={1}
+          isScrollable={false}
+          label="Work item"
+          role="complementary"
+          className={isPanelCover ? "tessera-peek-panel tessera-peek-panel--cover tessera-motion-slide-end" : "tessera-peek-panel tessera-motion-slide-end"}
+          {...enter}
+        >
           <Card ref={watchPanelAndCover} padding={0} height="100%" elevation="low" className="tessera-peek-card">
             <PeekSlot node={slotNode} />
           </Card>
