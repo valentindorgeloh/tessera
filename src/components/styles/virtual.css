@@ -34,3 +34,12 @@
   border: 0;
   background: none;
 }
+
+/*
+ * Astryx draws the row hover wash on each cell's ::before and the pinned key column's edge shadow on its ::after; a
+ * spacer row generates neither, so it shows no hover background and no shadow strip in either scheme.
+ */
+.tessera-table tr.tessera-table-spacer > td::before,
+.tessera-table tr.tessera-table-spacer > td::after {
+  content: none;
+}

@@ -167,6 +167,7 @@ export function createScrollerStore(initialViewport: number, virtualizes: boolea
       observer = new ResizeObserver(scheduleMeasure);
       observer.observe(next);
       observeChild();
+      for (const anchor of anchors.values()) observer.observe(anchor.el);
     }
     scheduleMeasure();
     return () => {
@@ -202,9 +203,14 @@ export function createScrollerStore(initialViewport: number, virtualizes: boolea
     register(anchorId, el, marginPx) {
       const anchor: Anchor = { el, margin: marginPx, height: 0, gap: 0, head: 0, near: true };
       anchors.set(anchorId, anchor);
+      // The anchor itself is observed too: its height changes (more rows loaded, a group collapsed) are not always a
+      // resize of the scroller's first child (the table's loaded-rows note comes first), and a stale height turns the
+      // window off near its end (`isNearViewport`).
+      observer?.observe(el);
       scheduleMeasure();
       return () => {
         if (anchors.get(anchorId) === anchor) anchors.delete(anchorId);
+        if (el !== observedChild) observer?.unobserve(el);
       };
     },
     attach,

@@ -20,42 +20,27 @@
 
 import { useCallback, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Badge } from "@astryxdesign/core/Badge";
-import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { HStack } from "@astryxdesign/core/Stack";
-import {
-  Table,
-  pixel,
-  proportional,
-  useTableColumnResize,
-  useTableGroupedRows,
-  useTableSelection,
-  useTableSortable,
-  useTableStickyColumns,
-  type TableColumn,
-  type TablePlugin,
-} from "@astryxdesign/core/Table";
+import { useTableColumnResize, useTableGroupedRows, useTableSelection, useTableSortable, useTableStickyColumns, type TablePlugin } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
+import { VIRTUAL_TABLE_MIN } from "@/components/virtual/virtual-config";
+import { shouldVirtualize } from "@/components/virtual/virtual-math";
 import { groupLimitKey } from "@/lib/tessera/core/group";
-import type { DisplayProperties, Group, GroupBy, StateGroup, WorkItem } from "@/lib/tessera/types";
+import type { Group, GroupBy, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { GroupFooter, GroupPoints } from "./GroupFooter";
 import { isOptimisticId } from "./optimistic";
 import { UNGROUPED_KEY, hasUnloaded, loadedOfTotal } from "./paging";
 import { usePeekedId } from "./peeked";
 import { NoResults } from "./NoResults";
-import { OneLineText } from "./OneLineText";
-import { RowProject } from "./row-project";
+import { useProjectRow } from "./project-provider";
+import { useShared } from "./stable";
+import { buildColumns, isDataRow, type TableRow } from "./table-cells";
 import { TABLE_SORT_FIELDS, orderByFromSort, sortFromOrderBy } from "./table-sort";
-import { ActorLabel, AssigneeControl, CycleControl, DateControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, PriorityLabel, StateControl, StateLabel, isPriority, paletteTokenColor } from "./properties";
-import type { LayoutProps, ProjectBundle, UpdateWorkItemPatch } from "./types";
-
-/** One table row; a grouped result repeats an item under every group it belongs to, so the row id carries the group. */
-interface TableRow extends Record<string, unknown> {
-  id: string;
-  item: WorkItem;
-  groupKey: string;
-}
+import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } from "./properties";
+import { VirtualTable } from "./VirtualTable";
+import type { LayoutProps } from "./types";
 
 function subscribeWide(onChange: () => void): () => void {
   const query = window.matchMedia(PIN_COLUMNS_QUERY);
@@ -66,11 +51,6 @@ const readWide = () => window.matchMedia(PIN_COLUMNS_QUERY).matches;
 /** The server (and the first client render) pins, as a tablet or desktop does; a phone unpins right after hydration. */
 const serverWide = () => true;
 
-/** Group headers injected by the grouped-rows plugin read every unknown field as "" (never an object). */
-function isDataRow(row: TableRow): boolean {
-  return typeof row.item === "object" && row.item !== null;
-}
-
 type ColumnKey = "key" | "name" | "project" | "state" | "priority" | "assignees" | "labels" | "cycle" | "modules" | "estimate" | "start_date" | "target_date" | "created_at" | "updated_at";
 
 /** Columns whose cells hold a control; clicks inside them do not open the row. */
@@ -79,8 +59,6 @@ const EDITABLE: ReadonlySet<string> = new Set<ColumnKey>(["state", "priority", "
 /** Id of the selection plugin's column (`__xds_selection` in the DOM); its cell stops clicks like an editable one. */
 const SELECTION_KEY = "__xds_selection";
 
-/** The Name column grows with the table but never below Plane's first-column floor of 240px (reference section 8). */
-const NAME_COLUMN_WIDTH = proportional(2, { minWidth: 240 });
 /** The key (and selection) columns stay pinned from tablet width up; on a phone the whole row scrolls. */
 const PIN_COLUMNS_QUERY = "(min-width: 768px)";
 
@@ -88,183 +66,12 @@ const STATE_GROUPS: ReadonlySet<string> = new Set<StateGroup>(["backlog", "unsta
 /** Id of the synthetic "no value" group (`NONE_GROUP_ID` in the engine's filters.ts). */
 const NONE_GROUP = "none";
 
-function buildColumns(
-  properties: DisplayProperties,
-  bundle: ProjectBundle,
-  showProject: boolean,
-  onUpdate: (id: string, patch: UpdateWorkItemPatch) => void,
-  onOpen: (id: string) => void,
-  readOnly: boolean,
-): TableColumn<TableRow>[] {
-  const columns: TableColumn<TableRow>[] = [];
-  const pending = (row: TableRow) => isOptimisticId(row.item.id);
-  // An archived project passes `readOnly` to every property control (F3.4); a placeholder row is always locked.
-  const locked = (row: TableRow) => pending(row) || readOnly;
-  // The key column stays even when the key property is off: it is the row's keyboard-reachable open control.
-  columns.push({
-    key: "key",
-    header: "Key",
-    width: pixel(104),
-    renderCell: (row) =>
-      pending(row) ? (
-        <Text type="supporting" color="secondary">
-          Saving…
-        </Text>
-      ) : (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="tessera-table-open"
-          label={row.item.key}
-          tooltip={properties.key ? undefined : row.item.key}
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpen(row.item.id);
-          }}
-        />
-      ),
-  });
-  columns.push({
-    key: "name",
-    header: "Name",
-    width: NAME_COLUMN_WIDTH,
-    renderCell: (row) => (
-      <OneLineText className="tessera-wi-cell-text" weight="medium">
-        {row.item.name}
-      </OneLineText>
-    ),
-  });
-  if (showProject) {
-    const projectName = new Map(bundle.projects.map((project) => [project.id, project.name]));
-    columns.push({
-      key: "project",
-      header: "Project",
-      width: pixel(160),
-        renderCell: (row) => (
-        <OneLineText className="tessera-wi-cell-text">{projectName.get(row.item.project_id) ?? ""}</OneLineText>
-      ),
-    });
-  }
-  if (properties.state) {
-    columns.push({
-      key: "state",
-      header: "State",
-      width: pixel(176),
-        renderCell: (row) => (
-        <RowProject projectId={row.item.project_id}>
-          <StateControl compact readOnly={locked(row)} value={row.item.state_id} onChange={(stateId) => onUpdate(row.item.id, { state_id: stateId })} />
-        </RowProject>
-      ),
-    });
-  }
-  if (properties.priority) {
-    columns.push({
-      key: "priority",
-      header: "Priority",
-      width: pixel(148),
-        renderCell: (row) => <PriorityControl compact readOnly={locked(row)} value={row.item.priority} onChange={(priority) => onUpdate(row.item.id, { priority })} />,
-    });
-  }
-  if (properties.assignees) {
-    columns.push({
-      key: "assignees",
-      header: "Assignees",
-      width: pixel(184),
-      renderCell: (row) => <AssigneeControl compact readOnly value={row.item.assignee_ids} onChange={() => undefined} />,
-    });
-  }
-  if (properties.labels) {
-    columns.push({
-      key: "labels",
-      header: "Labels",
-      width: pixel(200),
-      renderCell: (row) => (
-        <RowProject projectId={row.item.project_id}>
-          <LabelControl compact readOnly value={row.item.label_ids} onChange={() => undefined} />
-        </RowProject>
-      ),
-    });
-  }
-  if (properties.cycle) {
-    columns.push({
-      key: "cycle",
-      header: "Cycle",
-      width: pixel(168),
-      renderCell: (row) => (
-        <RowProject projectId={row.item.project_id}>
-          <CycleControl compact readOnly={locked(row)} value={row.item.cycle_id} onChange={(cycleId) => onUpdate(row.item.id, { cycle_id: cycleId })} />
-        </RowProject>
-      ),
-    });
-  }
-  if (properties.modules) {
-    columns.push({
-      key: "modules",
-      header: "Modules",
-      width: pixel(184),
-      renderCell: (row) => (
-        <RowProject projectId={row.item.project_id}>
-          <ModuleControl compact readOnly value={row.item.module_ids} onChange={() => undefined} />
-        </RowProject>
-      ),
-    });
-  }
-  if (properties.start_date) {
-    columns.push({
-      key: "start_date",
-      header: "Start date",
-      width: pixel(156),
-        renderCell: (row) => (
-        <DateControl compact readOnly={locked(row)} label="Start date" value={row.item.start_date} max={row.item.target_date} onChange={(date) => onUpdate(row.item.id, { start_date: date })} />
-      ),
-    });
-  }
-  if (properties.target_date) {
-    columns.push({
-      key: "target_date",
-      header: "Target date",
-      width: pixel(156),
-        renderCell: (row) => (
-        <DateControl compact readOnly={locked(row)} label="Target date" value={row.item.target_date} min={row.item.start_date} onChange={(date) => onUpdate(row.item.id, { target_date: date })} />
-      ),
-    });
-  }
-  if (properties.estimate && bundle.project.estimates_enabled && bundle.estimate) {
-    columns.push({
-      key: "estimate",
-      header: "Estimate",
-      width: pixel(140),
-        renderCell: (row) => (
-        <EstimateControl value={row.item.estimate_point_id} readOnly={locked(row)} size="sm" onChange={(estimate_point_id) => onUpdate(row.item.id, { estimate_point_id })} />
-      ),
-    });
-  }
-  if (properties.created_at) {
-    columns.push({
-      key: "created_at",
-      header: "Created",
-      width: pixel(128),
-        renderCell: (row) => (
-        <Text type="supporting" color="secondary" hasTabularNumbers>
-          {row.item.created_at.slice(0, 10)}
-        </Text>
-      ),
-    });
-  }
-  if (properties.updated_at) {
-    columns.push({
-      key: "updated_at",
-      header: "Updated",
-      width: pixel(128),
-        renderCell: (row) => (
-        <Text type="supporting" color="secondary" hasTabularNumbers>
-          {row.item.updated_at.slice(0, 10)}
-        </Text>
-      ),
-    });
-  }
-  return columns;
-}
+/*
+ * Module constants, not inline arrows: the grouped-rows plugin memoises its header rows on `groupBy` and its keys on
+ * `getRowKey` (`useTableGroupedRows.js:188, 201-210`), so the rows and their keys keep their identity across renders.
+ */
+const groupOfRow = (row: TableRow) => row.groupKey;
+const idOfRow = (row: TableRow) => row.id;
 
 /** Work item ids the table can select, once each when a grouped result repeats a row. */
 function selectableIds(rows: readonly TableRow[]): string[] {
@@ -279,7 +86,8 @@ function selectableIds(rows: readonly TableRow[]): string[] {
 }
 
 /** Group section title: StatusDot for states, the priority glyph, a coloured Token for labels, cycles and modules. */
-function GroupHeading({ group, field, bundle }: { group: Group | undefined; field: GroupBy | null; bundle: ProjectBundle }) {
+function GroupHeading({ group, field }: { group: Group | undefined; field: GroupBy | null }) {
+  const { bundle } = useProjectRow();
   if (!group) return <Text weight="semibold">Ungrouped</Text>;
   if (group.id === NONE_GROUP && field !== "priority") {
     return (
@@ -318,10 +126,17 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
   const groupOrder = useMemo(() => groups.map((group) => group.id), [groups]);
   const groupsById = useMemo(() => new Map(groups.map((group) => [group.id, group])), [groups]);
 
+  // The columns depend on no bundle (decision 136): the cells read the lean row context, the project names keep their
+  // identity while they are equal, so with the screen's stable handlers the columns survive a refresh.
+  const { bundle: rowBundle } = useProjectRow();
+  const hasEstimates = rowBundle.project.estimates_enabled && rowBundle.estimate !== null;
+  const projects = useShared(bundle.projects);
+  const projectName = useMemo(() => (showProject ? new Map(projects.map((project) => [project.id, project.name])) : null), [projects, showProject]);
+  const isSortable = onOrderChange !== undefined;
   const columns = useMemo(() => {
-    const built = buildColumns(display.properties, bundle, showProject, onUpdate, onOpen, readOnly);
-    return onOrderChange ? built.map((column) => (column.key in TABLE_SORT_FIELDS ? { ...column, sortable: true } : column)) : built;
-  }, [bundle, display.properties, onOpen, onOrderChange, onUpdate, readOnly, showProject]);
+    const built = buildColumns({ properties: display.properties, projectName, hasEstimates, readOnly, onUpdate, onOpen });
+    return isSortable ? built.map((column) => (column.key in TABLE_SORT_FIELDS ? { ...column, sortable: true } : column)) : built;
+  }, [display.properties, hasEstimates, isSortable, onOpen, onUpdate, projectName, readOnly]);
 
   // The order lives in the display: a header click asks the server for it (whole list), the rows arrive already ordered.
   const sort = useMemo(() => sortFromOrderBy(display.order_by), [display.order_by]);
@@ -358,7 +173,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
       const group = groupsById.get(groupKey);
       return (
         <HStack gap={2} vAlign="center">
-          <GroupHeading group={group} field={display.group_by} bundle={bundle} />
+          <GroupHeading group={group} field={display.group_by} />
           {/* The badge is the group's full count (decision 113); the rows under it may be only the first page. */}
           <Badge label={group?.count ?? loadedCount} variant="neutral" />
           <GroupPoints points={group?.estimate_points} display={display} />
@@ -375,24 +190,26 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
         </HStack>
       );
     },
-    [bundle, display, groupsById, isLoadingMore, onLoadMore],
+    [display, groupsById, isLoadingMore, onLoadMore],
   );
   const groupedRows = useTableGroupedRows<TableRow>({
     data: rows,
-    groupBy: (row) => row.groupKey,
+    groupBy: groupOfRow,
     collapsedGroups: collapsed,
     onToggleGroup,
     renderGroupHeader,
-    getRowKey: (row) => row.id,
+    getRowKey: idOfRow,
     groupOrder,
   });
 
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  // Only key, width and resizable matter for the minimum widths; dropping renderCell keeps the row type generic. Memoised:
+  // the resize plugin rebuilds itself when this list changes (`useTableColumnResize.js:520, 741`).
+  const resizeColumns = useMemo(() => columns.map(({ key, width, resizable }) => ({ key, width, resizable })), [columns]);
   const resizePlugin = useTableColumnResize<TableRow>({
     columnWidths,
     onColumnResizeEnd: (updates) => setColumnWidths((previous) => ({ ...previous, ...updates })),
-    // Only key, width and resizable matter for the minimum widths; dropping renderCell keeps the row type generic.
-    columns: columns.map(({ key, width, resizable }) => ({ key, width, resizable })),
+    columns: resizeColumns,
   });
   // Pinned key columns need room to leave something to scroll; on a phone the whole row scrolls (reference section 8).
   const pinColumns = useSyncExternalStore(subscribeWide, readWide, serverWide);
@@ -447,15 +264,25 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
     [onOpen, peekedId],
   );
 
-  // Insertion order is the plugin order: the grouped plugin runs last so its header rows win over the open handler.
-  const plugins: Record<string, TablePlugin<TableRow>> = {
-    ...(selection ? { selection: selectionPlugin } : {}),
-    open: openPlugin,
-    sticky: stickyPlugin,
-    resize: resizePlugin,
-    sort: sortPlugin,
-    ...(grouped ? { grouped: groupedRows.plugin } : {}),
-  };
+  // Insertion order is the plugin order: the grouped plugin runs after the open handler so its header rows win.
+  // Memoised over the instances (Astryx compares `plugins` by reference in its row memo, `BaseTable.js:192-240`).
+  const hasSelection = selection !== undefined;
+  // Only while grouped: the grouped plugin is rebuilt with its header renderer, which an ungrouped table never uses.
+  const groupedPlugin = grouped ? groupedRows.plugin : null;
+  const plugins = useMemo<Record<string, TablePlugin<TableRow>>>(
+    () => ({
+      ...(hasSelection ? { selection: selectionPlugin } : {}),
+      open: openPlugin,
+      sticky: stickyPlugin,
+      resize: resizePlugin,
+      sort: sortPlugin,
+      ...(groupedPlugin ? { grouped: groupedPlugin } : {}),
+    }),
+    [groupedPlugin, hasSelection, openPlugin, resizePlugin, selectionPlugin, sortPlugin, stickyPlugin],
+  );
+  const tableRows = grouped ? groupedRows.data : rows;
+  const idOf = grouped ? groupedRows.idKey : idOfRow;
+  const isVirtual = shouldVirtualize(tableRows.length, VIRTUAL_TABLE_MIN);
 
   // Select all reaches the loaded rows only (decision 114): say how many of the whole set that is.
   const showLoadedNote = selection !== undefined && hasUnloaded(selectable.length, result.total);
@@ -469,17 +296,12 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
           </Text>
         </HStack>
       ) : null}
-      <Table<TableRow>
-        className="tessera-table"
-        data-list-ready=""
-        data={grouped ? groupedRows.data : rows}
+      <VirtualTable
+        allRows={tableRows}
+        idOf={idOf}
+        isVirtual={isVirtual}
         columns={columns}
-        idKey={grouped ? groupedRows.idKey : "id"}
         plugins={plugins}
-        density="compact"
-        dividers="rows"
-        hasHover
-        textOverflow="truncate"
         rowCount={result.total}
         emptyState={
           onClearFilters ? (

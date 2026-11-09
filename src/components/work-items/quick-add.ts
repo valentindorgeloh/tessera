@@ -33,7 +33,10 @@ export type QuickAddContext = OpenMemberships & {
 };
 
 /** Open module and cycle ids of a project bundle: non-archived modules, non-archived cycles that are not completed. */
-export function openMemberships(bundle: Pick<ProjectBundle, "modules" | "cycles">): OpenMemberships {
+export function openMemberships(bundle: {
+  modules: readonly Pick<ProjectBundle["modules"][number], "id" | "archived_at">[];
+  cycles: readonly Pick<ProjectBundle["cycles"][number], "id" | "archived_at" | "status">[];
+}): OpenMemberships {
   return {
     openModuleIds: new Set(bundle.modules.filter((module) => module.archived_at === null).map((module) => module.id)),
     openCycleIds: new Set(bundle.cycles.filter((cycle) => cycle.archived_at === null && cycle.status !== "completed").map((cycle) => cycle.id)),

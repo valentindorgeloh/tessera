@@ -5,36 +5,34 @@
  * One date is a one-day bar with the missing end drawn dashed. Dragging the
  * bar writes both dates in one update; dragging an edge writes only that end,
  * clamped so the start never passes the target. Zoom and dependency
- * connectors follow decisions 90–92.
+ * connectors follow decisions 90–92. The body (today line, connectors, rows)
+ * is GanttRows.tsx, windowed above `VIRTUAL_GANTT_MIN` rows.
  */
-import { useCallback, useId, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useId, useRef, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { useHotkeys } from "@astryxdesign/core/hooks";
-import { IconButton } from "@astryxdesign/core/IconButton";
-import { Popover } from "@astryxdesign/core/Popover";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
-import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
-import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { useTimelineDrag } from "@/components/dnd/use-timeline-drag";
+import { VIRTUAL_GANTT_MIN } from "@/components/virtual/virtual-config";
+import { shouldVirtualize } from "@/components/virtual/virtual-math";
 import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import { daysBetween } from "@/lib/tessera/core/time";
 import type { WorkItem } from "@/lib/tessera/types";
-import { CalendarDotsIcon, CalendarIcon } from "@/themes/catppuccin/icons";
+import { CalendarDotsIcon } from "@/themes/catppuccin/icons";
 import { isWeekend, monthLabel, weekBandLabel, weekendShift } from "./calendar-math";
-import { applyDayDelta, barPlacement, barSpan, eachDay, previewEnds, scheduleOnDay, timelineRange, type BarDragMode, type DateEnds } from "./date-span";
+import { applyDayDelta, barSpan, eachDay, previewEnds, scheduleOnDay, timelineRange, type DateEnds } from "./date-span";
 import { useGanttMetrics } from "./gantt-metrics";
-import { barColorToken, conflictNotes, connectorPaths, ganttEdges, monthSpans, weekSpans } from "./gantt-scale";
+import { conflictNotes, connectorPaths, ganttEdges, monthSpans, weekSpans } from "./gantt-scale";
 import { useTodayScroll } from "./gantt-scroll";
+import { GanttRows } from "./GanttRows";
 import { GroupFooter } from "./GroupFooter";
 import { isOptimisticId } from "./optimistic";
 import { OneLineText } from "./OneLineText";
 import { UNGROUPED_KEY } from "./paging";
-import { DateControl } from "./properties/DateControl";
-import { stateGroupLabel, stateGroupVariant } from "./properties/StateControl";
 import { useProject } from "./project-provider";
-import { useBundles } from "./row-project";
+import { useStableCallback } from "./stable";
 import type { LayoutProps } from "./types";
 
 function cssVars(vars: Record<string, string | number>): CSSProperties {
@@ -73,14 +71,15 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
   const { rootRef, scrollToday } = useTodayScroll(zoom, result.items.length > 0);
   useHotkeys([{ keys: "t", onPress: scrollToday }]);
 
-  const schedule = (item: WorkItem, event: ReactMouseEvent<HTMLElement>) => {
+  // Stable, so the memo rows (GanttRows.tsx) do not re-render when the range or the items change.
+  const schedule = useStableCallback((item: WorkItem, event: ReactMouseEvent<HTMLElement>) => {
     if (readOnly || isOptimisticId(item.id) || barSpan(item)) return;
     const width = dayWidth();
     if (width <= 0) return;
     const offset = Math.floor((event.clientX - event.currentTarget.getBoundingClientRect().left) / width);
     if (offset < 0 || offset >= days.length) return;
     onUpdate(item.id, scheduleOnDay(days[offset]));
-  };
+  });
 
   const byId = new Map<string, DateEnds>();
   for (const item of result.items) {
@@ -89,8 +88,10 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
   }
   const rowIndex = new Map(result.items.map((item, index) => [item.id, index]));
   const edges = showRelations ? ganttEdges(result.relations) : [];
+  const isVirtual = shouldVirtualize(result.items.length, VIRTUAL_GANTT_MIN);
   // The connector layer is drawn in CSS pixels: its day column, row height and bar inset are measured (gantt-metrics.ts).
-  const metrics = useGanttMetrics(rootRef, edges.length > 0 && result.items.length > 0);
+  // The window uses the same row height (GanttRows.tsx), so the metrics are also measured whenever it is on.
+  const metrics = useGanttMetrics(rootRef, (edges.length > 0 || isVirtual) && result.items.length > 0);
   const markerId = useId().replace(/:/g, "");
   const paths = edges.length === 0 ? [] : connectorPaths(edges, rowIndex, byId, range.start, days.length, metrics ?? undefined);
   const notes = conflictNotes(paths, byId, new Map(result.items.map((item) => [item.id, item.key])));
@@ -151,219 +152,28 @@ export function GanttLayout({ result, display, onUpdate, onOpen, readOnly = fals
           </HStack>
         </VStack>
       </HStack>
-      <VStack gap={0} className="tessera-gantt-body">
-        <VStack className="tessera-gantt-today" aria-hidden />
-        {paths.length > 0 && metrics ? (
-          <svg className="tessera-gantt-connectors" viewBox={`0 0 ${days.length * metrics.day} ${result.items.length * metrics.row}`} aria-hidden>
-            <defs>
-              <ArrowMarker id={`${markerId}-edge`} />
-              <ArrowMarker id={`${markerId}-conflict`} isConflict />
-            </defs>
-            {paths.map((path) => (
-              <path
-                key={path.key}
-                d={path.d}
-                className="tessera-gantt-edge"
-                data-conflict={path.conflict ? "" : undefined}
-                markerEnd={`url(#${markerId}-${path.conflict ? "conflict" : "edge"})`}
-              />
-            ))}
-          </svg>
-        ) : null}
-        {result.items.map((item) => (
-          <GanttRow
-            key={item.id}
-            item={item}
-            ends={byId.get(item.id) ?? item}
-            rangeStart={range.start}
-            readOnly={readOnly}
-            conflictText={notes.get(item.id)?.join("; ")}
-            onOpen={onOpen}
-            onUpdate={onUpdate}
-            onSchedule={schedule}
-            onPointerDown={onPointerDown}
-            onClickCapture={onClickCapture}
-          />
-        ))}
-      </VStack>
+      <GanttRows
+        items={result.items}
+        endsById={byId}
+        rowIndex={rowIndex}
+        rangeStart={range.start}
+        dayCount={days.length}
+        readOnly={readOnly}
+        notes={notes}
+        paths={paths}
+        metrics={metrics}
+        markerId={markerId}
+        isVirtual={isVirtual}
+        draggedId={preview?.id ?? null}
+        onOpen={onOpen}
+        onUpdate={onUpdate}
+        onSchedule={schedule}
+        onPointerDown={onPointerDown}
+        onClickCapture={onClickCapture}
+      />
       {result.has_more && onLoadMoreUngrouped ? (
         <GroupFooter display={display} loaded={result.items.length} total={result.total} isLoading={isLoadingMore?.(UNGROUPED_KEY)} onLoadMore={onLoadMoreUngrouped} />
       ) : null}
     </VStack>
-  );
-}
-
-/** The arrowhead at the end of a connector: `currentColor`, which the stylesheet sets (the error colour for a conflict). */
-function ArrowMarker({ id, isConflict = false }: { id: string; isConflict?: boolean }) {
-  return (
-    <marker id={id} className="tessera-gantt-arrow" data-conflict={isConflict ? "" : undefined} markerWidth={7} markerHeight={8} refX={7} refY={4} orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M 0 0 L 7 4 L 0 8 z" fill="currentColor" />
-    </marker>
-  );
-}
-
-function GanttRow({
-  item,
-  ends,
-  rangeStart,
-  readOnly,
-  conflictText,
-  onOpen,
-  onUpdate,
-  onSchedule,
-  onPointerDown,
-  onClickCapture,
-}: {
-  item: WorkItem;
-  ends: DateEnds;
-  rangeStart: string;
-  readOnly: boolean;
-  /** What this bar clashes with, naming the other items (decision 92); undefined when it has no conflict. */
-  conflictText?: string;
-  onOpen: LayoutProps["onOpen"];
-  onUpdate: LayoutProps["onUpdate"];
-  onSchedule: (item: WorkItem, event: ReactMouseEvent<HTMLElement>) => void;
-  onPointerDown: (id: string, mode: BarDragMode, event: ReactPointerEvent<HTMLElement>) => void;
-  onClickCapture: (event: ReactMouseEvent<HTMLElement>) => void;
-}) {
-  const bundles = useBundles();
-  const { statesById } = useProject();
-  const state = bundles?.[item.project_id]?.states.find((entry) => entry.id === item.state_id) ?? statesById.get(item.state_id);
-  const placement = barPlacement(ends, rangeStart);
-  const canDrag = !readOnly && !isOptimisticId(item.id);
-  const open = () => {
-    if (!isOptimisticId(item.id)) onOpen(item.id);
-  };
-  const conflict = conflictText !== undefined;
-  const barRef = useRef<HTMLElement | null>(null);
-  const barLabel = placement
-    ? `${item.key} ${item.name}, ${ends.start_date ?? "open"} to ${ends.target_date ?? "open"}${conflict ? ", date conflict" : ""}`
-    : `${item.key} ${item.name}, no dates`;
-
-  return (
-    <HStack gap={0} vAlign="stretch" className="tessera-gantt-row">
-      <HStack gap={1} vAlign="center" paddingInline={4} className="tessera-gantt-label">
-        {state ? <StatusDot variant={stateGroupVariant(state.state_group)} label={stateGroupLabel(state.state_group)} /> : null}
-        <HStack
-          gap={1}
-          vAlign="center"
-          className="tessera-gantt-open"
-          role="button"
-          tabIndex={0}
-          aria-label={`Open ${item.key}`}
-          onClick={open}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              open();
-            }
-          }}
-        >
-          <Text type="supporting" hasTabularNumbers className="tessera-gantt-key">
-            {item.key}
-          </Text>
-          <OneLineText className="tessera-gantt-name">{item.name}</OneLineText>
-        </HStack>
-        {canDrag ? <GanttDates item={item} onUpdate={onUpdate} /> : null}
-      </HStack>
-      <HStack className="tessera-gantt-track" onClick={(event) => onSchedule(item, event)}>
-        {placement ? (
-          <>
-            <HStack
-              ref={barRef}
-              role="button"
-              tabIndex={0}
-              className="tessera-gantt-bar"
-              aria-label={barLabel}
-              data-open-start={placement.openStart ? "" : undefined}
-              data-open-end={placement.openEnd ? "" : undefined}
-              data-conflict={conflict ? "" : undefined}
-              data-readonly={canDrag ? undefined : ""}
-              data-state-group={state?.state_group}
-              style={cssVars({
-                "--tessera-gantt-offset": placement.offset,
-                "--tessera-gantt-span": placement.span,
-                "--tessera-bar-color": barColorToken(state ? stateGroupVariant(state.state_group) : "neutral"),
-              })}
-              onClick={(event) => {
-                event.stopPropagation();
-                open();
-              }}
-              onClickCapture={onClickCapture}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  open();
-                }
-              }}
-              onPointerDown={canDrag ? (event) => onPointerDown(item.id, "move", event) : undefined}
-            >
-              <OneLineText type="supporting" className="tessera-gantt-bar-label">
-                {item.key}
-              </OneLineText>
-              {canDrag ? (
-                <HStack
-                  className="tessera-gantt-handle"
-                  data-edge="start"
-                  aria-hidden
-                  onPointerDown={(event) => onPointerDown(item.id, "start", event)}
-                  onClick={(event) => event.stopPropagation()}
-                />
-              ) : null}
-              {canDrag ? (
-                <HStack
-                  className="tessera-gantt-handle"
-                  data-edge="end"
-                  aria-hidden
-                  onPointerDown={(event) => onPointerDown(item.id, "end", event)}
-                  onClick={(event) => event.stopPropagation()}
-                />
-              ) : null}
-            </HStack>
-            {conflictText ? (
-              // Sibling mode: a conflict that appears mid-drag mounts the tooltip next to the bar instead of wrapping it, so the bar keeps its pointer capture.
-              // Astryx puts the tooltip's id in the bar's aria-describedby, and the tooltip layer holds the same text while closed.
-              <Tooltip anchorRef={barRef} content={conflictText} focusTrigger="always" touchTrigger="none" placement="above" />
-            ) : null}
-          </>
-        ) : null}
-      </HStack>
-    </HStack>
-  );
-}
-
-/** The row's date button. Exported for tests/ui/gantt-dates-lazy.test.ts. */
-export function GanttDates({ item, onUpdate }: { item: WorkItem; onUpdate: LayoutProps["onUpdate"] }) {
-  const [isOpen, setOpen] = useState(false);
-  // Astryx 0.6.8 Popover has no lazy prop and keeps closed content mounted: every draggable row carried two full
-  // DateInput calendars. The pickers mount only while the popover is open (as in the compact DateControl).
-  return (
-    <Popover
-      isOpen={isOpen}
-      onOpenChange={setOpen}
-      label={`Set dates for ${item.key}`}
-      placement="below"
-      alignment="end"
-      hasAutoFocus
-      content={
-        isOpen ? (
-          <VStack gap={2} padding={3} className="tessera-gantt-dates">
-            <DateControl label="Start date" value={item.start_date} max={item.target_date} onChange={(start_date) => onUpdate(item.id, { start_date })} />
-            <DateControl label="Target date" value={item.target_date} min={item.start_date} onChange={(target_date) => onUpdate(item.id, { target_date })} />
-            <Button
-              variant="ghost"
-              size="sm"
-              label="Clear dates"
-              onClick={() => {
-                onUpdate(item.id, { start_date: null, target_date: null });
-                setOpen(false);
-              }}
-            />
-          </VStack>
-        ) : null
-      }
-    >
-      <IconButton label={`Set dates for ${item.key}`} size="sm" variant="ghost" icon={<CalendarIcon />} />
-    </Popover>
   );
 }

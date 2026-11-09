@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * The gantt's date button (GanttDates in GanttLayout.tsx, ModuleDates in
+ * The gantt's date button (GanttDates in GanttRows.tsx, ModuleDates in
  * planning/ModulesTimeline.tsx) mounts its two DateInputs only while its
  * popover is open. Astryx 0.6.8 Popover keeps closed content mounted, so an
  * always-rendered picker put two full calendars in every draggable row (200
@@ -30,7 +30,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@astryxdesign/core/Toast", () => ({ useToast: () => vi.fn() }));
 
-const { GanttDates } = await import("@/components/work-items/GanttLayout");
+const { GanttDates } = await import("@/components/work-items/GanttRows");
 const { ModuleDates } = await import("@/components/planning/ModulesTimeline");
 const { ProjectScope } = await import("@/components/work-items/project-provider");
 

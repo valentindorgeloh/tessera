@@ -3,10 +3,13 @@
 /**
  * Board cards: the draggable card with its "Move to" menu, the card body shared
  * with the drag overlay, and the compact property tokens. Split out of
- * BoardLayout.tsx; pure functions of their props.
+ * BoardLayout.tsx. The card is memoised (decision 136): project data comes from
+ * the lean `useProjectRow()` context, never a `bundle` prop, so a write that
+ * leaves the card alone does not redraw it, and a virtual column passes only
+ * its window primitives (`virtualIndex`, `measureRef`, `keptTop`).
  */
 
-import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
+import { memo, useCallback, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AvatarGroup } from "@astryxdesign/core/AvatarGroup";
 import { ClickableCard } from "@astryxdesign/core/ClickableCard";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -17,10 +20,11 @@ import { Token } from "@astryxdesign/core/Token";
 import { formatEstimateValue } from "@/components/estimates/estimate-format";
 import type { ItemDragHandlers } from "@/components/dnd/use-pointer-drag";
 import { ActorAvatar } from "@/components/shell/ActorAvatar";
+import { keptRowStyle } from "@/components/virtual/use-virtual-rows";
 import type { DisplayProperties, WorkItem } from "@/lib/tessera/types";
 import { DragHandleIcon } from "@/themes/catppuccin/icons";
+import { useProjectRow } from "./project-provider";
 import { PriorityLabel, StateLabel, paletteTokenColor } from "./properties";
-import type { ProjectBundle } from "./types";
 
 /** The press target that starts a touch or pen drag (board.css `.tessera-board-card-grip`). */
 const GRIP_SELECTOR = ".tessera-board-card-grip";
@@ -43,23 +47,36 @@ export function BoardCardMenuSlot({ children }: { children?: ReactNode }) {
   );
 }
 
-export function BoardCard({
-  item,
-  bundle,
-  properties,
-  columns,
-  currentColumn,
-  cardRef,
-  handlers,
-  isPeeked = false,
-  onOpen,
-  onMoveTo,
-}: {
+/** The window props of a card or a placeholder in a virtual column; all absent while the column is not windowed. */
+export type WindowCardProps = {
+  virtualIndex?: number;
+  measureRef?: (el: Element | null) => void;
+  keptTop?: number;
+};
+
+/** `data-index`, and for a kept card outside the window its class and offset (virtual.css). */
+export function windowCardProps(className: string, { virtualIndex, keptTop }: WindowCardProps): { className: string; "data-index"?: string; style?: ReturnType<typeof keptRowStyle> } {
+  if (virtualIndex === undefined) return { className };
+  if (keptTop === undefined) return { className, "data-index": String(virtualIndex) };
+  return { className: `${className} tessera-virtual-kept`, "data-index": String(virtualIndex), style: keptRowStyle(keptTop) };
+}
+
+/** One ref from the drag registration and the window's measuring ref; stable while both are. */
+function useCardRef(cardRef: ((el: HTMLDivElement | null) => void) | undefined, measureRef: ((el: Element | null) => void) | undefined) {
+  return useCallback(
+    (el: HTMLDivElement | null) => {
+      cardRef?.(el);
+      measureRef?.(el);
+    },
+    [cardRef, measureRef],
+  );
+}
+
+export type BoardCardProps = WindowCardProps & {
   item: WorkItem;
-  bundle: ProjectBundle;
   properties: DisplayProperties;
   /** "Move to" targets; empty when the grouped field cannot be moved between. */
-  columns: { id: string; name: string }[];
+  columns: readonly { id: string; name: string }[];
   currentColumn: string;
   /** Absent when the board is read-only: the card is not a drag source. */
   cardRef?: (el: HTMLDivElement | null) => void;
@@ -68,7 +85,25 @@ export function BoardCard({
   isPeeked?: boolean;
   onOpen: (id: string) => void;
   onMoveTo: (itemId: string, fromColumn: string, toColumn: string) => void;
-}) {
+};
+
+/**
+ * Memoised (decision 136): its props are the item, primitives and stable references (the cached drag handlers and
+ * ref of use-pointer-drag.ts, the screen's stable callbacks, the column's memoised "Move to" targets).
+ */
+export const BoardCard = memo(function BoardCard({
+  item,
+  properties,
+  columns,
+  currentColumn,
+  cardRef,
+  handlers,
+  isPeeked = false,
+  onOpen,
+  onMoveTo,
+  ...windowed
+}: BoardCardProps) {
+  const ref = useCardRef(cardRef, windowed.measureRef);
   const targets = columns.filter((column) => column.id !== currentColumn);
   const menu = (
     <BoardCardMenuSlot>
@@ -102,22 +137,22 @@ export function BoardCard({
   };
   return (
     <ClickableCard
-      ref={cardRef}
+      ref={ref}
       label={`${item.key} ${item.name}`}
       padding={3}
       aria-current={isPeeked ? "true" : undefined}
-      className={handlers ? "tessera-board-card" : "tessera-board-card tessera-board-card-readonly"}
+      {...windowCardProps(handlers ? "tessera-board-card" : "tessera-board-card tessera-board-card-readonly", windowed)}
       onClick={() => onOpen(item.id)}
       onPointerDown={dragHandlers?.onPointerDown}
       onClickCapture={handlers?.onClickCapture}
     >
-      <BoardCardBody item={item} bundle={bundle} properties={properties} menu={menu} grip={handlers ? <BoardCardGrip /> : null} />
+      <BoardCardBody item={item} properties={properties} menu={menu} grip={handlers ? <BoardCardGrip /> : null} />
     </ClickableCard>
   );
-}
+});
 
 /** Card contents, shared by the column card and the drag overlay clone so both stay identical. */
-export function BoardCardBody({ item, bundle, properties, menu, grip = null }: { item: WorkItem; bundle: ProjectBundle; properties: DisplayProperties; menu: ReactNode; grip?: ReactNode }) {
+export function BoardCardBody({ item, properties, menu, grip = null }: { item: WorkItem; properties: DisplayProperties; menu: ReactNode; grip?: ReactNode }) {
   return (
     <VStack gap={2}>
       <HStack hAlign="between" vAlign="center" gap={2}>
@@ -132,13 +167,14 @@ export function BoardCardBody({ item, bundle, properties, menu, grip = null }: {
       <Text weight="medium" maxLines={3}>
         {item.name}
       </Text>
-      <CardProperties item={item} bundle={bundle} properties={properties} />
+      <CardProperties item={item} properties={properties} />
     </VStack>
   );
 }
 
-/** Compact property tokens enabled in display.properties. */
-function CardProperties({ item, bundle, properties }: { item: WorkItem; bundle: ProjectBundle; properties: DisplayProperties }) {
+/** Compact property tokens enabled in display.properties; project data from the lean row context. */
+function CardProperties({ item, properties }: { item: WorkItem; properties: DisplayProperties }) {
+  const { bundle } = useProjectRow();
   const state = properties.state ? bundle.states.find((candidate) => candidate.id === item.state_id) : undefined;
   const labels = properties.labels ? bundle.labels.filter((label) => item.label_ids.includes(label.id)) : [];
   const modules = properties.modules ? bundle.modules.filter((module) => item.module_ids.includes(module.id)) : [];

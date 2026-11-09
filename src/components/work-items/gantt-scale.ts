@@ -221,3 +221,18 @@ export function conflictNotes(
   }
   return notes;
 }
+
+/**
+ * The connectors a window of rows needs (decision 135): a path is kept when its row span
+ * `[min(fromRow, toRow), max(fromRow, toRow)]` meets `[first, last]`, so a connector that crosses the window, starts or
+ * ends in it, or only touches its edge stays, and one wholly above or below it is dropped. A path whose rows are not
+ * in `rowIndex` is dropped.
+ */
+export function pathsInRows(paths: readonly ConnectorGeom[], rowIndex: ReadonlyMap<string, number>, first: number, last: number): ConnectorGeom[] {
+  return paths.filter((path) => {
+    const from = rowIndex.get(path.fromId);
+    const to = rowIndex.get(path.toId);
+    if (from === undefined || to === undefined) return false;
+    return Math.min(from, to) <= last && Math.max(from, to) >= first;
+  });
+}

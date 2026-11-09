@@ -11,7 +11,9 @@ import {
   edgeConflict,
   ganttEdges,
   monthSpans,
+  pathsInRows,
   weekSpans,
+  type ConnectorGeom,
 } from "@/components/work-items/gantt-scale";
 import { eachDay } from "@/components/work-items/date-span";
 
@@ -228,5 +230,46 @@ describe("conflictNotes", () => {
     const paths = connectorPaths(edges, index, byId, "2026-10-01", 40);
     const notes = conflictNotes(paths, byId, new Map([...keys, ["c", "WEB-3"]]));
     expect(notes.get("a")).toEqual(["Blocked by WEB-2, which ends 2026-10-10", "Blocked by WEB-3, which ends 2026-10-08"]);
+  });
+});
+
+describe("pathsInRows (the connectors a gantt window draws)", () => {
+  const rowIndex = new Map([
+    ["r0", 0],
+    ["r3", 3],
+    ["r10", 10],
+    ["r20", 20],
+    ["r30", 30],
+    ["r40", 40],
+  ]);
+  const path = (fromId: string, toId: string): ConnectorGeom => ({ key: `${fromId}>${toId}`, d: "M 0 0", conflict: false, type: "blocked_by", fromId, toId });
+  const keys = (paths: ConnectorGeom[]) => paths.map((p) => p.key);
+
+  it("keeps a path with both ends inside the rows", () => {
+    expect(keys(pathsInRows([path("r20", "r30")], rowIndex, 10, 30))).toEqual(["r20>r30"]);
+  });
+
+  it("keeps a path that crosses the rows, in either direction", () => {
+    expect(keys(pathsInRows([path("r0", "r40"), path("r40", "r0")], rowIndex, 10, 30))).toEqual(["r0>r40", "r40>r0"]);
+  });
+
+  it("keeps a path with one end inside, from above or below", () => {
+    expect(keys(pathsInRows([path("r3", "r20"), path("r40", "r20")], rowIndex, 10, 30))).toEqual(["r3>r20", "r40>r20"]);
+  });
+
+  it("keeps a path that touches the first or the last row", () => {
+    expect(keys(pathsInRows([path("r0", "r10"), path("r30", "r40")], rowIndex, 10, 30))).toEqual(["r0>r10", "r30>r40"]);
+  });
+
+  it("drops a path wholly above or wholly below the rows", () => {
+    expect(pathsInRows([path("r0", "r3"), path("r3", "r0"), path("r40", "r40")], rowIndex, 10, 30)).toEqual([]);
+  });
+
+  it("drops a path whose end is not a loaded row", () => {
+    expect(pathsInRows([path("r20", "gone"), path("gone", "r20")], rowIndex, 0, 40)).toEqual([]);
+  });
+
+  it("accepts bounds past either end (the overscan)", () => {
+    expect(keys(pathsInRows([path("r0", "r3")], rowIndex, -6, 2))).toEqual(["r0>r3"]);
   });
 });

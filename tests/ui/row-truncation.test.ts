@@ -20,7 +20,10 @@ const stripCss = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, "");
 const ROW_FILES = [
   "src/components/work-items/ListLayout.tsx",
   "src/components/work-items/TableLayout.tsx",
+  "src/components/work-items/VirtualTable.tsx",
+  "src/components/work-items/table-cells.tsx",
   "src/components/work-items/GanttLayout.tsx",
+  "src/components/work-items/GanttRows.tsx",
   "src/components/planning/ModulesTimeline.tsx",
   "src/components/work-items/properties/StateControl.tsx",
   "src/components/work-items/properties/PriorityControl.tsx",
@@ -62,19 +65,31 @@ describe("row text truncation", () => {
   });
 
   it("cuts the table's Name and Project cells with OneLineText, inside the Table's own textOverflow=\"truncate\"", () => {
-    const table = read("src/components/work-items/TableLayout.tsx");
-    expect(table).toMatch(/textOverflow="truncate"/);
-    expect(table).toMatch(/<OneLineText className="tessera-wi-cell-text" weight="medium">\s*\{row\.item\.name\}/);
-    expect(table).toMatch(/<OneLineText className="tessera-wi-cell-text">\{projectName\.get\(row\.item\.project_id\) \?\? ""\}<\/OneLineText>/);
+    // The Table element lives in VirtualTable.tsx and the memo cells in table-cells.tsx (virtual table windows).
+    expect(read("src/components/work-items/VirtualTable.tsx")).toMatch(/<Table<TableRow>[^>]*textOverflow="truncate"/);
+    const cells = read("src/components/work-items/table-cells.tsx");
+    expect(cells).toMatch(/<OneLineText className="tessera-wi-cell-text" weight="medium">\s*\{item\.name\}/);
+    expect(cells).toMatch(/<OneLineText className="tessera-wi-cell-text">\{projectName\.get\(item\.project_id\) \?\? ""\}<\/OneLineText>/);
+    // Both cells render inside the Name and Project columns.
+    expect(cells).toMatch(/key: "name"[^\n]*renderCell: \(row\) => <NameCell item=\{row\.item\} \/>/);
+    expect(cells).toMatch(/key: "project"[^\n]*renderCell: \(row\) => <ProjectCell item=\{row\.item\} projectName=\{projectName\} \/>/);
   });
 
   it("cuts the gantt's band labels, row names and bar labels with OneLineText", () => {
-    for (const file of ["src/components/work-items/GanttLayout.tsx", "src/components/planning/ModulesTimeline.tsx"]) {
-      const source = read(file);
+    // The work item gantt's rows (GanttRow) live in GanttRows.tsx; its head stays in GanttLayout.tsx.
+    const sources = [
+      { file: "work items gantt", source: read("src/components/work-items/GanttLayout.tsx") + read("src/components/work-items/GanttRows.tsx") },
+      { file: "modules timeline", source: read("src/components/planning/ModulesTimeline.tsx") },
+    ];
+    for (const { file, source } of sources) {
       expect(source, file).toMatch(/<OneLineText type="supporting" className="tessera-gantt-month-label">/);
       expect(source, file).toMatch(/<OneLineText className="tessera-gantt-name">/);
       expect(source, file).toMatch(/<OneLineText type="supporting" className="tessera-gantt-bar-label">/);
     }
+    expect(read("src/components/work-items/GanttLayout.tsx")).toMatch(/<OneLineText type="supporting" className="tessera-gantt-month-label">/);
+    const rows = read("src/components/work-items/GanttRows.tsx");
+    expect(rows).toMatch(/<OneLineText className="tessera-gantt-name">/);
+    expect(rows).toMatch(/<OneLineText type="supporting" className="tessera-gantt-bar-label">/);
   });
 
   it("gives the list and table classes the four declarations of Astryx's Text singleLine style, tokens-free", () => {

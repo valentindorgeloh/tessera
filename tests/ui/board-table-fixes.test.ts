@@ -150,7 +150,6 @@ afterEach(async () => {
 describe("board card drag handle", () => {
   const cardProps = (extra: Partial<ComponentProps<typeof BoardCard>> = {}): ComponentProps<typeof BoardCard> => ({
     item: first,
-    bundle,
     properties: DEFAULT_DISPLAY.properties,
     columns: [],
     currentColumn: STATE,
