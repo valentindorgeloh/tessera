@@ -13,6 +13,7 @@
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
+import { useEntryAnimation } from "@astryxdesign/core/hooks";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import {
@@ -44,6 +45,14 @@ export type FilterBarProps = {
   showProject?: boolean;
   /** Effective rich tree (URL, or a view's saved tree when the URL does not override it). */
   richFilters?: RichFilters | null;
+  /** Focus the field on mount: the row was opened with the Filter button. False when the row is there at load (active filters). */
+  hasAutoFocus?: boolean;
+  /** The row appears after a person's toggle: it slides in (off under Reduce Motion). False when it is there at load. */
+  animate?: boolean;
+  /** Escape pressed in the empty field with nothing to clear: the row may close. */
+  onEscapeEmpty?: () => void;
+  /** The row's DOM id, for the Filter button's `aria-controls`. */
+  id?: string;
 };
 
 const RELATIVE_WINDOWS = ["today", "1w", "2w", "1m"] as const;
@@ -219,7 +228,8 @@ function dateField(key: DateField, label: string): PowerSearchField {
   };
 }
 
-export function FilterBar({ filters, urlState, resultCount, showProject = false, richFilters }: FilterBarProps) {
+export function FilterBar({ filters, urlState, resultCount, showProject = false, richFilters, hasAutoFocus = false, animate = false, onEscapeEmpty, id }: FilterBarProps) {
+  const entry = useEntryAnimation("slideDown");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -272,8 +282,23 @@ export function FilterBar({ filters, urlState, resultCount, showProject = false,
   };
 
   return (
-    <HStack gap={2} vAlign="center" className="tessera-wi-filter">
+    <HStack
+      id={id}
+      gap={2}
+      vAlign="center"
+      className="tessera-wi-filter"
+      xstyle={animate ? (entry ?? undefined) : undefined}
+      onKeyDown={(event) => {
+        // An open suggestion list or token editor handles its own Escape first; only an empty field with no tokens closes the row.
+        if (event.key !== "Escape" || event.defaultPrevented || !onEscapeEmpty) return;
+        const target = event.target;
+        if (!(target instanceof HTMLInputElement) || target.value !== "" || !event.currentTarget.contains(target)) return;
+        if (tokens.length > 0 || chip) return;
+        onEscapeEmpty();
+      }}
+    >
       <PowerSearch
+        hasAutoFocus={hasAutoFocus}
         className="tessera-wi-search"
         // Astryx 0.7.8 defaults to "adaptive" (a trigger and a bottom sheet on phones); the tokenizer field stays on every device until that is decided on its own.
         presentation="popover"

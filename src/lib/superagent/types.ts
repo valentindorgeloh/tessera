@@ -148,3 +148,33 @@ export type SuperagentChatLoad = {
   /** null on /agents/superagent/chat (no item in the URL). */
   open: ChatOpen | null;
 };
+
+/** The setup guide's route (decision 155). */
+export const SUPERAGENT_SETUP_PATH = "/agents/superagent/setup";
+
+/** The runner's token file as the setup guide sees it: whether it is there and owner-only. Never its content. */
+export type TokenFileStatus =
+  | {
+      kind: "found";
+      /** No group or other permission bits (the runner's doctor wants mode 600); null when the mode could not be read. */
+      isPrivate: boolean | null;
+    }
+  | { kind: "missing" }
+  | {
+      kind: "unreadable";
+      /** The error code, e.g. EACCES. */
+      message: string;
+    };
+
+/** Everything the setup guide's status block reads (`loadSuperagentSetup`). Plain objects; never the token. */
+export type SuperagentSetupLoad = {
+  runnerUrl: string;
+  tokenFile: string;
+  token: TokenFileStatus;
+  /** GET /v1/state, or null when there is no readable token to call with. */
+  state: RunnerResult<RunnerState> | null;
+  /** Mapped projects that are live (not archived, not deleted), in mapping order, with their repo. */
+  mappedProjects: ChatProject[];
+  /** The live `mcp:superagent` actor exists: the runner has reached Tessera at least once. */
+  isConnected: boolean;
+};

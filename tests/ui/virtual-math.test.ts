@@ -77,7 +77,7 @@ describe("initialRange", () => {
     expect(initialRange({ ...list, start: first, count: 5000 })).toEqual({ first: 0, last: 18 });
     expect(initialRange({ ...list, start: second, count: 5000 })).toBeNull();
     expect(initialRange({ ...list, start: START.listPadding, count: 10_000 })).toEqual({ first: 0, last: 19 });
-    expect(initialRange({ start: START.tableHead, count: 10_000, size: ESTIMATE.table, gap: 0, viewport: INITIAL_VIEWPORT, overscan: INITIAL_OVERSCAN.table })).toEqual({ first: 0, last: 21 });
+    expect(initialRange({ start: START.tableHead, count: 10_000, size: ESTIMATE.table, gap: 0, viewport: INITIAL_VIEWPORT, overscan: INITIAL_OVERSCAN.table })).toEqual({ first: 0, last: 22 });
     expect(initialRange({ start: START.boardBodyPadding, count: 500, size: ESTIMATE.board, gap: 8, viewport: INITIAL_BOARD_BODY, overscan: INITIAL_OVERSCAN.board })).toEqual({ first: 0, last: 4 });
     expect(initialRange({ start: START.ganttBody, count: 10_000, size: ESTIMATE.gantt, gap: 0, viewport: INITIAL_VIEWPORT, overscan: INITIAL_OVERSCAN.gantt })).toEqual({ first: 0, last: 27 });
   });

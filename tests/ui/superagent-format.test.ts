@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import {
   ACTION_LABELS,
   HEALTH_LABEL,
+  SETUP_GUIDE_STATES,
   STAGE_ORDER,
   actionFailureText,
   actionVerb,
@@ -19,6 +20,7 @@ import {
   healthVariant,
   intakeSummary,
   modelsLabel,
+  opensSetupGuide,
   parseRequestId,
   parseScope,
   pausedBody,
@@ -207,7 +209,7 @@ describe("failureCopy", () => {
     expect(failureCopy(failure("not_set_up", "No runner token file"), CTX)).toEqual({
       status: "info",
       title: "Runner not set up",
-      body: "Tessera reads the runner's token from /Users/me/.tessera-agents/api-token. Start the superagent runner once to create it.",
+      body: "Tessera reads the runner's token from /Users/me/.tessera-agents/api-token. The runner's setup creates it.",
     });
     expect(failureCopy(failure("token_unreadable", "EACCES"), CTX)).toEqual({
       status: "error",
@@ -349,6 +351,9 @@ describe("health and spend", () => {
     expect(rewoundBody(500, 412)).toBe(
       "The runner's cursor (500) is past Tessera's newest change (412), as after a restore. Intake stays stopped until the runner is reset.",
     );
+    const nullBody = "The runner's cursor is past Tessera's newest change, as after a restore. Intake stays stopped until the runner is reset.";
+    expect(rewoundBody(500, null)).toBe(nullBody);
+    expect(rewoundBody(null, null)).toBe(nullBody);
   });
 
   it("names the failed checks of a failed setup", () => {
@@ -367,6 +372,16 @@ describe("health and spend", () => {
     expect(triageSummary([row("queued"), row("queued"), row("running"), row("unavailable"), row("decided")])).toBe("2 queued, 1 running");
     expect(triageSummary([])).toBe("0 queued, 0 running");
     expect(intakeSummary({ rewound: false, cursor: 412, latestSeq: 415 })).toBe("cursor 412, Tessera at 415");
+    expect(intakeSummary({ rewound: false, cursor: 412, latestSeq: null })).toBe("cursor 412");
+    expect(intakeSummary({ rewound: false, cursor: null, latestSeq: null })).toBe("Not started yet");
+  });
+});
+
+describe("opensSetupGuide", () => {
+  it("is true for the five states the setup guide helps with and false for the other seven", () => {
+    const opens = ["not_set_up", "token_unreadable", "unreachable", "timeout", "unauthorized"];
+    for (const state of RUNNER_FAILURE_STATES) expect(opensSetupGuide(failure(state)), state).toBe(opens.includes(state));
+    expect(SETUP_GUIDE_STATES).toHaveLength(5);
   });
 });
 

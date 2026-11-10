@@ -100,7 +100,7 @@ export function createStubServer(options: StubOptions): Server {
   let prompts = fixture("prompts.json", RunnerPromptsDocSchema);
   if (options.rewound === true) {
     state.intake.rewound = true;
-    state.intake.latestSeq = Math.max(0, state.intake.cursor - 30);
+    state.intake.latestSeq = Math.max(0, (state.intake.cursor ?? 0) - 30);
   }
 
   const find = (id: string) => requests.find((request) => request.id === id);

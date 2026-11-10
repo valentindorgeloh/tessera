@@ -91,9 +91,10 @@ describe("schemas", () => {
     expect(RunnerSettingsDocSchema.safeParse({ ...settings, revision: null }).success).toBe(false);
   });
 
-  it("refuse a null intake cursor and a negative count", () => {
+  it("accepts a null intake cursor and latestSeq (the real runner sends them) and refuses a negative count", () => {
     const state = fixture<{ intake: Record<string, unknown>; slots: Record<string, number> }>("state");
-    expect(RunnerStateSchema.safeParse({ ...state, intake: { ...state.intake, cursor: null } }).success).toBe(false);
+    expect(RunnerStateSchema.safeParse({ ...state, intake: { ...state.intake, cursor: null } }).success).toBe(true);
+    expect(RunnerStateSchema.safeParse({ ...state, intake: { ...state.intake, latestSeq: null } }).success).toBe(true);
     expect(RunnerStateSchema.safeParse({ ...state, slots: { running: -1, max: 2 } }).success).toBe(false);
   });
 });

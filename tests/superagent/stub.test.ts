@@ -116,7 +116,7 @@ describe("reads", () => {
     const { client } = await start({ rewound: true });
     const { intake } = okData(await client.getState());
     expect(intake.rewound).toBe(true);
-    expect(intake.latestSeq).toBeLessThan(intake.cursor);
+    expect(intake.latestSeq).toBeLessThan(intake.cursor as number);
   });
 });
 

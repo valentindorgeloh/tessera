@@ -1,4 +1,4 @@
-# As-built map: superagent control and chat (decisions 150 to 153)
+# As-built map: superagent control, chat and setup guide (decisions 150 to 153 and 155)
 
 State described: branch `claude/unruffled-feynman-d4ed47` after the superagent chat (decision 153), 2026-11-10, migration 0014. The runner itself is a separate program (the plan's Parts A and B); this file covers Tessera's side only: idempotent agent comments, the agent settings, the control client, the `/agents/superagent` screen and "Send to superagent". The full rules are in `docs/contracts/ui.md` ("Superagent control"), `tools.md` and `service-api.md` ("Superagent ..."), and `schema.md` ("Migration 0014").
 
@@ -26,6 +26,12 @@ The control API is never a tool. No registry tool's name contains `superagent` o
 | `src/components/detail/{DetailHeader,WorkItemDetail}.tsx`, `src/components/detail/use-detail-actions.ts`, `src/components/superagent/send-to-superagent.ts` | "Send to superagent" in the More menu of items in mapped projects: assigns the item to `mcp:superagent` through the detail's optimistic assignee path (`setAssigneesReporting`). |
 | `scripts/superagent-stub.ts`, `tests/fixtures/superagent/*.json` | A fake runner for acceptance and tests (`node:http`, in-memory, the v1 auth rules). Not part of the app. |
 
+### Setup guide (decision 155)
+
+| Path | Responsibility |
+|---|---|
+| `src/app/(tessera)/agents/superagent/setup/page.tsx`, `src/components/superagent/setup/*`, `src/lib/superagent/setup.ts`, `src/components/superagent/{setup-guide,setup-status}.ts` | The setup guide: steps as data (`setup-guide.ts`), status rules (`setup-status.ts`), the server status read (`loadSuperagentSetup`: token file existence and mode, `GET /v1/state`, mapped live projects, the `mcp:superagent` actor), and the screen with the "Where you are" block, 12 sections and the doctor troubleshooting list. Entry points in `SuperagentScreen`, `RunnerBanners` and `ConversationList`. |
+
 ### Chat (decision 153)
 
 | Path | Responsibility |
@@ -37,7 +43,7 @@ The control API is never a tool. No registry tool's name contains `superagent` o
 
 ## 3. Operating it
 
-1. **Token.** The runner writes its API token to `~/.tessera-agents/api-token` on first start. Tessera reads that file on every call (override: `TESSERA_AGENTS_TOKEN_FILE`) and never stores or shows it. No file shows "Runner not set up", which is not an error.
+1. **Token.** The runner's `npm run setup` writes its API token to `~/.tessera-agents/api-token` (tessera-agents `src/cli/setup.ts:216`). Tessera reads that file on every call (override: `TESSERA_AGENTS_TOKEN_FILE`) and never stores or shows it. No file shows "Runner not set up", which is not an error. The whole bring-up, for any user, is the setup guide at `/agents/superagent/setup`.
 2. **Runner URL and mapping.** On `/agents/superagent` → Settings → "Projects and repositories": the runner URL (blank means `http://127.0.0.1:3090`; loopback only) and one row per project with its repository. Only you can save it (`RULE user_only` for agents and the assistant).
 3. **The runner's MCP client** must be named `superagent` and pin protocol revision `2026-07-28`: `/api/mcp` is stateless, and only that revision sends the client name with every request. On the default (legacy) revision its calls land as `mcp:unknown` (`tests/mcp-http-identity.test.ts`). The runner should connect once at startup so the `mcp:superagent` actor exists; until then "Send to superagent" is disabled with "The superagent has not connected to Tessera yet."
 4. **Sending work.** "Send to superagent" adds `mcp:superagent` to the item's assignees. The runner treats your assignment (or a mention) as the request.
@@ -66,7 +72,10 @@ npx tsx scripts/superagent-stub.ts --port 3391 --token-file data/superagent/api-
 
 ## 6. Known debt and open items
 
-- The real runner does not exist yet; everything runner-side was checked against the fake runner only.
-- Readings of runner API v1 that the runner session must match (ui.md, "Mismatches and assumptions"): `revision` is a string or a number; `intake.cursor` and `intake.latestSeq` are never null; empty-body POSTs send no body; `workItemId` is Tessera's id; `firstPassReviewRate` is a fraction from 0 to 1; sizes are S, M or L.
+- The runner (tessera-agents) is built; the screens were checked against the fake runner, and the comment identity against the real runner client. An end-to-end run waits for an agent GitHub account.
+- Readings of runner API v1 that the runner session must match (ui.md, "Mismatches and assumptions"): `revision` is a string or a number; `intake.cursor` and `intake.latestSeq` may be null (decision 155: the runner sends both as null before its first poll); empty-body POSTs send no body; `workItemId` is Tessera's id; `firstPassReviewRate` is a fraction from 0 to 1; sizes are S, M or L.
 - The editor's people picker matches the start of an actor's name, and the superagent's actor is named `mcp:superagent`, so a mention is found by typing `@mcp`, not `@super`.
 - `loadProjectBundle` reads the workspace settings once per project bundle (cross-project lists read it per project); cheap, but could be hoisted.
+- The runner ships personal defaults (`configTemplate` repos and `evidenceRepo`, `githubRequesters`); other users replace them (setup guide steps 7 and 8).
+- Playwright is not a runner dependency; the guide shows a workaround for screen changes.
+- There is no reset for a rewound intake: the runner stays stopped.

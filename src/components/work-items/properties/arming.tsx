@@ -218,9 +218,13 @@ type PropertyChipProps = {
   isDisabled?: boolean;
   /** Marks an overdue date for work-items.css. */
   isOverdue?: boolean;
+  /** Marks a chip with no value (an empty date) for work-items.css: it shows on a hovered or focused cell only. */
+  isEmpty?: boolean;
   className?: string;
   /** The chip stands for a selector: in a table cell it fills the cell and shows the chevron, as the selector does. */
   isSelector?: boolean;
+  /** The chip is a tinted pill (a set cycle): it is as wide as its value in a table cell and has no chevron, as its selector has none (work-items.css). */
+  isPill?: boolean;
   /** The armed selector shows its clear button beside the value (a set value of a clearable selector): the chip holds an inert glyph of the same size, so the row does not shift when it arms. */
   hasClear?: boolean;
   /** The full value on hover; only for a chip of an armed row (a tooltip mounts a layer, which a resting chip avoids). */
@@ -228,15 +232,18 @@ type PropertyChipProps = {
 };
 
 /**
- * The resting look of a property control: a ghost Button with the chip class of work-items.css (the same 24px outlined
- * chip as the armed Selector or date button). Activating it arms the row and opens the control it stands for.
+ * The resting look of a property control: a ghost Button with the chip class of work-items.css (the same box as the armed
+ * Selector or date button, drawn without an outline: the value alone). Activating it arms the row and opens the control
+ * it stands for.
  */
-export function PropertyChip({ label, armKey, arm, children, icon, isIconOnly, isDisabled, isOverdue, className, isSelector = false, hasClear = false, tooltip }: PropertyChipProps) {
+export function PropertyChip({ label, armKey, arm, children, icon, isIconOnly, isDisabled, isOverdue, isEmpty, className, isSelector = false, isPill = false, hasClear = false, tooltip }: PropertyChipProps) {
   const { isCell } = useArmed();
   const handoff = useChipHandoff(arm, armKey);
-  const fillsCell = isSelector && isCell;
-  const clear = hasClear ? <Icon icon="close" size="sm" color="secondary" className="tessera-wi-chip-clear" /> : null;
-  const chevron = fillsCell ? <Icon icon="chevronDown" size="sm" color="secondary" /> : null;
+  const fillsCell = isSelector && isCell && !isPill;
+  // A pill has no slot for it: its selector lays the clear button over the pill's end while hovered (work-items.css).
+  const clear = hasClear && !isPill ? <Icon icon="close" size="sm" color="secondary" className="tessera-wi-chip-clear" /> : null;
+  // The chevron keeps its place in the chip and is drawn only on a hovered or focused cell (table.css), as the armed selector's is.
+  const chevron = fillsCell ? <Icon icon="chevronDown" size="sm" color="secondary" className="tessera-wi-chevron" /> : null;
   // The selector lays its value, clear button and chevron out one gap (8px) apart.
   const endContent = clear && chevron ? <HStack gap={2} vAlign="center">{clear}{chevron}</HStack> : (clear ?? chevron ?? undefined);
   return (
@@ -253,6 +260,7 @@ export function PropertyChip({ label, armKey, arm, children, icon, isIconOnly, i
       width={fillsCell ? "100%" : undefined}
       endContent={endContent}
       data-overdue={isOverdue ? "" : undefined}
+      data-empty={isEmpty ? "" : undefined}
       data-fill={fillsCell ? "" : undefined}
       data-arm-key={armKey}
       onClick={() => arm(armKey, armKey)}

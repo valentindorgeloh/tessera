@@ -251,6 +251,13 @@ describe("keys inside a list row", () => {
     await act(async () => {
       rows()[1]!.querySelector<HTMLButtonElement>('button[data-arm-key="target"]')!.click();
     });
+    // Astryx moves the focus into a popover one animation frame after it opens (usePopover), so wait for frames
+    // until it has arrived: the click's own render no longer happens to outlast that frame since the one-row bar.
+    for (let frame = 0; frame < 20 && !document.activeElement?.closest("[popover]"); frame += 1) {
+      await act(async () => {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      });
+    }
     // The popover renders inline in the list, as a native popover, and takes the focus when it opens.
     const inside = document.activeElement as HTMLElement;
     expect(inside.closest("[popover]")).not.toBeNull();

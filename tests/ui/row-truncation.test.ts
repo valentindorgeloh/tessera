@@ -23,6 +23,7 @@ const ROW_FILES = [
   "src/components/work-items/TableLayout.tsx",
   "src/components/work-items/VirtualTable.tsx",
   "src/components/work-items/table-cells.tsx",
+  "src/components/work-items/table-columns.tsx",
   "src/components/work-items/GanttLayout.tsx",
   "src/components/work-items/GanttRows.tsx",
   "src/components/planning/ModulesTimeline.tsx",
@@ -72,7 +73,7 @@ describe("row text truncation", () => {
     expect(cells).toMatch(/<OneLineText className="tessera-wi-cell-text" weight="medium">\s*\{item\.name\}/);
     expect(cells).toMatch(/<OneLineText className="tessera-wi-cell-text">\{projectName\.get\(item\.project_id\) \?\? ""\}<\/OneLineText>/);
     // Both cells render inside the Name and Project columns.
-    expect(cells).toMatch(/key: "name"[^\n]*renderCell: \(row\) => <NameCell item=\{row\.item\} \/>/);
+    expect(cells).toMatch(/key: "name"[^\n]*renderCell: \(row\) => <NameCell item=\{row\.item\} onOpen=\{onOpen\} \/>/);
     expect(cells).toMatch(/key: "project"[^\n]*renderCell: \(row\) => <ProjectCell item=\{row\.item\} projectName=\{projectName\} \/>/);
   });
 

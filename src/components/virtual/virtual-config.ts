@@ -23,10 +23,13 @@ export const INITIAL_OVERSCAN: Record<VirtualKind, number> = { list: 2, table: 2
  * Row sizes and the fixed parts above each container, in CSS px. Measured in the 2026-10-29 refresh at 1280 px in
  * Latte and Frappé, on the small fixture and the 10 000-item one. Re-measured on 2026-11-10 with resting (unarmed)
  * rows, after row arming: list 44 and table 37 exactly, board cards 108-160 around 136 with an 8 px gap, so nothing
- * changed. They only place the first window (server render and hydration); after the first paint every rendered row
- * is measured and the measured sizes replace them.
+ * changed. Re-measured on 2026-11-10 after the quiet work items screen (production build, Chromium, 1280 px, Frappé
+ * and Latte): its 36px table cells and 36px header made a table row 36 (was 37) and the head 36 (was 29.5, estimated
+ * 30); the list (44, band 40, padding 8, footer 44, quick-add 36), the board (cards 108-162, 8 px gap) and the gantt
+ * (32) are unchanged. They only place the first window (server render and hydration); after the first paint every
+ * rendered row is measured and the measured sizes replace them.
  */
-export const ESTIMATE: Record<VirtualKind, number> = { list: 44, table: 37, board: 136, gantt: 32 };
+export const ESTIMATE: Record<VirtualKind, number> = { list: 44, table: 36, board: 136, gantt: 32 };
 /** The board's cards stack is `VStack gap={2}`. */
 export const BOARD_GAP_ESTIMATE = 8;
 export const START = {
@@ -35,7 +38,7 @@ export const START = {
   groupGap: 8,
   listFooter: 44,
   quickAdd: 36,
-  tableHead: 30,
+  tableHead: 36,
   boardBodyPadding: 8,
   ganttBody: 0,
 } as const;

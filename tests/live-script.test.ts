@@ -146,7 +146,7 @@ describe("scripts/live.sh refusals", () => {
     expect(fs.readdirSync(live.build)).toEqual([]);
   });
 
-  it("a release without a readable migration count is refused unless forced", async () => {
+  it("a release without a readable migration count is refused unless forced", { timeout: TIMEOUT_MS }, async () => {
     const { repo, shas } = makeRepo([{ migrations: 14 }]);
     const live = await liveRoot(repo);
     fakeRelease(live, shas[0], null);

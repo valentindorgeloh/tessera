@@ -114,7 +114,7 @@ const BAD: [string, () => Promise<unknown>][] = [
   ["resize: no id", () => actions.superagentResizeAction({ size: "S" } as never)],
   ["budget: zero", () => actions.superagentBudgetAction({ request_id: "rq_1", usd: 0 })],
   ["budget: negative", () => actions.superagentBudgetAction({ request_id: "rq_1", usd: -1 })],
-  ["budget: over 10000", () => actions.superagentBudgetAction({ request_id: "rq_1", usd: 10000.01 })],
+  ["budget: over 200", () => actions.superagentBudgetAction({ request_id: "rq_1", usd: 200.01 })],
   ["budget: NaN", () => actions.superagentBudgetAction({ request_id: "rq_1", usd: Number.NaN })],
   ["budget: a string", () => actions.superagentBudgetAction({ request_id: "rq_1", usd: "5" as never })],
   ["triage: empty id", () => actions.superagentRetryTriageAction({ triage_id: "" })],
@@ -158,7 +158,7 @@ describe("a good input", () => {
 
   it("accepts the edges of the budget range", async () => {
     expect(await actions.superagentBudgetAction({ request_id: "rq_1", usd: 0.01 })).toMatchObject({ ok: true });
-    expect(await actions.superagentBudgetAction({ request_id: "rq_1", usd: 10000 })).toMatchObject({ ok: true });
+    expect(await actions.superagentBudgetAction({ request_id: "rq_1", usd: 200 })).toMatchObject({ ok: true });
   });
 
   it("accepts all four actions without a body", async () => {

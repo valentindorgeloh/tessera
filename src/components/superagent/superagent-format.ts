@@ -15,6 +15,7 @@ import {
   type RequestSummary,
   type RunnerAction,
   type RunnerFailure,
+  type RunnerFailureState,
   type RunnerPromptsDoc,
   type RunnerResult,
   type RunnerState,
@@ -102,7 +103,7 @@ export function failureCopy(failure: RunnerFailure, { tokenFile, runnerUrl }: Fa
   const { message } = failure;
   switch (failure.state) {
     case "not_set_up":
-      return { status: "info", title: "Runner not set up", body: `Tessera reads the runner's token from ${tokenFile}. Start the superagent runner once to create it.` };
+      return { status: "info", title: "Runner not set up", body: `Tessera reads the runner's token from ${tokenFile}. The runner's setup creates it.` };
     case "token_unreadable":
       return { status: "error", title: "Token file unreadable", body: `Tessera cannot read ${tokenFile} (${message}).` };
     case "unreachable":
@@ -126,6 +127,13 @@ export function failureCopy(failure: RunnerFailure, { tokenFile, runnerUrl }: Fa
     case "http_error":
       return { status: "error", title: "Runner error", body: `The runner answered ${failure.status ?? "with an error"}: ${message}` };
   }
+}
+
+/** The failure states whose banner points at the setup guide (decision 155): the runner is not set up, not running or not trusted. */
+export const SETUP_GUIDE_STATES: readonly RunnerFailureState[] = ["not_set_up", "token_unreadable", "unreachable", "timeout", "unauthorized"];
+
+export function opensSetupGuide(failure: RunnerFailure): boolean {
+  return SETUP_GUIDE_STATES.includes(failure.state);
 }
 
 /** A Toast for a failed action: what was tried, then the failure's own title and body. */
@@ -220,8 +228,12 @@ export function pausedBody(reason: RunnerState["pauseReason"]): string {
   return reason === "daily_cap" ? "The daily cap is reached; new work waits until tomorrow." : "Paused by you.";
 }
 
-export function rewoundBody(cursor: number, latestSeq: number): string {
-  return `The runner's cursor (${cursor}) is past Tessera's newest change (${latestSeq}), as after a restore. Intake stays stopped until the runner is reset.`;
+/** The "Tessera history rewound" banner's text; the real runner sends no newest change, so the numbers are optional. */
+export function rewoundBody(cursor: number | null, latestSeq: number | null): string {
+  if (cursor !== null && latestSeq !== null) {
+    return `The runner's cursor (${cursor}) is past Tessera's newest change (${latestSeq}), as after a restore. Intake stays stopped until the runner is reset.`;
+  }
+  return "The runner's cursor is past Tessera's newest change, as after a restore. Intake stays stopped until the runner is reset.";
 }
 
 /** The "Runner setup failed" banner's text: the failed checks by name, with their detail. */
@@ -237,9 +249,10 @@ export function triageSummary(rows: readonly TriageRow[]): string {
   return `${queued} queued, ${running} running`;
 }
 
-/** "cursor 412, Tessera at 412". */
+/** "cursor 412, Tessera at 412"; "cursor 412" when the runner sends no newest change, "Not started yet" before its first poll. */
 export function intakeSummary(intake: RunnerState["intake"]): string {
-  return `cursor ${intake.cursor}, Tessera at ${intake.latestSeq}`;
+  if (intake.cursor === null) return "Not started yet";
+  return intake.latestSeq === null ? `cursor ${intake.cursor}` : `cursor ${intake.cursor}, Tessera at ${intake.latestSeq}`;
 }
 
 /** The first-pass review rate (a fraction) as a whole percent, or "No reviews yet". */

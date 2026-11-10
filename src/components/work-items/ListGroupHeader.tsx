@@ -4,7 +4,6 @@
  * The list layout's group header (ListLayout.tsx): the marker for the group's kind (a state, a state group, a priority,
  * a label, cycle or module token, an actor) and the header row with the group's select-all checkbox, count and points.
  */
-import { Badge } from "@astryxdesign/core/Badge";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
@@ -81,7 +80,10 @@ export function GroupHeader({ group, display, selection, ids }: { group: Group; 
           <GroupMarker group={group} />
         </Text>
       </HStack>
-      <Badge label={group.count} />
+      {/* The group's full count as plain tertiary text (the rows under it may be only the first page). */}
+      <Text type="supporting" className="tessera-wi-group-count" hasTabularNumbers>
+        {group.count}
+      </Text>
       <GroupPoints points={group.estimate_points} display={display} />
     </HStack>
   );

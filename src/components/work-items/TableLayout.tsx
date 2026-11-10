@@ -9,8 +9,8 @@
  * `display.group_by` is set, resizable columns and inline edits through the ghost property
  * controls of ./properties. The key cell is the row's accessible open control
  * (a ghost button, as in the list layout) and is always present; a click on
- * the rest of the row opens the item as a pointer convenience, while clicks
- * inside an editable cell stay in the cell.
+ * the rest of the row opens the item as a pointer convenience, while a click
+ * anywhere in an editable cell opens that cell's editor (./table-columns.tsx).
  *
  * Labels, assignees and modules are shown read-only: `onUpdate` carries the
  * update_work_item patch, which has no set-style fields for them. Quick-add
@@ -19,7 +19,6 @@
  */
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { Badge } from "@astryxdesign/core/Badge";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { HStack } from "@astryxdesign/core/Stack";
@@ -38,16 +37,12 @@ import { NoResults } from "./NoResults";
 import { useProjectRow } from "./project-provider";
 import { useShared } from "./stable";
 import { buildColumns, isDataRow, type TableRow } from "./table-cells";
+import { EDITABLE, openCellEditor } from "./table-columns";
 import { TABLE_SORT_FIELDS, orderByFromSort, sortFromOrderBy } from "./table-sort";
 import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } from "./properties";
 import { createArmedRows, tableRowArmingHandlers } from "./properties/arming";
 import { VirtualTable } from "./VirtualTable";
 import type { LayoutProps } from "./types";
-
-type ColumnKey = "key" | "name" | "project" | "state" | "priority" | "assignees" | "labels" | "cycle" | "modules" | "estimate" | "start_date" | "target_date" | "created_at" | "updated_at";
-
-/** Columns whose cells hold a control; clicks inside them do not open the row. */
-const EDITABLE: ReadonlySet<string> = new Set<ColumnKey>(["state", "priority", "assignees", "labels", "cycle", "modules", "estimate", "start_date", "target_date"]);
 
 /** Id of the selection plugin's column (`__xds_selection` in the DOM); its cell stops clicks like an editable one. */
 const SELECTION_KEY = "__xds_selection";
@@ -81,10 +76,10 @@ function selectableIds(rows: readonly TableRow[]): string[] {
 /** Group section title: StatusDot for states, the priority glyph, a coloured Token for labels, cycles and modules. */
 function GroupHeading({ group, field }: { group: Group | undefined; field: GroupBy | null }) {
   const { bundle } = useProjectRow();
-  if (!group) return <Text weight="semibold">Ungrouped</Text>;
+  if (!group) return <Text weight="medium">Ungrouped</Text>;
   if (group.id === NONE_GROUP && field !== "priority") {
     return (
-      <Text weight="semibold" color="secondary">
+      <Text weight="medium" color="secondary">
         {group.name}
       </Text>
     );
@@ -97,7 +92,7 @@ function GroupHeading({ group, field }: { group: Group | undefined; field: Group
   if (field === "state_group" && STATE_GROUPS.has(group.id)) return <StateLabel group={group.id as StateGroup} name={group.name} />;
   if (field === "priority" && isPriority(group.id)) return <PriorityLabel value={group.id} />;
   if (group.color !== null) return <Token label={group.name} size="md" color={paletteTokenColor(group.color)} />;
-  return <Text weight="semibold">{group.name}</Text>;
+  return <Text weight="medium">{group.name}</Text>;
 }
 
 export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection, onLoadMore, onLoadMoreUngrouped, isLoadingMore, onOrderChange, onClearFilters }: LayoutProps) {
@@ -169,8 +164,10 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
       return (
         <HStack gap={2} vAlign="center">
           <GroupHeading group={group} field={display.group_by} />
-          {/* The badge is the group's full count (decision 113); the rows under it may be only the first page. */}
-          <Badge label={group?.count ?? loadedCount} variant="neutral" />
+          {/* The count is the group's full count (decision 113; the rows under it may be only the first page), plain tertiary text. */}
+          <Text type="supporting" className="tessera-table-group-count" hasTabularNumbers>
+            {group?.count ?? loadedCount}
+          </Text>
           <GroupPoints points={group?.estimate_points} display={display} />
           {group?.has_more && onLoadMore ? (
             <GroupFooter
@@ -236,6 +233,8 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
         if (!isDataRow(row)) return props;
         // The key cell's text starts where the Key header's does (table.css): its open button brings the inset.
         if (column.key === "key") return { ...props, htmlProps: { ...props.htmlProps, className: "tessera-table-key-cell" } };
+        // The row's "Open" button sits over the end of the Name cell (table.css).
+        if (column.key === "name") return { ...props, htmlProps: { ...props.htmlProps, className: "tessera-table-name-cell" } };
         // Ticking a row's checkbox selects it; the click (and Space on the checkbox) must not also open the peek.
         if (column.key === SELECTION_KEY) {
           return {
@@ -254,7 +253,8 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
           htmlProps: {
             ...props.htmlProps,
             className: "tessera-table-cell-edit",
-            onClick: (event) => event.stopPropagation(),
+            // Anywhere in the cell opens its editor, never the row.
+            onClick: openCellEditor,
             onKeyDown: (event) => event.stopPropagation(),
           },
         };

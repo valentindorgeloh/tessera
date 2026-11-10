@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { DateInput } from "@astryxdesign/core/DateInput";
 import { Popover } from "@astryxdesign/core/Popover";
@@ -53,7 +53,11 @@ function asIsoDate(value: string | null | undefined): IsoDate {
 export function DateControl(props: DateControlProps) {
   const { compact = false, readOnly = false, label = "Date", value, isOverdue = false, hasEmptyLabel = false, armKey } = props;
   const { bundle } = useProjectRow();
-  const { armed, arm } = useArmed();
+  const { armed, arm, isCell } = useArmed();
+  // A table cell shows a set date as plain text; the calendar glyph stays on an empty date and in the list (work-items.css).
+  const icon = isCell && value ? undefined : <CalendarIcon />;
+  // ... and without the "Start"/"Target" prefix the column header already carries; the accessible name keeps it.
+  const shown = isCell && value ? formatShortDate(value, bundle.today) : undefined;
   if (compact && armKey !== undefined && (readOnly || !armed)) {
     const short = label.replace(/ date$/i, "");
     return (
@@ -61,19 +65,23 @@ export function DateControl(props: DateControlProps) {
         label={value ? `${short} ${formatShortDate(value, bundle.today)}` : label}
         armKey={armKey}
         arm={arm}
-        icon={<CalendarIcon />}
+        icon={icon}
+        className="tessera-wi-chip--date"
         isIconOnly={!value && !hasEmptyLabel}
         isDisabled={readOnly}
         isOverdue={isOverdue && value !== null}
+        isEmpty={!value}
         // A read-only chip stays a chip when its row arms, so it takes the full date's tooltip then (a resting chip has no layer).
         tooltip={armed && value ? `${label}: ${value}` : undefined}
-      />
+      >
+        {shown}
+      </PropertyChip>
     );
   }
-  return <DatePicker {...props} />;
+  return <DatePicker {...props} icon={icon} shown={shown} />;
 }
 
-function DatePicker({ value, onChange, compact = false, readOnly = false, label = "Date", min, max, isOverdue = false, hasEmptyLabel = false, armKey }: DateControlProps) {
+function DatePicker({ value, onChange, compact = false, readOnly = false, label = "Date", min, max, isOverdue = false, hasEmptyLabel = false, armKey, icon, shown }: DateControlProps & { icon: ReactNode; shown: string | undefined }) {
   const { isDefaultOpen, takeFocus } = useArmedHandoff(armKey);
   // The arming click was aimed at this control's chip: the popover starts open (the state starts here, so it applies once).
   const [isOpen, setOpen] = useState(isDefaultOpen);
@@ -109,14 +117,17 @@ function DatePicker({ value, onChange, compact = false, readOnly = false, label 
         ref={takeFocus}
         variant="ghost"
         size="sm"
-        className="tessera-wi-chip"
+        className="tessera-wi-chip tessera-wi-chip--date"
         data-overdue={isOverdue && value ? "" : undefined}
-        icon={<CalendarIcon />}
+        data-empty={value ? undefined : ""}
+        icon={icon}
         label={value ? `${short} ${formatShortDate(value, bundle.today)}` : label}
         isIconOnly={!value && !hasEmptyLabel}
         tooltip={value ? `${label}: ${value}` : `Set ${label.toLowerCase()}`}
         isDisabled={readOnly}
-      />
+      >
+        {shown}
+      </Button>
     </Popover>
   );
 }

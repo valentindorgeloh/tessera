@@ -26,9 +26,12 @@
   border-bottom-width: var(--border-width);
 }
 
-/* The virtual table's spacer rows (decision 137: aria-hidden, role="presentation"). */
+/*
+ * The virtual table's spacer rows (decision 137: aria-hidden, role="presentation"). The cell selector outranks
+ * table.css's cell rules (the 36px cell height, the faint column lines), so a spacer is exactly its height and blank.
+ */
 .tessera-table-spacer,
-.tessera-table-spacer > td {
+.tessera-table tr.tessera-table-spacer > td.astryx-table-cell {
   height: var(--tessera-virtual-spacer, 0);
   padding: 0;
   border: 0;

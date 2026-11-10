@@ -9,17 +9,35 @@
  * `Table/BaseTable.js:199` in 0.7.11) bails out in each cell whose item did not change. The editable cells draw their
  * controls as chips until their row arms (./properties/arming.tsx): `ArmedCell` reads the table's arming store for the
  * row id, so arming re-renders the cells of that row alone, and the state outlives the row leaving the virtual window.
+ * At rest a cell is its value (the quiet screen, docs/contracts/ui.md "Work items screen"): labels, modules and
+ * assignees are plain pills and avatars (./properties/cell-values.tsx); the headers carry the property's icon
+ * (./table-columns.tsx `Head`).
  */
 import { memo } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { pixel, proportional, type TableColumn } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import type { DisplayProperties, WorkItem } from "@/lib/tessera/types";
+import {
+  CalendarIcon,
+  ClockIcon,
+  CycleIcon,
+  DescriptionIcon,
+  EstimateIcon,
+  FolderIcon,
+  HashIcon,
+  ModuleIcon,
+  PriorityHighIcon,
+  StateIcon,
+  TagIcon,
+  UsersIcon,
+} from "@/themes/catppuccin/icons";
 import { isOptimisticId } from "./optimistic";
 import { OneLineText } from "./OneLineText";
 import { RowProject } from "./row-project";
-import { AssigneeControl, CycleControl, DateControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, StateControl } from "./properties";
+import { AssigneeValue, CycleControl, DateControl, EstimateControl, LabelTokens, ModuleTokens, PriorityControl, StateControl } from "./properties";
 import { ArmedCell, type ArmedRows } from "./properties/arming";
+import { Head } from "./table-columns";
 import type { UpdateWorkItemPatch } from "./types";
 
 /** One table row; a grouped result repeats an item under every group it belongs to, so the row id carries the group. */
@@ -68,11 +86,29 @@ const KeyCell = memo(function KeyCell({ item, showKey, onOpen }: { item: WorkIte
   );
 });
 
-const NameCell = memo(function NameCell({ item }: { item: WorkItem }) {
+const NameCell = memo(function NameCell({ item, onOpen }: { item: WorkItem; onOpen: (id: string) => void }) {
   return (
-    <OneLineText className="tessera-wi-cell-text" weight="medium">
-      {item.name}
-    </OneLineText>
+    <>
+      <OneLineText className="tessera-wi-cell-text" weight="medium">
+        {item.name}
+      </OneLineText>
+      {/* Drawn on a hovered row or one holding keyboard focus (table.css); the key button stays the accessible route, so this one is a pointer convenience. */}
+      {isOptimisticId(item.id) ? null : (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="tessera-table-name-open"
+          label={`Open ${item.key}`}
+          tabIndex={-1}
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpen(item.id);
+          }}
+        >
+          Open
+        </Button>
+      )}
+    </>
   );
 });
 
@@ -93,19 +129,23 @@ const StateCell = memo(function StateCell({ item, readOnly, onUpdate, armedRows,
 const PriorityCell = memo(function PriorityCell({ item, readOnly, onUpdate, armedRows, rowId }: EditCellProps) {
   return (
     <ArmedCell store={armedRows} rowId={rowId}>
-      <PriorityControl armKey="priority" compact readOnly={isLocked(item, readOnly)} value={item.priority} onChange={(priority) => onUpdate(item.id, { priority })} />
+      <PriorityControl armKey="priority" compact hasLabel readOnly={isLocked(item, readOnly)} value={item.priority} onChange={(priority) => onUpdate(item.id, { priority })} />
     </ArmedCell>
   );
 });
 
 const AssigneesCell = memo(function AssigneesCell({ item }: { item: WorkItem }) {
-  return <AssigneeControl compact readOnly value={item.assignee_ids} onChange={() => undefined} />;
+  return (
+    <RowProject projectId={item.project_id}>
+      <AssigneeValue ids={item.assignee_ids} />
+    </RowProject>
+  );
 });
 
 const LabelsCell = memo(function LabelsCell({ item }: { item: WorkItem }) {
   return (
     <RowProject projectId={item.project_id}>
-      <LabelControl compact readOnly value={item.label_ids} onChange={() => undefined} />
+      <LabelTokens ids={item.label_ids} />
     </RowProject>
   );
 });
@@ -123,7 +163,7 @@ const CycleCell = memo(function CycleCell({ item, readOnly, onUpdate, armedRows,
 const ModulesCell = memo(function ModulesCell({ item }: { item: WorkItem }) {
   return (
     <RowProject projectId={item.project_id}>
-      <ModuleControl compact readOnly value={item.module_ids} onChange={() => undefined} />
+      <ModuleTokens ids={item.module_ids} />
     </RowProject>
   );
 });
@@ -180,43 +220,43 @@ export function buildColumns({ properties, projectName, hasEstimates, readOnly, 
   const edit = (row: TableRow): EditCellProps => ({ item: row.item, readOnly, onUpdate, armedRows, rowId: row.id });
   const columns: TableColumn<TableRow>[] = [];
   // The key column stays even when the key property is off: it is the row's keyboard-reachable open control.
-  columns.push({ key: "key", header: "Key", width: pixel(104), renderCell: (row) => <KeyCell item={row.item} showKey={properties.key} onOpen={onOpen} /> });
-  columns.push({ key: "name", header: "Name", width: NAME_COLUMN_WIDTH, renderCell: (row) => <NameCell item={row.item} /> });
+  columns.push({ key: "key", header: <Head icon={HashIcon}>Key</Head>, width: pixel(104), renderCell: (row) => <KeyCell item={row.item} showKey={properties.key} onOpen={onOpen} /> });
+  columns.push({ key: "name", header: <Head icon={DescriptionIcon}>Name</Head>, width: NAME_COLUMN_WIDTH, renderCell: (row) => <NameCell item={row.item} onOpen={onOpen} /> });
   if (projectName) {
-    columns.push({ key: "project", header: "Project", width: pixel(160), renderCell: (row) => <ProjectCell item={row.item} projectName={projectName} /> });
+    columns.push({ key: "project", header: <Head icon={FolderIcon}>Project</Head>, width: pixel(160), renderCell: (row) => <ProjectCell item={row.item} projectName={projectName} /> });
   }
   if (properties.state) {
-    columns.push({ key: "state", header: "State", width: pixel(176), renderCell: (row) => <StateCell {...edit(row)} /> });
+    columns.push({ key: "state", header: <Head icon={StateIcon}>State</Head>, width: pixel(176), renderCell: (row) => <StateCell {...edit(row)} /> });
   }
   if (properties.priority) {
-    columns.push({ key: "priority", header: "Priority", width: pixel(148), renderCell: (row) => <PriorityCell {...edit(row)} /> });
+    columns.push({ key: "priority", header: <Head icon={PriorityHighIcon}>Priority</Head>, width: pixel(172), renderCell: (row) => <PriorityCell {...edit(row)} /> });
   }
   if (properties.assignees) {
-    columns.push({ key: "assignees", header: "Assignees", width: pixel(184), renderCell: (row) => <AssigneesCell item={row.item} /> });
+    columns.push({ key: "assignees", header: <Head icon={UsersIcon}>Assignees</Head>, width: pixel(184), renderCell: (row) => <AssigneesCell item={row.item} /> });
   }
   if (properties.labels) {
-    columns.push({ key: "labels", header: "Labels", width: pixel(200), renderCell: (row) => <LabelsCell item={row.item} /> });
+    columns.push({ key: "labels", header: <Head icon={TagIcon}>Labels</Head>, width: pixel(200), renderCell: (row) => <LabelsCell item={row.item} /> });
   }
   if (properties.cycle) {
-    columns.push({ key: "cycle", header: "Cycle", width: pixel(168), renderCell: (row) => <CycleCell {...edit(row)} /> });
+    columns.push({ key: "cycle", header: <Head icon={CycleIcon}>Cycle</Head>, width: pixel(168), renderCell: (row) => <CycleCell {...edit(row)} /> });
   }
   if (properties.modules) {
-    columns.push({ key: "modules", header: "Modules", width: pixel(184), renderCell: (row) => <ModulesCell item={row.item} /> });
+    columns.push({ key: "modules", header: <Head icon={ModuleIcon}>Modules</Head>, width: pixel(184), renderCell: (row) => <ModulesCell item={row.item} /> });
   }
   if (properties.start_date) {
-    columns.push({ key: "start_date", header: "Start date", width: pixel(156), renderCell: (row) => <StartDateCell {...edit(row)} /> });
+    columns.push({ key: "start_date", header: <Head icon={CalendarIcon}>Start date</Head>, width: pixel(156), renderCell: (row) => <StartDateCell {...edit(row)} /> });
   }
   if (properties.target_date) {
-    columns.push({ key: "target_date", header: "Target date", width: pixel(156), renderCell: (row) => <TargetDateCell {...edit(row)} /> });
+    columns.push({ key: "target_date", header: <Head icon={CalendarIcon}>Target date</Head>, width: pixel(156), renderCell: (row) => <TargetDateCell {...edit(row)} /> });
   }
   if (properties.estimate && hasEstimates) {
-    columns.push({ key: "estimate", header: "Estimate", width: pixel(140), renderCell: (row) => <EstimateCell {...edit(row)} /> });
+    columns.push({ key: "estimate", header: <Head icon={EstimateIcon}>Estimate</Head>, width: pixel(140), renderCell: (row) => <EstimateCell {...edit(row)} /> });
   }
   if (properties.created_at) {
-    columns.push({ key: "created_at", header: "Created", width: pixel(128), renderCell: (row) => <DayCell value={row.item.created_at} /> });
+    columns.push({ key: "created_at", header: <Head icon={ClockIcon}>Created</Head>, width: pixel(128), renderCell: (row) => <DayCell value={row.item.created_at} /> });
   }
   if (properties.updated_at) {
-    columns.push({ key: "updated_at", header: "Updated", width: pixel(128), renderCell: (row) => <DayCell value={row.item.updated_at} /> });
+    columns.push({ key: "updated_at", header: <Head icon={ClockIcon}>Updated</Head>, width: pixel(128), renderCell: (row) => <DayCell value={row.item.updated_at} /> });
   }
   return columns;
 }

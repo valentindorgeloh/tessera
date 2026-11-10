@@ -67,35 +67,6 @@
 }
 
 /*
- * The sub-header (title and count, layout switch, Display, Export, New work item) in a 481-796px window: its end
- * group (515px of actions) dissolves into the bar and Display, Export and New work item form one unit that wraps
- * as a whole. Beside the 250px sidebar a 768px window leaves 468px: the title keeps the layout switch on its line
- * and the three actions share the line under it, right-aligned, instead of the group wrapping on its own and
- * leaving New work item alone on a third line. From 797px (sidebar, two 16px insets and the 515px group) the group
- * fits whole on the line under the title, which stays as it was, and a phone keeps its own wrapping: the actions
- * unit is `display: contents` everywhere else, so its buttons flow in the end group as before.
- */
-.tessera-wi-subheader .tessera-wi-subheader-actions {
-  display: contents;
-}
-
-@media (min-width: 481px) and (max-width: 796px) {
-  .tessera-wi-subheader {
-    column-gap: var(--spacing-2);
-    justify-content: flex-end;
-  }
-
-  .tessera-wi-subheader > .tessera-panel-bar-end {
-    display: contents;
-  }
-
-  .tessera-wi-subheader .tessera-wi-subheader-actions {
-    display: flex;
-    flex-wrap: nowrap;
-  }
-}
-
-/*
  * Rows: at least 44px; the key button opens the item; the properties hug the
  * end edge. The end inset is 16px, the panel header's: the last chip ends where
  * the header actions do. The start inset stays 12px: the select checkbox and
@@ -158,11 +129,11 @@
   min-width: 0;
 }
 
-/* The key: small, muted and tabular, so the title leads the row. */
+/* The key: small, tertiary and tabular, so the title leads the row. */
 .tessera-wi-open {
   font-variant-numeric: tabular-nums;
   font-size: var(--text-supporting-size);
-  color: var(--color-text-secondary);
+  color: var(--color-text-tertiary);
   min-width: 72px;
   justify-content: flex-start;
 }
@@ -183,12 +154,13 @@
 }
 
 /*
- * Property chips: the compact ghost controls of a row (selectors, and the
- * date buttons, `tessera-wi-chip`) as small outlined chips, 24px tall with
- * the inner radius and supporting-size text; the chevron goes, since the
- * control outline already marks a chip as a control. A selector's own clear
- * button keeps its Astryx look. The detail keeps the full controls. The create
- * dialog's property row uses the same chips (multi-selectors included).
+ * Property chips: the compact ghost controls of a row (selectors, and the date buttons, `tessera-wi-chip`), drawn the
+ * way Notion draws a property: at rest the value alone, with no outline (the 1px border stays, transparent, so the
+ * box and its neighbours are where they were). The box is 24px tall with the inner radius and supporting-size text;
+ * the chevron goes. A resting chip and the armed control it turns into (properties/arming.tsx) share this one rule, so
+ * the row does not shift when the pointer arrives; the control's own hover and focus ring are the affordance. A
+ * selector's clear button is drawn on its own hover or focus only (below). The detail keeps the full controls. The
+ * create dialog's property row uses the same chips (multi-selectors included).
  */
 .tessera-wi-props .astryx-selector[data-variant="ghost"],
 .tessera-wi-props .astryx-multi-selector[data-variant="ghost"],
@@ -196,7 +168,7 @@
   height: calc(var(--size-element-sm) - var(--spacing-1));
   min-height: 0;
   padding-inline: var(--spacing-1-5);
-  border: var(--border-width) solid var(--color-border-emphasized);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-inner);
   font-size: var(--text-supporting-size);
 }
@@ -208,26 +180,118 @@
 
 /*
  * The glyph a resting cycle chip draws where the armed selector shows its clear button (an Astryx icon button 20px
- * wide, its 16px glyph centred), so the chip and the selector have one box (properties/arming.tsx, hasClear).
+ * wide, its 16px glyph centred), so the chip and the selector have one box (properties/arming.tsx, hasClear). Neither
+ * is drawn at rest: the clear button shows while its selector is hovered, focused or open. Without hover (touch) the
+ * button stays drawn, the chip's glyph does not (a tap on the chip arms and opens the control).
  */
 .tessera-wi-chip-clear {
   margin-inline: var(--spacing-0-5);
+  opacity: 0;
+}
+
+.tessera-wi-props .astryx-input-clear-button {
+  opacity: 0;
+}
+
+@media (hover: hover) {
+  .tessera-wi-props .astryx-selector:hover .astryx-input-clear-button {
+    opacity: 1;
+  }
+}
+
+.tessera-wi-props .astryx-selector:has(:focus-visible) .astryx-input-clear-button,
+.tessera-wi-props .astryx-selector:has([aria-expanded="true"]) .astryx-input-clear-button {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .tessera-wi-props .astryx-input-clear-button {
+    opacity: 1;
+  }
 }
 
 /*
- * The other chips of a row (label, module and estimate tokens, the sub-items
- * and links counts) are the same 24px chip as the controls, with the inner
- * radius, so every chip of a row shares a height. The chip gap is 8px (the
- * HStack gap in ListLayout.tsx).
+ * A set cycle is a tinted pill, the colour of data and not of a control: the gray fill and text of an unnamed Token,
+ * 20px tall with the inner radius (the chip and the armed selector carry `tessera-wi-pill` alike, CycleControl.tsx).
+ * Label and module Tokens are the same height.
  */
-.tessera-wi-props .astryx-token,
-.tessera-wi-props .tessera-wi-count {
-  height: calc(var(--size-element-sm) - var(--spacing-1));
+.tessera-wi-props .tessera-wi-pill,
+.tessera-wi-props .astryx-selector[data-variant="ghost"].tessera-wi-pill {
+  height: calc(var(--size-element-sm) - var(--spacing-2));
+  background-color: var(--color-background-gray);
+  color: var(--color-text-gray);
+}
+
+/*
+ * A pill is as wide as its name: its selector's clear button lies over the pill's end instead of widening it, drawn on
+ * the pill's own tint over the surface so the name under it does not show through (only while the pill is hovered or
+ * focused, the rule above); the resting chip has no stand-in for it.
+ */
+.tessera-wi-pill {
+  position: relative;
+}
+
+.tessera-wi-pill .astryx-input-clear-button {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  border-radius: var(--radius-inner);
+  background: linear-gradient(var(--color-background-gray), var(--color-background-gray)), var(--color-background-surface);
+}
+
+/* A date is plain secondary text with its calendar glyph (an overdue one turns red, below). */
+.tessera-wi-props .tessera-wi-chip--date {
+  color: var(--color-text-secondary);
+}
+
+/*
+ * An empty date or cycle is not drawn at rest: the row's hover, keyboard focus or the control's own focus shows it (a
+ * touch screen, which has no hover, always does). `opacity` only, so a click on it still lands; the field guide's
+ * hover rule (`:has(:focus-visible)` on the row, not on the scroller).
+ */
+.tessera-wi-props .tessera-wi-chip[data-empty],
+.tessera-wi-props .tessera-wi-chip--empty {
+  opacity: 0;
+}
+
+@media (hover: hover) {
+  .tessera-wi-row:hover .tessera-wi-props .tessera-wi-chip[data-empty],
+  .tessera-wi-row:hover .tessera-wi-props .tessera-wi-chip--empty {
+    opacity: 1;
+  }
+}
+
+.tessera-wi-row:has(:focus-visible) .tessera-wi-props .tessera-wi-chip[data-empty],
+.tessera-wi-row:has(:focus-visible) .tessera-wi-props .tessera-wi-chip--empty,
+.tessera-wi-props .tessera-wi-chip--empty:has([aria-expanded="true"]),
+.tessera-wi-props .tessera-wi-chip[data-empty][aria-expanded="true"] {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .tessera-wi-props .tessera-wi-chip[data-empty],
+  .tessera-wi-props .tessera-wi-chip--empty {
+    opacity: 1;
+  }
+}
+
+/*
+ * The other chips of a row are quiet too: label, module and estimate Tokens keep their own tint (20px, the inner
+ * radius, no outline), and the sub-items and links counts are tertiary text with a small icon, not a badge. The chip
+ * gap is 8px (the HStack gap in ListLayout.tsx).
+ */
+.tessera-wi-props .astryx-token {
+  height: calc(var(--size-element-sm) - var(--spacing-2));
   border-radius: var(--radius-inner);
 }
 
-.tessera-wi-props .tessera-wi-count {
-  padding-inline: var(--spacing-2);
+.tessera-wi-props .tessera-wi-meta,
+.tessera-wi-props .tessera-wi-prop-text {
+  color: var(--color-text-tertiary);
+}
+
+.tessera-wi-props .tessera-wi-meta {
   font-size: var(--text-supporting-size);
 }
 
@@ -237,25 +301,36 @@
  * the same as Plane's date chip. --color-text-red is the text-safe red (at
  * least 4.5:1 on the row in Frappe and Latte; --color-error is not).
  */
-.tessera-wi-chip[data-overdue] {
+.tessera-wi-chip[data-overdue],
+.tessera-wi-props .tessera-wi-chip--date[data-overdue] {
   color: var(--color-text-red);
 }
 
 /*
- * Group headers: a muted band that stays at the top of the list while its
- * group scrolls under it (the Collapsible trigger is the sticky box, so it
- * hands over to the next group's band at the group's end). Only the colour
- * is set, so the trigger's pressed overlay still paints over the band; a
- * mouse press paints it as an image on top.
+ * Group headers: a quiet band on the surface colour with one faint hairline under it, that stays at the top of the
+ * list while its group scrolls under it (the Collapsible trigger is the sticky box, so it hands over to the next
+ * group's band at the group's end). The fill is opaque (rows scroll under it). Only the colour is set, so the
+ * trigger's pressed overlay still paints over the band; a mouse press paints it as an image on top. The count beside
+ * the name is plain tertiary text.
  */
 .tessera-wi-group .astryx-collapsible-trigger {
   position: sticky;
   top: 0;
   z-index: 1;
   min-height: calc(var(--size-element-md) + var(--spacing-2));
-  /* Use symmetric padding to match row padding */
-  padding-inline: var(--spacing-3);
-  background-color: var(--color-background-muted);
+  /* The chevron starts at the x of a row's key text (48px in); the 12px to 32px before it is the checkbox gutter. */
+  padding-inline: var(--spacing-12) var(--spacing-3);
+  background-color: var(--color-background-surface);
+  border-bottom: var(--border-width) solid var(--color-border-faint);
+}
+
+.tessera-wi-group .tessera-wi-group-count {
+  color: var(--color-text-tertiary);
+}
+
+/* The rows' dividers are the faint hairline too (Astryx draws them in the border colour, which stays on containers). */
+.tessera-wi-list .astryx-list-item.tessera-wi-row {
+  border-bottom-color: var(--color-border-faint);
 }
 
 @media (pointer: fine) {
@@ -281,25 +356,22 @@
 }
 
 /*
- * The group marker (dot or glyph) starts at the x of a row's key text, and its
- * name follows it. A row puts 12px of inset, the 20px checkbox, a 4px gap and
- * the key button's 12px padding before the key text (48px from the row edge);
- * the band puts its 12px inset, the 17px chevron and the 8px trigger gap before
- * the header, so the header adds the 11px that remain. The select checkbox
- * adds no slot: it is positioned over the gutter between the chevron and the
- * marker (decision 14 keeps its 44px hit area on touch), hover-revealed like a
- * row's.
+ * One gutter for the whole list: the 20px column 12px from the row edge holds a checkbox and nothing else. A row's
+ * checkbox and its group's select-all checkbox share that column, so they line up down the list; both show on
+ * hover, on focus and while a selection exists. Everything else in the band is content and starts where a row's
+ * content does: the chevron at the x of the key text (48px in: the 12px inset, the 20px checkbox, a 4px gap and
+ * the key button's 12px padding), then the marker and the name one trigger gap (8px) after it. The checkbox is
+ * positioned over the gutter, so it takes no slot in the band (decision 14 keeps its 44px hit area on touch).
  */
 .tessera-wi-group-header {
   min-width: 0;
-  padding-inline-start: calc(var(--spacing-3) - var(--border-width));
   padding-inline-end: var(--spacing-2);
   padding-block: var(--spacing-1);
 }
 
 .tessera-wi-group-select {
   position: absolute;
-  inset-inline-start: calc(var(--spacing-3) + var(--spacing-4));
+  inset-inline-start: var(--spacing-3);
   inset-block-start: 50%;
   transform: translateY(-50%);
 }
@@ -309,22 +381,17 @@
 }
 
 /*
- * The idle row's "+" sits where a row's checkbox and the chevron sit (12px from
- * the row edge: the button's own 12px padding, no row inset), and its text at
- * the row key's x (the 20px gap, over the 8px the button has by itself).
+ * The idle row's "+" is content too: it sits under the chevron, at the x of the key text (36px of inset and the
+ * button's own 12px padding), with its text one button gap after it. The open field starts at the key button's x.
  */
 .tessera-wi-quickadd {
-  padding-inline-start: 0;
+  padding-inline-start: var(--spacing-9);
   padding-inline-end: var(--spacing-2);
   padding-block: var(--spacing-1);
 }
 
-.tessera-wi-quickadd .astryx-button {
-  column-gap: var(--spacing-5);
-}
-
 .tessera-wi-quickadd-active {
-  padding-inline-start: var(--spacing-3);
+  padding-inline-start: var(--spacing-9);
 }
 
 /* Display menu popover body: the Popover's width prop (DisplayMenu.tsx) sizes the surface; the body fills it. */
@@ -462,18 +529,16 @@
 
   /*
    * The row gutter on a phone: the select checkbox's 44px hit area pushes the key button 8px right (the
-   * margin above), so the group marker and the quick-add text move 8px too and stay on the key's x.
+   * margin above), so the chevron and the quick-add "+" move 8px too and stay on the key text's x. The group's
+   * checkbox stays in the gutter column with the rows' checkboxes.
    */
-  .tessera-wi-group-header {
-    padding-inline-start: calc(var(--spacing-3) - var(--border-width) + var(--spacing-2));
+  .tessera-wi-group .astryx-collapsible-trigger {
+    padding-inline-start: calc(var(--spacing-12) + var(--spacing-2));
   }
 
-  .tessera-wi-group-select {
-    inset-inline-start: calc(var(--spacing-3) + var(--spacing-4) + var(--spacing-2));
-  }
-
-  .tessera-wi-quickadd .astryx-button {
-    column-gap: calc(var(--spacing-5) + var(--spacing-2));
+  .tessera-wi-quickadd,
+  .tessera-wi-quickadd-active {
+    padding-inline-start: calc(var(--spacing-9) + var(--spacing-2));
   }
 }
 
