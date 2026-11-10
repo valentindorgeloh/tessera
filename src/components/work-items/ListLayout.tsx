@@ -12,7 +12,7 @@
  * the detail page and, in P2b, the peek panel. Quick-add placeholders
  * (./optimistic.ts) render as inert rows until the server item replaces them.
  */
-import { memo, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
@@ -454,13 +454,23 @@ export function ListLayout({
 }) {
   const itemsById = useMemo(() => new Map(result.items.map((item) => [item.id, item])), [result.items]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
-  const { listRef, handleKeyDown, handleFocus } = useListFocus<HTMLElement>({
+  const { listRef, handleKeyDown: moveBetweenRows, handleFocus } = useListFocus<HTMLElement>({
     itemSelector: ".tessera-wi-open",
     orientation: "vertical",
     wrap: false,
     hasRovingTabIndex: true,
     hasCaretGuard: true,
   });
+  // The arrow, Home and End keys of a control inside a row bubble up to this list: a selector (open or closed) and a
+  // calendar grid take them with `preventDefault`, and a key typed in an open layer (the date popover renders inline,
+  // as a native popover) belongs to that layer. Only a key nothing took moves between the rows.
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLElement>) => {
+      if (event.defaultPrevented || (event.target instanceof Element && event.target.closest("[popover]") !== null)) return;
+      moveBetweenRows(event);
+    },
+    [moveBetweenRows],
+  );
 
   const groups = visibleGroups(result, display);
 
