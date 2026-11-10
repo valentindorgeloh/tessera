@@ -30,7 +30,7 @@ export function EstimateControl({ value, onChange, size = "md", isLabelHidden = 
     const point = value === null ? undefined : estimate.points.find((candidate) => candidate.id === value);
     const shown = point === undefined ? undefined : formatEstimateValue(estimate.type, point.value);
     return (
-      <PropertyChip label={`Estimate: ${shown ?? "none"}`} armKey={armKey} arm={arm} isSelector>
+      <PropertyChip label={`Estimate: ${shown ?? "none"}`} armKey={armKey} arm={arm} isSelector hasClear={value !== null}>
         {shown ?? "No estimate"}
       </PropertyChip>
     );

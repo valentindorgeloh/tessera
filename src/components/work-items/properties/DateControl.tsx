@@ -65,6 +65,8 @@ export function DateControl(props: DateControlProps) {
         isIconOnly={!value && !hasEmptyLabel}
         isDisabled={readOnly}
         isOverdue={isOverdue && value !== null}
+        // A read-only chip stays a chip when its row arms, so it takes the full date's tooltip then (a resting chip has no layer).
+        tooltip={armed && value ? `${label}: ${value}` : undefined}
       />
     );
   }

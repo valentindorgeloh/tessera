@@ -60,7 +60,7 @@ type CardMenuProps = {
 function CardMenu(props: CardMenuProps) {
   const { armed, arm } = useArmed();
   const moreIcon = useIcon("moreHorizontal");
-  if (!armed) return <IconButton variant="ghost" size="sm" label={`Actions for ${props.item.key}`} icon={moreIcon} data-arm-key={MENU_ARM_KEY} onClick={() => arm(MENU_ARM_KEY)} />;
+  if (!armed) return <IconButton variant="ghost" size="sm" label={`Actions for ${props.item.key}`} icon={moreIcon} data-arm-key={MENU_ARM_KEY} onClick={() => arm(MENU_ARM_KEY, MENU_ARM_KEY)} />;
   return <ArmedCardMenu {...props} />;
 }
 

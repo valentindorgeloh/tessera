@@ -30,7 +30,7 @@ export function CycleControl({ value, onChange, compact = false, readOnly = fals
   if (!armed && !readOnly && !model.readOnly && armKey !== undefined) {
     const current = model.options.find((option) => option.value === value)?.label;
     return (
-      <PropertyChip label={`${label}: ${current ?? "none"}`} armKey={armKey} arm={arm} isSelector>
+      <PropertyChip label={`${label}: ${current ?? "none"}`} armKey={armKey} arm={arm} isSelector hasClear={value !== null}>
         {current ?? (compact ? "Cycle" : "No cycle")}
       </PropertyChip>
     );

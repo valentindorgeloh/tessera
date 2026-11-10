@@ -433,6 +433,203 @@ describe("an unarmed board card", () => {
     });
     expect(menuChip(cards()[3]!)).toBeNull();
     expect(menuTrigger(cards()[3]!)).not.toBeNull();
-    expect(menus.opened).toEqual([true]);
+    // The menu mounts open, and stays open through the render that spends the open intent.
+    expect(menus.opened[0]).toBe(true);
+    expect(menus.opened).not.toContain(false);
+  });
+});
+
+describe("keyboard activation of a chip", () => {
+  const tableRows = () => [...(container?.querySelectorAll("tr.tessera-table-row") ?? [])] as HTMLElement[];
+  const cards = () => [...(container?.querySelectorAll(".tessera-board-card:not(.tessera-board-card-pending)") ?? [])] as HTMLElement[];
+
+  it("leaves the focus on the real selector that replaced a focused list chip", async () => {
+    await mount(datedWorld());
+    const row = rows()[2]!;
+    await act(async () => {
+      chip(row, "state").focus();
+    });
+    // Enter on a focused button is a click.
+    await act(async () => {
+      chip(row, "state").click();
+    });
+    const focused = document.activeElement;
+    expect(focused).not.toBe(document.body);
+    expect(focused?.getAttribute("role")).toBe("combobox");
+    expect(row.contains(focused)).toBe(true);
+    expect(focused?.getAttribute("aria-expanded")).toBe("true");
+    expect(focused?.textContent).toContain("Todo");
+  });
+
+  it("leaves the focus on the real date button that replaced a focused date chip", async () => {
+    await mount(datedWorld());
+    const row = rows()[2]!;
+    await act(async () => {
+      chip(row, "target").focus();
+    });
+    await act(async () => {
+      chip(row, "target").click();
+    });
+    const focused = document.activeElement;
+    expect(focused).not.toBe(document.body);
+    // The popover opened and moved the focus into its calendar (hasAutoFocus), so the focus is inside the open control.
+    expect(row.querySelector('button[aria-label="Target date"]')?.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("leaves the focus on the real selector that replaced a focused table chip", async () => {
+    const w = datedWorld();
+    w.display.layout = "table";
+    await mount(w);
+    const row = tableRows()[2]!;
+    await act(async () => {
+      chip(row, "priority").focus();
+    });
+    await act(async () => {
+      chip(row, "priority").click();
+    });
+    const focused = document.activeElement;
+    expect(focused).not.toBe(document.body);
+    expect(focused?.getAttribute("role")).toBe("combobox");
+    expect(row.contains(focused)).toBe(true);
+    expect(focused?.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("leaves the focus on the real menu button that replaced a focused board card icon button", async () => {
+    const w = world("state");
+    w.display.layout = "board";
+    await mount(w);
+    const card = cards()[3]!;
+    const button = card.querySelector<HTMLButtonElement>('button[data-arm-key="menu"]')!;
+    await act(async () => {
+      button.focus();
+    });
+    await act(async () => {
+      button.click();
+    });
+    const focused = document.activeElement;
+    expect(focused).not.toBe(document.body);
+    expect(card.contains(focused)).toBe(true);
+    expect(focused?.getAttribute("aria-label")).toMatch(/^Actions for /);
+  });
+});
+
+describe("the open intent of a clicked chip", () => {
+  const tableRows = () => [...(container?.querySelectorAll("tr.tessera-table-row") ?? [])] as HTMLElement[];
+  const expanded = (row: HTMLElement) => [...row.querySelectorAll('[aria-expanded="true"]')];
+
+  /** Render the same world again with one property switched off, then on: the control unmounts and mounts again. */
+  async function toggleProperty(w: World, property: "state" | "target_date") {
+    w.display.properties[property] = false;
+    await act(async () => {
+      root?.render(tree(w));
+    });
+    w.display.properties[property] = true;
+    await act(async () => {
+      root?.render(tree(w));
+    });
+  }
+
+  it("is spent once the state selector of a list row opened, so a remount stays closed", async () => {
+    const w = datedWorld();
+    await mount(w);
+    await act(async () => {
+      chip(rows()[2]!, "state").click();
+    });
+    expect(expanded(rows()[2]!)).toHaveLength(1);
+    await toggleProperty(w, "state");
+    // The row is still armed and the state control is back, drawn as the real selector and closed.
+    const triggers = [...rows()[2]!.querySelectorAll('[role="combobox"]')];
+    expect(triggers.some((trigger) => trigger.textContent?.includes("Todo"))).toBe(true);
+    expect(expanded(rows()[2]!)).toHaveLength(0);
+  });
+
+  it("is spent once the date popover of a list row opened, so a remount stays closed", async () => {
+    const w = datedWorld();
+    await mount(w);
+    await act(async () => {
+      chip(rows()[1]!, "target").click();
+    });
+    expect(expanded(rows()[1]!)).toHaveLength(1);
+    await toggleProperty(w, "target_date");
+    expect(rows()[1]!.querySelector('button[aria-label="Target date"]')).not.toBeNull();
+    expect(expanded(rows()[1]!)).toHaveLength(0);
+  });
+
+  it("is spent once the state selector of a table cell opened, so a remount stays closed", async () => {
+    const w = datedWorld();
+    w.display.layout = "table";
+    await mount(w);
+    await act(async () => {
+      chip(tableRows()[2]!, "state").click();
+    });
+    expect(expanded(tableRows()[2]!).filter((element) => element.getAttribute("role") === "combobox")).toHaveLength(1);
+    await toggleProperty(w, "state");
+    const triggers = [...tableRows()[2]!.querySelectorAll('[role="combobox"]:not([aria-readonly="true"])')];
+    expect(triggers.length).toBeGreaterThanOrEqual(1);
+    expect(expanded(tableRows()[2]!)).toHaveLength(0);
+  });
+
+  it("does not hand the focus to a control that mounts again later", async () => {
+    const w = datedWorld();
+    await mount(w);
+    await act(async () => {
+      chip(rows()[2]!, "state").focus();
+    });
+    await act(async () => {
+      chip(rows()[2]!, "state").click();
+    });
+    expect(document.activeElement?.getAttribute("role")).toBe("combobox");
+    await act(async () => {
+      (document.activeElement as HTMLElement).blur();
+    });
+    await toggleProperty(w, "state");
+    expect(document.activeElement).toBe(document.body);
+  });
+});
+
+describe("a read-only compact date", () => {
+  it("shows its full date in a tooltip once the row is armed, and carries none while it is a resting chip", async () => {
+    const w = datedWorld();
+    w.bundle.project.archived_at = NOW;
+    w.items[0]!.target_date = "2026-10-05";
+    await mount(w);
+    const row = rows()[0]!;
+    expect(chip(row, "target").getAttribute("aria-describedby")).toBeNull();
+    await act(async () => {
+      pointerEnter(row, "mouse");
+    });
+    const target = chip(row, "target");
+    expect(target.hasAttribute("data-arm-key")).toBe(true);
+    expect(target.getAttribute("aria-describedby")).not.toBeNull();
+    expect(document.getElementById(target.getAttribute("aria-describedby")!)?.textContent).toBe("Target date: 2026-10-05");
+  });
+});
+
+describe("a resting cycle chip", () => {
+  const CYCLE = "88888888-8888-7888-8888-888888888888";
+
+  function cycleWorld(layoutName: "list" | "table"): World {
+    const w = datedWorld();
+    w.display.layout = layoutName;
+    w.bundle.project.cycles_enabled = true;
+    w.bundle.cycles = [{ id: CYCLE, project_id: PROJECT, name: "Sprint 4", description: "", status: "current", start_date: "2026-10-12", end_date: "2026-10-26", sort_order: "a0", archived_at: null, ...audit }] as unknown as ProjectBundle["cycles"];
+    w.items[0]!.cycle_id = CYCLE;
+    return w;
+  }
+
+  it.each(["list", "table"] as const)("holds the glyph where the armed selector shows its clear button, in a %s, and only for a set cycle", async (layoutName) => {
+    await mount(cycleWorld(layoutName));
+    const selector = layoutName === "list" ? ".tessera-wi-row" : "tr.tessera-table-row";
+    const [first, second] = [...(container?.querySelectorAll(selector) ?? [])] as HTMLElement[];
+    expect(chip(first!, "cycle").textContent).toContain("Sprint 4");
+    expect(chip(first!, "cycle").querySelector(".tessera-wi-chip-clear")).not.toBeNull();
+    expect(chip(second!, "cycle").querySelector(".tessera-wi-chip-clear")).toBeNull();
+    // The armed selector draws the real clear button for the same cycle, and none for an empty one.
+    await act(async () => {
+      pointerEnter(first!, "mouse");
+      pointerEnter(second!, "mouse");
+    });
+    expect(first!.querySelector('button[aria-label="Clear Cycle"]')).not.toBeNull();
+    expect(second!.querySelector('button[aria-label="Clear Cycle"]')).toBeNull();
   });
 });

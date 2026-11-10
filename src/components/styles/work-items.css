@@ -207,6 +207,14 @@
 }
 
 /*
+ * The glyph a resting cycle chip draws where the armed selector shows its clear button (an Astryx icon button 20px
+ * wide, its 16px glyph centred), so the chip and the selector have one box (properties/arming.tsx, hasClear).
+ */
+.tessera-wi-chip-clear {
+  margin-inline: var(--spacing-0-5);
+}
+
+/*
  * The other chips of a row (label, module and estimate tokens, the sub-items
  * and links counts) are the same 24px chip as the controls, with the inner
  * radius, so every chip of a row shares a height. The chip gap is 8px (the
