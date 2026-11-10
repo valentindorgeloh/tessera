@@ -9,6 +9,8 @@ import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { InboxNote } from "@/components/inbox/inbox-format";
+import { agentGlyphSrc } from "@/themes/catppuccin/agent-glyph";
+import { humanGlyphSrc } from "@/themes/catppuccin/human-glyph";
 
 vi.mock("@astryxdesign/core/MoreMenu", () => ({ MoreMenu: () => null }));
 const { NotificationRow } = await import("@/components/inbox/NotificationRow");
@@ -59,7 +61,7 @@ describe("NotificationRow label", () => {
     expect(html).toContain("mcp:p3-acceptance-agent commented 2 times");
   });
 
-  it("shows an agent's glyph and a person's initials", () => {
+  it("shows an agent's glyph, a person's human glyph and a removed actor's initials", () => {
     const noop = () => {};
     const render = (row: InboxNote) =>
       renderToString(
@@ -76,8 +78,10 @@ describe("NotificationRow label", () => {
           onUnsnooze: noop,
         }),
       );
-    expect(render(note)).toContain("data:image/svg+xml");
-    expect(render({ ...note, actor_name: "Ada", actor_kind: "user" })).not.toContain("data:image/svg+xml");
+    expect(render(note)).toContain(agentGlyphSrc({ id: "agent-1", kind: "agent", color: "teal" }));
+    const person = render({ ...note, actor_name: "Ada", actor_kind: "user" });
+    expect(person).toContain(humanGlyphSrc({ id: "agent-1", color: "teal" }));
+    expect(person).not.toContain(agentGlyphSrc({ id: "agent-1", kind: "agent", color: "teal" }));
     expect(render({ ...note, actor_id: null, actor_kind: null, actor_color: null })).not.toContain("data:image/svg+xml");
   });
 
