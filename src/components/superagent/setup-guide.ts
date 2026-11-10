@@ -182,11 +182,11 @@ export const SETUP_STEPS: readonly GuideStep[] = [
       },
       { text: "`name` is a short lowercase name of your choice, from letters, digits and dashes. Tessera uses it in step 9. `github` is the repository as `<owner>/<repo>`, and `path` is the clone's full path: `~` does not work here." },
       { text: "`baseBranch` is the branch pull requests start from. It defaults to `main`. Set it if your repository's default branch has another name, such as `master`." },
-      { text: "`checks` are the commands that must pass before a pull request. `devCommand` starts the app on `{PORT}` for screenshots; leave it out for a repository without screens. Screenshots are 900 px high at each of `captureWidths` (375 and 1440 by default); set `captureHeight` for another height. For pnpm, set `packageManager` to `pnpm`, `lockfile` to `pnpm-lock.yaml` and `installCommand` to `[\"pnpm\", \"install\", \"--frozen-lockfile\", \"--ignore-scripts\"]`." },
+      { text: "`checks` are the commands that must pass before a pull request. `devCommand` starts the app on `{PORT}` for screenshots; leave it out for a repository without screens. A plan picks its screenshot widths from `captureWidths`, 375 and 1440 by default. Screenshots are 900 px high; set `captureHeight` for another height. For pnpm, set `packageManager` to `pnpm`, `lockfile` to `pnpm-lock.yaml` and `installCommand` to `[\"pnpm\", \"install\", \"--frozen-lockfile\", \"--ignore-scripts\"]`." },
       { text: "Notes for the agents about a repository, such as rules to follow or what a finished change includes, go under Team sections on the superagent screen once a project is mapped to it in step 9." },
       { text: "Create a private repository for screenshots on GitHub, for example `<owner>/agent-evidence`, and tick Add a README so it has a main branch. The runner pushes screenshots of screen changes there." },
       {
-        text: "Set `githubRequesters` to your own GitHub login, so the runner takes your pull request reviews and comments as yours, and `evidenceRepo` to the screenshot repository.",
+        text: "Set `githubRequesters` to your own GitHub login, not the agent's, so the runner takes your pull request reviews and comments as yours, and `evidenceRepo` to the screenshot repository.",
         example: '"githubRequesters": ["<your-login>"],\n"evidenceRepo": "<owner>/agent-evidence"',
       },
       { text: "Clone each repository into `~/src` with its https address. The runner's check wants https. Keep these clones for the runner, and work in your own checkout elsewhere.", command: "git clone https://github.com/<owner>/<repo>.git ~/src/<repo>" },
@@ -258,13 +258,13 @@ export const TROUBLESHOOTING_INTRO =
   "`npm run doctor` prints one line per check, `ok` or `FAIL` with a reason, and ends with an exit code. While the runner runs, the control screen's Health section shows the same checks.";
 
 export const DOCTOR_CHECKS: readonly DoctorCheck[] = [
-  { name: "config", label: "config", exitCode: 3, meaning: "`~/.tessera-agents/config.json` is missing or not valid. `npm run setup` names the field that is wrong.", stepId: "agent-identity" },
+  { name: "config", label: "config", exitCode: 3, meaning: "`~/.tessera-agents/config.json` is missing or not valid. `npm run setup` says what is wrong.", stepId: "agent-identity" },
   { name: "node", label: "node", exitCode: 3, meaning: "Node is too old. The runner needs 22.18 or newer.", stepId: "before" },
   { name: "agent account", label: "agent account", exitCode: 3, meaning: "`agent.login` or `agent.githubId` in `config.json` still holds the example value.", stepId: "agent-identity" },
-  { name: "your account", label: "your account", exitCode: 3, meaning: "`githubRequesters` or `evidenceRepo` in `config.json` still holds the example value `CHANGE-ME`, or `githubRequesters` is empty.", stepId: "repos" },
+  { name: "your account", label: "your account", exitCode: 3, meaning: "`githubRequesters` or `evidenceRepo` in `config.json` still holds the example value `CHANGE-ME`, or `githubRequesters` is empty, holds something that is not a GitHub login, or names the agent.", stepId: "repos" },
   { name: "api key", label: "api key", exitCode: 3, meaning: "There is no `ANTHROPIC_API_KEY=` line in `~/.tessera-agents/env`, or other users can read the file.", stepId: "api-key" },
   { name: "api token", label: "api token", exitCode: 3, meaning: "The runner's token file is missing, or other users can read it. Run `npm run setup` again.", stepId: "runner" },
-  { name: "gitconfig", label: "gitconfig", exitCode: 3, meaning: "The runner's git settings lack the agent's sign-in helper.", stepId: "agent-identity" },
+  { name: "gitconfig", label: "gitconfig", exitCode: 3, meaning: "The runner's git settings lack the agent's sign-in helper, or still hold the example identity. Delete `~/.tessera-agents/gitconfig` and run `npm run setup` again.", stepId: "agent-identity" },
   { name: "gh-agent login", label: "gh-agent login", exitCode: 3, meaning: "The agent is not logged in with `gh-agent`, or another account is.", stepId: "agent-login" },
   { name: "repo ", isPrefix: true, label: "repo <name>", exitCode: 3, meaning: "There is no clone at the `path` in `config.json`, or its origin is not `https://github.com/<owner>/<repo>`.", stepId: "repos" },
   { name: "sandbox", label: "sandbox", exitCode: 3, meaning: "The sandbox could not run a command, or let one read the runner's token. Run `npm ci` in `~/src/tessera-agents` again.", stepId: "runner" },
