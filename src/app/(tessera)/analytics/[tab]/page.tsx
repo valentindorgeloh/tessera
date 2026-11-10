@@ -1,8 +1,5 @@
-import { Suspense } from "react";
 import { io } from "next/cache";
 import { notFound } from "next/navigation";
-import { Skeleton } from "@astryxdesign/core/Skeleton";
-import { VStack } from "@astryxdesign/core/Stack";
 import { AnalyticsScreen } from "@/components/analytics/AnalyticsScreen";
 import type { AnalyticsSearch } from "@/components/analytics/types";
 import { AnalyticsTabSchema, analyticsSearchKey, parseAnalyticsParams } from "@/components/charts/analytics-format";
@@ -15,15 +12,22 @@ type Props = {
 };
 
 /**
- * `/analytics/<tab>` (docs/drafts/p9-plan.md U4). The shell suspends, then
- * the child awaits the route, `io()`, and one read. Filters are the query.
+ * `instant = false`: this page keeps no Suspense boundary of its own. The
+ * frame's boundary in `(tessera)/layout.tsx` covers a cold load, and a client
+ * navigation keeps the old page on screen until this one is ready, so React
+ * never commits a skeleton and holds the content for 300 ms. The opt-out
+ * turns off dev validation of instant navigation for this segment
+ * (`02-route-segment-config/instant.md`).
+ */
+export const instant = false;
+
+/**
+ * `/analytics/<tab>` (docs/drafts/p9-plan.md U4). The frame's boundary
+ * suspends, then the child awaits the route, `io()`, and one read. Filters are
+ * the query.
  */
 export default function AnalyticsTabPage({ params, searchParams }: Props) {
-  return (
-    <Suspense fallback={<AnalyticsSkeleton />}>
-      <AnalyticsData params={params} searchParams={searchParams} />
-    </Suspense>
-  );
+  return <AnalyticsData params={params} searchParams={searchParams} />;
 }
 
 async function AnalyticsData({ params, searchParams }: Props) {
@@ -51,15 +55,5 @@ async function AnalyticsData({ params, searchParams }: Props) {
       digest={loaded.digest}
       today={loaded.today}
     />
-  );
-}
-
-function AnalyticsSkeleton() {
-  return (
-    <VStack gap={4} padding={6} aria-busy="true" aria-label="Loading analytics">
-      <Skeleton height="var(--size-element-md)" width="40%" />
-      <Skeleton height="var(--size-element-lg)" index={1} />
-      <Skeleton height={240} index={2} />
-    </VStack>
   );
 }

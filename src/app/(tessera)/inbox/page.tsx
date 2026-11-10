@@ -14,19 +14,25 @@ import type { DigestView } from "@/lib/tessera/types";
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 /**
- * Inbox at `/inbox` (docs/drafts/p7-plan.md §5). The list and the selected
- * item each stream under their own Suspense boundary.
+ * `instant = false`: this page keeps no Suspense boundary of its own. The
+ * frame's boundary in `(tessera)/layout.tsx` covers a cold load, and a client
+ * navigation keeps the old page on screen until this one is ready, so React
+ * never commits a skeleton and holds the content for 300 ms. The opt-out
+ * turns off dev validation of instant navigation for this segment
+ * (`02-route-segment-config/instant.md`).
+ */
+export const instant = false;
+
+/**
+ * Inbox at `/inbox` (docs/drafts/p7-plan.md §5). The list streams under the
+ * frame's boundary and the selected item under its own Suspense boundary.
  *
  * The list is the caller's notifications. Opening `?item=` loads that work item.
  * A stored inbox digest is read here and never generated; Summarise and
  * Refresh live on the card and post to `/api/ai/digest`.
  */
 export default function InboxPage({ searchParams }: Props) {
-  return (
-    <Suspense fallback={<InboxSkeleton />}>
-      <InboxList searchParams={searchParams} />
-    </Suspense>
-  );
+  return <InboxList searchParams={searchParams} />;
 }
 
 async function InboxList({ searchParams }: Props) {
@@ -65,16 +71,6 @@ async function InboxItem({ itemId }: { itemId: string | null }) {
     <ProjectProvider bundle={loaded.bundle}>
       <DetailPage data={loaded.data} scope="global" />
     </ProjectProvider>
-  );
-}
-
-function InboxSkeleton() {
-  return (
-    <VStack gap={3} padding={4} aria-busy="true" aria-label="Loading inbox">
-      <Skeleton height="var(--size-element-md)" width="40%" />
-      <Skeleton height="var(--size-element-lg)" index={1} />
-      <Skeleton height="var(--size-element-lg)" index={2} />
-    </VStack>
   );
 }
 
