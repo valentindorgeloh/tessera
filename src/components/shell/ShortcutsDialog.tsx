@@ -45,40 +45,41 @@ const EXTRA_GLOBAL: readonly { label: string; keys: string }[] = [{ label: "Coll
 
 export function ShortcutsDialog({ isOpen, onOpenChange, singleKeys }: { isOpen: boolean; onOpenChange: (isOpen: boolean) => void; singleKeys: boolean }) {
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} width={560} maxHeight="85dvh" purpose="info">
-      <Layout
-        header={<DialogHeader title="Keyboard shortcuts" onOpenChange={onOpenChange} hasDivider />}
-        content={
-          <LayoutContent isScrollable>
-            <VStack gap={5}>
-              <Switch
-                label="Single-key shortcuts"
-                description="Letters such as s and p, and the g and n chords. Turn them off if they get in the way of speech input."
-                value={singleKeys}
-                onChange={(checked) => setSingleKeys(checked)}
-              />
-              {GROUP_ORDER.map((group) => (
-                <VStack key={group} gap={2}>
-                  <Heading level={3}>{group}</Heading>
-                  <List density="compact">
-                    {group === "Global"
-                      ? EXTRA_GLOBAL.map((row) => <ListItem key={row.keys} label={row.label} endContent={<ShortcutKeys keys={row.keys} />} />)
-                      : null}
-                    {SHORTCUTS.filter((def) => def.group === group).map((def) => (
-                      <ListItem
-                        key={def.id}
-                        label={def.label}
-                        description={shortcutHint(def)}
-                        endContent={<ShortcutKeys keys={def.keys} />}
-                      />
-                    ))}
-                  </List>
-                </VStack>
-              ))}
-            </VStack>
-          </LayoutContent>
-        }
-      />
+    // Named explicitly: the Dialog reads its DialogHeader title only when the <dialog> attaches, and the body below mounts later.
+    // The body mounts only while open: its Switch measures layout on mount even when hidden, and the rows are about 40 list items.
+    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} width={560} maxHeight="85dvh" purpose="info" aria-label="Keyboard shortcuts">
+      {isOpen ? <ShortcutsBody onOpenChange={onOpenChange} singleKeys={singleKeys} /> : null}
     </Dialog>
+  );
+}
+
+function ShortcutsBody({ onOpenChange, singleKeys }: { onOpenChange: (isOpen: boolean) => void; singleKeys: boolean }) {
+  return (
+    <Layout
+      header={<DialogHeader title="Keyboard shortcuts" onOpenChange={onOpenChange} hasDivider />}
+      content={
+        <LayoutContent isScrollable>
+          <VStack gap={5}>
+            <Switch
+              label="Single-key shortcuts"
+              description="Letters such as s and p, and the g and n chords. Turn them off if they get in the way of speech input."
+              value={singleKeys}
+              onChange={(checked) => setSingleKeys(checked)}
+            />
+            {GROUP_ORDER.map((group) => (
+              <VStack key={group} gap={2}>
+                <Heading level={3}>{group}</Heading>
+                <List density="compact">
+                  {group === "Global" ? EXTRA_GLOBAL.map((row) => <ListItem key={row.keys} label={row.label} endContent={<ShortcutKeys keys={row.keys} />} />) : null}
+                  {SHORTCUTS.filter((def) => def.group === group).map((def) => (
+                    <ListItem key={def.id} label={def.label} description={shortcutHint(def)} endContent={<ShortcutKeys keys={def.keys} />} />
+                  ))}
+                </List>
+              </VStack>
+            ))}
+          </VStack>
+        </LayoutContent>
+      }
+    />
   );
 }

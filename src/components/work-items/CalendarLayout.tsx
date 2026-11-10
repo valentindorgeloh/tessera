@@ -129,11 +129,13 @@ export function CalendarLayout({ result, display, onUpdate, onOpen, onQuickAdd, 
               placement="below"
               alignment="end"
               content={
-                <VStack gap={1} padding={2} className="tessera-cal-more">
-                  {unscheduled.map((item) => (
-                    <CalendarItem key={item.id} item={item} readOnly={readOnly} onOpen={onOpen} onUpdate={onUpdate} />
-                  ))}
-                </VStack>
+                unscheduledOpen ? (
+                  <VStack gap={1} padding={2} className="tessera-cal-more">
+                    {unscheduled.map((item) => (
+                      <CalendarItem key={item.id} item={item} readOnly={readOnly} onOpen={onOpen} onUpdate={onUpdate} />
+                    ))}
+                  </VStack>
+                ) : null
               }
             >
               <Button variant="ghost" size="sm" label={`${unscheduled.length} unscheduled`} />
@@ -274,11 +276,13 @@ function DayCell({
           label={`More items on ${day}`}
           placement="below"
           content={
-            <VStack gap={1} padding={2} className="tessera-cal-more">
-              {items.slice(MAX_IN_CELL).map((item) => (
-                <CalendarItem key={item.id} item={item} readOnly={readOnly} onOpen={onOpen} onUpdate={onUpdate} />
-              ))}
-            </VStack>
+            moreOpen ? (
+              <VStack gap={1} padding={2} className="tessera-cal-more">
+                {items.slice(MAX_IN_CELL).map((item) => (
+                  <CalendarItem key={item.id} item={item} readOnly={readOnly} onOpen={onOpen} onUpdate={onUpdate} />
+                ))}
+              </VStack>
+            ) : null
           }
         >
           <Button className="tessera-cal-overflow" variant="ghost" size="sm" label={`+${hidden} more`}>
@@ -354,25 +358,27 @@ function CalendarItem({
           placement="below"
           hasAutoFocus
           content={
-            <VStack padding={3}>
-              <DateInput
-                label="Move to date"
-                format="date"
-                hasClear
-                value={asIsoDate(item.target_date)}
-                weekStartsOn={weekStartsOn}
-                presentation="popover"
-                onChange={(next) => {
-                  setMoveOpen(false);
-                  if (!next) {
-                    onUpdate(item.id, { target_date: null });
-                    return;
-                  }
-                  const patch = calendarDropPatch(item, next);
-                  if (patch) onUpdate(item.id, patch);
-                }}
-              />
-            </VStack>
+            moveOpen ? (
+              <VStack padding={3}>
+                <DateInput
+                  label="Move to date"
+                  format="date"
+                  hasClear
+                  value={asIsoDate(item.target_date)}
+                  weekStartsOn={weekStartsOn}
+                  presentation="popover"
+                  onChange={(next) => {
+                    setMoveOpen(false);
+                    if (!next) {
+                      onUpdate(item.id, { target_date: null });
+                      return;
+                    }
+                    const patch = calendarDropPatch(item, next);
+                    if (patch) onUpdate(item.id, patch);
+                  }}
+                />
+              </VStack>
+            ) : null
           }
         >
           <IconButton className="tessera-cal-move" label={`Move ${item.key} to date`} size="sm" variant="ghost" icon={<CalendarIcon />} />

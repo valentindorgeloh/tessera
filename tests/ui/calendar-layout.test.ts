@@ -145,8 +145,12 @@ describe("calendar chips", () => {
     const chips = [...el.querySelectorAll(inCell)];
     expect(chips).toHaveLength(4);
     expect(chips.every((chip) => chip.hasAttribute("data-draggable"))).toBe(true);
-    // The two chips of the "+2 more" popover are not dragged anywhere.
-    const all = [...el.querySelectorAll(".tessera-cal-open")];
+    // The "+2 more" popover mounts its chips only while open (closed surfaces render nothing); they are not dragged anywhere.
+    expect(el.querySelectorAll(".tessera-cal-open")).toHaveLength(4);
+    await act(async () => {
+      el.querySelector<HTMLButtonElement>("button.tessera-cal-overflow")?.click();
+    });
+    const all = [...document.querySelectorAll(".tessera-cal-open")];
     expect(all).toHaveLength(6);
     expect(all.filter((chip) => !chip.hasAttribute("data-draggable"))).toHaveLength(2);
   });

@@ -119,6 +119,8 @@ export function CommandBar({ ref }: CommandBarProps) {
   const context = useCommandContext();
   const { singleKeys } = useShortcutPrefs();
   const [isOpen, setOpen] = useState(false);
+  // The palette (and its search UI) mounts at the first opening and stays mounted after it, so a reopen is as fast as before.
+  const [hasOpened, setHasOpened] = useState(false);
   // A new palette instance per opening, so a close from outside the palette
   // (the help dialog taking over) never leaves a stale query behind.
   const [session, setSession] = useState(0);
@@ -175,6 +177,7 @@ export function CommandBar({ ref }: CommandBarProps) {
     setScope(next);
     setInitialQuery(query ?? "");
     setSession((count) => count + 1);
+    setHasOpened(true);
     setOpen(true);
   }, []);
 
@@ -362,20 +365,22 @@ export function CommandBar({ ref }: CommandBarProps) {
 
   return (
     <>
-      <CommandPalette<CommandSearchItem>
-        key={session}
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        searchSource={source}
-        value=""
-        onValueChange={handleSelect}
-        label="Command bar"
-        renderItem={(item) => <CommandRow item={item} />}
-        emptyBootstrapText="Type to search, or pick a command"
-        emptySearchText="No matches"
-        input={<PaletteInput initialQuery={initialQuery} mode={scope.mode} isAskShown={ask.isAskShown} onModeChange={setMode} />}
-        footer={<PaletteFooter scope={scope} onAllProjectsChange={setAllProjects} />}
-      />
+      {hasOpened ? (
+        <CommandPalette<CommandSearchItem>
+          key={session}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          searchSource={source}
+          value=""
+          onValueChange={handleSelect}
+          label="Command bar"
+          renderItem={(item) => <CommandRow item={item} />}
+          emptyBootstrapText="Type to search, or pick a command"
+          emptySearchText="No matches"
+          input={<PaletteInput initialQuery={initialQuery} mode={scope.mode} isAskShown={ask.isAskShown} onModeChange={setMode} />}
+          footer={<PaletteFooter scope={scope} onAllProjectsChange={setAllProjects} />}
+        />
+      ) : null}
       <ShortcutsDialog isOpen={isHelpOpen} onOpenChange={setHelpOpen} singleKeys={singleKeys} />
       <CreateProjectDialog isOpen={isCreateProjectOpen} onOpenChange={setCreateProjectOpen} />
     </>

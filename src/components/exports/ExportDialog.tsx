@@ -30,6 +30,16 @@ export type ExportDialogProps = {
 };
 
 export function ExportDialog({ isOpen, onOpenChange, title, scope }: ExportDialogProps) {
+  return (
+    // Named explicitly: the Dialog reads its DialogHeader title only when the <dialog> attaches, and the form below mounts later.
+    // The form mounts only while open (its Switch and SegmentedControl measure layout on mount even when hidden), so each opening starts fresh.
+    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={480} aria-label="Export work items">
+      {isOpen ? <ExportForm onOpenChange={onOpenChange} title={title} scope={scope} /> : null}
+    </Dialog>
+  );
+}
+
+function ExportForm({ onOpenChange, title, scope }: Omit<ExportDialogProps, "isOpen">) {
   const toast = useToast();
   const [format, setFormat] = useState<ExportFormat>("csv");
   const [archived, setArchived] = useState(false);
@@ -64,32 +74,30 @@ export function ExportDialog({ isOpen, onOpenChange, title, scope }: ExportDialo
   };
 
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={480} aria-label="Export work items">
-      <Layout
-        header={<DialogHeader title="Export work items" onOpenChange={onOpenChange} hasDivider />}
-        content={
-          <LayoutContent>
-            <VStack gap={4} className="tessera-settings-fields">
-              <TextInput label="Name" value={name} onChange={setName} />
-              <SegmentedControl label="Format" size="sm" value={format} onChange={(value) => setFormat(value === "json" ? "json" : "csv")}>
-                <SegmentedControlItem value="csv" label="CSV" />
-                <SegmentedControlItem value="json" label="JSON" />
-              </SegmentedControl>
-              <Switch label="Include archived work items" size="sm" value={archived} onChange={setArchived} />
-              {downloadId ? <Text type="supporting">The file is ready.</Text> : null}
-            </VStack>
-          </LayoutContent>
-        }
-        footer={
-          <LayoutFooter>
-            <HStack gap={2}>
-              <Button variant="secondary" size="sm" label="Cancel" onClick={() => onOpenChange(false)} />
-              <Button variant="primary" size="sm" label="Export" onClick={submit} isLoading={isPending} />
-              {downloadId ? <Button variant="secondary" size="sm" label="Download" icon={<DownloadIcon />} href={`/api/exports/${downloadId}`} /> : null}
-            </HStack>
-          </LayoutFooter>
-        }
-      />
-    </Dialog>
+    <Layout
+      header={<DialogHeader title="Export work items" onOpenChange={onOpenChange} hasDivider />}
+      content={
+        <LayoutContent>
+          <VStack gap={4} className="tessera-settings-fields">
+            <TextInput label="Name" value={name} onChange={setName} />
+            <SegmentedControl label="Format" size="sm" value={format} onChange={(value) => setFormat(value === "json" ? "json" : "csv")}>
+              <SegmentedControlItem value="csv" label="CSV" />
+              <SegmentedControlItem value="json" label="JSON" />
+            </SegmentedControl>
+            <Switch label="Include archived work items" size="sm" value={archived} onChange={setArchived} />
+            {downloadId ? <Text type="supporting">The file is ready.</Text> : null}
+          </VStack>
+        </LayoutContent>
+      }
+      footer={
+        <LayoutFooter>
+          <HStack gap={2}>
+            <Button variant="secondary" size="sm" label="Cancel" onClick={() => onOpenChange(false)} />
+            <Button variant="primary" size="sm" label="Export" onClick={submit} isLoading={isPending} />
+            {downloadId ? <Button variant="secondary" size="sm" label="Download" icon={<DownloadIcon />} href={`/api/exports/${downloadId}`} /> : null}
+          </HStack>
+        </LayoutFooter>
+      }
+    />
   );
 }
