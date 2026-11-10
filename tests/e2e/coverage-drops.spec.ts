@@ -168,6 +168,9 @@ test.describe("reorder surfaces", () => {
     await expect.poll(() => names("list_states", { project_id: project.id }, started), { timeout: 15_000 }).toEqual(["In Progress", "QA", "Review"]);
 
     await page.reload();
+    // A cold load streams the page through the frame's skeleton (decision 155), and React reveals it a moment
+    // after the load event: wait for the rows before reading their order, as the views case above does.
+    await expect(row("In Progress")).toHaveCount(1);
     const labels = await page.getByRole("listitem").allTextContents();
     const position = (name: string) => labels.findIndex((text) => text.includes(name));
     expect(position("In Progress")).toBeGreaterThanOrEqual(0);
