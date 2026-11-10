@@ -7,11 +7,17 @@
  * first open, and `usePalettePreload` starts the `import()` when the browser is idle, so
  * the palette is normally in before anyone asks for it. An open that comes first renders
  * nothing until the module resolves (a few milliseconds on a warm cache), then mounts the
- * palette open: CommandBar keeps the opening's query and scope, so the typed key is kept.
+ * palette open: CommandBar keeps the opening's query and scope, so the key the top bar's field
+ * passed is kept. The keys typed after the opening but before the module is in are kept here:
+ * while the palette is open and not yet loaded, a capture listener on `document` takes the
+ * printable keys and Backspace into `query` (it starts as the opening's query), and the palette
+ * mounts with that as its first query. Escape closes the opening, and keys with Meta, Ctrl or
+ * Alt are not text, so they pass. The listener is gone in the commit that mounts the palette,
+ * so no key is taken once the module is in.
  * The loaded module sits in a store read with `useSyncExternalStore` (../charts/lazy-module.ts),
  * not behind `next/dynamic`, which would hold its fallback for 300 ms.
  */
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { createLazyModule } from "@/components/charts/lazy-module";
 import type { PalettePanelProps } from "./palette-parts";
 
@@ -39,7 +45,37 @@ export function preloadPalette(): void {
 
 export function LazyPalette(props: PalettePanelProps) {
   const parts = partsModule.useLoaded();
-  const { onOpenChange } = props;
+  const { isOpen, onOpenChange } = props;
+  // The query the palette mounts with: the opening's query, then the keys typed until the module is in. CommandBar
+  // keys this component by opening, so it is read once per opening.
+  const [query, setQuery] = useState(props.initialQuery);
+  const isLoaded = parts !== null;
+  // Layout effect, so the listener is on in the commit that opens the palette and off in the commit that mounts it.
+  useLayoutEffect(() => {
+    if (isLoaded || !isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        onOpenChange(false);
+        return;
+      }
+      if (event.key === "Backspace") {
+        event.preventDefault();
+        event.stopPropagation();
+        setQuery((current) => current.slice(0, -1));
+        return;
+      }
+      // A printable key is one character; "Enter", "ArrowDown", "Dead" and the like are longer names.
+      if (event.key.length !== 1) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setQuery((current) => current + event.key);
+    };
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
+  }, [isLoaded, isOpen, onOpenChange]);
   // A chunk that fails to load must not leave CommandBar open with nothing on screen (it disables every shortcut while open): hand the close back, and the next open retries.
   useEffect(() => {
     let isCurrent = true;
@@ -50,5 +86,5 @@ export function LazyPalette(props: PalettePanelProps) {
       isCurrent = false;
     };
   }, [onOpenChange]);
-  return parts ? <parts.PalettePanel {...props} /> : null;
+  return parts ? <parts.PalettePanel {...props} initialQuery={query} /> : null;
 }
