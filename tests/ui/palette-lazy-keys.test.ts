@@ -77,8 +77,21 @@ describe("LazyPalette keys before the module is in", () => {
     await mount({ isOpen: true, initialQuery: "" });
     expect(press("k", { metaKey: true }).defaultPrevented).toBe(false);
     expect(press("a", { ctrlKey: true }).defaultPrevented).toBe(false);
-    expect(press("a", { altKey: true }).defaultPrevented).toBe(false);
+    expect(press("a", { altKey: true }).defaultPrevented).toBe(false); // a plain Alt is a shortcut outside Apple platforms
+    expect(press("Escape", { ctrlKey: true }).defaultPrevented).toBe(false);
     for (const key of ["ArrowDown", "Enter", "Tab", "Dead", "Process"]) expect(press(key).defaultPrevented).toBe(false);
+  });
+
+  it("keeps the characters Option types on a Mac and AltGr types elsewhere", async () => {
+    const platform = vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    try {
+      await mount({ isOpen: true, initialQuery: "" });
+      expect(press("@", { altKey: true }).defaultPrevented).toBe(true);
+      expect(press("{", { ctrlKey: true, altKey: true, modifierAltGraph: true } as KeyboardEventInit).defaultPrevented).toBe(true);
+      expect(press("a", { ctrlKey: true, altKey: true }).defaultPrevented).toBe(false);
+    } finally {
+      platform.mockRestore();
+    }
   });
 
   it("takes no key while the palette is closed", async () => {

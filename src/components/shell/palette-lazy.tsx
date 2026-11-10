@@ -20,6 +20,7 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { createLazyModule } from "@/components/charts/lazy-module";
 import type { PalettePanelProps } from "./palette-parts";
+import { isApplePlatform } from "./shortcuts";
 
 const partsModule = createLazyModule(() => import("./palette-parts"));
 
@@ -54,21 +55,25 @@ export function LazyPalette(props: PalettePanelProps) {
   useLayoutEffect(() => {
     if (isLoaded || !isOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.key === "Escape") {
+      if (event.isComposing || event.metaKey) return;
+      const isPlain = !event.ctrlKey && !event.altKey;
+      if (isPlain && event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
         onOpenChange(false);
         return;
       }
-      if (event.key === "Backspace") {
+      if (isPlain && event.key === "Backspace") {
         event.preventDefault();
         event.stopPropagation();
         setQuery((current) => current.slice(0, -1));
         return;
       }
-      // A printable key is one character; "Enter", "ArrowDown", "Dead" and the like are longer names.
+      // A printable key is one character; "Enter", "ArrowDown", "Dead" and the like are longer names. Option on a Mac
+      // and AltGr elsewhere type characters too (a German "@"); Ctrl and a plain Alt are shortcuts.
       if (event.key.length !== 1) return;
+      const typesWithModifier = event.getModifierState("AltGraph") || (event.altKey && !event.ctrlKey && isApplePlatform());
+      if (!isPlain && !typesWithModifier) return;
       event.preventDefault();
       event.stopPropagation();
       setQuery((current) => current + event.key);

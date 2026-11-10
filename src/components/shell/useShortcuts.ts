@@ -27,7 +27,7 @@ import { projectIdFromPath } from "./recents";
 import { addFavoriteAction, removeFavoriteAction } from "@/app/actions/favorites";
 import { favoriteTarget } from "@/components/favorites/tree";
 import { goCommandPath } from "./command-source";
-import { isQuietTarget, isShellCommandId, resolveShortcut, SHORTCUT_BY_ID, type ChordState, type ShortcutId } from "./shortcuts";
+import { isApplePlatform, isQuietTarget, isShellCommandId, resolveShortcut, SHORTCUT_BY_ID, type ChordState, type ShortcutId } from "./shortcuts";
 
 // ---------------------------------------------------------------------------
 // Preferences store (localStorage), read after mount so server and client
@@ -144,13 +144,6 @@ export function forgetLastProject(projectId: string): void {
   } catch {
     // Private mode or blocked storage: nothing was stored to forget.
   }
-}
-
-function isApplePlatform(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
-  const platform = nav.userAgentData?.platform || nav.platform || "";
-  return /mac|iphone|ipad|ipod/i.test(platform);
 }
 
 /** Routes under `/projects/<id>/` that the project-scoped navigation and create shortcuts open. */

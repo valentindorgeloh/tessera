@@ -39,7 +39,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(nav.search),
 }));
 
-// jsdom has no Popover API, so an open DropdownMenu cannot be read off the DOM: record what the cards hand MoreMenu.
+// Record what the cards hand MoreMenu, so a test can tell a menu that mounts open from one that opens after it mounted.
 const menus = vi.hoisted(() => ({ opened: [] as boolean[] }));
 vi.mock("@astryxdesign/core/MoreMenu", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@astryxdesign/core/MoreMenu")>();
