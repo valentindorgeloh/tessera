@@ -8,6 +8,7 @@ import { VStack } from "@astryxdesign/core/Stack";
 import { useWeekStart } from "@/components/workspace-settings/workspace-settings-store";
 import { CalendarIcon } from "@/themes/catppuccin/icons";
 import { useProjectRow } from "../project-provider";
+import { PropertyChip, useArmed, useArmedHandoff } from "./arming";
 import { formatShortDate } from "./date-format";
 
 // Moved to the directive-free date-format.ts (P3); re-exported so current importers keep working.
@@ -30,6 +31,8 @@ export type DateControlProps = {
   isOverdue?: boolean;
   /** The compact chip keeps its label while empty ("Start date") instead of a bare calendar icon, for forms. */
   hasEmptyLabel?: boolean;
+  /** Names this control to a row that arms (./arming.tsx); a row without arming leaves it out. */
+  armKey?: string;
 };
 
 type IsoDate = Parameters<typeof DateInput>[0]["value"];
@@ -42,9 +45,36 @@ function asIsoDate(value: string | null | undefined): IsoDate {
   return value && ISO_DATE.test(value) ? (value as NonNullable<IsoDate>) : undefined;
 }
 
-/** Date picker for start or target dates; clearing sends null so the field is unset. */
-export function DateControl({ value, onChange, compact = false, readOnly = false, label = "Date", min, max, isOverdue = false, hasEmptyLabel = false }: DateControlProps) {
-  const [isOpen, setOpen] = useState(false);
+/**
+ * Date picker for start or target dates; clearing sends null so the field is unset. A compact chip of a row (`armKey`)
+ * that has not armed, or that is read-only and so can never open, is the plain button alone: no popover layer and no
+ * calendar.
+ */
+export function DateControl(props: DateControlProps) {
+  const { compact = false, readOnly = false, label = "Date", value, isOverdue = false, hasEmptyLabel = false, armKey } = props;
+  const { bundle } = useProjectRow();
+  const { armed, arm } = useArmed();
+  if (compact && armKey !== undefined && (readOnly || !armed)) {
+    const short = label.replace(/ date$/i, "");
+    return (
+      <PropertyChip
+        label={value ? `${short} ${formatShortDate(value, bundle.today)}` : label}
+        armKey={armKey}
+        arm={arm}
+        icon={<CalendarIcon />}
+        isIconOnly={!value && !hasEmptyLabel}
+        isDisabled={readOnly}
+        isOverdue={isOverdue && value !== null}
+      />
+    );
+  }
+  return <DatePicker {...props} />;
+}
+
+function DatePicker({ value, onChange, compact = false, readOnly = false, label = "Date", min, max, isOverdue = false, hasEmptyLabel = false, armKey }: DateControlProps) {
+  const { isDefaultOpen, takeFocus } = useArmedHandoff(armKey);
+  // The arming click was aimed at this control's chip: the popover starts open (the state starts here, so it applies once).
+  const [isOpen, setOpen] = useState(isDefaultOpen);
   const { bundle } = useProjectRow();
   const weekStartsOn = useWeekStart(bundle.week_start);
   const picker = (
@@ -74,6 +104,7 @@ export function DateControl({ value, onChange, compact = false, readOnly = false
   return (
     <Popover isOpen={isOpen} onOpenChange={setOpen} content={isOpen ? <VStack padding={3}>{picker}</VStack> : null} label={label} placement="below" alignment="start" hasAutoFocus>
       <Button
+        ref={takeFocus}
         variant="ghost"
         size="sm"
         className="tessera-wi-chip"

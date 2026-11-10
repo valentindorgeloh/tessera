@@ -33,6 +33,7 @@ import { isOptimisticId } from "./optimistic";
 import { useProjectRow } from "./project-provider";
 import { RowProject } from "./row-project";
 import { ActorLabel, CycleControl, DateControl, PriorityControl, PriorityLabel, StateControl, StateLabel, paletteTokenColor } from "./properties";
+import { ArmedContext, useArmed, useRowArming } from "./properties/arming";
 import { isOverdue } from "./properties/date-format";
 import { splitShownNames } from "./properties/membership-rules";
 import { GroupFooter, GroupPoints } from "./GroupFooter";
@@ -137,13 +138,14 @@ type RowProps = {
 
 function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowProps, "item" | "display" | "onUpdate" | "readOnly">) {
   const { bundle, labelsById, actorsById, modulesById, statesById } = useProjectRow();
+  const { armed } = useArmed();
   const props = display.properties;
   const nodes: ReactNode[] = [];
   if (props.state) {
-    nodes.push(<StateControl key="state" compact readOnly={readOnly} value={item.state_id} onChange={(state_id) => onUpdate(item.id, { state_id })} />);
+    nodes.push(<StateControl key="state" armKey="state" compact readOnly={readOnly} value={item.state_id} onChange={(state_id) => onUpdate(item.id, { state_id })} />);
   }
   if (props.priority) {
-    nodes.push(<PriorityControl key="priority" compact readOnly={readOnly} value={item.priority} onChange={(priority) => onUpdate(item.id, { priority })} />);
+    nodes.push(<PriorityControl key="priority" armKey="priority" compact readOnly={readOnly} value={item.priority} onChange={(priority) => onUpdate(item.id, { priority })} />);
   }
   if (props.labels && item.label_ids.length > 0) {
     const labels = item.label_ids.flatMap((id) => {
@@ -158,15 +160,20 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowPr
           <Token key={label.id} label={label.name} size="sm" color={paletteTokenColor(label.color)} />
         ))}
         {hidden > 0 ? (
-          <Tooltip key="labels-more" content={labels.map((label) => label.name).join(", ")}>
-            <Token label={`+${hidden}`} size="sm" description={`${hidden} more labels`} />
-          </Tooltip>
+          // The tooltip's layer mounts once the row is armed; the token carries the count either way.
+          armed ? (
+            <Tooltip key="labels-more" content={labels.map((label) => label.name).join(", ")}>
+              <Token label={`+${hidden}`} size="sm" description={`${hidden} more labels`} />
+            </Tooltip>
+          ) : (
+            <Token key="labels-more" label={`+${hidden}`} size="sm" description={`${hidden} more labels`} />
+          )
         ) : null}
       </HStack>,
     );
   }
   if (props.cycle && bundle.project.cycles_enabled) {
-    nodes.push(<CycleControl key="cycle" compact readOnly={readOnly} value={item.cycle_id} onChange={(cycle_id) => onUpdate(item.id, { cycle_id })} />);
+    nodes.push(<CycleControl key="cycle" armKey="cycle" compact readOnly={readOnly} value={item.cycle_id} onChange={(cycle_id) => onUpdate(item.id, { cycle_id })} />);
   }
   if (props.modules && bundle.project.modules_enabled && item.module_ids.length > 0) {
     nodes.push(
@@ -192,6 +199,7 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowPr
     nodes.push(
       <DateControl
         key="start"
+        armKey="start"
         compact
         readOnly={readOnly}
         label="Start date"
@@ -205,6 +213,7 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowPr
     nodes.push(
       <DateControl
         key="target"
+        armKey="target"
         compact
         readOnly={readOnly}
         label="Target date"
@@ -295,6 +304,9 @@ export function PendingRow({ item, display, onUpdate }: Pick<RowProps, "item" | 
 const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, selected, onToggle }: RowProps) {
   // The key button owns the row's action: surface clicks delegate to it and it is the row's only tab stop.
   const openRef = useRef<HTMLButtonElement>(null);
+  // The row draws its property controls as chips until the pointer or keyboard focus reaches it (./properties/arming.tsx):
+  // the closed selectors and popovers of a long list cost more than the rows themselves.
+  const { state: arming, handlers } = useRowArming();
   // Placeholder from quick-add: nothing to open or edit until the server item arrives.
   if (isOptimisticId(item.id)) return <PendingRow item={item} display={display} onUpdate={onUpdate} />;
   return (
@@ -303,6 +315,8 @@ const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen,
       className="tessera-wi-row"
       data-selected={selected ? "" : undefined}
       interactiveRef={openRef}
+      onPointerEnter={handlers.onPointerEnter}
+      onFocus={handlers.onFocus}
       startContent={
         <HStack gap={1} vAlign="center">
           {selected !== undefined && onToggle ? (
@@ -321,14 +335,16 @@ const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen,
             variant="ghost"
             size="sm"
             label={item.key}
-            tooltip={display.properties.key ? undefined : item.key}
+            tooltip={arming.armed && !display.properties.key ? item.key : undefined}
             onClick={() => onOpen(item.id)}
           />
         </HStack>
       }
       endContent={
         <RowProject projectId={item.project_id}>
-          <RowProperties item={item} display={display} onUpdate={onUpdate} readOnly={readOnly} />
+          <ArmedContext value={arming}>
+            <RowProperties item={item} display={display} onUpdate={onUpdate} readOnly={readOnly} />
+          </ArmedContext>
         </RowProject>
       }
     />

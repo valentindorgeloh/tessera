@@ -49,6 +49,7 @@ import { OneLineText } from "./OneLineText";
 import { RowProject } from "./row-project";
 import { TABLE_SORT_FIELDS, orderByFromSort, sortFromOrderBy } from "./table-sort";
 import { ActorLabel, AssigneeControl, CycleControl, DateControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, PriorityLabel, StateControl, StateLabel, isPriority, paletteTokenColor } from "./properties";
+import { ArmedCell, createArmedRows, tableRowArmingHandlers, type ArmedRows } from "./properties/arming";
 import type { LayoutProps, ProjectBundle, UpdateWorkItemPatch } from "./types";
 
 /** One table row; a grouped result repeats an item under every group it belongs to, so the row id carries the group. */
@@ -87,6 +88,7 @@ function buildColumns(
   onUpdate: (id: string, patch: UpdateWorkItemPatch) => void,
   onOpen: (id: string) => void,
   readOnly: boolean,
+  armedRows: ArmedRows,
 ): TableColumn<TableRow>[] {
   const columns: TableColumn<TableRow>[] = [];
   const pending = (row: TableRow) => isOptimisticId(row.item.id);
@@ -144,7 +146,9 @@ function buildColumns(
       width: pixel(176),
         renderCell: (row) => (
         <RowProject projectId={row.item.project_id}>
-          <StateControl compact readOnly={locked(row)} value={row.item.state_id} onChange={(stateId) => onUpdate(row.item.id, { state_id: stateId })} />
+          <ArmedCell store={armedRows} rowId={row.id}>
+            <StateControl armKey="state" compact readOnly={locked(row)} value={row.item.state_id} onChange={(stateId) => onUpdate(row.item.id, { state_id: stateId })} />
+          </ArmedCell>
         </RowProject>
       ),
     });
@@ -154,7 +158,11 @@ function buildColumns(
       key: "priority",
       header: "Priority",
       width: pixel(148),
-        renderCell: (row) => <PriorityControl compact readOnly={locked(row)} value={row.item.priority} onChange={(priority) => onUpdate(row.item.id, { priority })} />,
+        renderCell: (row) => (
+        <ArmedCell store={armedRows} rowId={row.id}>
+          <PriorityControl armKey="priority" compact readOnly={locked(row)} value={row.item.priority} onChange={(priority) => onUpdate(row.item.id, { priority })} />
+        </ArmedCell>
+      ),
     });
   }
   if (properties.assignees) {
@@ -184,7 +192,9 @@ function buildColumns(
       width: pixel(168),
       renderCell: (row) => (
         <RowProject projectId={row.item.project_id}>
-          <CycleControl compact readOnly={locked(row)} value={row.item.cycle_id} onChange={(cycleId) => onUpdate(row.item.id, { cycle_id: cycleId })} />
+          <ArmedCell store={armedRows} rowId={row.id}>
+            <CycleControl armKey="cycle" compact readOnly={locked(row)} value={row.item.cycle_id} onChange={(cycleId) => onUpdate(row.item.id, { cycle_id: cycleId })} />
+          </ArmedCell>
         </RowProject>
       ),
     });
@@ -207,7 +217,9 @@ function buildColumns(
       header: "Start date",
       width: pixel(156),
         renderCell: (row) => (
-        <DateControl compact readOnly={locked(row)} label="Start date" value={row.item.start_date} max={row.item.target_date} onChange={(date) => onUpdate(row.item.id, { start_date: date })} />
+        <ArmedCell store={armedRows} rowId={row.id}>
+          <DateControl armKey="start" compact readOnly={locked(row)} label="Start date" value={row.item.start_date} max={row.item.target_date} onChange={(date) => onUpdate(row.item.id, { start_date: date })} />
+        </ArmedCell>
       ),
     });
   }
@@ -217,7 +229,9 @@ function buildColumns(
       header: "Target date",
       width: pixel(156),
         renderCell: (row) => (
-        <DateControl compact readOnly={locked(row)} label="Target date" value={row.item.target_date} min={row.item.start_date} onChange={(date) => onUpdate(row.item.id, { target_date: date })} />
+        <ArmedCell store={armedRows} rowId={row.id}>
+          <DateControl armKey="target" compact readOnly={locked(row)} label="Target date" value={row.item.target_date} min={row.item.start_date} onChange={(date) => onUpdate(row.item.id, { target_date: date })} />
+        </ArmedCell>
       ),
     });
   }
@@ -227,7 +241,9 @@ function buildColumns(
       header: "Estimate",
       width: pixel(140),
         renderCell: (row) => (
-        <EstimateControl value={row.item.estimate_point_id} readOnly={locked(row)} size="sm" onChange={(estimate_point_id) => onUpdate(row.item.id, { estimate_point_id })} />
+        <ArmedCell store={armedRows} rowId={row.id}>
+          <EstimateControl armKey="estimate" value={row.item.estimate_point_id} readOnly={locked(row)} size="sm" onChange={(estimate_point_id) => onUpdate(row.item.id, { estimate_point_id })} />
+        </ArmedCell>
       ),
     });
   }
@@ -293,6 +309,8 @@ function GroupHeading({ group, field, bundle }: { group: Group | undefined; fiel
 
 export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection, onLoadMore, onLoadMoreUngrouped, isLoadingMore, onOrderChange, onClearFilters }: LayoutProps) {
   const peekedId = usePeekedId();
+  // Property controls draw as chips until the pointer or focus reaches their row (./properties/arming.tsx).
+  const [armedRows] = useState(createArmedRows);
   const groups = useMemo(() => result.groups ?? [], [result.groups]);
   const grouped = display.group_by !== null && groups.length > 0;
 
@@ -311,9 +329,9 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
   const groupsById = useMemo(() => new Map(groups.map((group) => [group.id, group])), [groups]);
 
   const columns = useMemo(() => {
-    const built = buildColumns(display.properties, bundle, showProject, onUpdate, onOpen, readOnly);
+    const built = buildColumns(display.properties, bundle, showProject, onUpdate, onOpen, readOnly, armedRows);
     return onOrderChange ? built.map((column) => (column.key in TABLE_SORT_FIELDS ? { ...column, sortable: true } : column)) : built;
-  }, [bundle, display.properties, onOpen, onOrderChange, onUpdate, readOnly, showProject]);
+  }, [armedRows, bundle, display.properties, onOpen, onOrderChange, onUpdate, readOnly, showProject]);
 
   // The order lives in the display: a header click asks the server for it (whole list), the rows arrive already ordered.
   const sort = useMemo(() => sortFromOrderBy(display.order_by), [display.order_by]);
@@ -406,6 +424,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
             className: "tessera-table-row",
             "aria-current": row.item.id === peekedId ? "true" : undefined,
             onClick: () => onOpen(row.item.id),
+            ...tableRowArmingHandlers(armedRows, row.id),
           },
         };
       },
@@ -437,7 +456,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
         };
       },
     }),
-    [onOpen, peekedId],
+    [armedRows, onOpen, peekedId],
   );
 
   // Insertion order is the plugin order: the grouped plugin runs last so its header rows win over the open handler.
