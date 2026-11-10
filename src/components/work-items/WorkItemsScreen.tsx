@@ -2,9 +2,10 @@
 
 /**
  * Work items screen (docs/contracts/ui.md "Work items screen"): a pinned
- * header with the sub-header (the view's name and count, the layout switch,
- * the display menu and "New work item") and the filters row, above the layout
- * the display picks, which scrolls on its own.
+ * header (./WorkItemsBar.tsx: one row with the view's name and count, the
+ * layout pills, the Filter toggle, the display menu and "New work item", and the
+ * filters row only while it is in use), above the layout the display picks,
+ * which scrolls on its own.
  * Mutations go through the action wrappers inside transitions with an
  * optimistic copy of the list, so a move or an inline edit shows at once and
  * the server's re-render (the action's `refresh()`) settles it. Layout moves
@@ -21,30 +22,24 @@
  */
 import { startTransition, useEffect, useMemo, useOptimistic, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Badge } from "@astryxdesign/core/Badge";
-import { Button } from "@astryxdesign/core/Button";
 import { useAnimatedLayout, useHotkeys } from "@astryxdesign/core/hooks";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
-import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { createWorkItemAction, moveWorkItemAction, updateWorkItemAction } from "@/app/actions/work-items";
 import { notePeekPush } from "@/components/detail/peek-history";
 import { currentHref, peekHref, withSearchParam } from "@/components/detail/peek-url";
-import { HStack } from "@astryxdesign/core/Stack";
-import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
+import { PanelHeader } from "@/components/shell/PanelHeader";
 import { SaveViewButton } from "@/components/views/SaveViewButton";
 import { normalizeFilters } from "@/components/views/view-state";
 import { isMultiValuedGroup } from "@/lib/tessera/core/group";
 import type { CreateWorkItemInputType, Display, Filters, GroupBy, ListScope, OrderBy, RichFilters, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 import { ExportDialog } from "@/components/exports/ExportDialog";
-import { ExportIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { BoardLayout } from "./BoardLayout";
 import { CalendarLayout } from "./CalendarLayout";
 import { BulkBar } from "./BulkBar";
 import { clearedUrlState, hasActiveFilters } from "./clear-filters";
 import { CreateWorkItemDialog } from "./CreateWorkItemDialog";
-import { DisplayMenu, LayoutSwitch, useDisplayWriter } from "./DisplayMenu";
-import { FilterBar } from "./FilterBar";
+import { useDisplayWriter } from "./DisplayMenu";
 import { useFocusFollow } from "./focus-follow";
 import { GanttLayout } from "./GanttLayout";
 import { hrefWithLayout, layoutFromParam, LAYOUT_PARAM } from "./layout-param";
@@ -64,6 +59,7 @@ import type { LayoutProps, MoveInput, QuickAddGroup, ScopeDefaults, SettingsScop
 import { decodeUrlState, encodeUrlState } from "./url-state";
 import { usePagedList } from "./use-paged-list";
 import { useViewFade } from "./use-view-fade";
+import { WorkItemsBar } from "./WorkItemsBar";
 
 export type WorkItemsScreenProps = {
   projectId: string;
@@ -380,38 +376,24 @@ export function WorkItemsScreen({
         height="fill"
         header={
           <PanelHeader label={title}>
-            <PanelBar
-              size="subheader"
-              canWrap
-              className="tessera-wi-subheader"
-              start={
-                <>
-                  <Text weight="medium" maxLines={1}>
-                    {title}
-                  </Text>
-                  {shownCount === null ? null : <Badge variant="purple" label={String(shownCount)} />}
-                  {titleAdornment}
-                </>
-              }
-              end={
-                <>
-                  {showLayoutSwitch ? <LayoutSwitch display={display} urlState={urlState} settingsScope={settingsScope} /> : null}
-                  {/* One group, so a narrow window wraps it as a unit under the layout switch (work-items.css `tessera-wi-subheader`). */}
-                  <HStack gap={2} vAlign="center" className="tessera-wi-subheader-actions">
-                    <DisplayMenu display={display} urlState={urlState} settingsScope={settingsScope} hiddenGroupFields={hiddenGroupFields} includeProject={crossProject} />
-                    <Button variant="ghost" size="sm" label="Export…" icon={<ExportIcon />} onClick={() => setExportOpen(true)} />
-                    {canCreateItems ? <Button variant="primary" size="sm" label="New work item" icon={<PlusIcon />} onClick={openCreate} tooltip="Press c" /> : null}
-                    {subheaderEnd}
-                  </HStack>
-                </>
-              }
-            />
-            <PanelBar
-              size="filters"
-              canWrap
-              hasDivider
-              start={<FilterBar filters={filters} urlState={urlState} resultCount={optimistic.total} showProject={crossProject} richFilters={richFilters} />}
-              end={filtersEnd ?? (showSaveView ? <SaveViewButton projectId={projectId} filters={filters} display={display} richFilters={urlState.rich_filters ?? richFilters} /> : undefined)}
+            <WorkItemsBar
+              title={title}
+              count={shownCount}
+              titleAdornment={titleAdornment}
+              rowEnd={subheaderEnd}
+              saveView={showSaveView ? <SaveViewButton projectId={projectId} filters={filters} display={display} richFilters={urlState.rich_filters ?? richFilters} /> : undefined}
+              filtersEnd={filtersEnd}
+              display={display}
+              urlState={urlState}
+              settingsScope={settingsScope}
+              hiddenGroupFields={hiddenGroupFields}
+              crossProject={crossProject}
+              showLayoutSwitch={showLayoutSwitch}
+              onCreate={canCreateItems ? openCreate : null}
+              onExport={() => setExportOpen(true)}
+              filters={filters}
+              richFilters={richFilters}
+              resultCount={optimistic.total}
             />
           </PanelHeader>
         }

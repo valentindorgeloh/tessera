@@ -144,14 +144,14 @@ describe("locked view reason", () => {
   });
 });
 
-describe("sub-header in a narrow window", () => {
-  const items = read("src/components/styles/work-items.css");
+describe("work items bar in a narrow window", () => {
+  const bar = read("src/components/styles/wi-bar.css");
 
-  it("keeps the actions a unit that flows in the end group, and a wrapping unit only from 481px to 796px", () => {
-    expect(rule(items, ".tessera-wi-subheader .tessera-wi-subheader-actions")).toMatch(/display:\s*contents/);
-    const range = "@media (min-width: 481px) and (max-width: 796px)";
-    expect(inMedia(items, range, ".tessera-wi-subheader > .tessera-panel-bar-end")).toMatch(/display:\s*contents/);
-    expect(inMedia(items, range, ".tessera-wi-subheader .tessera-wi-subheader-actions")).toMatch(/display:\s*flex/);
-    expect(inMedia(items, range, ".tessera-wi-subheader")).toMatch(/justify-content:\s*flex-end/);
+  // The one-row bar (WorkItemsBar) replaced the sub-header and its 481-796px actions unit: the bar is a size
+  // container, so the layout pills fold to their icons by the bar's own width (a phone, a side peek), not the window's.
+  it("folds the inactive layout pills by the bar's width and drops the old sub-header rules", () => {
+    expect(bar).toMatch(/container:\s*tessera-wi-bar\s*\/\s*inline-size/);
+    expect(bar).toContain("@container tessera-wi-bar (width < 56rem)");
+    expect(read("src/components/styles/work-items.css")).not.toContain("tessera-wi-subheader");
   });
 });

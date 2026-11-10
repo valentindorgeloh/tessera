@@ -12,3 +12,4 @@ export { DateControl, type DateControlProps } from "./DateControl";
 export { CycleControl, type CycleControlProps } from "./CycleControl";
 export { ModuleControl, type ModuleControlProps } from "./ModuleControl";
 export { EstimateControl, type EstimateControlProps } from "./EstimateControl";
+export { AssigneeValue, LabelTokens, ModuleTokens } from "./cell-values";

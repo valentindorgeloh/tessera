@@ -88,16 +88,17 @@ describe("Display popover (L2)", () => {
 });
 
 describe("list gutter (L3)", () => {
-  it("starts the group marker at the row key's x and takes the header checkbox out of the flow", () => {
-    expect(rule(items, ".tessera-wi-group-header")).toMatch(/padding-inline-start:\s*calc\(var\(--spacing-3\) - var\(--border-width\)\)/);
+  it("keeps the group checkbox in the rows' checkbox column and starts the chevron at the key text's x", () => {
+    expect(rule(items, ".tessera-wi-group .astryx-collapsible-trigger")).toMatch(/padding-inline:\s*var\(--spacing-12\) var\(--spacing-3\)/);
+    expect(rule(items, ".tessera-wi-group-header")).not.toMatch(/padding-inline-start/);
     const select = rule(items, ".tessera-wi-group-select");
     expect(select).toMatch(/position:\s*absolute/);
-    expect(select).toMatch(/inset-inline-start:\s*calc\(var\(--spacing-3\) \+ var\(--spacing-4\)\)/);
+    expect(select).toMatch(/inset-inline-start:\s*var\(--spacing-3\)/);
   });
 
-  it("puts the quick-add plus at the row inset and its text at the key's x", () => {
-    expect(rule(items, ".tessera-wi-quickadd")).toMatch(/padding-inline-start:\s*0/);
-    expect(rule(items, ".tessera-wi-quickadd .astryx-button")).toMatch(/column-gap:\s*var\(--spacing-5\)/);
+  it("puts the quick-add plus under the chevron and the open field at the key button's x", () => {
+    expect(rule(items, ".tessera-wi-quickadd")).toMatch(/padding-inline-start:\s*var\(--spacing-9\)/);
+    expect(rule(items, ".tessera-wi-quickadd-active")).toMatch(/padding-inline-start:\s*var\(--spacing-9\)/);
   });
 });
 
@@ -118,10 +119,41 @@ describe("row states and chips (L4, L9, L10, L11, L13)", () => {
     expect(hover?.body).not.toMatch(/background-color/);
   });
 
-  it("makes tokens and counts the same 24px chip as the controls", () => {
+  it("makes tokens and pills the same 20px borderless chip, and the counts tertiary text with an icon", () => {
     const chips = rule(items, ".tessera-wi-props .astryx-token");
-    expect(chips).toMatch(/height:\s*calc\(var\(--size-element-sm\) - var\(--spacing-1\)\)/);
+    expect(chips).toMatch(/height:\s*calc\(var\(--size-element-sm\) - var\(--spacing-2\)\)/);
     expect(chips).toMatch(/border-radius:\s*var\(--radius-inner\)/);
+    expect(rule(items, ".tessera-wi-props .tessera-wi-meta")).toMatch(/color:\s*var\(--color-text-tertiary\)/);
+    expect(rule(items, ".tessera-wi-props .tessera-wi-pill")).toMatch(/background-color:\s*var\(--color-background-gray\)/);
+  });
+
+  it("draws a resting chip and its armed control with no outline (the box keeps a transparent border)", () => {
+    const chip = rule(items, ".tessera-wi-props .tessera-wi-chip");
+    expect(chip).toMatch(/border:\s*var\(--border-width\) solid transparent/);
+    expect(chip).toMatch(/height:\s*calc\(var\(--size-element-sm\) - var\(--spacing-1\)\)/);
+    expect(items).not.toMatch(/var\(--color-border-emphasized\)/);
+  });
+
+  it("is quiet at rest: faint row dividers, a surface group band with a faint hairline, a tertiary key, plain dates", () => {
+    expect(rule(items, ".tessera-wi-list .astryx-list-item.tessera-wi-row")).toMatch(/border-bottom-color:\s*var\(--color-border-faint\)/);
+    const band = rule(items, ".tessera-wi-group .astryx-collapsible-trigger");
+    expect(band).toMatch(/background-color:\s*var\(--color-background-surface\)/);
+    expect(band).toMatch(/border-bottom:\s*var\(--border-width\) solid var\(--color-border-faint\)/);
+    expect(band).toMatch(/position:\s*sticky/);
+    expect(rule(items, ".tessera-wi-group .tessera-wi-group-count")).toMatch(/color:\s*var\(--color-text-tertiary\)/);
+    expect(rule(items, ".tessera-wi-open")).toMatch(/color:\s*var\(--color-text-tertiary\)/);
+    expect(rule(items, ".tessera-wi-props .tessera-wi-chip--date")).toMatch(/color:\s*var\(--color-text-secondary\)/);
+  });
+
+  it("draws an empty date or cycle, and a selector's clear button, on hover or focus only (opacity), and always without hover", () => {
+    expect(rule(items, ".tessera-wi-props .tessera-wi-chip[data-empty]")).toMatch(/opacity:\s*0/);
+    expect(rule(items, ".tessera-wi-props .astryx-input-clear-button")).toMatch(/opacity:\s*0/);
+    const hover = media(items, "@media (hover: hover)").flatMap((block) => blocks(block.body));
+    expect(hover.find((block) => block.prelude.includes(".tessera-wi-row:hover .tessera-wi-props .tessera-wi-chip[data-empty]"))?.body).toMatch(/opacity:\s*1/);
+    // The keyboard reveal is scoped to the row, never to the scroller.
+    expect(items).toMatch(/\.tessera-wi-row:has\(:focus-visible\) \.tessera-wi-props \.tessera-wi-chip\[data-empty\]/);
+    const noHover = media(items, "@media (hover: none)").flatMap((block) => blocks(block.body));
+    expect(noHover.find((block) => block.prelude.includes(".tessera-wi-props .tessera-wi-chip[data-empty]"))?.body).toMatch(/opacity:\s*1/);
   });
 
   it("balances the empty state's text", () => {
@@ -185,10 +217,11 @@ describe("touch targets (L7, L8)", () => {
     expect(find(".astryx-typeahead-dropdown [role=\"option\"]")?.body).toMatch(/min-block-size:\s*var\(--spacing-11\)/);
   });
 
-  it("moves the group marker, its checkbox and the quick-add text 8px right on a phone, where the row's checkbox margin moves the key", () => {
-    expect(find(".tessera-wi-group-header")?.body).toMatch(/padding-inline-start:\s*calc\(var\(--spacing-3\) - var\(--border-width\) \+ var\(--spacing-2\)\)/);
-    expect(find(".tessera-wi-group-select")?.body).toMatch(/inset-inline-start:\s*calc\(var\(--spacing-3\) \+ var\(--spacing-4\) \+ var\(--spacing-2\)\)/);
-    expect(find(".tessera-wi-quickadd .astryx-button")?.body).toMatch(/column-gap:\s*calc\(var\(--spacing-5\) \+ var\(--spacing-2\)\)/);
+  it("moves the chevron and the quick-add plus 8px right on a phone, where the row's checkbox margin moves the key, and leaves the group checkbox in the gutter", () => {
+    const last = (prelude: string) => touch.filter((block) => block.prelude.split(",").map((part) => part.trim()).includes(prelude)).at(-1)?.body ?? "";
+    expect(last(".tessera-wi-group .astryx-collapsible-trigger")).toMatch(/padding-inline-start:\s*calc\(var\(--spacing-12\) \+ var\(--spacing-2\)\)/);
+    expect(last(".tessera-wi-quickadd")).toMatch(/padding-inline-start:\s*calc\(var\(--spacing-9\) \+ var\(--spacing-2\)\)/);
+    expect(touch.some((block) => block.prelude.includes(".tessera-wi-group-select"))).toBe(false);
   });
 
   it("applies no 44px rule outside the touch media query", () => {

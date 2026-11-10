@@ -157,9 +157,16 @@ async function render(props: Partial<ScreenProps> = {}, projectBundle: ProjectBu
   return container;
 }
 
-/** The start group of the sub-header row: its title and count. */
+/** The start group of the bar's one row: its title and count, without the layout pills after them. */
 function subheaderStart(el: HTMLElement): string {
-  return el.querySelector(".tessera-panel-bar--subheader > .tessera-panel-bar-start")?.textContent?.trim() ?? "";
+  const start = el.querySelector(".tessera-panel-bar--subheader > .tessera-panel-bar-start")?.cloneNode(true) as HTMLElement | undefined;
+  start?.querySelector(".tessera-wi-layouts")?.remove();
+  return start?.textContent?.trim() ?? "";
+}
+
+/** The Filter toggle of the bar's end: one icon button named "Filter work items" (the field's own group has that name too). */
+function filterToggle(el: HTMLElement): HTMLButtonElement | null {
+  return el.querySelector<HTMLButtonElement>('button[aria-label="Filter work items"]');
 }
 
 beforeAll(() => {
@@ -209,7 +216,68 @@ describe("WorkItemsScreen panel header", () => {
     expect(el.querySelector('[aria-label="Work items"]')).not.toBeNull();
     expect(el.querySelector('[aria-label="Work items list"]')).not.toBeNull();
     expect([...el.querySelectorAll("button")].some((button) => button.textContent?.trim() === "New work item")).toBe(true);
+  });
+
+  it("draws one row with the layout pills labelled and no filters row until it is in use", async () => {
+    const el = await render();
+    expect(el.querySelectorAll(".tessera-panel-bar")).toHaveLength(1);
+    expect(el.querySelector(".tessera-panel-bar--filters")).toBeNull();
+    const pills = [...el.querySelectorAll<HTMLElement>('.tessera-wi-layouts [role="radio"]')];
+    expect(pills.map((pill) => pill.textContent?.trim())).toEqual(["List", "Board", "Table", "Calendar", "Gantt"]);
+    expect(pills.map((pill) => pill.getAttribute("aria-checked"))).toEqual(["true", "false", "false", "false", "false"]);
+    const toggle = filterToggle(el);
+    expect(toggle?.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle?.hasAttribute("data-filters-active")).toBe(false);
+  });
+
+  it("opens the filters row with the Filter toggle, focuses the field, and Escape in the empty field returns focus to the toggle", async () => {
+    const el = await render();
+    await act(async () => {
+      filterToggle(el)?.click();
+    });
+    const row = el.querySelector(".tessera-panel-bar--filters");
+    expect(row).not.toBeNull();
+    expect(filterToggle(el)?.getAttribute("aria-expanded")).toBe("true");
+    expect(filterToggle(el)?.getAttribute("aria-controls")).toBe(row?.querySelector(".tessera-wi-filter")?.id);
+    const input = row?.querySelector("input") as HTMLInputElement;
+    expect(document.activeElement).toBe(input);
+    // The first Escape may belong to the field's own suggestion list (Astryx handles it and prevents the default); the row closes on the one after.
+    for (let press = 0; press < 2 && el.querySelector(".tessera-panel-bar--filters"); press += 1) {
+      await act(async () => {
+        input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+      });
+    }
+    expect(el.querySelector(".tessera-panel-bar--filters")).toBeNull();
+    expect(document.activeElement).toBe(filterToggle(el));
+    // The toggle again opens and closes it.
+    await act(async () => {
+      filterToggle(el)?.click();
+    });
     expect(el.querySelector(".tessera-panel-bar--filters")).not.toBeNull();
+    await act(async () => {
+      filterToggle(el)?.click();
+    });
+    expect(el.querySelector(".tessera-panel-bar--filters")).toBeNull();
+  });
+
+  it("keeps the filters row drawn while a filter applies, and the toggle shows it", async () => {
+    const el = await render({ filters: { priority: ["high"] } });
+    expect(el.querySelector(".tessera-panel-bar--filters")).not.toBeNull();
+    expect(filterToggle(el)?.getAttribute("aria-expanded")).toBe("true");
+    expect(filterToggle(el)?.getAttribute("data-filters-active")).toBe("true");
+    expect(document.activeElement).not.toBe(el.querySelector(".tessera-panel-bar--filters input"));
+    // Clicking it cannot hide the row.
+    await act(async () => {
+      filterToggle(el)?.click();
+    });
+    expect(el.querySelector(".tessera-panel-bar--filters")).not.toBeNull();
+  });
+
+  it("moves Export… into the Display menu", async () => {
+    const el = await render();
+    const names = () => [...el.querySelectorAll("button")].map((button) => button.textContent?.trim());
+    expect(names()).not.toContain("Export…");
+    expect(names()).toContain("Display");
   });
 
   it("takes the title and count as props, and hides the count for null", async () => {
@@ -257,7 +325,9 @@ describe("WorkItemsScreen panel header", () => {
     });
     expect(el.querySelector(".tessera-panel-bar--subheader > .tessera-panel-bar-start [data-testid=adornment]")).not.toBeNull();
     expect(el.querySelector(".tessera-panel-bar--subheader > .tessera-panel-bar-end [data-testid=subheader-end]")).not.toBeNull();
+    // A saved view's own bar lives in the filters row, so the row stays drawn and the Filter toggle is not offered.
     expect(el.querySelector(".tessera-panel-bar--filters > .tessera-panel-bar-end [data-testid=filters-end]")).not.toBeNull();
+    expect(filterToggle(el)).toBeNull();
   });
 });
 

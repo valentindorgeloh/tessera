@@ -583,7 +583,12 @@ describe("keyboard activation of a chip", () => {
     const focused = document.activeElement;
     expect(focused).not.toBe(document.body);
     expect(card.contains(focused)).toBe(true);
-    expect(focused?.getAttribute("aria-label")).toMatch(/^Actions for /);
+    // A key's click opens the menu as a keyboard open: the focus is on the real button and, a frame later, on the
+    // menu's first item (Astryx focuses it in an animation frame). Which of the two this line sees depends on how
+    // long the render took, so both are right; the focus is never lost to the page.
+    const onButton = /^Actions for /.test(focused?.getAttribute("aria-label") ?? "");
+    const onFirstItem = focused?.getAttribute("role") === "menuitem" && focused.textContent === "Open";
+    expect(onButton || onFirstItem).toBe(true);
   });
 });
 
@@ -691,19 +696,26 @@ describe("a resting cycle chip", () => {
     return w;
   }
 
-  it.each(["list", "table"] as const)("holds the glyph where the armed selector shows its clear button, in a %s, and only for a set cycle", async (layoutName) => {
+  it.each(["list", "table"] as const)("draws a set cycle as a tinted pill without a clear glyph, as its armed selector does, in a %s", async (layoutName) => {
     await mount(cycleWorld(layoutName));
     const selector = layoutName === "list" ? ".tessera-wi-row" : "tr.tessera-table-row";
     const [first, second] = [...(container?.querySelectorAll(selector) ?? [])] as HTMLElement[];
+    // A set cycle is a pill as wide as its name: the chip holds no stand-in for the clear button (the selector's lies over the pill's end).
     expect(chip(first!, "cycle").textContent).toContain("Sprint 4");
-    expect(chip(first!, "cycle").querySelector(".tessera-wi-chip-clear")).not.toBeNull();
-    expect(chip(second!, "cycle").querySelector(".tessera-wi-chip-clear")).toBeNull();
-    // The armed selector draws the real clear button for the same cycle, and none for an empty one.
+    expect(chip(first!, "cycle").classList.contains("tessera-wi-pill")).toBe(true);
+    expect(chip(first!, "cycle").querySelector(".tessera-wi-chip-clear")).toBeNull();
+    expect(chip(first!, "cycle").hasAttribute("data-empty")).toBe(false);
+    // An empty cycle is no pill; it is marked so that it is drawn on a hovered or focused row or cell only.
+    expect(chip(second!, "cycle").classList.contains("tessera-wi-pill")).toBe(false);
+    expect(chip(second!, "cycle").hasAttribute("data-empty")).toBe(true);
+    // The armed selector draws the real clear button and the pill class for the same cycle, and neither for an empty one.
     await act(async () => {
       pointerEnter(first!, "mouse");
       pointerEnter(second!, "mouse");
     });
     expect(first!.querySelector('button[aria-label="Clear Cycle"]')).not.toBeNull();
+    expect(first!.querySelector(".astryx-selector.tessera-wi-pill")).not.toBeNull();
     expect(second!.querySelector('button[aria-label="Clear Cycle"]')).toBeNull();
+    expect(second!.querySelector(".astryx-selector.tessera-wi-pill")).toBeNull();
   });
 });

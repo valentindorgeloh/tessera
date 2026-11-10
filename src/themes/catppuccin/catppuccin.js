@@ -147,6 +147,8 @@ export const catppuccinTheme = {
     "--color-syntax-diff-header": "var(--color-background-muted)",
     "--color-syntax-added-marker": "var(--color-text-green)",
     "--color-syntax-removed-marker": "var(--color-text-red)",
+    "--color-border-faint": "light-dark(#4c4f6917, #c6d0f512)",
+    "--color-text-tertiary": "light-dark(#5c5f77, #a5adce)",
     "--color-on-dark": "light-dark(#eff1f5, #eff1f5)",
     "--color-on-light": "light-dark(#232634, #232634)",
     "--color-info": "light-dark(#175ce6, #8caaee)",
