@@ -32,6 +32,7 @@ import { DragHandleIcon, LockIcon, PageIcon, PlusIcon, SearchIcon, resolveLogoIc
 import { PageRowMenu } from "./PageRowMenu";
 import { applyPageMove, type PageMove } from "./page-move";
 import { usePageDrag } from "./use-page-drag";
+import { useToggleGlide } from "./use-toggle-glide";
 import { drawnOpen, pageHref, toTreeItems, withPageTab, type PageSpaceOption, type PageTreeItem } from "./page-tree";
 
 export type PagesScreenProps = {
@@ -81,9 +82,13 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
   // Moved parents keep the expansion they were drawn with: the tree seeds only the first level open, so a depth change (the optimistic list, or the revert of a failed move) would close them.
   const [pinnedOpen, setPinnedOpen] = useState<ReadonlyMap<string, boolean>>(() => new Map());
   // The element that scrolls the tree: a page opening or closing its sub-pages glides, and the rows below follow
-  // (`useAnimatedLayout`, docs/contracts/ui.md "Motion"). Nothing glides on load: the tree only measures a change of its own expansion.
+  // (`useAnimatedLayout`, docs/contracts/ui.md "Motion"). Only the person's own chevron click or arrow key glides: the
+  // tree gets the handle for that render alone (`useToggleGlide`). A search (which flattens the tree and restores it),
+  // the 4-second agent refresh (a page gaining its first sub-page or losing its last), a drag, the first load and
+  // hydration all change what is open without a toggle, so they render without the handle and the rows move at once.
   const contentRef = useRef<HTMLDivElement>(null);
   const treeLayout = useAnimatedLayout({ containerRef: contentRef });
+  const toggleGlide = useToggleGlide(treeLayout);
   const project = space.kind === "project" ? space.project : null;
   const projectArchived = project !== null && project.archived_at !== null;
   const canCreate = tab !== "archived" && !projectArchived;
@@ -225,7 +230,7 @@ export function PagesScreen({ space, tab, pages: serverPages, labels, spaces }: 
         {items.length === 0 ? (
           <EmptyState icon={<Icon icon={PageIcon} />} title={query.trim() === "" ? emptyTitle : "No matching pages"} description={query.trim() === "" ? emptyDescription : "Try a different name."} actions={query.trim() === "" ? (newButton ?? undefined) : undefined} />
         ) : (
-          <TreeList items={tree(items)} density="compact" variant="lineGuides" aria-label="Pages" animatedLayout={treeLayout} />
+          <TreeList items={tree(items)} density="compact" variant="lineGuides" aria-label="Pages" animatedLayout={toggleGlide.animatedLayout} {...toggleGlide.handlers} />
         )}
         {draggedPage ? <RowDragOverlay registerOverlay={registerOverlay} icon={draggedPage.logo ? resolveLogoIcon(draggedPage.logo.icon) : PageIcon} color={draggedPage.logo?.color} label={draggedPage.name} /> : null}
       </VStack>

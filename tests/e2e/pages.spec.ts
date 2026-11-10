@@ -190,4 +190,73 @@ test.describe("the page tree glide", () => {
       })
       .toEqual(["Glide sibling", "Glide parent"]);
   });
+
+  type TopsWindow = Window & { __treeTops?: { samples: Record<string, number[]>; stopped: boolean } };
+  /** Records the top edge of each page's row at every frame, from now until the returned function is called (the action runs in between). */
+  async function recordTops(page: Page, ids: string[]): Promise<() => Promise<Record<string, number[]>>> {
+    await page.evaluate((ids) => {
+      const state = { samples: {} as Record<string, number[]>, stopped: false };
+      for (const id of ids) state.samples[id] = [];
+      (window as TopsWindow).__treeTops = state;
+      const tick = () => {
+        for (const id of ids) {
+          const row = document.querySelector(`li[data-tree-id="${id}"] > div > .tessera-page-row`);
+          if (row !== null) state.samples[id]!.push(row.getBoundingClientRect().top);
+        }
+        if (!state.stopped) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, ids);
+    return () =>
+      page.evaluate(() => {
+        const state = (window as TopsWindow).__treeTops!;
+        state.stopped = true;
+        return state.samples;
+      });
+  }
+
+  test("a search that keeps an open page, and clearing it, move the rows at once, with none at a position in between", async ({ page }) => {
+    const project = await createProjectViaMcp();
+    const alpha = await mcp<{ id: string }>("create_page", { project_id: project.id, name: "Alpha parent" });
+    await mcp("create_page", { project_id: project.id, parent_id: alpha.id, name: "Alpha child" });
+    const beta = await mcp<{ id: string }>("create_page", { project_id: project.id, name: "Beta" });
+    const delta = await mcp<{ id: string }>("create_page", { project_id: project.id, name: "Delta" });
+
+    await page.goto(`/projects/${project.id}/pages`);
+    await waitForAppHydrated(page);
+    const tree = page.getByRole("tree", { name: "Pages" });
+    await expect(tree.getByRole("treeitem", { name: "Alpha child" })).toBeVisible();
+    await page.waitForTimeout(500);
+    const rowHeight = (await page.locator(ROW(beta.id)).boundingBox())!.height;
+    const search = page.getByLabel("Search pages");
+
+    // "t" keeps Alpha parent, Beta and Delta as a flat list and drops Alpha child: Beta and Delta move up by its row, at once.
+    const stopEntering = await recordTops(page, [beta.id, delta.id]);
+    await search.fill("t");
+    await expect(tree.getByRole("treeitem", { name: "Alpha child" })).toHaveCount(0);
+    await page.waitForTimeout(700);
+    const entering = await stopEntering();
+    for (const id of [beta.id, delta.id]) {
+      const tops = entering[id]!;
+      expect(tops.length, "sampled every frame").toBeGreaterThan(10);
+      expect(tops[0]! - tops[tops.length - 1]!, "the row moved up past Alpha child's").toBeGreaterThan(rowHeight / 2);
+      expect(between(tops).length, `frames in between: ${tops.map((top) => Math.round(top)).join(",")}`).toBe(0);
+    }
+
+    // Clearing it brings Alpha child back: Beta and Delta move down at once, again with no frame in between.
+    const stopClearing = await recordTops(page, [beta.id, delta.id]);
+    await search.fill("");
+    await expect(tree.getByRole("treeitem", { name: "Alpha child" })).toBeVisible();
+    await page.waitForTimeout(700);
+    const clearing = await stopClearing();
+    for (const id of [beta.id, delta.id]) {
+      const tops = clearing[id]!;
+      expect(tops[tops.length - 1]! - tops[0]!, "the row moved down by Alpha child's").toBeGreaterThan(rowHeight / 2);
+      expect(between(tops).length, `frames in between: ${tops.map((top) => Math.round(top)).join(",")}`).toBe(0);
+    }
+
+    // A page's own toggle still glides after a search: Beta and Delta pass through positions in between.
+    const closing = await sampleAfterToggle(page, alpha.id, delta.id);
+    expect(between(closing.tops).length, `frames in between: ${closing.tops.map((top) => Math.round(top)).join(",")}`).toBeGreaterThanOrEqual(2);
+  });
 });
