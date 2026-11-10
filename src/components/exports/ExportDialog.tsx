@@ -30,21 +30,24 @@ export type ExportDialogProps = {
 };
 
 export function ExportDialog({ isOpen, onOpenChange, title, scope }: ExportDialogProps) {
+  // The result lives here, not in the form, so a close and reopen during or after an export still shows the Download button.
+  const [downloadId, setDownloadId] = useState<string | null>(null);
   return (
     // Named explicitly: the Dialog reads its DialogHeader title only when the <dialog> attaches, and the form below mounts later.
     // The form mounts only while open (its Switch and SegmentedControl measure layout on mount even when hidden), so each opening starts fresh.
     <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={480} aria-label="Export work items">
-      {isOpen ? <ExportForm onOpenChange={onOpenChange} title={title} scope={scope} /> : null}
+      {isOpen ? <ExportForm onOpenChange={onOpenChange} title={title} scope={scope} downloadId={downloadId} onExported={setDownloadId} /> : null}
     </Dialog>
   );
 }
 
-function ExportForm({ onOpenChange, title, scope }: Omit<ExportDialogProps, "isOpen">) {
+type ExportFormProps = Omit<ExportDialogProps, "isOpen"> & { downloadId: string | null; onExported: (id: string) => void };
+
+function ExportForm({ onOpenChange, title, scope, downloadId, onExported }: ExportFormProps) {
   const toast = useToast();
   const [format, setFormat] = useState<ExportFormat>("csv");
   const [archived, setArchived] = useState(false);
   const [name, setName] = useState(title);
-  const [downloadId, setDownloadId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const submit = () => {
@@ -68,7 +71,7 @@ function ExportForm({ onOpenChange, title, scope }: Omit<ExportDialogProps, "isO
         toast({ type: "error", body: result.data.error ?? "Export failed" });
         return;
       }
-      setDownloadId(result.data.id);
+      onExported(result.data.id);
       toast({ type: "info", body: `Exported ${result.data.row_count ?? 0} work items` });
     });
   };

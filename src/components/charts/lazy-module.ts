@@ -16,15 +16,18 @@ import { useSyncExternalStore } from "react";
 export type LazyModule<T> = {
   /** The loaded module, or null until `import()` has resolved (always null on the server and while hydrating). */
   useLoaded: () => T | null;
-  /** Starts the `import()` if it has not started; call it from an effect or an idle callback. */
-  preload: () => void;
+  /**
+   * Starts the `import()` if it has not started; call it from an effect or an idle callback.
+   * The promise settles true once the module is in and false when the load failed.
+   */
+  preload: () => Promise<boolean>;
 };
 
 const noSnapshot = () => null;
 
 export function createLazyModule<T>(load: () => Promise<T>): LazyModule<T> {
   let loaded: T | null = null;
-  let pending: Promise<void> | null = null;
+  let pending: Promise<boolean> | null = null;
   const listeners = new Set<() => void>();
   const subscribe = (listener: () => void) => {
     listeners.add(listener);
@@ -40,11 +43,14 @@ export function createLazyModule<T>(load: () => Promise<T>): LazyModule<T> {
         (module) => {
           loaded = module;
           for (const listener of listeners) listener();
+          return true;
         },
         () => {
           pending = null;
+          return false;
         },
       );
+      return pending;
     },
   };
 }

@@ -24,23 +24,31 @@ const PRELOAD_DELAY_MS = 1500;
 export function usePalettePreload(): void {
   useEffect(() => {
     if (typeof window.requestIdleCallback === "function") {
-      const handle = window.requestIdleCallback(partsModule.preload, { timeout: PRELOAD_DELAY_MS });
+      const handle = window.requestIdleCallback(() => void partsModule.preload(), { timeout: PRELOAD_DELAY_MS });
       return () => window.cancelIdleCallback(handle);
     }
-    const timer = window.setTimeout(partsModule.preload, PRELOAD_DELAY_MS);
+    const timer = window.setTimeout(() => void partsModule.preload(), PRELOAD_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, []);
 }
 
 /** Starts the fetch at once (the first open calls it, so a palette opened before the idle callback ran is not waiting on the timer). */
 export function preloadPalette(): void {
-  partsModule.preload();
+  void partsModule.preload();
 }
 
 export function LazyPalette(props: PalettePanelProps) {
   const parts = partsModule.useLoaded();
+  const { onOpenChange } = props;
+  // A chunk that fails to load must not leave CommandBar open with nothing on screen (it disables every shortcut while open): hand the close back, and the next open retries.
   useEffect(() => {
-    partsModule.preload();
-  }, []);
+    let isCurrent = true;
+    void partsModule.preload().then((isLoaded) => {
+      if (!isLoaded && isCurrent) onOpenChange(false);
+    });
+    return () => {
+      isCurrent = false;
+    };
+  }, [onOpenChange]);
   return parts ? <parts.PalettePanel {...props} /> : null;
 }
