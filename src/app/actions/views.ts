@@ -5,9 +5,10 @@
  * (view_settings, decision 23), and the saved-view wrappers (create, update,
  * duplicate, lock, unlock, delete) serve the views screens (decision 32).
  */
-import { toolAction } from "./_run";
+import { quietToolAction, toolAction } from "./_run";
 
-export const saveViewSettingsAction = toolAction("save_view_settings");
+/** Quiet: the display menu writes the same display into the URL (`q`), so the page is already right. Reset drops `q`, so it keeps its refresh. */
+export const saveViewSettingsAction = quietToolAction("save_view_settings");
 export const resetViewSettingsAction = toolAction("reset_view_settings");
 
 export const createViewAction = toolAction("create_view");

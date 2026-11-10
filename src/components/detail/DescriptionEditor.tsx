@@ -124,7 +124,7 @@ export function DescriptionEditor({ workItemId, text, version, readOnly = false,
         ref={editor}
         value={text}
         onChange={save.onChange}
-        onFlush={() => void save.flush()}
+        onFlush={() => void save.flush().then(save.refreshIfSaved)}
         onLossyParse={save.onLossyParse}
         readOnly={readOnly || lossy !== null}
         compact={compact}

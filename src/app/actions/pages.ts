@@ -5,13 +5,14 @@
  * "Routes and data loading"). One typed wrapper per registry tool. Screen
  * reads go through `readTessera` in the route files.
  */
-import { toolAction } from "./_run";
+import { quietToolAction, toolAction } from "./_run";
 
 export const listPagesAction = toolAction("list_pages");
 export const getPageAction = toolAction("get_page");
 export const createPageAction = toolAction("create_page");
 export const updatePageAction = toolAction("update_page");
-export const updatePageBodyAction = toolAction("update_page_body");
+/** Quiet autosave: PageBodyEditor keeps its own text and version from the result. */
+export const updatePageBodyAction = quietToolAction("update_page_body");
 export const movePageAction = toolAction("move_page");
 export const duplicatePageAction = toolAction("duplicate_page");
 export const lockPageAction = toolAction("lock_page");

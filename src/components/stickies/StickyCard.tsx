@@ -2,7 +2,8 @@
 
 /**
  * One sticky (docs/drafts/p9-plan.md U1). The body saves 800 ms after the
- * last edit and on blur. A later save wins. Delete asks first; moving
+ * last edit and on blur, without refreshing the page; a blur refreshes once
+ * after it, so the home widget's preview catches up. A later save wins. Delete asks first; moving
  * earlier or later does not. The grip starts a pointer drag (the screen owns
  * the order, decision 105); the grip's arrow keys and the menu's Move earlier /
  * Move later are the keyboard path (decision 14).
@@ -15,7 +16,8 @@ import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
-import { deleteStickyAction, updateStickyAction } from "@/app/actions/stickies";
+import { refreshAction } from "@/app/actions/shell";
+import { deleteStickyAction, updateStickyAction, updateStickyBodyAction } from "@/app/actions/stickies";
 import type { ItemDragHandlers } from "@/components/dnd/use-pointer-drag";
 import { MarkdownEditor } from "@/components/editor";
 import { PaletteColorSelector } from "@/components/project-settings/PaletteColorSelector";
@@ -41,6 +43,37 @@ export type StickyCardProps = {
 
 const SAVE_DELAY_MS = 800;
 
+/**
+ * Body saves go through the quiet action, so the page does not re-render after
+ * each one. `refreshIfSaved` (a flush) refreshes once when a save landed since
+ * the last refresh, or right after the save still in flight.
+ */
+function createBodySaves() {
+  let pending = 0;
+  let unrefreshed = false;
+  let wanted = false;
+  const refreshIfSaved = () => {
+    if (pending > 0) {
+      wanted = true;
+      return;
+    }
+    if (!unrefreshed) return;
+    unrefreshed = false;
+    wanted = false;
+    void refreshAction();
+  };
+  const send = (stickyId: string, markdown: string, onFail: (message: string) => void) => {
+    pending += 1;
+    void updateStickyBodyAction({ sticky_id: stickyId, description_md: markdown }).then((result) => {
+      pending -= 1;
+      if (result.ok) unrefreshed = true;
+      else onFail(result.message);
+      if (pending === 0 && wanted) refreshIfSaved();
+    });
+  };
+  return { send, refreshIfSaved };
+}
+
 export function StickyCard({ sticky, registerItem, handlers, isDragged, canMoveEarlier, canMoveLater, onStep }: StickyCardProps) {
   const toast = useToast();
   const [name, setName] = useState(sticky.name);
@@ -54,6 +87,7 @@ export function StickyCard({ sticky, registerItem, handlers, isDragged, canMoveE
   const lastSent = useRef(sticky.description_md);
   const idRef = useRef(sticky.id);
   const mounted = useRef(false);
+  const [bodySaves] = useState(createBodySaves);
   if (sticky.name !== nameFrom) {
     setNameFrom(sticky.name);
     if (name === nameFrom) setName(sticky.name);
@@ -65,7 +99,7 @@ export function StickyCard({ sticky, registerItem, handlers, isDragged, canMoveE
 
   const fail = (verb: string, message: string) => toast({ type: "error", body: `Could not ${verb} the sticky. ${message}` });
 
-  const save = (patch: { name?: string; description_md?: string; color?: PaletteColor }) => {
+  const save = (patch: { name?: string; color?: PaletteColor }) => {
     const stickyId = idRef.current;
     void updateStickyAction({ sticky_id: stickyId, ...patch }).then((result) => {
       if (!result.ok) fail("save", result.message);
@@ -77,9 +111,12 @@ export function StickyCard({ sticky, registerItem, handlers, isDragged, canMoveE
     if (bodyTimer.current) clearTimeout(bodyTimer.current);
     bodyTimer.current = setTimeout(() => {
       bodyTimer.current = null;
-      if (bodyRef.current === lastSent.current) return;
-      lastSent.current = bodyRef.current;
-      save({ description_md: bodyRef.current });
+      if (bodyRef.current !== lastSent.current) {
+        lastSent.current = bodyRef.current;
+        bodySaves.send(idRef.current, bodyRef.current, (message) => fail("save", message));
+      }
+      // A flush (blur, mod+s, Escape) is the delay-0 call: the debounced saves before it get their one refresh now.
+      if (delay === 0) bodySaves.refreshIfSaved();
     }, delay);
   };
 
@@ -106,10 +143,12 @@ export function StickyCard({ sticky, registerItem, handlers, isDragged, canMoveE
         bodyTimer.current = null;
         if (markdown === lastSent.current) return;
         lastSent.current = markdown;
-        void updateStickyAction({ sticky_id: stickyId, description_md: markdown });
+        // Silent on failure, as before; the refresh follows the save.
+        bodySaves.send(stickyId, markdown, () => {});
+        bodySaves.refreshIfSaved();
       });
     };
-  }, []);
+  }, [bodySaves]);
 
   const commitName = () => {
     const next = name.trim();

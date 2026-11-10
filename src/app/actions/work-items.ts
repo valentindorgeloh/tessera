@@ -6,12 +6,13 @@
  * input against the registry schema, runs as the user, calls `refresh()` and
  * returns an `ActionResult`; callers show a Toast on `{ ok: false }`.
  */
-import { toolAction } from "./_run";
+import { quietToolAction, toolAction } from "./_run";
 
 export const listWorkItemsAction = toolAction("list_work_items");
 export const createWorkItemAction = toolAction("create_work_item");
 export const updateWorkItemAction = toolAction("update_work_item");
-export const updateWorkItemDescriptionAction = toolAction("update_work_item_description");
+/** Quiet autosave: the editor keeps its own text and version from the result (useDescriptionSave). */
+export const updateWorkItemDescriptionAction = quietToolAction("update_work_item_description");
 export const moveWorkItemAction = toolAction("move_work_item");
 export const bulkUpdateWorkItemsAction = toolAction("bulk_update_work_items");
 export const bulkArchiveWorkItemsAction = toolAction("bulk_archive_work_items");

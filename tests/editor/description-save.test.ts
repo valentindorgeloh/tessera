@@ -560,6 +560,56 @@ describe("useDescriptionSave", () => {
     expect(refreshAction).not.toHaveBeenCalled();
     expect(window.sessionStorage.getItem(BEACON_MARKER_KEY)).toBeNull();
   });
+
+  it("a save does not refresh the page; refreshIfSaved refreshes once after it", async () => {
+    updateAction.mockResolvedValue({ ok: true, data: { description_version: 4 }, cursor: 10 });
+    const editor = fakeEditor("hello");
+    const { sink } = await mount({ serverText: "hello", serverVersion: 3, editor: { current: editor } });
+    await act(async () => {
+      current(sink).onChange("hello world");
+    });
+    await tick(DESCRIPTION_SAVE_DELAY_MS);
+    expect(updateAction).toHaveBeenCalledTimes(1);
+    expect(refreshAction).not.toHaveBeenCalled();
+    act(() => {
+      current(sink).refreshIfSaved();
+    });
+    expect(refreshAction).toHaveBeenCalledTimes(1);
+    // Nothing saved since: a second blur refreshes nothing.
+    act(() => {
+      current(sink).refreshIfSaved();
+    });
+    expect(refreshAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("refreshIfSaved with nothing saved does not refresh", async () => {
+    const editor = fakeEditor("hello");
+    const { sink } = await mount({ serverText: "hello", serverVersion: 3, editor: { current: editor } });
+    act(() => {
+      current(sink).refreshIfSaved();
+    });
+    expect(refreshAction).not.toHaveBeenCalled();
+  });
+
+  it("refreshIfSaved asked while a save is in flight refreshes when that save has landed", async () => {
+    let resolveSave: (value: unknown) => void = () => {};
+    updateAction.mockImplementationOnce(() => new Promise((resolve) => (resolveSave = resolve)));
+    const editor = fakeEditor("a");
+    const { sink } = await mount({ serverText: "a", serverVersion: 1, editor: { current: editor } });
+    await act(async () => {
+      current(sink).onChange("ab");
+    });
+    await tick(DESCRIPTION_SAVE_DELAY_MS);
+    act(() => {
+      current(sink).refreshIfSaved();
+    });
+    expect(refreshAction).not.toHaveBeenCalled();
+    await act(async () => {
+      resolveSave({ ok: true, data: { description_version: 2 }, cursor: 3 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(refreshAction).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("beacon payload", () => {
