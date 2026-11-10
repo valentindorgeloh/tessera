@@ -1,5 +1,5 @@
 /*
- * Superagent screen (decision 145; docs/contracts/ui.md "Superagent control").
+ * Superagent screen (decision 151; docs/contracts/ui.md "Superagent control").
  * Tokens only. The body is a column of sections that may shrink below their
  * content (a table's own scroll region takes over), so a phone never gets a
  * horizontal page scroll.

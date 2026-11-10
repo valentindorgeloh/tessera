@@ -10,7 +10,7 @@ import { getWorkspaceSettings, listProjects, readTessera } from "@/lib/tessera/s
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 /**
- * `/agents/superagent` (decision 145; docs/contracts/ui.md "Superagent
+ * `/agents/superagent` (decision 151; docs/contracts/ui.md "Superagent
  * control"): the control screen of the runner on this Mac. A static segment,
  * so it wins over `agents/[actorId]`. The search params (`scope`, `request`)
  * are awaited under Suspense, then `io()` before the reads: the runner calls

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from "react";
+import { createContext, Suspense, useCallback, useContext, useMemo, useRef, type ReactNode } from "react";
 import { AppShell } from "@astryxdesign/core/AppShell";
 import { Card } from "@astryxdesign/core/Card";
 import { useHotkeys } from "@astryxdesign/core/hooks";
@@ -11,6 +11,7 @@ import { AssistantPanel } from "@/components/ai/AssistantPanel";
 import { AssistantProvider, useAssistant } from "@/components/ai/AssistantProvider";
 import { CommandBar, type CommandBarHandle } from "./CommandBar";
 import { setNavCollapsed, toggleNavCollapsed, useNavCollapsed } from "./nav-collapse-store";
+import { PageFade } from "./PageFade";
 import { TopBar } from "./TopBar";
 
 export type ShellContextValue = {
@@ -45,13 +46,30 @@ export function useShell(): ShellContextValue {
   return { isNavCollapsed, ...actions };
 }
 
-/** The content panel, with the assistant in the Layout end slot while it is open. */
+/**
+ * The content panel, with the assistant in the Layout end slot while it is open. The content
+ * element's ref goes to PageFade, the page change fade: a leaf that reads the pathname, so this
+ * frame does not render on a navigation (and its Suspense boundary keeps the request-bound
+ * `usePathname()` out of the static shell).
+ */
 function ShellFrame({ sideNav, children }: { sideNav: ReactNode; children: ReactNode }) {
   const { isOpen } = useAssistant();
+  const contentRef = useRef<HTMLDivElement>(null);
   return (
     <AppShell height="fill" variant="wash" contentPadding={2} topNav={<TopBar />} sideNav={sideNav}>
       <Card padding={0} height="100%" className="tessera-panel">
-        <Layout height="fill" content={<LayoutContent isScrollable>{children}</LayoutContent>} end={isOpen ? <AssistantPanel /> : undefined} />
+        <Layout
+          height="fill"
+          content={
+            <LayoutContent ref={contentRef} isScrollable>
+              {children}
+            </LayoutContent>
+          }
+          end={isOpen ? <AssistantPanel /> : undefined}
+        />
+        <Suspense fallback={null}>
+          <PageFade targetRef={contentRef} />
+        </Suspense>
       </Card>
     </AppShell>
   );

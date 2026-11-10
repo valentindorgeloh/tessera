@@ -157,7 +157,7 @@ export function StickyCard({ sticky, registerItem, handlers, isDragged, canMoveE
             onBlur={commitName}
             onEnter={commitName}
             placeholder="Untitled sticky"
-            className="tessera-sticky-name"
+            controlClassName="tessera-sticky-name"
           />
           <MoreMenu
             label={`Actions for ${title}`}

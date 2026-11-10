@@ -73,14 +73,14 @@ export function WorkItemsPanel({
         canWrap
         start={
           <>
-            <Selector label="X axis" size="sm" options={xOptions} value={filters.xAxis} onChange={setAxis} className="tessera-analytics-axis" />
+            <Selector label="X axis" size="sm" options={xOptions} value={filters.xAxis} onChange={setAxis} controlClassName="tessera-analytics-axis" />
             <Selector
               label="Segment"
               size="sm"
               options={segmentOptions}
               value={filters.segment ?? "none"}
               onChange={setSegment}
-              className="tessera-analytics-axis"
+              controlClassName="tessera-analytics-axis"
             />
           </>
         }

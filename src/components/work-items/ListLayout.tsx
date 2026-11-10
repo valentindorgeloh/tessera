@@ -18,7 +18,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { useListFocus } from "@astryxdesign/core/hooks";
+import { useEntryAnimation, useListFocus, type AnimatedLayout } from "@astryxdesign/core/hooks";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
@@ -262,6 +262,32 @@ function RowTitle({ name }: { name: string }) {
 }
 
 /**
+ * The row a quick-add shows until the server item arrives: inert, and it fades in. It is the only row that animates:
+ * the real rows mount on scroll, on "Show more" and on the agent refresh, which must stay still. `useEntryAnimation`
+ * is Astryx's own (docs/contracts/ui.md "Motion"): null on first paint and while hydrating, off under Reduce Motion.
+ */
+export function PendingRow({ item, display, onUpdate }: Pick<RowProps, "item" | "display" | "onUpdate">) {
+  const entry = useEntryAnimation("fadeIn");
+  return (
+    <ListItem
+      label={<RowTitle name={item.name} />}
+      className="tessera-wi-row tessera-wi-row-pending"
+      xstyle={entry ?? undefined}
+      startContent={
+        <Text type="supporting" color="secondary" className="tessera-wi-pending-key">
+          Saving…
+        </Text>
+      }
+      endContent={
+        <RowProject projectId={item.project_id}>
+          <RowProperties item={item} display={display} onUpdate={onUpdate} readOnly />
+        </RowProject>
+      }
+    />
+  );
+}
+
+/**
  * Memoized (decision 141): a row redraws only when its own item, the display, its tick or the read-only flag changed
  * (the handlers keep one identity, WorkItemsScreen and use-selection.ts). Everything else it reads comes through
  * `useProjectRow()`, which does not change on a write that leaves the row alone.
@@ -269,25 +295,8 @@ function RowTitle({ name }: { name: string }) {
 const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, selected, onToggle }: RowProps) {
   // The key button owns the row's action: surface clicks delegate to it and it is the row's only tab stop.
   const openRef = useRef<HTMLButtonElement>(null);
-  if (isOptimisticId(item.id)) {
-    // Placeholder from quick-add: nothing to open or edit until the server item arrives.
-    return (
-      <ListItem
-        label={<RowTitle name={item.name} />}
-        className="tessera-wi-row tessera-wi-row-pending"
-        startContent={
-          <Text type="supporting" color="secondary" className="tessera-wi-pending-key">
-            Saving…
-          </Text>
-        }
-        endContent={
-          <RowProject projectId={item.project_id}>
-            <RowProperties item={item} display={display} onUpdate={onUpdate} readOnly />
-          </RowProject>
-        }
-      />
-    );
-  }
+  // Placeholder from quick-add: nothing to open or edit until the server item arrives.
+  if (isOptimisticId(item.id)) return <PendingRow item={item} display={display} onUpdate={onUpdate} />;
   return (
     <ListItem
       label={<RowTitle name={item.name} />}
@@ -344,6 +353,8 @@ type GroupSectionProps = {
   selection?: LayoutProps["selection"];
   /** "Show more" for a group with unloaded rows (decision 112); absent when everything is loaded. */
   more?: { loaded: number; total: number; isLoading: boolean; onLoadMore: () => void };
+  /** The scroller's `useAnimatedLayout` handle: a group opening or closing glides and the groups below follow. */
+  animatedLayout?: AnimatedLayout;
 };
 
 function GroupSection({
@@ -359,6 +370,7 @@ function GroupSection({
   readOnly,
   selection,
   more,
+  animatedLayout,
 }: GroupSectionProps) {
   const quickAddGroup: QuickAddGroup = group ? { field: group.field, value: group.id === NONE_GROUP_ID ? null : group.id } : { field: null, value: null };
   // No row when the list cannot create items, or when this group pins a state the scope refuses (a closed state in a cycle).
@@ -393,6 +405,7 @@ function GroupSection({
         isOpen={isOpen}
         onOpenChange={onToggle}
         chevronPosition="start"
+        animatedLayout={animatedLayout}
       >
         {body}
       </Collapsible>
@@ -417,7 +430,11 @@ export function ListLayout({
   onLoadMoreUngrouped,
   isLoadingMore,
   onClearFilters,
-}: LayoutProps) {
+  animatedLayout,
+}: LayoutProps & {
+  /** From WorkItemsScreen, bound to the element that scrolls the list; the groups pass it to their Collapsible. */
+  animatedLayout?: AnimatedLayout;
+}) {
   const itemsById = useMemo(() => new Map(result.items.map((item) => [item.id, item])), [result.items]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const { listRef, handleKeyDown, handleFocus } = useListFocus<HTMLElement>({
@@ -480,6 +497,7 @@ export function ListLayout({
             canQuickAdd={canQuickAdd}
             readOnly={readOnly}
             selection={selection}
+            animatedLayout={animatedLayout}
             more={
               group.has_more && onLoadMore
                 ? { loaded: group.item_ids.length, total: group.count, isLoading: isLoadingMore?.(groupLimitKey(group.id)) ?? false, onLoadMore: () => onLoadMore(group.id) }

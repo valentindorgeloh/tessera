@@ -1,5 +1,5 @@
 /**
- * Pure helpers of the Superagent screen (decision 145; docs/contracts/ui.md
+ * Pure helpers of the Superagent screen (decision 151; docs/contracts/ui.md
  * "Superagent control", "Shared helpers"). No React and no Astryx, so Vitest
  * reaches them and the page can use `parseScope`. Lane U2's forms import
  * `failureCopy`, `failureToast`, `sectionNote`, `formatUsd`, `FailureContext`

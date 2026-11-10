@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
- * The superagent screen's settings and team-section forms (decisions 144 and
- * 145; docs/contracts/ui.md "Screen /agents/superagent" items 5 and 6): the
+ * The superagent screen's settings and team-section forms (decisions 150 and
+ * 151; docs/contracts/ui.md "Screen /agents/superagent" items 5 and 6): the
  * pure helpers, then both sections rendered with `createElement` (as
  * detail-smoke.test.ts does) with the Server Action wrappers and the Toast
  * hook mocked.
@@ -78,6 +78,8 @@ async function type(field: HTMLInputElement | HTMLTextAreaElement | null, value:
 
 const button = (el: HTMLElement, label: string) => [...el.querySelectorAll<HTMLButtonElement>("button")].find((candidate) => candidate.textContent?.trim() === label || candidate.getAttribute("aria-label") === label) ?? null;
 const input = (el: HTMLElement, label: string) => [...el.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea")].find((field) => field.getAttribute("aria-label") === label || field.labels?.[0]?.textContent?.trim().startsWith(label)) ?? null;
+// Astryx 0.7 keeps a disabled field or button focusable: `aria-disabled` (with `readOnly` on fields) instead of `disabled`.
+const isOff = (node: HTMLElement | null) => (node as HTMLButtonElement | null)?.disabled === true || node?.getAttribute("aria-disabled") === "true";
 async function click(target: HTMLElement | null) {
   await act(async () => {
     target?.click();
@@ -377,8 +379,8 @@ describe("AgentSettingsSection", () => {
     const el = await render(section({ runnerSettings: failure("not_set_up") }));
     expect(el.textContent).toContain("Runner not set up");
     expect(el.textContent).not.toContain("Not available");
-    for (const label of runnerFields) expect(input(el, label)?.disabled, label).toBe(true);
-    expect(button(el, "Save runner settings")?.disabled).toBe(true);
+    for (const label of runnerFields) expect(isOff(input(el, label)), label).toBe(true);
+    expect(isOff(button(el, "Save runner settings"))).toBe(true);
     await click(button(el, "Save runner settings"));
     expect(saveSettings).not.toHaveBeenCalled();
     await click(button(el, "Save mapping"));
@@ -394,7 +396,7 @@ describe("AgentSettingsSection", () => {
     const el = await render(section({ state: failure("timeout") }));
     expect(el.textContent).toContain("Not available: Runner timed out.");
     // As the screen's other parts: the form shows no values and cannot save.
-    for (const label of runnerFields) expect(input(el, label)?.disabled, label).toBe(true);
+    for (const label of runnerFields) expect(isOff(input(el, label)), label).toBe(true);
     expect(input(el, "Parallel requests")?.value).toBe("");
     await click(button(el, "Save runner settings"));
     expect(saveSettings).not.toHaveBeenCalled();
@@ -464,8 +466,8 @@ describe("TeamSectionsSection", () => {
     const el = await render(section(failure("unreachable"), ["tessera"]));
     expect(el.textContent).toContain("Runner not answering");
     expect(el.textContent).not.toContain("Not available");
-    expect([...el.querySelectorAll("textarea")].every((area) => area.disabled)).toBe(true);
-    expect(button(el, "Save team sections")?.disabled).toBe(true);
+    expect([...el.querySelectorAll("textarea")].every(isOff)).toBe(true);
+    expect(isOff(button(el, "Save team sections"))).toBe(true);
     await click(button(el, "Save team sections"));
     expect(savePrompts).not.toHaveBeenCalled();
   });
@@ -473,7 +475,7 @@ describe("TeamSectionsSection", () => {
   it("says 'Not available: {title}.' while the runner's state failed, even when the prompts loaded, and cannot save", async () => {
     const el = await render(section(loaded(promptsDoc), ["tessera"], failure("not_set_up")));
     expect(el.textContent).toContain("Not available: Runner not set up.");
-    expect([...el.querySelectorAll("textarea")].every((area) => area.disabled && area.value === "")).toBe(true);
+    expect([...el.querySelectorAll("textarea")].every((area) => isOff(area) && area.value === "")).toBe(true);
     await click(button(el, "Save team sections"));
     expect(savePrompts).not.toHaveBeenCalled();
   });

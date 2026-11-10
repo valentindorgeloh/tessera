@@ -1,5 +1,5 @@
 /**
- * Where the runner's bearer token lives and how it is read (decision 144).
+ * Where the runner's bearer token lives and how it is read (decision 150).
  * The token is never stored in Tessera: the file is read on every call, so a
  * restarted runner that wrote a new token needs no action here. Node `fs`
  * only, no `server-only`, so Vitest imports it; the caller never logs or

@@ -59,7 +59,7 @@ export const workspace_settings = sqliteTable("workspace_settings", {
   name: text("name").notNull().default("Tessera"),
   home_widgets: text("home_widgets", { mode: "json" }).$type<HomeWidgets>().notNull().default([]),
   ai: text("ai", { mode: "json" }).$type<WorkspaceAiSettings>(),
-  /** Superagent runner URL and project to repository map (decision 144). Null until set; read through normalizeAgentSettings. */
+  /** Superagent runner URL and project to repository map (decision 150). Null until set; read through normalizeAgentSettings. */
   agents: text("agents", { mode: "json" }).$type<AgentSettings>(),
   /** Activity seq Home has already shown. Null means the since-last-visit window is the last 7 days. */
   last_seen_seq: integer("last_seen_seq"),

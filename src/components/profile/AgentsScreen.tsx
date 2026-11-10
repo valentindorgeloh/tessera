@@ -1,6 +1,6 @@
 "use client";
 
-/** Agents (docs/drafts/p9-plan.md U3). A row opens that actor's profile; the header links to the superagent control screen (decision 145). */
+/** Agents (docs/drafts/p9-plan.md U3). A row opens that actor's profile; the header links to the superagent control screen (decision 151). */
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";

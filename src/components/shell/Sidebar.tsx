@@ -159,7 +159,7 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
   const { lastProjectId: lastProject } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const resize = useSidebarResize();
   const activeProjectId = projectIdFromPath(pathname);
-  // The chat lives under /agents/superagent/chat, so "Agents" yields the rail's selection to "Superagent chat" there (decision 146).
+  // The chat lives under /agents/superagent/chat, so "Agents" yields the rail's selection to "Superagent chat" there (decision 152).
   const onSuperagentChat = pathname === SUPERAGENT_CHAT_PATH || pathname.startsWith(`${SUPERAGENT_CHAT_PATH}/`);
 
   useEffect(() => {

@@ -42,7 +42,7 @@ export const comment = sqliteTable(
       .notNull()
       .references(() => actor.id, { onDelete: "restrict" }),
     edited_at: text("edited_at"),
-    /** Caller-chosen idempotency key (decision 143); unique per actor and work item, soft-deleted rows keep theirs. */
+    /** Caller-chosen idempotency key (decision 149); unique per actor and work item, soft-deleted rows keep theirs. */
     client_ref: text("client_ref"),
     ...auditColumns(),
   },

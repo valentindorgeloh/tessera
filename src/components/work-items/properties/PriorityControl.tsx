@@ -69,7 +69,7 @@ export function PriorityControl({ value, onChange, compact = false, readOnly = f
       variant="ghost"
       size={compact ? "sm" : "md"}
       // The glyph-only chip is narrower than a finger; work-items.css widens its hit area on touch.
-      className={compact && !hasLabel ? "tessera-wi-chip--icon" : undefined}
+      controlClassName={compact && !hasLabel ? "tessera-wi-chip--icon" : undefined}
       options={options}
       value={value}
       onChange={(next) => {

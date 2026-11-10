@@ -143,26 +143,6 @@ export const ACCENT_TOKENS = {
   "--color-text-accent": ["#6b1dc3", FRAPPE.mauve],
 } satisfies Record<string, ModePair>;
 
-/**
- * Status colours: palette fills, each with the palette colour that labels it at
- * 4.5:1. Latte error text (destructive menu rows) is a deeper red, because
- * Latte red drops to 4.4:1 under the hover overlay; the inverted error fill
- * keeps the palette red. The muted tints match the chip tint, the strength the
- * chip labels (FieldStatus messages) were tuned for.
- */
-export const STATUS_TOKENS = {
-  "--color-success": pair("green"),
-  "--color-success-muted": tint("green", 0.2, 0.2),
-  "--color-on-success": [MOCHA_CRUST, FRAPPE.crust],
-  "--color-error": ["#b80b32", FRAPPE.red],
-  "--color-error-muted": tint("red", 0.2, 0.2),
-  "--color-on-error": [LATTE.base, FRAPPE.crust],
-  "--color-background-error-inverted": pair("red"),
-  "--color-warning": pair("yellow"),
-  "--color-warning-muted": tint("yellow", 0.2, 0.2),
-  "--color-on-warning": [MOCHA_CRUST, FRAPPE.crust],
-} satisfies Record<string, ModePair>;
-
 /** Stored palette keys (`src/lib/tessera/schemas.ts`) → Catppuccin colours. */
 export const PALETTE_KEY_COLOURS = {
   red: "red",
@@ -211,6 +191,63 @@ export const CHIP_TOKENS: Record<string, ModePair> = Object.fromEntries(
     [`--color-text-${key}`, CHIP_TEXT[key]],
   ]),
 );
+
+/**
+ * Status colours (Astryx 0.7.5 roles: `astryx docs tokens-color`). Every status
+ * is set here, because a theme that sets only fills gets the other roles derived
+ * from them (Info would turn Astryx blue, success and warning text a darker
+ * shade of the fill). Fills are palette colours, each with the palette colour
+ * that labels it at 4.5:1. Info is its own status, Catppuccin Blue (the accent
+ * is Mauve); its Latte fill is mixed 30% towards the chip label blue so the
+ * light on-colour reads at 5:1 (palette blue gives 4.3:1), the same trade as
+ * the Latte error fill. The muted tints match the chip tint, the strength the
+ * chip labels (FieldStatus messages) were tuned for.
+ *
+ * Text roles: the chip label of the same hue, except error, which keeps the
+ * deeper Latte red that destructive menu rows read at 4.5:1 under the hover
+ * overlay. On-muted roles label a Banner header on its tint, so error takes the
+ * chip red there (the menu red falls to 4.2:1 on the Latte tint and 3.4:1 on
+ * the Frappé one). Icon and border roles (StatusDot, invalid field outlines)
+ * need 3:1 on every surface, not 4.5:1: the palette hue where it gets there,
+ * and where it does not (Latte green and yellow, 2.5:1 on crust) the hue mixed
+ * towards its chip label until it does, so a dot stays green or amber instead
+ * of turning into the dark label colour.
+ */
+const LATTE_INFO = "#175ce6";
+const LATTE_GREEN_MARK = "#2a8216";
+const LATTE_YELLOW_MARK = "#b26d0f";
+
+export const STATUS_TOKENS = {
+  "--color-info": [LATTE_INFO, FRAPPE.blue],
+  "--color-info-muted": tint("blue", 0.2, 0.2),
+  "--color-on-info": [LATTE.base, FRAPPE.crust],
+  "--color-success": pair("green"),
+  "--color-success-muted": tint("green", 0.2, 0.2),
+  "--color-on-success": [MOCHA_CRUST, FRAPPE.crust],
+  "--color-error": ["#b80b32", FRAPPE.red],
+  "--color-error-muted": tint("red", 0.2, 0.2),
+  "--color-on-error": [LATTE.base, FRAPPE.crust],
+  "--color-background-error-inverted": pair("red"),
+  "--color-warning": pair("yellow"),
+  "--color-warning-muted": tint("yellow", 0.2, 0.2),
+  "--color-on-warning": [MOCHA_CRUST, FRAPPE.crust],
+  "--color-text-info": CHIP_TEXT.blue,
+  "--color-text-success": CHIP_TEXT.green,
+  "--color-text-warning": CHIP_TEXT.yellow,
+  "--color-text-error": ["#b80b32", FRAPPE.red],
+  "--color-on-info-muted": CHIP_TEXT.blue,
+  "--color-on-success-muted": CHIP_TEXT.green,
+  "--color-on-warning-muted": CHIP_TEXT.yellow,
+  "--color-on-error-muted": CHIP_TEXT.red,
+  "--color-icon-info": pair("blue"),
+  "--color-icon-success": [LATTE_GREEN_MARK, FRAPPE.green],
+  "--color-icon-warning": [LATTE_YELLOW_MARK, FRAPPE.yellow],
+  "--color-icon-error": ["#b80b32", FRAPPE.red],
+  "--color-border-info": pair("blue"),
+  "--color-border-success": [LATTE_GREEN_MARK, FRAPPE.green],
+  "--color-border-warning": [LATTE_YELLOW_MARK, FRAPPE.yellow],
+  "--color-border-error": ["#b80b32", FRAPPE.red],
+} satisfies Record<string, ModePair>;
 
 /** Categorical chart hues (P9 charts). Sequential ramps keep the Astryx defaults. */
 export const DATA_TOKENS = {

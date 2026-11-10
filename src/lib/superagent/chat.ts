@@ -1,5 +1,5 @@
 /**
- * Server side of the superagent chat screen (decision 146; docs/contracts/ui.md
+ * Server side of the superagent chat screen (decision 152; docs/contracts/ui.md
  * "Superagent chat"). Tessera is read first and the runner's request list is
  * added on top, so the page works with the runner offline: a runner failure is
  * a state in `requests` or `detail`, never thrown, while a Tessera error

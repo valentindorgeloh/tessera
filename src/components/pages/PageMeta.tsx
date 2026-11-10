@@ -70,7 +70,7 @@ export function PageMeta({ page, labels, actors, labelsReadOnly, accessReadOnly,
           isReadOnly={labelsReadOnly}
           hasSearch={options.length > 8}
           placeholder="Labels"
-          className="tessera-page-meta-control"
+          controlClassName="tessera-page-meta-control"
           emptyText="No labels in this project yet"
           renderOption={(option) => <Token label={option.label ?? option.value} size="sm" color={paletteTokenColor(byId.get(option.value)?.color)} />}
         />

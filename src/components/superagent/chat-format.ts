@@ -1,5 +1,5 @@
 /**
- * Pure helpers of the superagent chat screen (decision 146; docs/contracts/ui.md
+ * Pure helpers of the superagent chat screen (decision 152; docs/contracts/ui.md
  * "Superagent chat"): the chat's address, the title a first message gives its
  * work item, who a bubble names, and the composer's runner status line.
  */

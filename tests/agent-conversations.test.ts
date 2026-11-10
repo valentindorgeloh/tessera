@@ -1,5 +1,5 @@
 /**
- * `listAgentConversations` (decision 146; src/lib/tessera/agent-conversations.ts): which work items an actor is in
+ * `listAgentConversations` (decision 152; src/lib/tessera/agent-conversations.ts): which work items an actor is in
  * a conversation on (assignee, item mention, live comment mention, extra id), what never qualifies, archived items,
  * the newest-first order with its 200 cap, and the last live comment per item.
  */

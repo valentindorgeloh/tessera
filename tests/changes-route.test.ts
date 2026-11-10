@@ -1,7 +1,7 @@
 /**
  * GET /api/changes (src/app/api/changes/route.ts) against an in-memory
  * database: `{ changes, cursor, latest_seq, unread_notifications }` (decisions 59
- * and 145). The
+ * and 151). The
  * user's own writes are left out of `changes`; the unread count is the user's
  * (unread, not archived, not snoozed) and moves when a snooze wakes with no
  * new activity. `@/lib/tessera/server` is replaced by the engine barrel plus a

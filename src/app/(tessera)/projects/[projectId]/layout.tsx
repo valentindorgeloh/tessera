@@ -52,7 +52,7 @@ async function ProjectShell({ children, params }: Props) {
         estimate: project.estimates_enabled ? getActiveEstimate(ctx, project.id) : null,
         intake_open: countOpenIntake(ctx, project.id),
         projects: listProjects(ctx, {}).map((row) => ({ id: row.id, name: row.name, identifier: row.identifier })),
-        // The repository the superagent works in for this project (decision 144), for "Send to superagent" in the detail.
+        // The repository the superagent works in for this project (decision 150), for "Send to superagent" in the detail.
         superagent_repo: agentRepoFor(workspace.agents, project.id),
       };
     });

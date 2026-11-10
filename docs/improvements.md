@@ -6,6 +6,8 @@ Updated on 2026-10-28 with the performance round (commit after 21f8ae3): its ope
 
 Updated on 2026-10-29 with performance round 2 (roadmap lanes B and C, decisions 141 and 142, commit after 6331186): "Performance" is rewritten from its profile and review, its results are under "Closed".
 
+Updated on 2026-11-09 with the Astryx 0.7.11 motion adoption: its open follow-ups are under "Astryx follow-ups"; the decisions are 143 to 148 in `docs/PLAN.md`.
+
 ## Open
 
 ### Accessibility, 375 px and visual
@@ -28,6 +30,10 @@ Source: docs/drafts/perf-report-2026-10-28.md (sections 1, 5 and 6) and its prof
 - The ProjectFrame heading and the "Work items" Text in `WorkItemsScreen` still use `Text maxLines`: up to 64 ms at CPU 1x on a 10k list (about 300 ms at 4x, upper bound). Low.
 - Per-row popovers were made lazy in the list, table, gantt and modules timeline only; other popovers with heavy closed content are not audited. Low.
 
+### Astryx follow-ups (2026-11-09)
+- Adopt Astryx `List` `animatedLayout` and `ListItem` `itemKey` for the inbox and proposal lists, and `LayoutPanel` slide-on-collapse, once they ship in an Astryx release (they are not in 0.7.11); they also close the gap below a removed row (decision 143) and give the inbox and proposal rows exit fades (decision 148). Low.
+- Give `useDescriptionSave` and `use-work-item-search` an event callback (a handler that runs when a save settles or a search returns), so `DescriptionEditor` and the parent and relation pickers can announce through `useAnnounce` from it instead of keeping their `aria-live` status lines; announcing from an effect is not allowed (ui.md "Motion"). Low.
+
 ### Operations
 - Backup file names do not name their database: every backup is `tessera-<kind>-<stamp>.db` in `backups/` next to the database file (`src/lib/tessera/db/backups.ts`), so two databases in one folder (`data/tessera.db` and a perf or acceptance copy in `data/`) share one folder whose list, rotation and restore mix their copies. Put the source file's base name in the backup name and filter by it. Medium.
 
@@ -48,13 +54,13 @@ The `npm run db:demo` run (about 70 routes at 1440 and 375 in both schemes on a 
 - Home quick links whose URL is an internal path show the raw path with the project UUID as their subtitle. Low.
 
 ## Waiting for the user
-- Astryx upstream: approve filing the issue and PR drafted in docs/drafts/astryx-upstream-2026-10-24.md (public, on your GitHub account): the ContextMenu `moveTo`/`start`/`cancel` prop warning, lazy `Text maxLines` measuring, lazy closed layers. Later, approve the Astryx upgrade download once a release has the fixes; then `OneLineText` goes back to `Text maxLines`.
+- Astryx upstream (docs/drafts/astryx-upstream-2026-10-24.md): Astryx 0.7.11 is installed (2026-11-09). It fixed the ContextMenu `moveTo`/`start`/`cancel` warning (0.7.0, no issue needed), unmeasured `Text maxLines` with `hasTruncateTooltip={false}` (0.7.2) and deferred closed-layer `readPortalWritingContext` (0.7.5). Still open and worth filing: Popover, Selector and Tooltip content mounts while closed (no `lazyMount`). `OneLineText` goes back to `Text maxLines` only after a profile on 0.7.11.
 - Live P5 acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is built and `assistant.spec.ts` and `round-features.spec.ts` pass on it.
 
 ## Planned for P12 (docs/drafts/p12-plan.md)
 - Dock/undock (floating) sidebar.
 - Three sidebar modes: full, 48 px icons, 60 px icons with labels (persisted, on the existing collapse rail).
-- Layout and content transitions (about 300 ms, ease-in-out, honouring `prefers-reduced-motion`).
+- Layout and content transitions (about 300 ms, honouring `prefers-reduced-motion`; what was built instead is in decisions 145 and 146).
 - Virtual scrolling for long lists, boards, tables and gantt rows, working with paging (decisions 112–114).
 - Calendar zoom Week / Month / Quarter, consistent with the gantt zoom (decision 90).
 

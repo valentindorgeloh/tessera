@@ -7,7 +7,7 @@ import { ChatSkeleton } from "./skeleton";
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 /**
- * `/agents/superagent/chat` (decision 146; docs/contracts/ui.md "Superagent
+ * `/agents/superagent/chat` (decision 152; docs/contracts/ui.md "Superagent
  * chat"): the chat list with no conversation open, or the new-chat pane with
  * `?new=1`. A static segment, so it wins over `agents/[actorId]/[tab]`. The
  * search params are awaited under Suspense, then `io()` before the reads.

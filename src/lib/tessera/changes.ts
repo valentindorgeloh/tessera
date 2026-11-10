@@ -36,7 +36,7 @@ export type ChangesResult = {
   changes: Change[];
   /** Pass this as the next `since_seq`: the last returned seq when the page was cut by `limit`, else the latest seq in the log. */
   cursor: number;
-  /** The newest seq in the log, even when it is below `since_seq` (a restore rewound the history; decision 145). */
+  /** The newest seq in the log, even when it is below `since_seq` (a restore rewound the history; decision 151). */
   latest_seq: number;
 };
 

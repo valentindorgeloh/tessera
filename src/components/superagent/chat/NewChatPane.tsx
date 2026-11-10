@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The start of a chat (decision 146; docs/contracts/ui.md "Superagent chat"):
+ * The start of a chat (decision 152; docs/contracts/ui.md "Superagent chat"):
  * a composer and a project picker. The first message becomes a work item
  * assigned to the superagent, with the first line as its title and the whole
  * text as its description, and the screen moves to that item's chat. Without

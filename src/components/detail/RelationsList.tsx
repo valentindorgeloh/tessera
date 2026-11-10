@@ -16,6 +16,7 @@
 import { startTransition, useEffect, useOptimistic, useRef, useState } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { FormLayout } from "@astryxdesign/core/FormLayout";
+import { useAnnounce } from "@astryxdesign/core/hooks";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
@@ -32,6 +33,7 @@ import { PlusIcon, SearchIcon, XIcon } from "@/themes/catppuccin/icons";
 import { workItemPath } from "./DetailHeader";
 import {
   RELATION_CHOICES,
+  RELATION_LABELS,
   applyRelationEdit,
   groupRelations,
   optimisticRelationRow,
@@ -147,6 +149,7 @@ function RelationRow({ row, projectId, readOnly, onOpenItem, onRemove }: RowProp
 
 export function RelationsList({ workItemId, projectId, relations, readOnly = false, onOpenItem }: RelationsListProps) {
   const { fail } = useActionRunner();
+  const announce = useAnnounce();
   const [rows, applyEdit] = useOptimistic(relations, applyRelationEdit);
   const [adding, setAdding] = useState(false);
   // Focus returns to Add relation when the dialog closes (a pick, Esc or the close button) and after a row is removed:
@@ -163,7 +166,9 @@ export function RelationsList({ workItemId, projectId, relations, readOnly = fal
     startTransition(async () => {
       applyEdit({ kind: "add", row: optimisticRelationRow(type, hit, projectId) });
       const result = await addRelationAction({ work_item_id: workItemId, related_work_item_id: hit.id, relation_type: type });
-      if (!result.ok) fail(`Could not add the relation: ${result.message}`);
+      // The dialog has closed and focus is back on Add relation: the new row is told once the engine has taken it (fail() toasts a refusal, and the toast speaks itself).
+      if (result.ok) announce(`Added relation: ${RELATION_LABELS[type]} ${hit.key || hit.title}`);
+      else fail(`Could not add the relation: ${result.message}`);
     });
   };
 
@@ -172,7 +177,8 @@ export function RelationsList({ workItemId, projectId, relations, readOnly = fal
     startTransition(async () => {
       applyEdit({ kind: "remove", id: row.id });
       const result = await removeRelationAction({ work_item_id: workItemId, related_work_item_id: row.item.id });
-      if (!result.ok) fail(`Could not remove the relation: ${result.message}`);
+      if (result.ok) announce(`Removed relation to ${row.item.key}`);
+      else fail(`Could not remove the relation: ${result.message}`);
     });
   };
 

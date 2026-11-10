@@ -44,7 +44,7 @@ const componentPatterns = [
       "Components may import only '@/lib/tessera/types', '@/lib/tessera/schemas' and '@/lib/tessera/core/{keys,time,group,csv}'. Read through a Server Component and write through a Server Action.",
   },
   {
-    // The superagent control client reads the token file and the runner (decision 145): components get its types and constants only.
+    // The superagent control client reads the token file and the runner (decision 151): components get its types and constants only.
     regex: "^@/lib/superagent(?!/types$)",
     message:
       "Components may import only '@/lib/superagent/types'. The runner client and its token reading are server-only: read through the Superagent page and write through the Server Actions in '@/app/actions/superagent'.",

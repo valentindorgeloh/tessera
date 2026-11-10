@@ -1,5 +1,5 @@
 /**
- * Token file location and reading (src/lib/superagent/token.ts, decision 144). Only temp files: the real
+ * Token file location and reading (src/lib/superagent/token.ts, decision 150). Only temp files: the real
  * `~/.tessera-agents/api-token` is never opened.
  */
 import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";

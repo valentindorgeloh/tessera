@@ -1,10 +1,10 @@
 /**
- * "Send to superagent" on a work item (decisions 144 and 145; docs/contracts/ui.md
+ * "Send to superagent" on a work item (decisions 150 and 151; docs/contracts/ui.md
  * "Send to superagent"). Pure: what the detail's More menu shows for an item,
  * from the project's mapped repository, its actors and the item's assignees.
  * The runner treats the superagent's assignment as the request, so sending is
  * assigning; an item the superagent already has opens its chat instead
- * (decision 146, "Navigation and send").
+ * (decision 152, "Navigation and send").
  */
 import { SUPERAGENT_ACTOR_NAME } from "@/lib/superagent/types";
 import type { ActorRow } from "@/lib/tessera/types";

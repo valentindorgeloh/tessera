@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The runner's two overview sections (decision 145; docs/contracts/ui.md
+ * The runner's two overview sections (decision 151; docs/contracts/ui.md
  * "Superagent control", items 2 and 4): Health (status, checks, counts, the
  * spend bar with Pause or Resume) and Routing (the runner's statistics). The
  * screen places them apart, so this file exports each on its own.

@@ -5,6 +5,12 @@
  * Width is stored (default 400, drag 320–640). Below 768px the panel covers
  * the content (ai-panel.css). The header names the project and, when a work
  * item is open, its key.
+ *
+ * It slides in from the end edge when it opens after the stored state loaded
+ * (`assistant.enters`, `useEnterFlag`; never on hydration or for the open state
+ * that comes back after a reload) and out when it closes: AssistantProvider plays
+ * the CSS exit on this panel's element (`assistant.setPanelElement`) and closes when it
+ * ends. The motion classes are in styles/motion.css.
  */
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -19,6 +25,7 @@ import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import { VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
+import { useEnterFlag } from "@/components/motion/use-enter-flag";
 import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
 import { useCommandContext } from "@/components/shell/command-context";
 import { useEntityLabels } from "@/components/shell/entity-labels";
@@ -56,6 +63,7 @@ export function AssistantPanel() {
   const labels = useEntityLabels();
   const assistant = useAssistantController();
   const [draft, setDraft] = useState("");
+  const enter = useEnterFlag(assistant.enters);
   const region = useResizable({
     defaultSize: DEFAULT_PANEL_WIDTH,
     minSize: MIN_PANEL_WIDTH,
@@ -65,7 +73,7 @@ export function AssistantPanel() {
   });
 
   const appliedWidth = useRef(false);
-  const { panelLoaded, width } = assistant;
+  const { panelLoaded, width, setPanelElement } = assistant;
   const { resize } = region;
   // `defaultSize` is read once. Apply the stored width after it loads.
   useEffect(() => {
@@ -92,7 +100,9 @@ export function AssistantPanel() {
     <>
       <ResizeHandle className="tessera-ai-resize" resizable={region.props} direction="horizontal" isReversed hasDivider={false} label="Resize the assistant" />
       <LayoutPanel
-        className="tessera-ai-panel"
+        ref={setPanelElement}
+        className="tessera-ai-panel tessera-motion-slide-end"
+        {...enter}
         resizable={region.props}
         hasDivider
         padding={0}

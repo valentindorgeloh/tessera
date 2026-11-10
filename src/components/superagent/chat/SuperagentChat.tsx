@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Superagent chat (decision 146; docs/contracts/ui.md "Superagent chat"): the
+ * Superagent chat (decision 152; docs/contracts/ui.md "Superagent chat"): the
  * Inbox's frame with the chat list on the left and the open conversation, or
  * the new-chat pane, on the right. Under 1024px one pane shows at a time and
  * "All chats" leads back to the list. The page (server) loads everything in

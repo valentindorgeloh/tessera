@@ -584,7 +584,7 @@ check) inside the room lane 0 made (about 45); `modules.ts` about 3 inside about
 `search.ts` (357) by about 30; `counts.ts` (304) by about 30; all stay under 600.
 `work-items/move.ts` and `work-items/read.ts` start at about 150 and 215 lines.
 
-## Superagent additions (lane A; decisions 143, 144 and 145)
+## Superagent additions (lane A; decisions 149, 150 and 151)
 
 ```ts
 // comments.ts
@@ -606,7 +606,7 @@ export function setAgentSettings(ctx, input: z.input<typeof SetAgentSettingsInpu
 export type ChangesResult = { changes: Change[]; cursor: number; latest_seq: number };
 ```
 
-- **`createComment` with `client_ref`** (decision 143). Inside the transaction, in this order: `getWorkItemRow` (`NOT_FOUND` for a missing item); select the comment with this `actor_id = ctx.actor.id`, `work_item_id` and `client_ref`, deleted rows included; if found, return `{ id, client_ref, deleted: true }` when `deleted_at` is set, `CONFLICT` ("This client_ref was used with a different body", details `{ comment_id, client_ref }`) when `body_md` differs from the validated input body, else `getComment(ctx, id)`. Nothing else runs on these paths. Only when no row is found does the existing path run (`loadWritableWorkItem`, parent resolution, insert with `client_ref`, subscriber, mentions, activity). Without a ref the function is unchanged. `getComment`, `listComments` and the nested views carry `client_ref` (the column is part of `CommentRow`).
+- **`createComment` with `client_ref`** (decision 149). Inside the transaction, in this order: `getWorkItemRow` (`NOT_FOUND` for a missing item); select the comment with this `actor_id = ctx.actor.id`, `work_item_id` and `client_ref`, deleted rows included; if found, return `{ id, client_ref, deleted: true }` when `deleted_at` is set, `CONFLICT` ("This client_ref was used with a different body", details `{ comment_id, client_ref }`) when `body_md` differs from the validated input body, else `getComment(ctx, id)`. Nothing else runs on these paths. Only when no row is found does the existing path run (`loadWritableWorkItem`, parent resolution, insert with `client_ref`, subscriber, mentions, activity). Without a ref the function is unchanged. `getComment`, `listComments` and the nested views carry `client_ref` (the column is part of `CommentRow`).
 - **`normalizeAgentSettings(raw)`**: `null`/`undefined` → `null`; otherwise `runner_url` parsed with `AgentRunnerUrlSchema` (trailing `/` dropped) or `AGENT_RUNNER_DEFAULT_URL`; `projects` taken from an array (else `[]`), each entry kept when `AgentProjectSchema` parses it and its `project_id` was not seen before. Pure; no database read.
 - **`setAgentSettings`**: first `if (ctx.actor.kind !== "user") throw rule("user_only", "Only the user can change the superagent settings")`, then `validateInput`, then in `withTx`: duplicate `project_id` → `validation({ projects }, "A project can be mapped once")`; each id through `getProjectRow` (live projects, archived allowed); stored `runner_url` kept when the input omits it (default when none is stored); writes `agents` and `updated_at`; no activity. Returns `toView(row)`.
 - **`toView`** adds `agents: normalizeAgentSettings(row.agents)`; `WorkspaceSettingsView` gains `agents: AgentSettings | null`. `UpdateWorkspaceSettingsInput` does not take `agents`.

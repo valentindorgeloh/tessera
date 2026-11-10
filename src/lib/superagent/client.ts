@@ -1,5 +1,5 @@
 /**
- * Control client for the superagent runner's local HTTP API v1 (decision 145;
+ * Control client for the superagent runner's local HTTP API v1 (decision 151;
  * docs/contracts/ui.md "Superagent control"). Every method resolves to a
  * `RunnerResult`: a failure is a state (`unreachable`, `unauthorized`, ...),
  * never a thrown error, and the token never appears in a result. No file

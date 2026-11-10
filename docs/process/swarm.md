@@ -15,9 +15,9 @@ This file is the process contract. `docs/PLAN.md` §10 (lanes) and the per-phase
 |---|---|---|---|
 | Root planner | the main session (Opus 5.5) | Sets the phase order and asks the user for decisions. Starts workflows, reads their results and commits at milestones. | Implement lane work. Leave a decision open for a worker. |
 | Phase planner | `opus`, effort `xhigh` | Writes the phase contract (the spec is the prompt). Makes every design decision, with exact names, props, tools, file ownership and acceptance steps, and splits the work into leaf tasks. Two lanes never decide the same question. | Implement. Delegate a design decision. |
-| Worker | `sonnet`, effort `high` | Builds one leaf task in the files it owns, keeps `npm run check` green for its files and reports what it did. | Redesign. Edit another lane's files, except as a deliberate core change (below). Run state-changing git. |
+| Worker | `sonnet`, effort `high` | Builds one leaf task in the files it owns, runs the quick checks on what it touched (below) and reports what it did. | Redesign. Edit another lane's files, except as a deliberate core change (below). Run state-changing git. Run the full suite, a build or Playwright. |
 | Mechanical worker | `haiku` | Runs gates, greps, import-path swaps, renames and tallies. | Make any judgement call. |
-| Reviewer | `sonnet` (one perspective may be `opus`) | Checks the work against the contract from an independent perspective (below) and reports findings with file:line. | Edit project files. |
+| Reviewer | `sonnet` (one perspective may be `opus`) | Checks the work against the contract from an independent perspective (below) and reports findings with file:line. | Edit project files. Rebuild or rerun the full suite. |
 | Refuter | `sonnet` | Tries to disprove one finding through one lens (reproduce it, or find a mitigating path). A finding survives only if both refuters fail. | Edit project files. |
 | Adjudicator | `opus`, effort `high` | Decides findings that are high severity or where refuters disagree. | Edit project files. |
 | Reconciler | `opus`, effort `high` | The neutral integrator. Resolves conflicts between lanes and mismatches with the contract, and decides which side wins against the contract. Updates the field guide at the end of a phase. | Take a lane's side without citing the contract. |
@@ -56,7 +56,9 @@ The models are pinned per role in each workflow script through `agent(..., { mod
 
 ## Verification per phase
 
-1. Gate: mechanical worker. Runs `npm run check` and greps for conflict markers.
+One full test run per batch (the user, 2026-11-10: "why not finish them all and then do one test?"). Workers, fixers and reviewers run only the quick checks: `npx tsc --noEmit`, `npx eslint` on the files they touched and `npx vitest run` on their own test files, about a minute. The full unit suite, `next build`, `check:bundle` and Playwright run once, on the merged result, never per lane and never several at once. When that run fails, root finds the lane from the failing test and its files.
+
+1. Gate: mechanical worker, on the merged result. Runs `npm run check` and greps for conflict markers.
 2. Build and acceptance: a worker with the browser. Runs `next build`, then the numbered acceptance steps on a fresh database, then Frappé and Latte at 1440 and 375.
 3. Review: three reviewers, each with a different perspective.
    - (a) Codebase only. It reads the code against the contract, not the workers' reports.
@@ -64,7 +66,7 @@ The models are pinned per role in each workflow script through `agent(..., { mod
    - (c) Lost behaviour and regressions. It compares with the previous commit.
    One of the three may run on `opus` when the phase changes the engine or data rules.
 4. Refutation: two refuters per finding. Then the adjudicator decides findings that are high severity or split.
-5. Fix rounds, at most two: workers fix confirmed findings and failed steps. Each round is re-gated and re-accepted.
+5. Fix rounds, at most two: workers fix confirmed findings and failed steps with the quick checks only. The merged result of the last round gets the one full gate and acceptance.
 6. Reconcile: the reconciler does a final cross-lane pass and updates the field guide and `docs/PLAN-STATUS.md`.
 7. Commit: the root planner commits.
 

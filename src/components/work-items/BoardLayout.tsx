@@ -21,7 +21,7 @@
  * (src/components/styles/board.css) instead of StyleX, Phosphor icons.
  */
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Card } from "@astryxdesign/core/Card";
@@ -31,10 +31,11 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Layout, LayoutContent, LayoutFooter, LayoutHeader } from "@astryxdesign/core/Layout";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { useAnimatedLayout, useAnimator, useEntryAnimation, useMergedRefs } from "@astryxdesign/core/hooks";
 import { Heading } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
 import { groupLimitKey } from "@/lib/tessera/core/group";
-import { usePointerDrag, type DragDropEvent } from "@/components/dnd/use-pointer-drag";
+import { usePointerDrag, type DragDropEvent, type DropRect } from "@/components/dnd/use-pointer-drag";
 import type { Display, GroupBy, PaletteColor, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { PlusIcon } from "@/themes/catppuccin/icons";
 import { BoardCard, BoardCardBody, BoardCardGrip, BoardCardMenuSlot } from "./BoardCards";
@@ -48,6 +49,7 @@ import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } 
 import { GroupFooter, GroupPoints } from "./GroupFooter";
 import { NoResults } from "./NoResults";
 import { QuickAdd } from "./QuickAdd";
+import { settleStartX } from "./settle-offset";
 import { acceptsGroupMove, isOpenGroupValue, openMemberships } from "./quick-add";
 import type { LayoutProps, MoveInput, ProjectBundle, QuickAddGroup } from "./types";
 
@@ -73,7 +75,24 @@ function trackHeadHeight(row: HTMLElement | null): (() => void) | void {
   return () => observer.disconnect();
 }
 
+/** What clips a card on the board: the column's body, or the swimlane cell (an Astryx Card with `overflow: clip`). */
+const CLIPPING_BODY = ".tessera-board-column-body, .tessera-board-cell";
+
 const STATE_GROUPS: ReadonlySet<string> = new Set<StateGroup>(["backlog", "unstarted", "started", "completed", "cancelled", "triage"]);
+
+/**
+ * The card a quick-add shows until the server item arrives: inert, and it fades in. It is the only card that animates:
+ * the real cards mount on scroll, on "Show more" and on the agent refresh, which must stay still. `useEntryAnimation`
+ * is Astryx's own (docs/contracts/ui.md "Motion"): null on first paint and while hydrating, off under Reduce Motion.
+ */
+export function PendingCard({ item, bundle, properties }: { item: WorkItem; bundle: ProjectBundle; properties: Display["properties"] }) {
+  const entry = useEntryAnimation("fadeIn");
+  return (
+    <Card padding={3} className="tessera-board-card tessera-board-card-pending" aria-busy="true" xstyle={entry ?? undefined}>
+      <BoardCardBody item={item} bundle={bundle} properties={properties} menu={<BoardCardMenuSlot />} />
+    </Card>
+  );
+}
 
 export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAdd, canQuickAdd, readOnly = false, onLoadMore, onLoadMoreUngrouped, isLoadingMore, onClearFilters }: LayoutProps) {
   const { columns, lanes, containers, byId } = useBoardModel(result, display);
@@ -130,6 +149,11 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
     [canMoveColumns, canMoveLanes, collapsedLanes, containers, display.group_by, display.sub_group_by, open],
   );
 
+  // The drop settle (docs/contracts/ui.md "Motion"): the card the user let go of glides from where the drag overlay was
+  // into its slot. A drop that goes through leaves its card key and the overlay's rectangle here; the commit that shows
+  // the card in its slot reads them (the two layout effects below).
+  const pendingSettle = useRef<{ key: string; from: DropRect } | null>(null);
+
   const handleDrop = useCallback(
     (event: DragDropEvent) => {
       const from = containers.get(event.fromContainer);
@@ -137,6 +161,10 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
       if (!from || !to) return;
       // A drop the engine would refuse is ignored: the card snaps back.
       if (!acceptsDrop(event.fromContainer, event.toContainer)) return;
+      // Reduce Motion lands the card at once; a pointer that could not measure the overlay has nothing to glide from.
+      if (event.overlayRect && !(typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+        pendingSettle.current = { key: dragKey(event.toContainer, itemIdOf(event.id)), from: event.overlayRect };
+      }
       // The hook speaks in drag keys; the engine wants item ids (decision 30). A neighbour that is another copy of the
       // dragged item (labels, assignees, modules show it in several columns) is no neighbour.
       const id = itemIdOf(event.id);
@@ -175,8 +203,46 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
     [acceptsDrop, containers, display.group_by, display.order_by, display.sub_group_by, onMove],
   );
 
-  const { drag, registerContainer, registerItem, registerScroller, registerOverlay, itemHandlers } = usePointerDrag({ onDrop: handleDrop, itemsOf });
+  const { drag, registerContainer, registerItem, getItemElement, registerScroller, registerOverlay, itemHandlers } = usePointerDrag({ onDrop: handleDrop, itemsOf });
   const dragged = drag ? byId.get(itemIdOf(drag.id)) : undefined;
+
+  // The settle runs in three steps of one commit, in this order (layout effects run in the order they are declared):
+  //  1. find the dropped card in the item registry and measure its slot, which is where the animator will find it;
+  //  2. `useAnimator` attaches to the node `settleRef` holds (its own layout effect, inside the hook);
+  //  3. jump the card back to the overlay's place and spring it to rest. Before the browser paints, so the card never
+  //     shows in its slot for a frame first. No velocity (it would overshoot), and the promise is never awaited.
+  // A card that is not on screen (a collapsed lane, filtered out) or a commit without a drop does nothing. The animator
+  // follows whichever card was dropped last, drops its values when that node goes, and stops with the route.
+  const settleRef = useRef<HTMLElement | null>(null);
+  const settleFrom = useRef<{ x: number; y: number } | null>(null);
+  useLayoutEffect(() => {
+    const pending = pendingSettle.current;
+    if (!pending) return;
+    pendingSettle.current = null;
+    const node = getItemElement(pending.key);
+    if (!node) return;
+    const slot = node.getBoundingClientRect();
+    // The column body (or, in a swimlane, the lane's cell) clips the card, so a start beyond its edge would be cut off for
+    // the whole glide (./settle-offset.ts).
+    const body = node.closest(CLIPPING_BODY)?.getBoundingClientRect();
+    settleRef.current = node;
+    settleFrom.current = { x: settleStartX(pending.from.left - slot.left, slot, body), y: pending.from.top - slot.top };
+  });
+  const settle = useAnimator(settleRef);
+  useLayoutEffect(() => {
+    const offset = settleFrom.current;
+    if (!offset) return;
+    settleFrom.current = null;
+    settle.set({ x: offset.x, y: offset.y });
+    void settle.animate({ x: 0, y: 0 });
+  });
+
+  // The swimlanes strip is the element that scrolls the lanes: a lane opening or closing glides and the lanes below
+  // follow (`useAnimatedLayout`, docs/contracts/ui.md "Motion"). It is also the drag hook's outer scroller, so the
+  // ref is merged. The neighbour cards of a lane do not glide: only the lanes' own Collapsibles take the handle.
+  const lanesRef = useRef<HTMLElement | null>(null);
+  const lanesLayout = useAnimatedLayout({ containerRef: lanesRef });
+  const lanesScrollerRef = useMergedRefs<HTMLElement>(lanesRef, registerScroller);
 
   const moveToColumn = useCallback(
     (itemId: string, fromColumn: string, toColumn: string) => {
@@ -229,9 +295,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
     const visible = ids.map((id) => byId.get(id)).filter((item): item is WorkItem => item !== undefined && dragKey(container, item.id) !== drag?.id);
     const nodes: ReactNode[] = visible.map((item) =>
       isOptimisticId(item.id) ? (
-        <Card key={item.id} padding={3} className="tessera-board-card tessera-board-card-pending" aria-busy="true">
-          <BoardCardBody item={item} bundle={bundle} properties={display.properties} menu={<BoardCardMenuSlot />} />
-        </Card>
+        <PendingCard key={item.id} item={item} bundle={bundle} properties={display.properties} />
       ) : (
         <BoardCard
           key={item.id}
@@ -334,7 +398,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
           ))}
         </HStack>
       ) : (
-        <VStack gap={4} className="tessera-board-strip tessera-board-lanes" ref={registerScroller} aria-label="Board swimlanes">
+        <VStack gap={4} className="tessera-board-strip tessera-board-lanes" ref={lanesScrollerRef} aria-label="Board swimlanes">
           <HStack gap={4} className="tessera-board-lane-row tessera-board-heads" ref={trackHeadHeight}>
             {columns.map((column) => (
               <Card key={column.id} variant="muted" padding={3} width={COLUMN_WIDTH} className="tessera-board-column-head">
@@ -352,6 +416,7 @@ export function BoardLayout({ result, display, bundle, onMove, onOpen, onQuickAd
               chevronPosition="start"
               isOpen={!collapsedLanes.has(lane.id)}
               onOpenChange={(isOpen) => toggleLane(lane.id, isOpen)}
+              animatedLayout={lanesLayout}
               trigger={
                 <HStack gap={2} vAlign="center" className="tessera-board-lane-title">
                   <GroupTitle name={lane.name} color={lane.color} id={lane.id} field={display.sub_group_by} bundle={bundle} level={5} />

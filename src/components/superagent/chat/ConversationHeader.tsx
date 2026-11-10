@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The top of an open chat (decision 146; docs/contracts/ui.md "Superagent
+ * The top of an open chat (decision 152; docs/contracts/ui.md "Superagent
  * chat"): the work item's key and title, then the item's newest runner request
  * with its stage, cost, pull request and action buttons. Approve, Retry and
  * Lift hold run at once and report like the control screen's table; Stop,

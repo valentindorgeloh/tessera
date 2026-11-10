@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The three dialogs of a request's actions (decision 145; docs/contracts/ui.md
+ * The three dialogs of a request's actions (decision 151; docs/contracts/ui.md
  * "Superagent control"): Stop asks first because it is final, Resize picks S, M
  * or L, Budget sets the USD limit. The screen mounts one while it is open, so
  * each gives focus back to the row's menu when it unmounts. A failed call keeps

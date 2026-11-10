@@ -90,7 +90,7 @@ export function AnalyticsScreen({ tab, result, projects, filters, digest, today 
                   placeholder="All projects"
                   hasClear
                   hasSearch={options.length > 8}
-                  className="tessera-analytics-projects"
+                  controlClassName="tessera-analytics-projects"
                 />
                 <SegmentedControl
                   label="Range"

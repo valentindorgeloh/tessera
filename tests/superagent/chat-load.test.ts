@@ -1,5 +1,5 @@
 /**
- * `loadSuperagentChat` (src/lib/superagent/chat.ts, decision 146) over a seeded memory database and a stubbed
+ * `loadSuperagentChat` (src/lib/superagent/chat.ts, decision 152) over a seeded memory database and a stubbed
  * runner: Tessera answers first (so a runner failure is a state, not an error), request-only items are merged,
  * the newest request wins per item, the entries run description first with replies flattened in time order, and the
  * composer's reply target is found by `client_ref`, then by body. `server-only` and the engine's server entry are

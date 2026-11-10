@@ -65,7 +65,7 @@ export function loadProjectBundle(ctx: TesseraContext, projectId: string): Proje
     estimate: project.estimates_enabled ? getActiveEstimate(ctx, project.id) : null,
     intake_open: countOpenIntake(ctx, project.id),
     projects: listProjects(ctx, {}).map((row) => ({ id: row.id, name: row.name, identifier: row.identifier })),
-    // The repository the superagent works in for this project (decision 144); the detail's "Send to superagent" reads it.
+    // The repository the superagent works in for this project (decision 150); the detail's "Send to superagent" reads it.
     superagent_repo: agentRepoFor(getWorkspaceSettings(ctx).agents, project.id),
   };
 }

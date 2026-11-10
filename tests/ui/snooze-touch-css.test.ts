@@ -30,7 +30,7 @@ function rule(block: string, selector: string): string {
 
 describe("snooze dialog touch targets", () => {
   it("tags the field so the rules reach only this dialog", () => {
-    expect(dialog).toContain('className="tessera-snooze-field"');
+    expect(dialog).toContain('controlClassName="tessera-snooze-field"');
     expect(source).not.toMatch(/(^|\n)\.tessera-snooze-field/);
   });
 

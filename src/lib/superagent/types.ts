@@ -1,5 +1,5 @@
 /**
- * Client-safe types of the superagent control client (decision 145). The one
+ * Client-safe types of the superagent control client (decision 151). The one
  * module of `@/lib/superagent` that components and "use client" files may
  * import (eslint, `componentPatterns`): types from ./schemas and plain
  * constants only, no zod, no file system.
@@ -37,7 +37,7 @@ export type {
   TriageRow,
 } from "./schemas";
 
-/** Name of the actor the runner's MCP client writes as (decision 145; its client info name is `superagent`). */
+/** Name of the actor the runner's MCP client writes as (decision 151; its client info name is `superagent`). */
 export const SUPERAGENT_ACTOR_NAME = "mcp:superagent";
 
 /** Why a runner call failed, as a state the screen can word. Never a thrown error. */
@@ -79,7 +79,7 @@ export type SuperagentLoad = {
   request: RunnerResult<RequestDetail> | null;
 };
 
-/** The chat screen's route (decision 146); `/agents/superagent/chat/<itemKey>` opens one conversation. */
+/** The chat screen's route (decision 152); `/agents/superagent/chat/<itemKey>` opens one conversation. */
 export const SUPERAGENT_CHAT_PATH = "/agents/superagent/chat";
 
 /** A live mapped project, with the repository the superagent works in for it. */

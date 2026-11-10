@@ -39,7 +39,8 @@ export function stubRects(table: Record<string, Box> | ((el: Element) => Box | n
   };
 }
 
-function pointerEvent(type: string, x: number, y: number, target: EventTarget): void {
+/** One pointer event with a pointer id, as a browser sends it (Astryx's global press listener pairs a release with its press by that id). */
+export function pointerEvent(type: string, x: number, y: number, target: EventTarget): void {
   const init = { bubbles: true, cancelable: true, button: 0, clientX: x, clientY: y, pointerId: 1 };
   const event = typeof PointerEvent === "function" ? new PointerEvent(type, init) : new MouseEvent(type, init);
   if (!("pointerId" in event)) Object.defineProperty(event, "pointerId", { value: 1 });

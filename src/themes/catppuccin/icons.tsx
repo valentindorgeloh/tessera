@@ -43,6 +43,7 @@ import {
   Wrench,
   X,
   XCircle,
+  UploadSimple,
   // Lane C (work items): priority glyphs, display menu, property and project logo icons.
   ArrowsClockwise,
   ArrowsOutLineHorizontal,
@@ -75,7 +76,7 @@ import {
   User,
   UserCircle,
   Users,
-  // Colour scheme menu (top bar account menu).
+  // Colour scheme menu (top bar).
   Monitor,
   Moon,
   Sun,
@@ -229,6 +230,7 @@ export const catppuccinIconRegistry: IconRegistry = {
   wrench: glyph(Wrench),
   stop: glyph(Stop),
   microphone: glyph(Microphone),
+  upload: glyph(UploadSimple),
 };
 
 // Tessera work items (lane C): priority glyphs, display menu and property icons.

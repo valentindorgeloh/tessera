@@ -154,7 +154,7 @@ export function ViewsScreen({ projectId, views, counts, createOnOpen: createRequ
                     hasClear
                     value={search}
                     onChange={setSearch}
-                    className="tessera-views-search"
+                    controlClassName="tessera-views-search"
                   />
                   {describeButton}
                   {newButton}

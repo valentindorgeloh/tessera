@@ -36,31 +36,44 @@ const peek = { id: ITEM, data: { item: { id: ITEM, project_id: PROJECT } } } as 
 
 /** The width the faked layout gives every element (the panel's container reads it). */
 const layout = { width: 400 };
-/** The callbacks of the ResizeObservers the page created (jsdom has none): calling one is a resize. */
+/** The ResizeObservers the page created (jsdom has none): calling one is a resize of everything it observes. */
 const observers = new Set<() => void>();
 let container: HTMLElement | null = null;
 let root: Root | null = null;
 
-beforeAll(() => {
+beforeAll(async () => {
+  // PeekHost pulls in Astryx's Layout and the stack around it: a cold import takes about 3 s alone and over 5 s beside the
+  // other jsdom files of a full run, which timed out the first test and left its half-mounted tree to fail the ten after it.
+  // Loading it here, under the hook's own limit, keeps the import out of every test's 5 s.
+  await import("@/components/detail/PeekHost");
+  await import("@/components/detail/peek-prefs");
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   window.scrollTo = () => {};
+  // Astryx 0.7 routes its own measuring (Text truncation, overflow) through one shared observer that
+  // iterates the entries it is called with, so a resize hands over an entry per observed element, as a browser does.
   globalThis.ResizeObserver = class {
-    private readonly callback: () => void;
-    constructor(callback: () => void) {
+    private readonly callback: ResizeObserverCallback;
+    private readonly targets = new Set<Element>();
+    private readonly fire = () => this.callback([...this.targets].map((target) => ({ target }) as ResizeObserverEntry), this);
+    constructor(callback: ResizeObserverCallback) {
       this.callback = callback;
     }
-    observe() {
-      observers.add(this.callback);
+    observe(target: Element) {
+      this.targets.add(target);
+      observers.add(this.fire);
     }
-    unobserve() {}
+    unobserve(target: Element) {
+      this.targets.delete(target);
+    }
     disconnect() {
-      observers.delete(this.callback);
+      this.targets.clear();
+      observers.delete(this.fire);
     }
   } as unknown as typeof ResizeObserver;
   Element.prototype.getBoundingClientRect = function getBoundingClientRect() {
     return { x: 0, y: 0, top: 0, left: 0, right: layout.width, bottom: 0, width: layout.width, height: 0, toJSON: () => ({}) };
   };
-});
+}, 60_000);
 
 afterEach(async () => {
   await act(async () => root?.unmount());

@@ -1,5 +1,5 @@
 /**
- * The pure helpers behind the Superagent screen (decision 145; docs/contracts/ui.md
+ * The pure helpers behind the Superagent screen (decision 151; docs/contracts/ui.md
  * "Superagent control", "Shared helpers"): money, stage variants and order,
  * actions, the words of every runner failure, and the small texts of the
  * sections. The fixtures are the same files the fake runner serves.

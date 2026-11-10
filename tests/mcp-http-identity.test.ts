@@ -1,5 +1,5 @@
 /**
- * HTTP identity contract (decision 145): the real `/api/mcp` route, driven by
+ * HTTP identity contract (decision 151): the real `/api/mcp` route, driven by
  * `@modelcontextprotocol/client` 2.3.1 over Streamable HTTP with the client
  * name `superagent`, writes as the agent `mcp:superagent`. The route is
  * stateless (a fresh McpServer per request), so the client must pin protocol

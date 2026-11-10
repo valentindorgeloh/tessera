@@ -5,6 +5,15 @@
  * 38). `useAssistant` is what Power K Ask calls. The transcript lives in
  * sessionStorage; the panel's open flag and width live in localStorage.
  * Apply of a destructive proposal waits for ConfirmApplyDialog.
+ *
+ * The panel slides in and out (docs/contracts/ui.md "Motion"). An open after the
+ * stored state loaded slides in (`enters`; the stored open state that comes back
+ * after a reload does not). `close` runs the CSS exit on the panel's element
+ * (`setPanelElement`, the ref AssistantPanel gives its panel) and closes when it ends: the exit is the
+ * provider's closing flag (`exit`), `isOpen` stays true until then so the shell
+ * keeps the panel mounted, a second close does nothing, and a toggle, an open or
+ * an ask during the exit takes it back at once. With no panel element, or under
+ * Reduce Motion, it closes at once.
  */
 import { createContext, Suspense, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -14,6 +23,7 @@ import { z } from "zod";
 import { applyProposalsAction, discardProposalsAction } from "@/app/actions/ai";
 import { ProposalViewSchema } from "@/lib/tessera/schemas";
 import type { AiStatus, AssistantScope, ProposalView } from "@/lib/tessera/types";
+import { ignoreCancelled, playExit } from "@/components/motion/play-exit";
 import { scopeFromLocation } from "./assistant-scope";
 import {
   emptyConversation,
@@ -47,6 +57,10 @@ export type AssistantController = AssistantValue & {
   scope: AssistantScope;
   width: number;
   panelLoaded: boolean;
+  /** True when the panel was opened after the stored state loaded: AssistantPanel slides in then (not for the stored open state of a reload). */
+  enters: boolean;
+  /** A ref callback for the panel's element, for the exit `close` plays on it (AssistantPanel hands it to its LayoutPanel). */
+  setPanelElement: (element: HTMLDivElement | null) => void;
   setWidth: (width: number) => void;
   composerError: { type: "error"; message: string } | null;
   stop: () => void;
@@ -67,10 +81,10 @@ function currentScope(): AssistantScope {
   return scopeFromLocation(window.location.pathname, new URLSearchParams(window.location.search));
 }
 
-type PanelSnapshot = { open: boolean; width: number; loaded: boolean };
+type PanelSnapshot = { open: boolean; width: number; loaded: boolean; enters: boolean };
 
 const SERVER_TRANSCRIPT: Conversation = emptyConversation();
-const SERVER_PANEL: PanelSnapshot = { open: false, width: DEFAULT_PANEL_WIDTH, loaded: false };
+const SERVER_PANEL: PanelSnapshot = { open: false, width: DEFAULT_PANEL_WIDTH, loaded: false, enters: false };
 
 let liveTranscript: Conversation = SERVER_TRANSCRIPT;
 let livePanel: PanelSnapshot = SERVER_PANEL;
@@ -93,7 +107,7 @@ function loadStoredAssistant() {
   const stored = readTranscript(window.sessionStorage);
   const prefs = readPanelPrefs(window.localStorage);
   liveTranscript = stored ?? SERVER_TRANSCRIPT;
-  livePanel = { open: prefs.open, width: prefs.width, loaded: true };
+  livePanel = { open: prefs.open, width: prefs.width, loaded: true, enters: false };
   emitStore();
 }
 
@@ -105,7 +119,9 @@ function commitTranscript(next: Conversation) {
 
 function commitPanel(open: boolean, width: number) {
   const loaded = livePanel.loaded;
-  livePanel = { open, width, loaded };
+  // An open that was not there before slides in; a panel that stays open keeps how it came; a closed one has nothing to enter.
+  const enters = open && (livePanel.open ? livePanel.enters : true);
+  livePanel = { open, width, loaded, enters };
   if (loaded) writePanelPrefs(window.localStorage, { open, width });
   emitStore();
 }
@@ -150,6 +166,12 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const panel = useSyncExternalStore(subscribeStore, () => livePanel, () => SERVER_PANEL);
   const abortRef = useRef<AbortController | null>(null);
   const generationRef = useRef(0);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const setPanelElement = useCallback((element: HTMLDivElement | null) => {
+    panelRef.current = element;
+  }, []);
+  /** The running close: set from the start of the exit until it ends or is taken back. */
+  const exit = useRef<AbortController | null>(null);
   const [scope, setScope] = useState<AssistantScope>({});
   const [composerError, setComposerError] = useState<{ type: "error"; message: string } | null>(null);
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(new Set());
@@ -193,8 +215,34 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     commitPanel(livePanel.open, next);
   }, []);
 
+  /** Takes a running close back: the panel shows as it is and stays open. True when there was one. */
+  const cancelExit = useCallback((): boolean => {
+    const running = exit.current;
+    if (running === null) return false;
+    exit.current = null;
+    running.abort();
+    return true;
+  }, []);
+
   const close = useCallback(() => {
-    commitPanel(false, livePanel.width);
+    if (!livePanel.open || exit.current !== null) return;
+    const element = panelRef.current;
+    if (element === null) {
+      commitPanel(false, livePanel.width);
+      return;
+    }
+    const controller = new AbortController();
+    exit.current = controller;
+    const finished = () => {
+      if (exit.current !== controller) return;
+      exit.current = null;
+      commitPanel(false, livePanel.width);
+    };
+    // A cancelled exit (taken back, or the panel unmounted) closes nothing.
+    playExit(element, { signal: controller.signal }).then(finished, (error: unknown) => {
+      if (exit.current === controller) exit.current = null;
+      ignoreCancelled(error);
+    });
   }, []);
 
   const open = useCallback(() => {
@@ -202,13 +250,24 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       refresh();
       return;
     }
+    cancelExit();
     commitPanel(true, livePanel.width);
-  }, [refresh, status]);
+  }, [cancelExit, refresh, status]);
 
   const toggle = useCallback(() => {
+    // A toggle while the panel is leaving reopens it at once.
+    if (cancelExit()) return;
     if (livePanel.open) close();
     else open();
-  }, [close, open]);
+  }, [cancelExit, close, open]);
+
+  // The provider goes (the shell unmounts): a running exit is cancelled and closes nothing.
+  useEffect(
+    () => () => {
+      exit.current?.abort();
+    },
+    [],
+  );
 
   const stop = useCallback(() => {
     generationRef.current += 1;
@@ -230,6 +289,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     (text: string) => {
       const trimmed = text.trim();
       if (trimmed === "" || status?.available !== true) return;
+      cancelExit();
       commitPanel(true, livePanel.width);
       setComposerError(null);
       const conversationId = liveTranscript.id || crypto.randomUUID();
@@ -255,7 +315,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         update({ type: "event", event });
       });
     },
-    [rememberScope, status, toast, update],
+    [cancelExit, rememberScope, status, toast, update],
   );
 
   const releaseBusy = useCallback((ids: readonly string[]) => {
@@ -386,6 +446,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     scope,
     width: panel.width,
     panelLoaded: panel.loaded,
+    enters: panel.enters,
+    setPanelElement,
     setWidth,
     composerError,
     stop,

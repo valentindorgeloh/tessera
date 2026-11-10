@@ -129,8 +129,10 @@ describe("the lazy detail", () => {
     preloadPeekDetail();
     await release();
     preloadPeekDetail();
+    // Settling the preload's imports (release() above) takes about 2.7 s alone and over 5 s beside the other jsdom files
+    // of a full run, so this case gets its own limit.
     await vi.dynamicImportSettled();
-  });
+  }, 30_000);
 });
 
 type Listener = (event: Event) => void;

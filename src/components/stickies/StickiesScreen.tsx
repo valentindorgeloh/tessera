@@ -157,7 +157,7 @@ export function StickiesScreen({ stickies, q }: StickiesScreenProps) {
                   placeholder="Search notes"
                   startIcon={SearchIcon}
                   hasClear
-                  className="tessera-stickies-search"
+                  controlClassName="tessera-stickies-search"
                 />
                 <Button variant="primary" size="sm" label="New sticky" icon={<PlusIcon />} onClick={create} isLoading={isCreating} />
               </HStack>

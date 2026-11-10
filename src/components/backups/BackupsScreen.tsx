@@ -9,6 +9,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { useAnnounce } from "@astryxdesign/core/hooks";
 import { Switch } from "@astryxdesign/core/Switch";
 import { Table, type TableColumn } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
@@ -17,6 +18,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { createBackupAction } from "@/app/actions/maintenance";
 import { updateWorkspaceSettingsAction } from "@/app/actions/workspace-settings";
 import { RelativeTime } from "@/components/detail/RelativeTime";
+import { EntryBanner } from "@/components/shared/EntryBanner";
 import { WorkspaceSettingsChrome } from "@/components/workspace-settings/WorkspaceSettingsChrome";
 import {
   BACKUPS_FULL_WIDTH,
@@ -30,6 +32,9 @@ import { useNarrowContainer } from "@/components/workspace-settings/use-narrow-c
 import type { BackupFile } from "@/lib/tessera/types";
 import { BackupIcon } from "@/themes/catppuccin/icons";
 import { autoBackupStale, BACKUP_KIND_LABEL, formatBackupSize } from "./backup-format";
+
+const STALE_TITLE = "No recent automatic backup";
+const STALE_DESCRIPTION = "The last automatic backup is older than 48 hours, or none exists yet.";
 
 export type BackupsScreenProps = {
   backups: BackupFile[];
@@ -49,7 +54,10 @@ type Row = {
 
 export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) {
   const toast = useToast();
+  const announce = useAnnounce();
   const [enabled, setEnabled] = useState(autoBackup);
+  // The stale banner is page content when the screen mounts with it, and slides in only when the switch brings it in (decided by the event, not by the render).
+  const [brought, setBrought] = useState(false);
   const [isSaving, startSave] = useTransition();
   const [isBackingUp, startBackup] = useTransition();
 
@@ -70,6 +78,7 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
 
   const toggleDaily = (value: boolean) => {
     setEnabled(value);
+    if (value) setBrought(true);
     startSave(async () => {
       const result = await updateWorkspaceSettingsAction({ auto_backup: value });
       if (!result.ok) {
@@ -78,6 +87,8 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
         return;
       }
       toast({ type: "info", body: value ? "Daily backups on" : "Daily backups off" });
+      // Turning daily backups on is what shows the stale warning below, so it is told here, in answer to the switch: a page that loads with the warning has it as plain content.
+      if (value && autoBackupStale(lastAuto, now)) announce(`${STALE_TITLE}. ${STALE_DESCRIPTION}`);
     });
   };
 
@@ -157,11 +168,11 @@ export function BackupsScreen({ backups, autoBackup, now }: BackupsScreenProps) 
           </Text>
         </VStack>
         {stale ? (
-          <Banner
-            status="warning"
-            title="No recent automatic backup"
-            description="The last automatic backup is older than 48 hours, or none exists yet."
-          />
+          brought ? (
+            <EntryBanner status="warning" title={STALE_TITLE} description={STALE_DESCRIPTION} />
+          ) : (
+            <Banner status="warning" title={STALE_TITLE} description={STALE_DESCRIPTION} />
+          )
         ) : null}
         {backups.length === 0 ? (
           <EmptyState

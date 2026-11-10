@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * One message of a chat (decision 146; docs/contracts/ui.md "Superagent chat"):
+ * One message of a chat (decision 152; docs/contracts/ui.md "Superagent chat"):
  * a work item's description or a comment, as a bubble. Yours sit on the right;
  * the superagent's and everyone else's on the left with their avatar and name.
  * The body is the comment renderer (read-only Markdown), so mentions and

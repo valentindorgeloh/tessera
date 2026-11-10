@@ -1,5 +1,5 @@
 /**
- * zod mirrors of the superagent runner's API contract v1 (decision 145;
+ * zod mirrors of the superagent runner's API contract v1 (decision 151;
  * docs/contracts/ui.md "Superagent control"; the runner's own schemas in
  * `tessera-agents` stay the source of truth). Objects are plain `z.object`, so
  * unknown keys are stripped and an additive runner field never breaks the

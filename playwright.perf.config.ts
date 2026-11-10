@@ -44,6 +44,9 @@ export default defineConfig({
     actionTimeout: 15_000,
     navigationTimeout: 120_000,
     ...devices["Desktop Chrome"],
+    // Explicit, and the same as playwright.config.ts: no animation runs during a measurement, so the
+    // budgets (docs/as-built/hardening.md section 7) stay comparable with the runs before motion existed.
+    reducedMotion: "reduce",
   },
   webServer: {
     command: `env -u TESSERA_DB_PATH npx tsx scripts/perf-seed.ts --db ${JSON.stringify(PERF_DB)} && npx next start -H 127.0.0.1 -p ${PORT}`,

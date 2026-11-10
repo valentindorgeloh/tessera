@@ -1,6 +1,6 @@
 /**
  * Pure helpers of the superagent settings and team-section forms (decision
- * 144 and 145; docs/contracts/ui.md "Screen /agents/superagent" items 5 and
+ * 150 and 151; docs/contracts/ui.md "Screen /agents/superagent" items 5 and
  * 6). No React and no Astryx, so Vitest reaches them.
  */
 import type { RunnerFailure, TeamSection } from "@/lib/superagent/types";

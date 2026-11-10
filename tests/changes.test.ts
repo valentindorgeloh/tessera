@@ -155,7 +155,7 @@ describe("listChanges", () => {
     expect(errorCode(() => listChanges(ctx, 1.5))).toBe("VALIDATION");
   });
 
-  it("returns latest_seq, the newest seq in the log, next to the cursor (decision 145)", () => {
+  it("returns latest_seq, the newest seq in the log, next to the cursor (decision 151)", () => {
     const { ctx, project } = setup();
     expect(listChanges(ctx, 0).latest_seq).toBe(latestSeq(ctx));
     const since = latestSeq(ctx);

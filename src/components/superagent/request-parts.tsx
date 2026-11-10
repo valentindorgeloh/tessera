@@ -2,7 +2,7 @@
 
 /**
  * Small pieces the requests table and the History section share (decision
- * 145): a stage as a dot and its label, and a pull request as an external link.
+ * 151): a stage as a dot and its label, and a pull request as an external link.
  */
 import type { MouseEvent } from "react";
 import { HStack, VStack } from "@astryxdesign/core/Stack";

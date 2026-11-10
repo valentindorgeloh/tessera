@@ -129,10 +129,11 @@ describe("the baseline file", () => {
     const committed = readBaseline(path.join(__dirname, "..", "scripts", "bundle-baseline.json"));
     expect(committed.tolerance).toBe(0.05);
     // The list routes' first load without the editor stack (decision 142): above this, the static import is back.
-    const ceiling = 700 * 1024;
+    // Reset for Astryx 0.7.11, whose motion engine added about 200 KB; the editor still adds about 175 KB on top.
+    const ceiling = 920 * 1024;
     for (const route of ["/projects/[projectId]/work-items", "/projects/[projectId]/views/[viewId]", "/projects/[projectId]/modules/[moduleId]", "/projects/[projectId]/archives/work-items"]) {
       expect(committed.routes[route], route).toBeLessThan(ceiling);
     }
-    expect(committed.routes["/projects/[projectId]/cycles/[cycleId]"]).toBeLessThan(830 * 1024);
+    expect(committed.routes["/projects/[projectId]/cycles/[cycleId]"]).toBeLessThan(1040 * 1024);
   });
 });
