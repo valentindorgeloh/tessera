@@ -343,6 +343,68 @@ describe("collapsed groups", () => {
     }
   });
 
+  /** The list with the scroller's glide handle, as WorkItemsScreen makes it (jsdom has no layout, so nothing glides). */
+  async function renderGliding(groupCount: number, perGroup: number) {
+    const { result, display } = grouped(groupCount, perGroup);
+    const { useAnimatedLayout } = await import("@astryxdesign/core/hooks");
+    const { useRef } = await import("react");
+    function Gliding() {
+      const containerRef = useRef<HTMLElement | null>(null);
+      const animatedLayout = useAnimatedLayout({ containerRef });
+      return createElement(ListLayout, layoutProps({ result, display, animatedLayout }));
+    }
+    return render(createElement(ProjectProvider, { bundle } as ComponentProps<typeof ProjectProvider>, createElement(Gliding)));
+  }
+
+  /** matchMedia answering `true` for the listed queries only. */
+  function mediaMatching(...queries: string[]) {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: queries.includes(query),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }));
+  }
+
+  const hasFirstGroupRows = (el: HTMLElement) => rows(el).some((row) => row.textContent?.includes("Item g0-"));
+
+  it("drop a closing group's rows at once in a windowed list, which has no glide (docs/contracts/ui.md \"Motion\")", async () => {
+    // 100 rows: above VIRTUAL_LIST_MIN, so ListLayout gives the Collapsibles no handle and nothing is held.
+    const el = await renderGliding(2, 50);
+    expect(hasFirstGroupRows(el)).toBe(true);
+    await collapseFirst(el);
+    expect(hasFirstGroupRows(el), "gone in the commit of the close").toBe(false);
+    expect(rows(el).length).toBeGreaterThan(0);
+  });
+
+  it("hold a closing group's rows under Reduce Motion with a coarse pointer, where Astryx cross-fades the body", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      mediaMatching("(prefers-reduced-motion: reduce)", "(pointer: coarse)");
+      const el = await renderGliding(2, 3);
+      await collapseFirst(el);
+      expect(hasFirstGroupRows(el), "held while the cross-fade runs").toBe(true);
+      await act(async () => {
+        vi.advanceTimersByTime(450);
+      });
+      expect(hasFirstGroupRows(el), "gone once the hold ends").toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("drop a closing group's rows at once under Reduce Motion with a fine pointer, where Astryx plays no exit", async () => {
+    mediaMatching("(prefers-reduced-motion: reduce)");
+    const el = await renderGliding(2, 3);
+    await collapseFirst(el);
+    expect(hasFirstGroupRows(el)).toBe(false);
+    expect(rows(el)).toHaveLength(3);
+  });
+
   it("mount no rows above the threshold", async () => {
     const { result, display } = grouped(2, 50);
     const el = await render(tree(layoutProps({ result, display })));

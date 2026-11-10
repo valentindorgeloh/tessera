@@ -5,8 +5,8 @@
  * read project data through `useProjectRow()` (decision 141), and the lean `buildColumns` that renders them. The
  * columns depend only on the display properties, the project column, the read-only flag, whether estimates are on
  * and the screen's stable handlers, so they keep their identity across a refresh, and a row that Astryx re-renders
- * (a range change shifts every rendered row's index, `BaseTable.js:196`) bails out in each cell whose item did not
- * change.
+ * (a range change shifts every rendered row's index, compared while a plugin has `transformBodyRow`,
+ * `Table/BaseTable.js:199` in 0.7.11) bails out in each cell whose item did not change.
  */
 import { memo } from "react";
 import { Button } from "@astryxdesign/core/Button";

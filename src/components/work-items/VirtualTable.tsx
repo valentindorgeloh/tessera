@@ -8,7 +8,8 @@
  * to the scroll padding (`useAnchorHead`).
  *
  * Only this component re-renders on a range change, not TableLayout. Astryx re-renders every rendered row then (its
- * `rowIndex` shifts, `BaseTable.js:196`); the memo cells (table-cells.tsx) keep that shallow.
+ * `rowIndex` shifts, and 0.7.11 compares it because our plugins have `transformBodyRow`, `Table/BaseTable.js:199`);
+ * the memo cells (table-cells.tsx) keep that shallow.
  */
 import { useCallback, useMemo, type KeyboardEvent, type ReactNode } from "react";
 import { Table, type TableColumn, type TablePlugin } from "@astryxdesign/core/Table";

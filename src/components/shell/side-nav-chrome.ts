@@ -16,7 +16,7 @@ import type { CSSProperties } from "react";
 import type { SideNavProps } from "@astryxdesign/core/SideNav";
 import { useSideNavRenderMode, type SideNavCollapsibleConfig } from "@astryxdesign/core/SideNav";
 import { cssVars } from "@/components/shared/css-vars";
-import { isRailShown, useNavOpen, useNavPrefs, type NavPrefs, type NavRail } from "./nav-prefs";
+import { isRailShown, useNavMountEpoch, useNavOpen, useNavPrefs, type NavPrefs, type NavRail } from "./nav-prefs";
 import { useSidebarResize } from "./Sidebar";
 import { useShell } from "./TesseraShell";
 
@@ -91,4 +91,15 @@ export function useSideNavChrome(): SideNavChrome {
     resizable: resize.resizable,
     onCollapsedChange: (collapsed) => setNavCollapsed(collapsed, { animate: false }),
   });
+}
+
+/**
+ * The SideNav's `key`: the stored width's key (`useSidebarResize`) and the remount counter (`useNavMountEpoch`), so a
+ * dock change from or to a rail, or a change from another tab, mounts a new SideNav instead of playing Astryx's rail
+ * motion (`remountsSideNav` in nav-prefs.ts). `Sidebar` and `SidebarSkeleton` both use it.
+ */
+export function useSideNavKey(): string {
+  const resize = useSidebarResize();
+  const epoch = useNavMountEpoch();
+  return `${resize.key}.${epoch}`;
 }

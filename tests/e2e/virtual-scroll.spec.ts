@@ -403,6 +403,94 @@ test.describe("list", () => {
       await settle(page, 300);
       expect(await scroller.locator(".tessera-wi-row").count()).toBeLessThanOrEqual(MAX_RENDERED.list);
     });
+
+    test.describe("with motion on", () => {
+      // The suite runs with Reduce Motion (playwright.config.ts). A windowed list has no group glide (docs/contracts/ui.md
+      // "Motion", ListLayout passes no `animatedLayout` while windowed): the rows below a closing group fill the window in
+      // the store's next measuring frame, and no row of the window (kept rows included) ever runs an animation of its own.
+      test.use({ reducedMotion: "no-preference" });
+
+      type MotionFrame = { t: number; shown: number; animatedRows: number; moves: number };
+
+      test("collapsing a group plays no glide: rows are back within 100 ms, nothing moves, and rows a scroll mounts meanwhile do not animate", async ({ page }) => {
+        await openGrouped(page, project.id, "list");
+        const scroller = visibleScroller(page);
+        // The second group's band 200 px below the top, and its first row focused: the scroll below leaves it a kept row.
+        const bandAt = await scroller.evaluate((el) => {
+          const band = el.querySelectorAll(".tessera-wi-group")[1]!.querySelector(".astryx-collapsible-trigger")!;
+          return band.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop;
+        });
+        await setScrollTop(scroller, bandAt - 200, page);
+        await scroller.locator(".tessera-wi-group").nth(1).locator(".tessera-wi-open").first().focus();
+        const frames = await scroller.evaluate(
+          (el) =>
+            new Promise<MotionFrame[]>((resolve) => {
+              // The band's chevron turns on its own; anything else that moves would be a glide.
+              const moving = (a: Animation) =>
+                a.playState === "running" &&
+                !((a.effect as KeyframeEffect | null)?.target as Element | null)?.closest(".astryx-collapsible-trigger") &&
+                ((a.effect as KeyframeEffect | null)?.getKeyframes() ?? []).some((f) => "translate" in f || "transform" in f || "clipPath" in f);
+              const read = (t: number): MotionFrame => {
+                const box = el.getBoundingClientRect();
+                const rows = [...el.querySelectorAll<HTMLElement>(".tessera-wi-row")];
+                const shown = rows.filter((row) => {
+                  const b = row.getBoundingClientRect();
+                  return b.bottom > box.top + 60 && b.top < box.bottom;
+                }).length;
+                return {
+                  t,
+                  shown,
+                  animatedRows: rows.filter((row) => row.getAnimations().some((a) => a.playState === "running")).length,
+                  moves: el.getAnimations({ subtree: true }).filter(moving).length,
+                };
+              };
+              (el.querySelector(".tessera-wi-group .astryx-collapsible-trigger") as HTMLElement).click();
+              const start = performance.now();
+              const out: MotionFrame[] = [read(0)];
+              let scrolled = false;
+              const tick = () => {
+                const t = performance.now() - start;
+                out.push(read(t));
+                // Within the 280 ms a glide would take: a scroll that mounts new rows.
+                if (!scrolled && t > 80) {
+                  scrolled = true;
+                  el.scrollTop += 1200;
+                }
+                if (t >= 700) resolve(out);
+                else requestAnimationFrame(tick);
+              };
+              requestAnimationFrame(tick);
+            }),
+        );
+        const summary = frames.map((frame) => `${Math.round(frame.t)}:${frame.shown}/${frame.animatedRows}/${frame.moves}`).join(" ");
+        // The window catches up with the jump in the store's next measuring frame (as under Reduce Motion); a glide kept
+        // the scroller empty for several frames and filled it over its 280 ms.
+        const blank = frames.filter((frame) => frame.shown === 0);
+        expect(blank.length, `frames with no row on screen (t:shown/animated/moves) ${summary}`).toBeLessThanOrEqual(2);
+        expect(blank.every((frame) => frame.t < 100), `rows show again within 100 ms ${summary}`).toBe(true);
+        expect(Math.max(...frames.map((frame) => frame.animatedRows)), `rows with an animation of their own ${summary}`).toBe(0);
+        expect(Math.max(...frames.map((frame) => frame.moves)), `moves in the scroller ${summary}`).toBe(0);
+        await expect(scroller.locator(".tessera-virtual-kept"), "the focused row, scrolled away, is kept").toHaveCount(1);
+
+        // Settled: in each group the rendered window rows sit edge to edge, none overlaps, none leaves a gap.
+        await settle(page, 300);
+        const groups = await scroller.evaluate((el) =>
+          [...el.querySelectorAll(".tessera-wi-group")].map((group) =>
+            [...group.querySelectorAll(".tessera-wi-row:not(.tessera-virtual-kept)")].map((row) => {
+              const b = row.getBoundingClientRect();
+              return { top: b.top, bottom: b.bottom };
+            }),
+          ),
+        );
+        expect(groups.flat().length, "rendered rows after the collapse").toBeGreaterThan(5);
+        groups.forEach((boxes, g) => {
+          expectNoOverlap(boxes, `group ${g} after the collapse`);
+          for (let i = 1; i < boxes.length; i += 1) {
+            expect(boxes[i]!.top - boxes[i - 1]!.bottom, `group ${g}: row ${i} follows the previous one with no gap`).toBeLessThanOrEqual(1);
+          }
+        });
+      });
+    });
   });
 
   test.describe("keyboard", () => {

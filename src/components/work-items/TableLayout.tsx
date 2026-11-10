@@ -258,7 +258,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
   );
 
   // Insertion order is the plugin order: the grouped plugin runs after the open handler so its header rows win.
-  // Memoised over the instances (Astryx compares `plugins` by reference in its row memo, `BaseTable.js:192-240`).
+  // Memoised over the instances (Astryx compares `plugins` by reference in its row memo, `areRowPropsEqual`, `Table/BaseTable.js:195-241` in 0.7.11).
   const hasSelection = selection !== undefined;
   // Only while grouped: the grouped plugin is rebuilt with its header renderer, which an ungrouped table never uses.
   const groupedPlugin = grouped ? groupedRows.plugin : null;

@@ -15,6 +15,7 @@ import {
   getNavOpen,
   getNavPrefs,
   isRailShown,
+  navChangeMotion,
   navViewPatch,
   setNavOpenFlag,
   setNavPrefs,
@@ -132,14 +133,15 @@ function focusTarget(target: NavFocusTarget): HTMLElement | null {
 }
 
 /**
- * Applies a sidebar preference change with its motion (decisions 132 and 133). A change that collapses or expands
- * Astryx's SideNav (its `isCollapsed` flips: Full ↔ a rail while docked, or a docked rail ↔ the floating Full panel)
- * plays Astryx's own rail motion (0.7.5+: the rail and the content beside it glide), so it only sets the store.
- * Every other change (Icons only ↔ Icons and labels, docked Full ↔ floating) is one Astryx does not animate:
- * `withWidthMotion` animates the panel's width.
+ * Applies a sidebar preference change with its motion (decisions 132, 133 and 145; `navChangeMotion` in nav-prefs.ts).
+ * A docked collapse or expand (Full ↔ a rail) plays Astryx's own rail motion (0.7.5+: the rail and the content beside
+ * it glide), so it only sets the store. Every other change is one Astryx does not animate, and `withWidthMotion`
+ * animates the panel's width: Icons only ↔ Icons and labels, and docking or undocking from any view. A dock change
+ * from or to a rail flips SideNav's `isCollapsed` too (the floating panel is always Full), so it remounts the SideNav
+ * (`remountsSideNav`): Astryx plays no rail motion for it, and the width motion is the only one.
  */
 function applyNavChange(change: () => void, after: NavPrefs, options?: { animate?: boolean }) {
-  if (options?.animate === false || isRailShown(getNavPrefs()) !== isRailShown(after)) change();
+  if (options?.animate === false || navChangeMotion(getNavPrefs(), after) === "rail") change();
   else withWidthMotion(sideNavPanel(), change);
 }
 

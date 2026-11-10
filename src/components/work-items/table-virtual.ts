@@ -11,9 +11,10 @@ import { spacerRowStyle, type VirtualRow } from "@/components/virtual/use-virtua
 import { tableSegments } from "@/components/virtual/virtual-math";
 
 /*
- * A plain string key, not a Symbol: Astryx's row memo compares a new row object with the previous one by its
- * `Object.keys` (`BaseTable.js:224-239`), so a spacer that keeps its id and position but changes its height must
- * change an enumerable field, or the row keeps its old height. A grouped header Proxy reads it as "" (no number).
+ * A plain string key, not a Symbol: Astryx's row memo (`areRowPropsEqual`, `Table/BaseTable.js:195-241` in 0.7.11)
+ * compares a new row object with the previous one by its `Object.keys` (their count first, then each value), so a
+ * spacer that keeps its id and position but changes its height must change an enumerable field, or the row keeps its
+ * old height. A grouped header Proxy reads it as "" (no number).
  */
 const SPACER = "tesseraSpacerHeight";
 

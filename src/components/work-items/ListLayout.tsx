@@ -450,7 +450,11 @@ export function ListLayout({
   onClearFilters,
   animatedLayout,
 }: LayoutProps & {
-  /** From WorkItemsScreen, bound to the element that scrolls the list; the groups pass it to their Collapsible. */
+  /**
+   * From WorkItemsScreen, bound to the element that scrolls the list; the groups pass it to their Collapsible while the
+   * list is not windowed. A windowed list has no glide (docs/contracts/ui.md "Motion"): a closing group's held rows
+   * cannot fill the window, so the groups below showed a blank scroller for a few frames.
+   */
   animatedLayout?: AnimatedLayout;
 }) {
   const itemsById = useMemo(() => new Map(result.items.map((item) => [item.id, item])), [result.items]);
@@ -541,7 +545,7 @@ export function ListLayout({
             canQuickAdd={canQuickAdd}
             readOnly={readOnly}
             selection={selection}
-            animatedLayout={animatedLayout}
+            animatedLayout={isVirtual ? undefined : animatedLayout}
             more={
               group.has_more && onLoadMore
                 ? { loaded: group.item_ids.length, total: group.count, isLoading: isLoadingMore?.(groupLimitKey(group.id)) ?? false, onLoadMore: () => onLoadMore(group.id) }

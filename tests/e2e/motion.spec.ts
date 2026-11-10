@@ -7,7 +7,8 @@ import { visibleScroller, visibleScrollerSource } from "./helpers-p12";
 
 /**
  * Sidebar and peek motion with the virtual lists (decisions 132–133 and docs/contracts/ui.md "Motion"): Astryx's rail
- * motion for a collapse or an expand and our panel width motion for the rail kind switch, the peek's slide and its
+ * motion for a collapse or an expand and our panel width motion for the rail kind switch and for docking and undocking
+ * a rail, the peek's slide and its
  * guarded close (an exit that holds the panel inert while the URL drops the item, a double Escape that closes once, a
  * close that never pulls the page back, focus back on the row), the layout and zoom fade, and the floating panel's
  * transition, each also under `prefers-reduced-motion: reduce`.
@@ -64,12 +65,13 @@ const peekPanel = (page: Page) => page.locator(".tessera-peek-panel:visible");
 
 /**
  * Watches the visible peek panel and the URL from now on: whether the panel started its exit (`data-exiting`, set by
- * playExit) while inert, whether a CSS exit animation then ran on it, and URL samples per frame.
+ * playExit) while inert, whether a CSS exit animation then ran on it, and per frame the URL and whether that exit was
+ * still running on the panel in the same frame.
  */
 async function watchClose(page: Page): Promise<void> {
   await page.evaluate(() => {
     const panel = [...document.querySelectorAll<HTMLElement>(".tessera-peek-panel")].find((el) => el.offsetParent !== null);
-    const state = { closing: false, inert: false, animated: false, samples: [] as { t: number; peek: boolean }[], start: performance.now() };
+    const state = { closing: false, inert: false, animated: false, samples: [] as { t: number; peek: boolean; exiting: boolean }[], start: performance.now() };
     (window as unknown as { __close: typeof state }).__close = state;
     if (panel === undefined) return;
     const check = () => {
@@ -81,14 +83,15 @@ async function watchClose(page: Page): Promise<void> {
     };
     new MutationObserver(check).observe(panel, { attributes: true, attributeFilter: ["data-exiting", "inert"] });
     const sample = (t: number) => {
-      state.samples.push({ t: t - state.start, peek: new URL(window.location.href).searchParams.has("peek") });
+      const exiting = panel.isConnected && panel.hasAttribute("data-exiting") && panel.getAnimations().some((animation) => animation.playState === "running");
+      state.samples.push({ t: t - state.start, peek: new URL(window.location.href).searchParams.has("peek"), exiting });
       if (t - state.start < 2000) requestAnimationFrame(sample);
     };
     requestAnimationFrame(sample);
   });
 }
 
-type CloseState = { closing: boolean; inert: boolean; animated: boolean; samples: { t: number; peek: boolean }[] };
+type CloseState = { closing: boolean; inert: boolean; animated: boolean; samples: { t: number; peek: boolean; exiting: boolean }[] };
 
 async function closeState(page: Page): Promise<CloseState> {
   return page.evaluate(() => (window as unknown as { __close: CloseState }).__close);
@@ -198,6 +201,83 @@ test.describe("sidebar width motion", () => {
     await expect.poll(() => liveNavWidth(page), { message: "nav width" }).toBe(60);
   });
 
+  /**
+   * In the same task as the click and then per frame for 500 ms: the moves outside menus and tooltips (Astryx's rail
+   * motion glides the content and clips a copy of the old rail), the sidebar panel's width animations, and its width.
+   */
+  const DOCK_SOURCE = `(async () => {
+    const panel = document.querySelector(".astryx-app-shell-sidenav");
+    const outsidePopups = (a) => !(a.effect?.target instanceof Element) || a.effect.target.closest('[role="menu"], [role="tooltip"], [popover]') === null;
+    const moving = (a) => a.playState === "running" && outsidePopups(a) && (a.effect?.getKeyframes?.() ?? []).some((f) => "translate" in f || "transform" in f || "clipPath" in f);
+    const width = (a) => a.playState === "running" && (a.effect?.getKeyframes?.() ?? []).some((f) => "width" in f);
+    const read = () => ({ moves: document.getAnimations().filter(moving).length, widths: panel.getAnimations().filter(width).length, width: panel.getBoundingClientRect().width });
+    window.__dockClick();
+    const frames = [read()];
+    const start = performance.now();
+    await new Promise((resolve) => {
+      const tick = () => {
+        frames.push(read());
+        if (performance.now() - start >= 500) resolve(null);
+        else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    return frames;
+  })()`;
+
+  type DockFrame = { moves: number; widths: number; width: number };
+
+  /** Clicks `item` (in the page, so the pointer stays where it is) and samples DOCK_SOURCE. */
+  async function dockFrames(page: Page, item: ReturnType<Page["locator"]>): Promise<DockFrame[]> {
+    await item.evaluate((element) => {
+      (window as unknown as { __dockClick: () => void }).__dockClick = () => (element as HTMLElement).click();
+    });
+    return page.evaluate<DockFrame[]>(DOCK_SOURCE);
+  }
+
+  /** The width moved through values strictly between its ends (an animation), never outside them (no jump). */
+  function expectWidthGlide(frames: DockFrame[], from: number, to: number, what: string): void {
+    const low = Math.min(from, to);
+    const high = Math.max(from, to);
+    const widths = frames.map((frame) => Math.round(frame.width));
+    expect(Math.round(frames[0]!.width), `${what}: the first frame still shows the old width`).toBe(from);
+    expect(widths.filter((value) => value > low && value < high).length, `${what}: frames in between (${widths.join(",")})`).toBeGreaterThanOrEqual(3);
+    expect(widths.every((value) => value >= low - 1 && value <= high + 1), `${what}: no width outside ${low}..${high} (${widths.join(",")})`).toBe(true);
+    expect(widths.at(-1), `${what}: the final width`).toBe(to);
+  }
+
+  for (const rail of ["icons", "labels"] as const) {
+    test(`undocking from and docking to the ${rail} rail animate the panel's width alone, with no rail motion (decision 145)`, async ({ page }) => {
+      await loadHome(page);
+      await page.evaluate((kind) => window.localStorage.setItem("tessera.nav.v1", JSON.stringify({ display: "rail", rail: kind, dock: "docked" })), rail);
+      await loadHome(page);
+      const railWidth = rail === "labels" ? 60 : 48;
+      await expect.poll(() => panelWidth(page)).toBe(railWidth);
+
+      await page.locator("#tessera-nav-options").click();
+      const undock = page.getByRole("menuitem", { name: /^Undock sidebar/ });
+      await expect(undock).toBeVisible();
+      const undocking = await dockFrames(page, undock);
+      expect(undocking[0]!.widths, "the panel's width animates").toBe(1);
+      expect(Math.max(...undocking.map((frame) => frame.moves)), "no rail motion and no copy of the rail, in any frame").toBe(0);
+      expectWidthGlide(undocking, railWidth, 0, "undock");
+      await expect(page.locator("#tessera-sidebar")).toHaveAttribute("data-dock", "floating");
+
+      // Open the floating panel and dock it again from its options menu.
+      await page.locator("#tessera-nav-toggle").click();
+      await expect(page.locator("#tessera-sidebar[data-open]")).toBeVisible();
+      await page.waitForTimeout(400);
+      await page.locator("#tessera-nav-options").click();
+      const dock = page.getByRole("menuitem", { name: /^Dock sidebar/ });
+      await expect(dock).toBeVisible();
+      const docking = await dockFrames(page, dock);
+      expect(docking[0]!.widths, "the panel's width animates").toBe(1);
+      expect(Math.max(...docking.map((frame) => frame.moves)), "no rail motion and no copy of the floating panel, in any frame").toBe(0);
+      expectWidthGlide(docking, 0, railWidth, "dock");
+      await expect.poll(() => liveNavWidth(page), { message: "nav width" }).toBe(railWidth);
+    });
+  }
+
   test("under reduced motion nothing animates and the rail width applies in the first frame", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await loadHome(page);
@@ -236,8 +316,12 @@ test.describe("peek motion", () => {
     expect(state.animated, "the exit slide runs").toBe(true);
     const dropped = state.samples.find((sample) => !sample.peek);
     expect(dropped, "a frame without peek").toBeDefined();
-    // The close navigates at once and the exit (140 ms) runs meanwhile (docs/contracts/ui.md "Motion").
-    expect(dropped!.t, "peek dropped within 1 s").toBeLessThanOrEqual(1000);
+    // The close navigates at once and the exit (140 ms) runs meanwhile (decision 145, docs/contracts/ui.md "Motion"):
+    // the URL has dropped peek in a frame where the exit still runs. Navigating after the exit has no such frame.
+    expect(
+      state.samples.some((sample) => !sample.peek && sample.exiting),
+      `a frame without peek while the exit runs: ${state.samples.map((sample) => `${Math.round(sample.t)}${sample.peek ? "p" : ""}${sample.exiting ? "x" : ""}`).join(",")}`,
+    ).toBe(true);
     await expect(peekPanel(page)).toHaveCount(0);
     await expect(visibleScroller(page).getByRole("button", { name: key, exact: true })).toBeFocused();
   });

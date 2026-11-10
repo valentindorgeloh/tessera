@@ -20,7 +20,7 @@ import { ProjectMenu, projectMove } from "./ProjectMenu";
 import { ExpandedOnly, NewItemButton, RailItem, RowActions } from "./RailParts";
 import { projectIdFromPath } from "./recents";
 import { formatKeys, SHORTCUT_BY_ID } from "./shortcuts";
-import { useSideNavChrome } from "./side-nav-chrome";
+import { useSideNavChrome, useSideNavKey } from "./side-nav-chrome";
 import { SidebarOptionsMenu } from "./SidebarOptionsMenu";
 import { useShell } from "./TesseraShell";
 import { useFloatingNav } from "./use-floating-nav";
@@ -164,7 +164,7 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
   const { navPrefs, openCreateProject } = useShell();
   const [ordered, applyOrder] = useOptimistic(projects, (_current: Project[], next: Project[]) => next);
   const { lastProjectId: lastProject } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const resize = useSidebarResize();
+  const sideNavKey = useSideNavKey();
   const chrome = useSideNavChrome();
   const isDrawer = useSideNavRenderMode() !== "default";
   const canHover = useMediaQuery("(hover: hover)", false);
@@ -211,7 +211,7 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
     <>
       {hasEdge ? <VStack className="tessera-nav-edge" aria-hidden="true" {...edgeHandlers} /> : null}
       <SideNav
-        key={resize.key}
+        key={sideNavKey}
         {...chrome}
         {...panelHandlers}
         aria-label="Work"

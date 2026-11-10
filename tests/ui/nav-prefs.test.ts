@@ -195,6 +195,57 @@ describe("preferences store", () => {
   });
 });
 
+describe("motion and SideNav remounts (decisions 132 and 145)", () => {
+  const prefsOf = (display: "full" | "rail", rail: "icons" | "labels", dock: "docked" | "floating") => ({ display, rail, dock }) as const;
+
+  it("plays Astryx's rail motion only for a docked collapse or expand; every dock change gets the width motion", async () => {
+    const { navChangeMotion } = await load();
+    expect(navChangeMotion(prefsOf("full", "icons", "docked"), prefsOf("rail", "icons", "docked"))).toBe("rail");
+    expect(navChangeMotion(prefsOf("rail", "labels", "docked"), prefsOf("full", "labels", "docked"))).toBe("rail");
+    expect(navChangeMotion(prefsOf("rail", "icons", "docked"), prefsOf("rail", "labels", "docked"))).toBe("width");
+    for (const display of ["full", "rail"] as const) {
+      for (const rail of ["icons", "labels"] as const) {
+        expect(navChangeMotion(prefsOf(display, rail, "docked"), prefsOf(display, rail, "floating")), `undock from ${display}/${rail}`).toBe("width");
+        expect(navChangeMotion(prefsOf(display, rail, "floating"), prefsOf(display, rail, "docked")), `dock to ${display}/${rail}`).toBe("width");
+      }
+    }
+  });
+
+  it("remounts the SideNav for a dock change from or to a rail, and for any collapse or expand from another tab", async () => {
+    const { remountsSideNav } = await load();
+    expect(remountsSideNav(prefsOf("rail", "icons", "docked"), prefsOf("rail", "icons", "floating"))).toBe(true);
+    expect(remountsSideNav(prefsOf("rail", "labels", "floating"), prefsOf("rail", "labels", "docked"))).toBe(true);
+    expect(remountsSideNav(prefsOf("full", "icons", "docked"), prefsOf("full", "icons", "floating")), "Full stays expanded").toBe(false);
+    expect(remountsSideNav(prefsOf("full", "icons", "docked"), prefsOf("rail", "icons", "docked")), "a collapse here is Astryx's").toBe(false);
+    expect(remountsSideNav(prefsOf("full", "icons", "docked"), prefsOf("rail", "icons", "docked"), true), "a collapse from another tab").toBe(true);
+    expect(remountsSideNav(prefsOf("rail", "icons", "docked"), prefsOf("rail", "labels", "docked"), true), "still a rail").toBe(false);
+  });
+
+  it("counts the remounts on a change here and on a storage event, 0 on the server", async () => {
+    const win = fakeWindow({ [KEY]: '{"display":"rail","rail":"icons","dock":"docked"}' });
+    const { getNavMountEpoch, setNavPrefs, navPrefsStore } = await load(win);
+    navPrefsStore.subscribe(() => {});
+    expect(navPrefsStore.getSnapshot()).toEqual({ display: "rail", rail: "icons", dock: "docked" });
+    expect(getNavMountEpoch(), "reading the stored rail is no change").toBe(0);
+
+    setNavPrefs({ rail: "labels" });
+    expect(getNavMountEpoch(), "the rail kind switch").toBe(0);
+    setNavPrefs({ dock: "floating" });
+    expect(getNavMountEpoch(), "undocking from a rail").toBe(1);
+    setNavPrefs({ dock: "docked" });
+    expect(getNavMountEpoch(), "docking to a rail").toBe(2);
+    setNavPrefs({ display: "full" });
+    expect(getNavMountEpoch(), "an expand here").toBe(2);
+    setNavPrefs({ dock: "floating" });
+    setNavPrefs({ dock: "docked" });
+    expect(getNavMountEpoch(), "Full undocked and docked").toBe(2);
+
+    win.values.set(KEY, '{"display":"rail","rail":"labels","dock":"docked"}');
+    win.dispatchStorage(KEY);
+    expect(getNavMountEpoch(), "a collapse from another tab").toBe(3);
+  });
+});
+
 describe("floating open flag", () => {
   it("emits only on a change and never writes storage", async () => {
     const win = fakeWindow();

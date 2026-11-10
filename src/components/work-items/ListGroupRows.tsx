@@ -7,7 +7,9 @@
  *
  * With a glide (`glidesOnClose`: the group's Collapsible has the scroller's `animatedLayout` handle, docs/contracts/ui.md
  * "Motion") a closing group keeps its rows for `closeHoldMs()`, so Astryx conceals the rows themselves while the groups
- * below glide up, as an unwindowed list does; then they unmount as above. Under Reduce Motion they unmount at once.
+ * below glide up; then they unmount as above. Only an unwindowed list glides: ListLayout passes no handle while the
+ * list is windowed. The rows unmount at once when Astryx plays no exit (`layoutExitPlays()`: Reduce Motion with a fine
+ * pointer); under Reduce Motion with a coarse pointer Astryx cross-fades the closing body, so the rows are held for it.
  *
  * The row component comes in as `Row` (ListLayout's `WorkItemRow`), so this file imports ListLayout for types only
  * and the two modules have no runtime cycle.
@@ -18,7 +20,7 @@ import type { Display, WorkItem } from "@/lib/tessera/types";
 import { stampTabStops } from "@/components/virtual/roving";
 import { keptRowStyle, useVirtualRows, type VirtualRow } from "@/components/virtual/use-virtual-rows";
 import { isNavKey } from "@/components/virtual/virtual-math";
-import { layoutMotionMs, prefersReducedMotion } from "@/components/shell/layout-motion";
+import { layoutExitPlays, layoutMotionMs } from "@/components/shell/layout-motion";
 import type { WorkItemRowProps } from "./ListLayout";
 import type { LayoutProps } from "./types";
 
@@ -72,12 +74,12 @@ export type ListGroupRowsProps = {
 };
 
 /**
- * `isOpen`, held true for `closeHoldMs()` after a close when `holds` and motion is on (read at the change, decision 133).
- * Derived while rendering; only the timer sets state.
+ * `isOpen`, held true for `closeHoldMs()` after a close when `holds` and Astryx plays an exit (read at the change,
+ * decision 133). Derived while rendering; only the timer sets state.
  */
 function useShownOpen(isOpen: boolean, holds: boolean): boolean {
   const [shown, setShown] = useState(isOpen);
-  if (shown !== isOpen && (isOpen || !holds || prefersReducedMotion())) setShown(isOpen);
+  if (shown !== isOpen && (isOpen || !holds || !layoutExitPlays())) setShown(isOpen);
   useEffect(() => {
     if (isOpen || !shown) return;
     const timer = setTimeout(() => setShown(false), closeHoldMs());

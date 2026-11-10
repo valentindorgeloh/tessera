@@ -85,9 +85,33 @@ function samePrefs(a: NavPrefs, b: NavPrefs): boolean {
   return a.display === b.display && a.rail === b.rail && a.dock === b.dock;
 }
 
+/**
+ * Which motion a preference change made on this page plays (decisions 132 and 145; `applyNavChange` in
+ * TesseraShell.tsx). `"rail"`: a docked collapse or expand (Full ↔ a rail), which Astryx's SideNav animates itself
+ * (its `isCollapsed` flips). `"width"`: everything else, our WAAPI width animation on the sidebar panel: a switch
+ * between the two rails, and every dock change. A dock change from or to a rail also flips `isCollapsed` (the floating
+ * panel is always Full), but it remounts the SideNav (`useNavMountEpoch`), so Astryx never treats it as a collapse.
+ */
+export function navChangeMotion(before: NavPrefs, after: NavPrefs): "rail" | "width" {
+  return before.dock === after.dock && isRailShown(before) !== isRailShown(after) ? "rail" : "width";
+}
+
+/**
+ * Whether going from `before` to `after` must remount the SideNav: its `isCollapsed` flips (`isRailShown`) for a
+ * reason other than a collapse or expand on this page. That is a dock change from or to a rail, and any change that
+ * arrives from another tab (`fromOtherTab`), which applies without animation (decision 132). A new SideNav starts in
+ * its new state with no rail motion (Astryx animates only a change after the rail's first paint).
+ */
+export function remountsSideNav(before: NavPrefs, after: NavPrefs, fromOtherTab = false): boolean {
+  if (isRailShown(before) === isRailShown(after)) return false;
+  return fromOtherTab || before.dock !== after.dock;
+}
+
 // --- Preferences store -------------------------------------------------------
 
 let prefs: NavPrefs | null = null;
+/** Counts the changes that remount the SideNav (`remountsSideNav`); part of its `key` (side-nav-chrome.ts). */
+let mountEpoch = 0;
 const prefsListeners = new Set<() => void>();
 
 function emitPrefs() {
@@ -107,6 +131,7 @@ function onStorage(event: StorageEvent) {
   if (event.key !== NAV_PREFS_STORAGE_KEY) return;
   const next = readStored();
   if (prefs !== null && samePrefs(prefs, next)) return;
+  if (prefs !== null && remountsSideNav(prefs, next, true)) mountEpoch += 1;
   prefs = next;
   emitPrefs();
 }
@@ -142,6 +167,20 @@ export function useNavPrefs(): NavPrefs {
   return useSyncExternalStore(subscribePrefs, getPrefsSnapshot, getPrefsServerSnapshot);
 }
 
+/** The SideNav remount counter; 0 on the server and until the first change that remounts it. */
+export function getNavMountEpoch(): number {
+  return mountEpoch;
+}
+
+function getMountEpochServerSnapshot(): number {
+  return 0;
+}
+
+/** The remount counter for the SideNav's `key` (`useSideNavKey()` in side-nav-chrome.ts). */
+export function useNavMountEpoch(): number {
+  return useSyncExternalStore(subscribePrefs, getNavMountEpoch, getMountEpochServerSnapshot);
+}
+
 /** Merges, stores (try/catch: private mode still applies the change) and notifies; a no-op when nothing changes. */
 export function setNavPrefs(patch: Partial<NavPrefs>): void {
   const current = getPrefsSnapshot();
@@ -151,6 +190,7 @@ export function setNavPrefs(patch: Partial<NavPrefs>): void {
     dock: patch.dock ?? current.dock,
   };
   if (samePrefs(current, next)) return;
+  if (remountsSideNav(current, next)) mountEpoch += 1;
   prefs = next;
   try {
     window.localStorage.setItem(NAV_PREFS_STORAGE_KEY, serializeNavPrefs(next));
