@@ -58,8 +58,8 @@ test("first client visits to the covered routes never commit the page skeleton",
 });
 
 async function firstCycleHref(page: Page, projectId: string): Promise<string> {
-  const link = page.locator(`main a[href^="/projects/${projectId}/cycles/"]`).first();
-  await expect(link, "the demo project has a cycle").toBeVisible({ timeout: 15_000 });
+  const link = page.locator(`a[href^="/projects/${projectId}/cycles/"]`).first();
+  await expect(link, "the demo project's cycle (Sprint 12)").toBeVisible({ timeout: 15_000 });
   const href = await link.getAttribute("href");
   if (href === null) throw new Error("cycle link without href");
   return href;
