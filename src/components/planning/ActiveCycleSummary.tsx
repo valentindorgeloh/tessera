@@ -15,7 +15,7 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
-import { stateGroupLabel, stateGroupVariant } from "@/components/work-items/properties";
+import { stateGroupLabel, stateGroupVariant } from "@/components/work-items/properties/option-helpers";
 import type { StateGroup } from "@/lib/tessera/types";
 import { CalendarDotsIcon, TimerIcon } from "@/themes/catppuccin/icons";
 import { BurndownChart } from "./BurndownChart";

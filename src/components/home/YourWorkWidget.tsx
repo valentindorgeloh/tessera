@@ -6,7 +6,7 @@ import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList"
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Heading, Text } from "@astryxdesign/core/Text";
-import { stateGroupLabel, stateGroupVariant } from "@/components/work-items/properties";
+import { stateGroupLabel, stateGroupVariant } from "@/components/work-items/properties/option-helpers";
 import { StateGroupSchema } from "@/lib/tessera/schemas";
 import type { YourWorkNumbers } from "./home-format";
 

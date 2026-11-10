@@ -14,7 +14,7 @@ import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { VStack } from "@astryxdesign/core/Stack";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
-import { stateGroupLabel, stateGroupVariant } from "@/components/work-items/properties";
+import { stateGroupLabel, stateGroupVariant } from "@/components/work-items/properties/option-helpers";
 import type { PointsCounts, ProgressBreakdownRow, ProgressCounts, StateGroup } from "@/lib/tessera/types";
 import { BreakdownTabs } from "./BreakdownTabs";
 import { formatAmount, formatNumber } from "./burndown";

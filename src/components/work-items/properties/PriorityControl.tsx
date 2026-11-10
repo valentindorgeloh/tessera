@@ -1,12 +1,12 @@
 "use client";
 
-import { Icon, type IconType } from "@astryxdesign/core/Icon";
+import { Icon } from "@astryxdesign/core/Icon";
 import { HStack } from "@astryxdesign/core/Stack";
 import { Selector, type SelectorOptionData } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
 import type { Priority } from "@/lib/tessera/types";
 import { PropertyChip, useArmed, useArmedHandoff } from "./arming";
-import { PriorityHighIcon, PriorityLowIcon, PriorityMediumIcon, PriorityNoneIcon, PriorityUrgentIcon } from "@/themes/catppuccin/icons";
+import { PRIORITY_OPTIONS, isPriority, priorityOption, type PriorityOption } from "./option-helpers";
 
 export type PriorityControlProps = {
   value: Priority;
@@ -20,26 +20,8 @@ export type PriorityControlProps = {
   armKey?: string;
 };
 
-export type PriorityOption = { value: Priority; label: string; icon: IconType };
-
-/** Urgent first, like the ordering rank in core/group.ts. */
-export const PRIORITY_OPTIONS: readonly PriorityOption[] = [
-  { value: "urgent", label: "Urgent", icon: PriorityUrgentIcon },
-  { value: "high", label: "High", icon: PriorityHighIcon },
-  { value: "medium", label: "Medium", icon: PriorityMediumIcon },
-  { value: "low", label: "Low", icon: PriorityLowIcon },
-  { value: "none", label: "No priority", icon: PriorityNoneIcon },
-];
-
-const BY_VALUE = new Map(PRIORITY_OPTIONS.map((option) => [option.value, option]));
-
-export function isPriority(value: string): value is Priority {
-  return BY_VALUE.has(value as Priority);
-}
-
-export function priorityOption(value: string): PriorityOption {
-  return BY_VALUE.get(isPriority(value) ? value : "none") ?? PRIORITY_OPTIONS[PRIORITY_OPTIONS.length - 1];
-}
+// The option list and its helpers live in the directive-free ./option-helpers.ts.
+export { PRIORITY_OPTIONS, isPriority, priorityOption, type PriorityOption };
 
 /** Glyph plus label, shared by the selector rows, its trigger and the list group headers. */
 export function PriorityLabel({ value }: { value: string }) {

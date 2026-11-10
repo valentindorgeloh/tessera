@@ -12,7 +12,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
 import { Icon } from "@astryxdesign/core/Icon";
 import { RelativeTime } from "@/components/detail/RelativeTime";
-import { paletteTokenColor } from "@/components/work-items/properties";
+import { paletteTokenColor } from "@/components/work-items/properties/option-helpers";
 import type { ActorRow, Label, PageDetail } from "@/lib/tessera/types";
 import { EyeSlashIcon, GlobeIcon, LockIcon } from "@/themes/catppuccin/icons";
 

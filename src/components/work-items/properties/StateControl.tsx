@@ -2,11 +2,12 @@
 
 import { HStack } from "@astryxdesign/core/Stack";
 import { Selector, type SelectorOptionData } from "@astryxdesign/core/Selector";
-import { StatusDot, type StatusDotProps } from "@astryxdesign/core/StatusDot";
+import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
 import type { State, StateGroup } from "@/lib/tessera/types";
 import { useProjectRow } from "../project-provider";
 import { PropertyChip, useArmed, useArmedHandoff } from "./arming";
+import { stateGroupLabel, stateGroupVariant } from "./option-helpers";
 
 export type StateControlProps = {
   /** State id. */
@@ -22,40 +23,16 @@ export type StateControlProps = {
   armKey?: string;
 };
 
-const GROUP_VARIANT: Record<StateGroup, StatusDotProps["variant"]> = {
-  backlog: "neutral",
-  unstarted: "neutral",
-  started: "accent",
-  completed: "success",
-  cancelled: "error",
-  triage: "warning",
-};
-
-const GROUP_LABEL: Record<StateGroup, string> = {
-  backlog: "Backlog",
-  unstarted: "Not started",
-  started: "In progress",
-  completed: "Completed",
-  cancelled: "Cancelled",
-  triage: "Triage",
-};
-
-/** StatusDot variant for a state group (docs/contracts/ui.md: backlog/unstarted neutral, started accent, completed success, cancelled error). */
-export function stateGroupVariant(group: StateGroup): StatusDotProps["variant"] {
-  return GROUP_VARIANT[group];
-}
-
-export function stateGroupLabel(group: StateGroup): string {
-  return GROUP_LABEL[group];
-}
+// The group helpers live in the directive-free ./option-helpers.ts (the planning panels import them from there).
+export { stateGroupLabel, stateGroupVariant };
 
 /** Dot plus name, used in the selector rows, its trigger and the list group headers. */
 export function StateLabel({ state, group, name }: { state?: State; group?: StateGroup; name?: string }) {
   const resolvedGroup = state?.state_group ?? group ?? "backlog";
-  const resolvedName = state?.name ?? name ?? GROUP_LABEL[resolvedGroup];
+  const resolvedName = state?.name ?? name ?? stateGroupLabel(resolvedGroup);
   return (
     <HStack gap={1.5} vAlign="center">
-      <StatusDot variant={GROUP_VARIANT[resolvedGroup]} label={GROUP_LABEL[resolvedGroup]} />
+      <StatusDot variant={stateGroupVariant(resolvedGroup)} label={stateGroupLabel(resolvedGroup)} />
       <Text type="inherit" className="tessera-wi-label-text">
         {resolvedName}
       </Text>
