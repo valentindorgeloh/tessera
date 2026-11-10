@@ -35,7 +35,7 @@ import { PanelBar, PanelHeader } from "@/components/shell/PanelHeader";
 import { SaveViewButton } from "@/components/views/SaveViewButton";
 import { normalizeFilters } from "@/components/views/view-state";
 import { isMultiValuedGroup } from "@/lib/tessera/core/group";
-import type { CreateWorkItemInputType, Display, Filters, GroupBy, ListScope, RichFilters, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
+import type { CreateWorkItemInputType, Display, Filters, GroupBy, ListScope, OrderBy, RichFilters, WorkItem, WorkItemListResult } from "@/lib/tessera/types";
 import { ExportDialog } from "@/components/exports/ExportDialog";
 import { ExportIcon, PlusIcon } from "@/themes/catppuccin/icons";
 import { BoardLayout } from "./BoardLayout";
@@ -221,7 +221,9 @@ export function WorkItemsScreen({
 
   const fail = (what: string, message: string) => toast({ type: "error", body: `${what}: ${message}` });
 
-  // The two handlers that reach every row keep one identity (a memoized row sees no new function) and call the latest closure.
+  // The handlers that reach the rows and the table's plugins keep one identity (a memoized row sees no new function) and call
+  // the latest closure. `canQuickAdd` stays a plain function: the layouts call it while rendering, which a stable callback
+  // must not do (it would answer from the previous render's closure).
   const onUpdate = useStableCallback((id: string, patch: UpdateWorkItemPatch) => {
     if (readOnly || isOptimisticId(id)) return;
     startTransition(async () => {
@@ -231,7 +233,7 @@ export function WorkItemsScreen({
     });
   });
 
-  const onMove = (input: MoveInput) => {
+  const onMove = useStableCallback((input: MoveInput) => {
     if (readOnly || isOptimisticId(input.id)) return;
     const move: MoveInput = { ...input, before_id: realNeighbour(input.before_id), after_id: realNeighbour(input.after_id) };
     const source = optimistic.items.find((item) => item.id === move.id);
@@ -254,9 +256,9 @@ export function WorkItemsScreen({
       });
       if (!result.ok) fail("Could not move the work item", result.message);
     });
-  };
+  });
 
-  const onQuickAdd = (group: QuickAddGroup, name: string) => {
+  const onQuickAdd = useStableCallback((group: QuickAddGroup, name: string) => {
     if (readOnly) return;
     const input = quickAddInput(group, name, quickAddContext);
     if (!input) {
@@ -305,7 +307,7 @@ export function WorkItemsScreen({
       const result = await createWorkItemAction(input);
       if (!result.ok) fail("Could not create the work item", result.message);
     });
-  };
+  });
 
   const onOpen = useStableCallback((id: string) => {
     if (isOptimisticId(id)) return;
@@ -331,9 +333,9 @@ export function WorkItemsScreen({
   // No-results state (docs/contracts/ui.md "Work items screen"): while a filter, a search or an Advanced tree applies,
   // an empty list offers "Clear filters", which clears like the filter bar (simple filters explicit-empty, Advanced tree dropped).
   const activeRich = effectiveRichFilters(richFilters, urlState.rich_filters);
-  const onClearFilters = hasActiveFilters(filters, activeRich)
-    ? () => router.replace(withSearchParam(pathname, searchParams, "q", encodeUrlState(clearedUrlState(urlState, filters, activeRich)) || null), { scroll: false })
-    : undefined;
+  const clearFilters = useStableCallback(() => router.replace(withSearchParam(pathname, searchParams, "q", encodeUrlState(clearedUrlState(urlState, filters, activeRich)) || null), { scroll: false }));
+  const onClearFilters = hasActiveFilters(filters, activeRich) ? clearFilters : undefined;
+  const onOrderChange = useStableCallback((orderBy: OrderBy) => applyDisplay({ order_by: orderBy }));
   // Set exactly when the list draws group bands: work-items.css keys the scroll padding for sticky bands on it.
   const scrollerClass = display.layout === "list" && listShowsGroups(optimistic, display, onClearFilters !== undefined) ? "tessera-wi-scroller tessera-wi-scroller--grouped" : "tessera-wi-scroller";
   const layoutProps: LayoutProps = {
@@ -351,7 +353,7 @@ export function WorkItemsScreen({
     onLoadMore: paged.loadMore,
     onLoadMoreUngrouped: paged.loadMoreUngrouped,
     isLoadingMore: paged.isLoading,
-    onOrderChange: (orderBy) => applyDisplay({ order_by: orderBy }),
+    onOrderChange,
     onClearFilters,
   };
   // The dialog starts in the scope: `{ ...scopeDefaults, ...createDefaults }` with module ids united.

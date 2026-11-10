@@ -46,11 +46,13 @@ import { UNGROUPED_KEY, hasUnloaded, loadedOfTotal } from "./paging";
 import { usePeekedId } from "./peeked";
 import { NoResults } from "./NoResults";
 import { OneLineText } from "./OneLineText";
+import { useProjectRow, type RowBundle } from "./project-provider";
 import { RowProject } from "./row-project";
+import { useShared } from "./stable";
 import { TABLE_SORT_FIELDS, orderByFromSort, sortFromOrderBy } from "./table-sort";
 import { ActorLabel, AssigneeControl, CycleControl, DateControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, PriorityLabel, StateControl, StateLabel, isPriority, paletteTokenColor } from "./properties";
 import { ArmedCell, createArmedRows, tableRowArmingHandlers, type ArmedRows } from "./properties/arming";
-import type { LayoutProps, ProjectBundle, UpdateWorkItemPatch } from "./types";
+import type { LayoutProps, UpdateWorkItemPatch } from "./types";
 
 /** One table row; a grouped result repeats an item under every group it belongs to, so the row id carries the group. */
 interface TableRow extends Record<string, unknown> {
@@ -81,10 +83,13 @@ const STATE_GROUPS: ReadonlySet<string> = new Set<StateGroup>(["backlog", "unsta
 /** Id of the synthetic "no value" group (`NONE_GROUP_ID` in the engine's filters.ts). */
 const NONE_GROUP = "none";
 
+/** The project names of the Project column: `null` while the table has no such column. */
+type ProjectNames = readonly { id: string; name: string }[] | null;
+
 function buildColumns(
   properties: DisplayProperties,
-  bundle: ProjectBundle,
-  showProject: boolean,
+  projects: ProjectNames,
+  hasEstimate: boolean,
   onUpdate: (id: string, patch: UpdateWorkItemPatch) => void,
   onOpen: (id: string) => void,
   readOnly: boolean,
@@ -128,8 +133,8 @@ function buildColumns(
       </OneLineText>
     ),
   });
-  if (showProject) {
-    const projectName = new Map(bundle.projects.map((project) => [project.id, project.name]));
+  if (projects !== null) {
+    const projectName = new Map(projects.map((project) => [project.id, project.name]));
     columns.push({
       key: "project",
       header: "Project",
@@ -235,7 +240,7 @@ function buildColumns(
       ),
     });
   }
-  if (properties.estimate && bundle.project.estimates_enabled && bundle.estimate) {
+  if (properties.estimate && hasEstimate) {
     columns.push({
       key: "estimate",
       header: "Estimate",
@@ -287,7 +292,7 @@ function selectableIds(rows: readonly TableRow[]): string[] {
 }
 
 /** Group section title: StatusDot for states, the priority glyph, a coloured Token for labels, cycles and modules. */
-function GroupHeading({ group, field, bundle }: { group: Group | undefined; field: GroupBy | null; bundle: ProjectBundle }) {
+function GroupHeading({ group, field, bundle }: { group: Group | undefined; field: GroupBy | null; bundle: Pick<RowBundle, "states" | "actors"> }) {
   if (!group) return <Text weight="semibold">Ungrouped</Text>;
   if (group.id === NONE_GROUP && field !== "priority") {
     return (
@@ -309,6 +314,9 @@ function GroupHeading({ group, field, bundle }: { group: Group | undefined; fiel
 
 export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection, onLoadMore, onLoadMoreUngrouped, isLoadingMore, onOrderChange, onClearFilters }: LayoutProps) {
   const peekedId = usePeekedId();
+  // The lean row bundle keeps its identity across writes that change no state or actor, so the group headers (and with
+  // them the grouped-rows plugin every row compares) are not rebuilt by a counter ticking.
+  const { bundle: rowBundle } = useProjectRow();
   // Property controls draw as chips until the pointer or focus reaches their row (./properties/arming.tsx).
   const [armedRows] = useState(createArmedRows);
   const groups = useMemo(() => result.groups ?? [], [result.groups]);
@@ -328,10 +336,16 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
   const groupOrder = useMemo(() => groups.map((group) => group.id), [groups]);
   const groupsById = useMemo(() => new Map(groups.map((group) => [group.id, group])), [groups]);
 
+  // Every write hands the screen a new `bundle` (the cursor, the counts), and a new `columns` array re-renders every row
+  // (Astryx's row memo compares it), so the columns are built from the few things they read, each kept by value:
+  // the Project column's names, whether the Estimate column shows, and the display's properties.
+  const projectNames = useShared<ProjectNames>(showProject ? bundle.projects.map(({ id, name }) => ({ id, name })) : null);
+  const hasEstimate = bundle.project.estimates_enabled && bundle.estimate !== null;
+  const isSortable = onOrderChange !== undefined;
   const columns = useMemo(() => {
-    const built = buildColumns(display.properties, bundle, showProject, onUpdate, onOpen, readOnly, armedRows);
-    return onOrderChange ? built.map((column) => (column.key in TABLE_SORT_FIELDS ? { ...column, sortable: true } : column)) : built;
-  }, [armedRows, bundle, display.properties, onOpen, onOrderChange, onUpdate, readOnly, showProject]);
+    const built = buildColumns(display.properties, projectNames, hasEstimate, onUpdate, onOpen, readOnly, armedRows);
+    return isSortable ? built.map((column) => (column.key in TABLE_SORT_FIELDS ? { ...column, sortable: true } : column)) : built;
+  }, [armedRows, display.properties, hasEstimate, isSortable, onOpen, onUpdate, projectNames, readOnly]);
 
   // The order lives in the display: a header click asks the server for it (whole list), the rows arrive already ordered.
   const sort = useMemo(() => sortFromOrderBy(display.order_by), [display.order_by]);
@@ -368,7 +382,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
       const group = groupsById.get(groupKey);
       return (
         <HStack gap={2} vAlign="center">
-          <GroupHeading group={group} field={display.group_by} bundle={bundle} />
+          <GroupHeading group={group} field={display.group_by} bundle={rowBundle} />
           {/* The badge is the group's full count (decision 113); the rows under it may be only the first page. */}
           <Badge label={group?.count ?? loadedCount} variant="neutral" />
           <GroupPoints points={group?.estimate_points} display={display} />
@@ -385,7 +399,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
         </HStack>
       );
     },
-    [bundle, display, groupsById, isLoadingMore, onLoadMore],
+    [rowBundle, display, groupsById, isLoadingMore, onLoadMore],
   );
   const groupedRows = useTableGroupedRows<TableRow>({
     data: rows,
@@ -398,11 +412,13 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
   });
 
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  // Only key, width and resizable matter for the minimum widths; dropping renderCell keeps the row type generic. The list
+  // keeps one identity while `columns` does: the plugin is rebuilt (and every row re-rendered) when it changes.
+  const resizeColumns = useMemo(() => columns.map(({ key, width, resizable }) => ({ key, width, resizable })), [columns]);
   const resizePlugin = useTableColumnResize<TableRow>({
     columnWidths,
     onColumnResizeEnd: (updates) => setColumnWidths((previous) => ({ ...previous, ...updates })),
-    // Only key, width and resizable matter for the minimum widths; dropping renderCell keeps the row type generic.
-    columns: columns.map(({ key, width, resizable }) => ({ key, width, resizable })),
+    columns: resizeColumns,
   });
   // Pinned key columns need room to leave something to scroll; on a phone the whole row scrolls (reference section 8).
   // The server (and the first client render) pins, as a tablet or desktop does; a phone unpins right after hydration.
@@ -460,14 +476,21 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
   );
 
   // Insertion order is the plugin order: the grouped plugin runs last so its header rows win over the open handler.
-  const plugins: Record<string, TablePlugin<TableRow>> = {
-    ...(selection ? { selection: selectionPlugin } : {}),
-    open: openPlugin,
-    sticky: stickyPlugin,
-    resize: resizePlugin,
-    sort: sortPlugin,
-    ...(grouped ? { grouped: groupedRows.plugin } : {}),
-  };
+  // Each plugin keeps its identity across renders that change nothing it reads, so the record is built from them once per
+  // change (Astryx compares the plugins by identity to decide whether every row must render again).
+  const hasSelection = selection !== undefined;
+  const groupedPlugin = groupedRows.plugin;
+  const plugins = useMemo<Record<string, TablePlugin<TableRow>>>(
+    () => ({
+      ...(hasSelection ? { selection: selectionPlugin } : {}),
+      open: openPlugin,
+      sticky: stickyPlugin,
+      resize: resizePlugin,
+      sort: sortPlugin,
+      ...(grouped ? { grouped: groupedPlugin } : {}),
+    }),
+    [grouped, groupedPlugin, hasSelection, openPlugin, resizePlugin, selectionPlugin, sortPlugin, stickyPlugin],
+  );
 
   // Select all reaches the loaded rows only (decision 114): say how many of the whole set that is.
   const showLoadedNote = selection !== undefined && hasUnloaded(selectable.length, result.total);
