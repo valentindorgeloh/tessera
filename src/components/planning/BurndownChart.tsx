@@ -12,8 +12,7 @@
  * name; the same sentence shows under it, and a "Data table" collapsible
  * lists every day. No animation anywhere.
  */
-import { useMemo } from "react";
-import { CartesianGrid, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
+import { useEffect, useMemo } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
@@ -21,10 +20,11 @@ import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Table } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
+import { createLazyModule } from "@/components/charts/lazy-module";
 import { useHydrated } from "@/components/detail/RelativeTime";
 import { formatShortDate } from "@/components/work-items/properties/date-format";
 import type { Cycle, CycleProgress } from "@/lib/tessera/types";
-import { buildChartModel, formatNumber, summarizeChart, todayLabelPosition, type ChartKind, type ChartModel } from "./burndown";
+import { buildChartModel, formatNumber, summarizeChart, type ChartKind, type ChartModel } from "./burndown";
 import { useChartColors, type ChartColorKey } from "./chart-colors";
 
 export type BurndownChartProps = {
@@ -42,7 +42,7 @@ export type BurndownChartProps = {
 };
 
 /** Dash patterns: the lines never differ by colour alone (WCAG 1.4.1). */
-const DASH = { ideal: "4 4", scope: "2 4" } as const;
+export const DASH = { ideal: "4 4", scope: "2 4" } as const;
 
 /** The solid line's name: what is left on a burndown, what is done on a burnup. */
 export function actualSeriesName(kind: ChartKind): string {
@@ -85,57 +85,20 @@ export function ChartLegend({ kind }: { kind: ChartKind }) {
   );
 }
 
-function ChartSvg({ model, height, today }: { model: ChartModel; height: number; today: string }) {
-  const colors = useChartColors();
-  const actualName = actualSeriesName(model.kind);
-  return (
-    <LineChart
-      data={model.rows}
-      responsive
-      style={{ width: "100%", height }}
-      accessibilityLayer={false}
-      margin={{ top: 16, right: 12, bottom: 0, left: 0 }}
-    >
-      <CartesianGrid vertical={false} stroke={colors.grid} />
-      <XAxis
-        dataKey="date"
-        type="category"
-        tickFormatter={(value) => formatShortDate(String(value), today)}
-        tick={{ fill: colors.axis }}
-        stroke={colors.grid}
-        interval="preserveStartEnd"
-        minTickGap={16}
-      />
-      <YAxis allowDecimals={model.unit === "points"} stroke={colors.grid} tick={{ fill: colors.axis }} width="auto" />
-      <Tooltip
-        cursor={{ stroke: colors.grid }}
-        isAnimationActive={false}
-        contentStyle={{
-          background: colors.tooltipSurface,
-          color: colors.tooltipText,
-          border: `var(--border-width) solid ${colors.grid}`,
-          borderRadius: "var(--radius-container)",
-        }}
-        labelStyle={{ color: colors.tooltipText }}
-        itemStyle={{ color: colors.tooltipText }}
-        labelFormatter={(label) => formatShortDate(String(label), today)}
-        formatter={(value) => (typeof value === "number" ? formatNumber(value) : String(value))}
-      />
-      {model.kind === "burnup" ? (
-        <ReferenceLine
-          y={model.scope}
-          stroke={colors.scope}
-          strokeDasharray={DASH.scope}
-          strokeWidth={1.5}
-        />
-      ) : null}
-      {model.today ? (
-        <ReferenceLine x={model.today} stroke={colors.today} label={{ value: "Today", fill: colors.axis, position: todayLabelPosition(model) }} />
-      ) : null}
-      <Line dataKey="ideal" name="Ideal" type="linear" stroke={colors.ideal} strokeWidth={1.5} strokeDasharray={DASH.ideal} dot={false} activeDot={false} isAnimationActive={false} />
-      <Line dataKey="actual" name={actualName} type="linear" stroke={colors.actual} strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} />
-    </LineChart>
-  );
+/**
+ * The chart's drawing (./burndown-chart-impl.tsx, which holds Recharts) loads on demand: the import starts when this
+ * module is evaluated in the browser and again from the chart's effect, which also retries a failed fetch. Until it is in,
+ * the same Skeleton as before hydration holds the height.
+ */
+const chartModule = createLazyModule(() => import("./burndown-chart-impl"));
+if (typeof window !== "undefined") chartModule.preload();
+
+function LazyChartSvg({ model, height, today }: { model: ChartModel; height: number; today: string }) {
+  const loaded = chartModule.useLoaded();
+  useEffect(() => {
+    chartModule.preload();
+  }, []);
+  return loaded ? <loaded.ChartSvg model={model} height={height} today={today} /> : <Skeleton height={height} />;
 }
 
 type TableRow = { date: string; day: string; actual: string; ideal: string };
@@ -195,7 +158,7 @@ export function BurndownChart({ cycle, progress, kind, today, height = 240, hasD
   return (
     <VStack gap={2} className="tessera-planning-chart">
       <VStack role="img" aria-label={summary} className="tessera-planning-chart-frame">
-        {hydrated ? <ChartSvg model={model} height={height} today={today} /> : <Skeleton height={height} />}
+        {hydrated ? <LazyChartSvg model={model} height={height} today={today} /> : <Skeleton height={height} />}
       </VStack>
       {/* The legend sits beside the role="img" frame, not inside it: children of an image are presentational, so inside it the series key would be hidden from assistive technology. */}
       {hydrated ? <ChartLegend kind={model.kind} /> : null}
