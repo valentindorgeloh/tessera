@@ -84,7 +84,7 @@ Lives elsewhere (do not look here for it):
 
 | Path (lines) | Responsibility |
 |---|---|
-| `src/app/(tessera)/layout.tsx` (109) | Renders `TesseraShell`; streams `SidebarData` (projects, unread and draft counts, favourites tree, workspace name) and `WatchersData` (`WorkspaceSettingsPublisher`, `RecentsTracker` with active plus archived project names and feature flags, `ChangesPoller` with `latestSeq` and the unread count) under Suspense after `await io()` |
+| `src/app/(tessera)/layout.tsx` (109) | Renders `TesseraShell`; streams `SidebarData` (projects, unread and draft counts, favourites tree, workspace name) and `WatchersData` (`WorkspaceSettingsPublisher`, `RecentsTracker` with active plus archived project names and feature flags, `ChangesPoller` with `latestSeq` and the unread count) under Suspense after `await io()`; the page area is `<Suspense fallback={<PageSkeleton />}>` around `{children}`, the one boundary for the first-visit hold routes (decision 155) |
 | `src/app/(tessera)/browse/[key]/page.tsx` (47) | `/browse/WEB-1` (any case) or an item id; `getWorkItemByKey`, then `redirect` to the project detail route; bad or unknown input gives `notFound()` |
 | `src/app/(tessera)/projects/[projectId]/work-items/[workItemId]/page.tsx` (49) | Full detail inside the project frame; an item of another project gives `notFound()` |
 | `src/app/(tessera)/work-items/[workItemId]/page.tsx` (60) | Global detail outside the frame; wraps `ProjectProvider` with its own bundle |
@@ -106,7 +106,7 @@ Lives elsewhere (do not look here for it):
 
 ## 3. Data and control flow
 
-**Read (page load).** A page is a sync Server Component with `<Suspense>` around an async child that does `await params`, `await io()`, then `readTessera(ctx => ...)`. Detail pages call `loadWorkItemDetail(ctx, id)` (item, parent, children, activity reversed to newest first, comments, page backlinks, relations, reactions, `USER_ACTOR_ID`, cursor); the global page also calls `loadProjectBundle`. `NOT_FOUND` and `VALIDATION` become `notFound()`; `redirect()` stays outside `try`. The result reaches the client as props: `DetailPage` or `PeekHost` pass `WorkItemDetailData` to `WorkItemDetail`.
+**Read (page load).** A page is a sync Server Component with `<Suspense>` around an async child (the first-visit hold routes of decision 155 skip the page boundary and use the frame's in `(tessera)/layout.tsx`) that does `await params`, `await io()`, then `readTessera(ctx => ...)`. Detail pages call `loadWorkItemDetail(ctx, id)` (item, parent, children, activity reversed to newest first, comments, page backlinks, relations, reactions, `USER_ACTOR_ID`, cursor); the global page also calls `loadProjectBundle`. `NOT_FOUND` and `VALIDATION` become `notFound()`; `redirect()` stays outside `try`. The result reaches the client as props: `DetailPage` or `PeekHost` pass `WorkItemDetailData` to `WorkItemDetail`.
 
 **Peek read.** The list page (`scoped-list.tsx`) loads `PeekData` for `?peek=<id>`; `PeekHost` renders one detail (the lazy chunk of `peek-detail-lazy.tsx`: skeleton until it arrives, preloaded on idle or on the first row contact; loaded, it renders in the commit that opens the peek) into a portal node and moves it between the side slot and the modal slot, so editor state survives a mode switch. Opening goes through `peekHref`, which keeps `q`; close goes Back when `notePeekPush` recorded the push (`closesWithBack`), else replaces the URL.
 
