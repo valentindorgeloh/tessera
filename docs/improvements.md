@@ -1,10 +1,12 @@
-# Tessera: what needs improving (2026-10-29)
+# Tessera: what needs improving (2026-11-10)
 
 Reconciled on 2026-10-24 against the working tree after fix round 6 (tree = HEAD 157c687, which has fix round 5 committed as d3ffeb9 plus the demo seed, performance plan and live-app commits, plus this round's uncommitted changes: three lanes (shell-collapse, pins, e2e), two fix passes, two browser verify passes on scratch copies, never :3000 or `data/tessera.db*`). Gates on that tree: the round's gate is green after both fix passes; verify 2 ran `vitest run` from an un-niced shell (240 files / 3000 tests pass, including `live-build` and `live-script`, which refuse a niced shell), and the reconciler re-ran `tsc --noEmit` (clean), `eslint .` (clean), `scripts/check-conventions.ts` (passed) and the five round 6 Vitest files (23 tests pass). Playwright: 138 of 138 (24 spec files) on a scratch production build of the tree after fix 2 (port 3690, no fixme or skip), and `round6.spec.ts` 280 of 280 with `--repeat-each=10` (verify 1 had 279 of 280, a project-identifier collision in the spec helpers, fixed). The root then ran its own gate and two review passes over the tree; their fixes are the "Root close-out" entries under Closed, and the final gate on a fresh scratch copy of the tree after them was green: `next build`, `check:bundle`, `npm run check`, then two more `vitest run` (241 files / 3011 tests each time), Playwright 138 of 138 and `round6.spec.ts` 84 of 84 with `--repeat-each=3` (every early action landed in the gap on its first attempt), plus browser checks of the Power K seed and the drawer button. Contract for the round: `docs/drafts/fix-round-6-2026-10-23.md`. Re-check an item before working on it.
 
 Updated on 2026-10-28 with the performance round (commit after 21f8ae3): its open follow-ups are under "Performance", "Operations" and "Waiting for the user", its results under "Closed".
 
 Updated on 2026-10-29 with performance round 2 (roadmap lanes B and C, decisions 141 and 142, commit after 6331186): "Performance" is rewritten from its profile and review, its results are under "Closed".
+
+Updated on 2026-11-10 with the sidebar views, motion, virtual lists and calendar zoom round (commits cb5d6f8 to 9bb3010, decisions 127–139): the planned list moved to "Closed", and its measurements are under "Performance".
 
 ## Open
 
@@ -14,19 +16,25 @@ Shell
 Work items
 - On the board a long state name in a column header overlaps the column's Add button: the StateLabel HStack in `.tessera-board-column-title` has no `min-width: 0` (found by the performance round, 2026-10-28). Low.
 - At 375 px the open Assignees MultiSelector cuts a very long actor name at the listbox edge with no ellipsis (same round). Low.
+- The quarter calendar loads the visible window with the 1000-item cap, so on a project with about 2,900 dated items in the quarter it shows about a third of them, with the "cut" Banner (decision 139 accepts the cap). Low.
+- At 375 px the quarter calendar's first-of-month cell labels ("Oct 1", "Nov 1") wrap to two lines. Cosmetic. Low.
 
-### Performance (after round 2, 2026-10-29)
-Source: docs/drafts/perf-report-2026-10-28.md (sections 1, 5 and 6) and its profile data in docs/drafts/perf-2026-10-28/baseline/profile/.
-- Decision 115's budget is still missed on 10k items: list p95 902 / 915 ms, table p95 1,653 / 1,643 ms (n=20, `tests/e2e/perf.spec.ts`, two runs). A page-size sweep with that spec gives the list about 105 ms + 3.3 ms per row and the table about 90 ms + 6 ms per row, so 300 ms holds about 58 to 60 list rows and 34 to 35 table rows at CPU 1x (none measured at 4x). P12's windowing therefore has to start near 50 list rows, not at decision 135's 250; the table also needs a lower per-row cost. Medium.
-- Closed popovers are the largest per-row cost: about 8.5 per row (Selector listboxes with every option, tooltips, date dialogs), 63% of the DOM on a 200-row list. Lazy listbox and popover content per row is the next app-side lever, together with windowing. Medium.
+### Performance (2026-11-10)
+Sources: the decision 138 spec `tests/e2e/virtual-perf.spec.ts` and decision 115's `tests/e2e/perf.spec.ts`, both on the 10 000-item fixture through `playwright.perf.config.ts` (2026-11-10), and docs/drafts/perf-report-2026-10-28.md (sections 1, 5 and 6) with its profile data in docs/drafts/perf-2026-10-28/baseline/profile/.
+- First render (decision 115, p95 at most 300 ms to `[data-list-ready]` on 10k items) with the virtual lists: p95 542 to 686 ms, measured while the machine's load average was 16 to 28. Under investigation: an A/B on a quieter machine is running, so the miss may be partly load. Medium.
+- Scrolling (decision 138, 5 s at 120 px per frame, median / p95 frame interval): list flat 16.7 / 33.4 ms, table flat 16.7 / 33.4 ms (0 long tasks on the quieter of its runs), gantt 16.7 / 16.7 ms, board first column 16.7 / 16.8 ms, each with 0 long tasks. Within the budget; recorded for comparison.
+- Reported, not gated: in the table each "Show more" click has a longest task of 72 to 100 ms, and the End key jump in the table runs 4 long tasks of up to 73 ms. Low.
+- The grouped list's server HTML is 979,670 bytes on the 10k fixture (reported by the same spec). Low.
+- Bundle headroom: the work-item layout routes are +3.1% to +3.8% over `scripts/bundle-baseline.json`, against the 5% gate of `npm run check:bundle`. The next addition to those routes may need a new baseline or a split. Low.
+- Closed popovers are the largest per-row cost: about 8.5 per row (Selector listboxes with every option, tooltips, date dialogs), 63% of the DOM on a 200-row list. Windowing now bounds the rows; lazy listbox and popover content per row is the next app-side lever. Medium.
 - Astryx `useLayer` reads `getComputedStyle` twice per layer (`readPortalWritingContext`) and then mounts a second render pass; stubbing it saved 133 ms on the 10k list, 259 ms on the 10k table and 1.3 s on the 10k list at CPU 4x. Upstream fix (lazy closed layers), already in the Astryx draft under "Waiting for the user". Medium.
 - React 19.3 holds a revealed Suspense fallback for 300 ms (`FALLBACK_THROTTLE_MS`), so the first visit of a route in a session sits idle for about 250 ms after its code arrived: small list navigation 560 → 283 ms and Analytics first visit 474 → 179 ms when the hold is removed in a counterfactual. Needs a design that avoids the fallback on first visits; no app fix tried. Medium.
 - The board's p95 is bimodal (about 0.25 s, or 1.0 to 1.3 s): the first paint of the server HTML races a hydration task of about 1 s, and when the HTML arrives in several pieces nothing paints until hydration ends. Yielding before hydration would remove the slow tail. Low.
 - Every peek open, switch or close refetches nearly the whole list's RSC payload (225 to 232 KB on 10k, 62 to 70 KB on about 50 items). Low.
-- Only the list's `WorkItemRow` is memoised; table, board, calendar and gantt rows are not, and `RowProject` is rebuilt on every row render (docs/as-built/work-items.md). Low.
+- List rows, board cards and columns, table cells and gantt rows are memoised now; calendar chips are not, and `RowProject` is rebuilt on every row render (docs/as-built/work-items.md). Low.
 - The list routes' first-load JavaScript dropped by 27 to 30% (work-items 669 KB gzip) but missed the roadmap's 560 KB target; the 553 KB estimate could not be reproduced. Low.
 - The ProjectFrame heading and the "Work items" Text in `WorkItemsScreen` still use `Text maxLines`: up to 64 ms at CPU 1x on a 10k list (about 300 ms at 4x, upper bound). Low.
-- Per-row popovers were made lazy in the list, table, gantt and modules timeline only; other popovers with heavy closed content are not audited. Low.
+- Per-row popovers were made lazy in the list, table, gantt, modules timeline and calendar only; other popovers with heavy closed content are not audited. Low.
 
 ### Operations
 - Backup file names do not name their database: every backup is `tessera-<kind>-<stamp>.db` in `backups/` next to the database file (`src/lib/tessera/db/backups.ts`), so two databases in one folder (`data/tessera.db` and a perf or acceptance copy in `data/`) share one folder whose list, rotation and restore mix their copies. Put the source file's base name in the backup name and filter by it. Medium.
@@ -49,16 +57,18 @@ The `npm run db:demo` run (about 70 routes at 1440 and 375 in both schemes on a 
 
 ## Waiting for the user
 - Astryx upstream: approve filing the issue and PR drafted in docs/drafts/astryx-upstream-2026-10-24.md (public, on your GitHub account): the ContextMenu `moveTo`/`start`/`cancel` prop warning, lazy `Text maxLines` measuring, lazy closed layers. Later, approve the Astryx upgrade download once a release has the fixes; then `OneLineText` goes back to `Text maxLines`.
-- Live P5 acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is built and `assistant.spec.ts` and `round-features.spec.ts` pass on it.
-
-## Planned for P12 (docs/drafts/p12-plan.md)
-- Dock/undock (floating) sidebar.
-- Three sidebar modes: full, 48 px icons, 60 px icons with labels (persisted, on the existing collapse rail).
-- Layout and content transitions (about 300 ms, ease-in-out, honouring `prefers-reduced-motion`).
-- Virtual scrolling for long lists, boards, tables and gantt rows, working with paging (decisions 112–114).
-- Calendar zoom Week / Month / Quarter, consistent with the gantt zoom (decision 90).
+- Live assistant acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is built and `assistant.spec.ts` and `round-features.spec.ts` pass on it.
 
 ## Closed
+
+### Sidebar views, motion, virtual lists and calendar zoom (2026-11-10)
+Planned in [the round's plan](drafts/p12-plan.md), decisions 127–139; commits cb5d6f8 to 9bb3010.
+- Dock and undock: a floating sidebar that opens from an 8 px edge strip, the top bar's toggle ("Show sidebar" / "Hide sidebar") or `mod+b`, and closes on pointer leave, Escape, a press outside, focus leaving or navigation (decision 129). Fix on 2026-11-10: the edge strip stays mounted while the panel is open and counts as part of it, so a pointer resting there no longer opens and closes the panel in a loop.
+- Three sidebar views: Full, Icons and labels (60 px) and Icons only (48 px), stored in `tessera.nav.v1` with the dock (decisions 128 and 130); "Sidebar options" in the footer and the same commands in Power K (decision 131).
+- Layout and content motion with the theme's `--duration-medium` (280 ms, ease-in-out): the sidebar width, the floating panel, the peek card slide (the detail is never remounted) and a fade on a layout or zoom switch; none under `prefers-reduced-motion` (decisions 132 and 133).
+- Virtual scrolling for the list, table, board and gantt with paging, sticky bands, drag and drop, Home/End and the kept focused row (decisions 134–137; `@tanstack/react-virtual` 3.14.19). Fix on 2026-11-10: a focused row kept in a grouped list no longer unmounts for a frame when ArrowDown scrolls it back into range (`gateWindow` in `virtual-math.ts`).
+- Calendar zoom Week, Month and Quarter, in the gantt's order (decision 139); quarter cells show two items, a narrow quarter shows a "+N" count per day; closed calendar popovers mount nothing.
+- Tests: Playwright `sidebar`, `motion`, `calendar-zoom`, `virtual-scroll` and the opt-in `virtual-perf` (30 spec files in all), plus Vitest beside each part. Measurements: "Performance" above.
 
 ### Performance round 2 (2026-10-29)
 Roadmap lanes B (decision 141, render identity) and C (decision 142, load less up front), integrated, gated, reviewed twice and fixed on scratch copies of 6331186 (docs/drafts/perf-report-2026-10-28.md). List rows are memoised and read a lean `useProjectRow()` context; refreshed data, the display and the row handlers keep their identity while unchanged (`src/components/work-items/stable.ts`), so a click or an agent write redraws the rows it changed, not the list. The peek's detail and editor load as a separate chunk, preloaded when the browser is idle or the pointer reaches a row. The sidebar and Power K go straight to `/your-work/summary` and `/analytics/overview`. `npm run check:bundle` now also fails a route whose first-load JavaScript grows more than 5% over `scripts/bundle-baseline.json`. Measured interleaved, production, n=5 per side:
@@ -79,7 +89,7 @@ Also added: the decision 115 perf spec (`tests/e2e/perf.spec.ts`, opt-in), a tri
 - Side effects of create-time assignees (decisions 50, 51): intended (root ruling), now pinned: a create with assignees emits `work_item.created` then `work_item.added`, without only `work_item.created` (`webhooks.test.ts`); an agent's create with an assignee reads "<agent> created <KEY> <title> (1 more change)" with "assignees · 2 changes", the twin "1 change" (`workspace/home.test.ts`); mutation proof (no `syncAssignees`: both assigned tests fail, twins pass); browser PASS on Home (verify 2).
 - Power K dropped the first letter typed into the top-bar search field (found by verify 1, pre-existing): Astryx's palette ran its empty-query bootstrap after the seed; the seed now waits one task (`palette-parts.tsx`): `palette-initial-query.test.ts`; browser PASS at 1440 in both schemes and in the 375 drawer search (verify 2).
 - Spec helper: `uniqueIdentifier` in `tests/e2e/fixtures.ts` draws again on a collision (the verify 1 CONFLICT); `round6.spec.ts` 280 of 280 with `--repeat-each=10` twice (verify 1 after the fix, verify 2).
-- Root close-out 1 (2026-10-24): a key typed into the Power K dialog before the seed runs stays after the seeded letter (`palette-initial-query.test.ts`, case with held timers; fails when the seed overwrites); `round6.spec.ts` header no longer claims `test.fixme` and carries the round date; the unused `waitForHydrated` is removed from `helpers-d.ts`; `as-built/hardening.md` counts 24 spec files and names `round5`, `round6` and `helpers-d.ts`; ui.md P3 passages note decision 140's ports and databases.
+- Root close-out 1 (2026-10-24): a key typed into the Power K dialog before the seed runs stays after the seeded letter (`palette-initial-query.test.ts`, case with held timers; fails when the seed overwrites); `round6.spec.ts` header no longer claims `test.fixme` and carries the round date; the unused `waitForHydrated` is removed from `helpers-d.ts`; `as-built/hardening.md` counts 24 spec files and names `round5`, `round6` and `helpers-d.ts`; ui.md passages on cycles, modules and archives note decision 140's ports and databases.
 - Root close-out 2 (2026-10-24, from the root's review; each finding confirmed by a second agent that tried to refute it):
   - Power K seeded a closed palette: Astryx's modal `Dialog` keeps the input mounted after a close and the palette context changes on close, so the seed effect re-armed its timer and searched the closed palette (a stray `/api/search` request, a late "N results" announcement). The seed now arms only while the palette is open (`palette-parts.tsx`): `palette-initial-query.test.ts` (4 tests; the new case fails without the guard); browser PASS (type then Escape at once: no search request, nothing announced, 10 runs).
   - The sidebar's top "New work item" followed the shell flag, so the mobile drawer (Astryx provides no collapse context there and the rows are always expanded) showed the icon-only button after a collapse at desktop width or `mod+b` on a phone; pre-existing. It is now `NewItemButton` in `RailParts.tsx` and reads Astryx's collapse context like the rows: `sidebar-top-content.test.ts` (7 tests, including hydration against expanded server HTML; fails with the old Sidebar logic); browser PASS at 1440 and 375 (the pre-fix build showed the icon button in both drawer cases).
@@ -146,7 +156,7 @@ Also added: the decision 115 perf spec (`tests/e2e/perf.spec.ts`, opt-in), a tri
 - Focus after "Save this draft?" > Save draft returns to the "New work item" opener (fallback in `shell/dialogs.tsx`): e2e `coverage-dialogs.spec.ts` (was `test.fail`).
 - Coverage gaps from the last round, now e2e: committed drops on board, gantt body and edges, calendar, workspace views, states, stickies (`coverage-drops.spec.ts`); Transfer open items, gantt connector and Today at 768, Sunday week start, board and table at 768/1100 (`coverage-timeline.spec.ts`, 60 of 60 with `--repeat-each=4`); Mark duplicate at 375/768, Save draft, focus walks at 375, Power K by keyboard (`coverage-dialogs.spec.ts`); calendar tap, page-tree touch drag, `/drafts` at 375 (`coverage-touch.spec.ts`, drafts 12 of 12).
 - Flaky specs: gantt connector (role locators) and `/drafts` (`:visible`, one match) are stable.
-- Docs: `ui.md` route group, Home bullet and P2b table; `docs/as-built/` refreshed (README, ai, engine, hardening, planning-extras, pages-collaboration, work-items, shell-detail, operations and others); stale code text (`[[` trigger, CommentComposer header, subscribe toast).
+- Docs: `ui.md` route group, Home bullet and the detail, editor and Power K lane table; `docs/as-built/` refreshed (README, ai, engine, hardening, planning-extras, pages-collaboration, work-items, shell-detail, operations and others); stale code text (`[[` trigger, CommentComposer header, subscribe toast).
 - Next.js 16.4.0 → 16.4.3 (root, d0dc0c4): gate, production build and Playwright green; `npm audit --omit=dev` clean; one moderate esbuild advisory remains inside drizzle-kit (dev only, never serves).
 
 ### Visual alignment round (2026-10-22)
@@ -155,13 +165,13 @@ Also added: the decision 115 perf spec (`tests/e2e/perf.spec.ts`, opt-in), a tri
 - board-table: B1–B15 PASS (measure with the real grip under touch emulation, both schemes; `board-table-css`, `board-table-fixes`).
 - timeline: T1–T14 PASS (measure, `conn2.mjs`, six-load today check; `gantt-*`, `calendar-css`, `date-span` tests).
 - detail: D1–D4, D6, D8, D9, D11–D14, D16 PASS (detail measure and probes, screenshots; detail tests).
-- planning: P1–P11, P14, P-opt PASS; P12 PASS after fix 2 (`tessera-row-hit`) (planning measure, focus shots, row and dialog probes; `planning-*` tests).
+- planning: items 1–11, 14 and opt PASS; item 12 PASS after fix 2 (`tessera-row-hit`) (planning measure, focus shots, row and dialog probes; `planning-*` tests).
 - settings: St1–St13, St15, St-opt PASS; St14 PASS after fix 2 (profile tabs fit at 375) (settings probes, focus walk; settings tests).
 - pages: Pg1–Pg3, Pg5–Pg8, Pg10, Pg11, Pg13–Pg17, Pg-comment, Pg-opt, Pg-bubble PASS (pages measure, tree-focus; `pages-*` tests).
 - workspace: W1–W14 PASS (workspace measure, `recents.mjs`, `tables.mjs`, `hit-area.mjs`; `workspace-*`, `analytics-touch-css` tests).
 - Relations and reactions UI on the work item detail: `RelationsList` (Add relation dialog, remove, focus back on Add relation) and `ReactionBar` on the description and on comments; `load-detail.ts` returns both. `relations-list`, `reaction-bar`, `relations-reactions-css` tests; e2e `relations-reactions.spec.ts` 2 of 2; verify 2 PASS (long titles on one line, 44 px rows and emoji picker at 375). No attachments (excluded scope).
 - Shared patterns recorded in `ui.md` "Theme" and "Accepted trade-offs": touch option A (theme-wide coarse/480 px rule plus `tessera-hit` hit areas), the `tessera-fallback` focus layer in `base.css`, PanelBar `tabsBelow`, and the Latte yellow/peach/pink/green icon contrast trade-off.
-- Leftovers closed: workspace views drag (P5; wired, Vitest grip test), optimistic menu Move up/Move down in views, states, labels and the page tree (P-opt, St-opt, Pg-opt; browser with delayed POSTs), inbox header at 375 (S7, W14), gantt 28 px buttons (T2), PowerSearch overlap (L1), SeriesCharts floors (W3), Latte for calendar chips, gantt and the page outline (T5, T7, T11, Pg1).
+- Leftovers closed: workspace views drag (planning item 5; wired, Vitest grip test), optimistic menu Move up/Move down in views, states, labels and the page tree (P-opt, St-opt, Pg-opt; browser with delayed POSTs), inbox header at 375 (S7, W14), gantt 28 px buttons (T2), PowerSearch overlap (L1), SeriesCharts floors (W3), Latte for calendar chips, gantt and the page outline (T5, T7, T11, Pg1).
 - Found by verify 1 and fixed in fix 2 (verify 2 PASS): the touch rework (Home rows, top bar back to 48 px, work-items header and filter stacks, priority chip, detail breadcrumb, tab-strip chevrons, Pages combobox and tokens), focus return for every Dialog and after a create-project conflict, intake detail on phone and tablet, digest Summarise 400, backups table column floor, emoji picker, Applied badge, relation and option rows, sub-item input width, assistant tool-call spinner, footer labels, planning dialog hit areas, module row bar at 375, calendar chip tap, `+N more`, gantt label column at 768, peek at 768, profile and agents link rows, StatusLabel, the estimates empty state, page move network error, version rows, link placeholder.
 - Fixed in fix 3 (lane live checks, no second verify): list row key and title on one line at 480 px and narrower, filter input clickable at phone width, exports and webhook deliveries tables fold below their floors, event names break only at dots, Snooze date and time hit areas, editor start padding 16 px on phones, task-item checkbox pitch 46 px.
 - Review findings closed in fix 1: Power K highlights the first row once per non-empty query, palette height in tokens, no `touch-action: none` on sidebar rows, gantt bars or calendar chips (fine pointer only), Pages bar without `canWrap`.
@@ -213,13 +223,13 @@ Also added: the decision 115 perf spec (`tests/e2e/perf.spec.ts`, opt-in), a tri
 - `perf:bench` prints the real project count.
 - Field guide css-token line reworded; `css-token` rule strict for every name (`tests/convention-rules.test.ts`, 18 tests).
 - `drizzle/meta/0011_snapshot.json`: `drizzle-kit generate` in a scratch copy says "No schema changes".
-- `docs/as-built/`: six new files for P4 and P6–P11, README snapshot line, `work-items.md` and `engine.md` stale lines.
-- `PLAN-STATUS.md`: P5 date and live acceptance, P10/P11 rows, P2a/P3 acceptance lines, stale rework list.
+- `docs/as-built/`: six new files (views and settings, pages and collaboration, planning extras, workspace, operations, hardening), README snapshot line, `work-items.md` and `engine.md` stale lines.
+- `PLAN-STATUS.md`: the assistant's date and live acceptance, the layouts-and-operations and hardening rows, the acceptance lines of the work items core and the cycles round, stale rework list.
 - Test gaps: AutomationsSettings, BulkTransferDialog, ModulesTimeline, `?layout=` (`layout-param.test.ts`), CSV button, `useWeekStart`, `weekStartsOn`, `dateRangeOf` (`tests/timeline.test.ts`, 10 tests).
 - Stale worktree `.claude/worktrees/app-visual-rework-250c6c`: gone (`git worktree list` shows only main).
 
 ### Dropped by the user (2026-10-21)
-- Cache lane, decisions 109–111: not built; `docs/PLAN.md` marks them dropped (P12 records it as decision 127).
+- Cache lane, decisions 109–111: not built; `docs/PLAN.md` marks them dropped and records the drop as decision 127.
 
 ### Verified 2026-10-21 at f3be717
 - Automations settings tab: switches, months, Close to state, Run now, Due now, Last run all work (browser).
@@ -262,4 +272,4 @@ Also added: the decision 115 perf spec (`tests/e2e/perf.spec.ts`, opt-in), a tri
 - Invalid rich filters return VALIDATION with the JSON path (decision 93).
 - Bundle gate no longer ships ANTHROPIC to the client; version history shows each version's actor.
 - Decision rows 42–108 copied into `docs/PLAN.md`; four eslint unused-variable warnings removed.
-- P10 engine proofs: exports are spreadsheet-ready, webhooks sign, retry on 500, deactivate on 410; all AI routes use the loopback guard.
+- Layouts and operations engine proofs: exports are spreadsheet-ready, webhooks sign, retry on 500, deactivate on 410; all AI routes use the loopback guard.

@@ -4,15 +4,16 @@ Tessera is a local, single-user, AI-first work tracker: projects, work items, cy
 
 The feature set follows Plane Community Edition, minus accounts, invitations, admin, live cursors and attachments. The code is written from scratch; see `THIRD_PARTY_NOTICES.md` for the licence position.
 
-**Status:** phases P0 to P11 are done (2026-10-18), followed by fix rounds, a visual alignment round and two performance rounds. P12 is next; it is planned in [docs/drafts/p12-plan.md](docs/drafts/p12-plan.md), and the open backlog is in [docs/improvements.md](docs/improvements.md). Phase history: [docs/PLAN-STATUS.md](docs/PLAN-STATUS.md); the plan and its numbered decisions: [docs/PLAN.md](docs/PLAN.md).
+**Status:** all planned work is built (last round: sidebar views, motion, virtual lists and calendar zoom, 2026-11-10). What is left is backlog, in [docs/improvements.md](docs/improvements.md). Build status and history: [docs/PLAN-STATUS.md](docs/PLAN-STATUS.md); the plan and its numbered decisions: [docs/PLAN.md](docs/PLAN.md).
 
 ## What it does
 
-- **Work items:** states, labels, priority, assignees, dates, estimates, sub-items, keys like `MOB-12`. Five layouts (list, board, table, calendar, gantt), AND/OR filters, grouping and sub-groups, bulk edits, moves between projects. The detail opens as a peek, a modal or a full page, with relations, links, comments, reactions, @mentions, subscriptions and version history.
+- **Work items:** states, labels, priority, assignees, dates, estimates, sub-items, keys like `MOB-12`. Five layouts (list, board, table, calendar with week, month and quarter zoom, gantt) that stay fast on long lists through virtual scrolling, AND/OR filters, grouping and sub-groups, bulk edits, moves between projects. The detail opens as a peek, a modal or a full page, with relations, links, comments, reactions, @mentions, subscriptions and version history.
 - **Planning:** cycles with burndown and burnup charts and transfer of unfinished work; modules with leads, members and a timeline; point estimates; archives with restore.
 - **Views:** saved project and workspace views, lockable and reorderable, each with its own display settings.
 - **Pages:** a workspace wiki and project pages in a Tiptap editor that saves Markdown, with a page tree, outline, locking, version history and backlinks.
 - **Inbox and intake:** inbox with mentions, snooze and archive; per-project intake (accept, decline, duplicate, snooze); drafts.
+- **Navigation:** a sidebar shown in full, as icons with labels or as icons only, docked or floating over the page (`mod+b`), with motion that honours reduced-motion settings.
 - **Workspace:** Home with widgets (since your last visit, your work, recents, quick links, stickies), favourites with folders, Your work, analytics.
 - **Agents:** agents are first-class actors with an access level (read, intake or write), a directory at `/agents` and profiles. Each agent gets a generated robot avatar, picked from its id and tinted in its colour, so bots read apart from people and from each other.
 - **Assistant:** a side panel (`mod+j`) and Ask in Power K that stream answers and propose changes you approve with Apply (destructive ones ask again), with undo of the last batch. It appears only when an Anthropic credential resolves.
