@@ -18,3 +18,4 @@ Surprises from the performance rounds of 2026-10-24 to 2026-10-29. Reports: docs
 
 ## Measuring
 - Use production builds (`next start`) for timings, interleave the two sides (A, B, A, B) with a fresh server and a fresh database copy per sample, and record the load average; dev timings and component counts are for finding causes. The budget's own harness is `tests/e2e/perf.spec.ts` (p95, n=20, `playwright.perf.config.ts`); `npm run check:bundle` guards the first-load JavaScript per route.
+- A probe that waits for Power K to settle must accept "No matches". With no hits Astryx renders no listbox and sets the input's `aria-expanded` to false, so a check for `aria-expanded="true"` never ends on a query without hits: `platf` has none in the 10k data, which looked like "typing never settles on 10k". Wait for the typed value, no `[role=progressbar]` beside the input (the pending search's spinner), and either `aria-expanded="true"` or the "No matches" text.
