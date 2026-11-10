@@ -6,7 +6,7 @@
  * BoardLayout.tsx; pure functions of their props.
  */
 
-import { useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useMemo, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AvatarGroup } from "@astryxdesign/core/AvatarGroup";
 import { ClickableCard } from "@astryxdesign/core/ClickableCard";
 import { Icon, useIcon } from "@astryxdesign/core/Icon";
@@ -60,17 +60,44 @@ type CardMenuProps = {
 function CardMenu(props: CardMenuProps) {
   const { armed, arm } = useArmed();
   const moreIcon = useIcon("moreHorizontal");
-  if (!armed) return <IconButton variant="ghost" size="sm" label={`Actions for ${props.item.key}`} icon={moreIcon} data-arm-key={MENU_ARM_KEY} onClick={() => arm(MENU_ARM_KEY, MENU_ARM_KEY)} />;
-  return <ArmedCardMenu {...props} />;
+  // How the click that armed the card was made. A click from the keyboard or from assistive technology has no pointer, so
+  // its `detail` is 0 (the way Astryx's own menu button tells a key from a press); a mouse or a finger reports 1 or more.
+  const [isKeyClick, setKeyClick] = useState(false);
+  if (!armed) {
+    return (
+      <IconButton
+        variant="ghost"
+        size="sm"
+        label={`Actions for ${props.item.key}`}
+        icon={moreIcon}
+        data-arm-key={MENU_ARM_KEY}
+        onClick={(event) => {
+          setKeyClick(event.detail === 0);
+          arm(MENU_ARM_KEY, MENU_ARM_KEY);
+        }}
+      />
+    );
+  }
+  return <ArmedCardMenu {...props} isKeyOpen={isKeyClick} />;
 }
 
-function ArmedCardMenu({ item, currentColumn, targets, onOpen, onMoveTo }: CardMenuProps) {
+function ArmedCardMenu({ item, currentColumn, targets, onOpen, onMoveTo, isKeyOpen }: CardMenuProps & { isKeyOpen: boolean }) {
   const { isDefaultOpen, takeFocus } = useArmedHandoff(MENU_ARM_KEY);
-  // Mounts only once the card has armed, so the click that armed it decides whether the menu starts open.
-  const [isOpen, setOpen] = useState(isDefaultOpen);
+  // Mounts only once the card has armed, so the click that armed it decides how the menu opens. A pointer's click mounts it
+  // open and Astryx leaves the focus alone (a menu that mounts open is not an open anyone asked for). A key's click opens it
+  // after it has mounted, from the ref callback that has already put the focus on the button: Astryx then reads it as the
+  // keyboard open it is and moves the focus to the first item, and Escape or a pick returns it to the button.
+  const [isOpen, setOpen] = useState(isDefaultOpen && !isKeyOpen);
+  const handoff = useMemo(() => {
+    if (!takeFocus || !isDefaultOpen || !isKeyOpen) return takeFocus;
+    return (element: HTMLButtonElement | null) => {
+      takeFocus(element);
+      if (element) setOpen(true);
+    };
+  }, [takeFocus, isDefaultOpen, isKeyOpen]);
   return (
     <MoreMenu
-      ref={takeFocus}
+      ref={handoff}
       label={`Actions for ${item.key}`}
       size="sm"
       alignment="end"

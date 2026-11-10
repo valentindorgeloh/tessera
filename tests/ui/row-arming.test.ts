@@ -465,17 +465,51 @@ describe("an unarmed board card", () => {
     expect(menuChip(cards()[2]!)).not.toBeNull();
   });
 
-  it("opens the menu a click on its icon button was aimed at", async () => {
+  it("opens the menu a pointer click on its icon button was aimed at", async () => {
     await mountBoard();
     menus.opened = [];
     await act(async () => {
-      menuChip(cards()[3]!)!.click();
+      // A mouse or finger click reports detail 1; `click()` is the keyboard's (detail 0).
+      menuChip(cards()[3]!)!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 }));
     });
     expect(menuChip(cards()[3]!)).toBeNull();
     expect(menuTrigger(cards()[3]!)).not.toBeNull();
     // The menu mounts open, and stays open through the render that spends the open intent.
     expect(menus.opened[0]).toBe(true);
     expect(menus.opened).not.toContain(false);
+  });
+
+  it("opens the menu once, after it mounted, for a click from the keyboard, and Astryx then puts the focus on its first item", async () => {
+    await mountBoard();
+    const card = cards()[3]!;
+    const button = menuChip(card)!;
+    await act(async () => {
+      button.focus();
+    });
+    menus.opened = [];
+    await act(async () => {
+      // Enter on a focused button: a click with no pointer (detail 0).
+      button.click();
+    });
+    // The trigger took the focus the chip held; the menu mounted closed and opened in the next render, once.
+    expect(menus.opened[0]).toBe(false);
+    expect(menus.opened).toContain(true);
+    expect(menus.opened.filter((value, index) => value !== menus.opened[index - 1])).toEqual([false, true]);
+    // Astryx focuses the first item a frame after a keyboard open.
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    });
+    expect(menuTrigger(card)?.getAttribute("aria-expanded")).toBe("true");
+    const focused = document.activeElement;
+    expect(focused?.getAttribute("role")).toBe("menuitem");
+    expect(focused?.textContent).toBe("Open");
+    // The button held the focus when the menu opened, so Escape hands the focus back to it.
+    await act(async () => {
+      focused?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    });
+    expect(menuTrigger(card)?.getAttribute("aria-expanded")).not.toBe("true");
+    expect(document.activeElement).toBe(menuTrigger(card));
   });
 });
 
