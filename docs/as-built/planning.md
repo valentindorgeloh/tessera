@@ -76,7 +76,7 @@ Visual alignment rules (ui.md "Planning (cycles, modules, intake, views, project
 ## 3. Data and control flow
 
 ### Read path
-1. A route `page.tsx` is a sync default export wrapping an async child in `<Suspense fallback={<…Skeleton/>}>`; the cycles list and a cycle's page are the exception (decision 156): no page boundary, `instant = false`, the frame's `PageSkeleton` covers a cold load, and the cycle's work items list has no boundary either.
+1. A route `page.tsx` is a sync default export wrapping an async child in `<Suspense fallback={<…Skeleton/>}>`; the cycles list and a cycle's page are the exception (decision 156): no boundary, `instant = false`, so the page blocks and comes in the first HTML flush, and the cycle's work items list has no boundary either.
 2. The child awaits `params`/`searchParams`, calls `await io()`, validates ids with `IdSchema.safeParse` (bad id calls `notFound()`), then runs one `readTessera(ctx => …)`: `getProject`, `listCycles`/`getCycle`/`getCycleProgress`, `listModules`/`getModule`, `listWorkItems` (candidates, archived items), `getStoredDigest`, `listProjects`, `getActiveCycles`.
 3. `NOT_FOUND` and `VALIDATION` from the engine map to `notFound()`; other errors rethrow.
 4. List and archive pages read `getProject(...).cycles_enabled` / `modules_enabled`; false makes the loader return `null` (or `enabled: false`), and the page renders `FeatureOffState` without the other reads.

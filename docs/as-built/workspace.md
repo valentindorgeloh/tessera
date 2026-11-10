@@ -58,7 +58,7 @@ Registry tools (`tools/registry/workspace.ts`, `analytics.ts`): `get_home_summar
 ## 3. Data and control flow
 
 ### Read path
-1. Each route is a sync default export with `<Suspense>` (analytics and the wiki are the exception, decision 156: no page boundary, `instant = false`, the frame's `PageSkeleton` covers a cold load); the async child calls `await io()` and one `readTessera`. Home reads `getHomeSummary` once; analytics reads `getAnalytics` plus project options and the stored digest.
+1. Each route is a sync default export with `<Suspense>` (analytics and the wiki are the exception, decision 156: no boundary, `instant = false`, so the page blocks and comes in the first HTML flush); the async child calls `await io()` and one `readTessera`. Home reads `getHomeSummary` once; analytics reads `getAnalytics` plus project options and the stored digest.
 2. The sidebar data (projects, favourites tree, unread and draft counts) loads in the `(tessera)` layout under Suspense and is published to client stores (`FavoritesPublisher`, `WorkspaceSettingsPublisher`).
 3. Recents are client-only (`tessera.recents.v1`) and render inside the Home client screen.
 
