@@ -480,7 +480,8 @@ describe("full-text search", () => {
   it("never lets user input break the MATCH query", () => {
     const { sqlite } = createTestDb();
     upsertWorkItemFts(sqlite, { id: "a", project_id: "p1", name: "Quote test", body: "" });
-    expect(buildMatchExpression('  "quote" OR (test) NOT * ')).toBe('"quote"* "OR"* "(test)"* "NOT"* "*"*');
+    // Each word is a group of quoted prefix terms, joined with AND (decision 154: "quote" also offers its stem "quot").
+    expect(buildMatchExpression('  "quote" OR (test) NOT * ')).toBe('("quote"* OR "quot"*) AND "OR"* AND "(test)"* AND "NOT"* AND "*"*');
     expect(buildMatchExpression("   ")).toBeNull();
     expect(searchWorkItemIds(sqlite, "")).toEqual([]);
     expect(() => searchWorkItemIds(sqlite, 'quote" OR (')).not.toThrow();
@@ -596,8 +597,12 @@ describe("migrateIfNeeded", () => {
       const probe = new Database(filePath);
       // The migrator's `id SERIAL` column is NULL in SQLite, so the newest row is found by created_at.
       probe.prepare(`DELETE FROM "${MIGRATIONS_TABLE}" WHERE created_at = (SELECT max(created_at) FROM "${MIGRATIONS_TABLE}")`).run();
-      // The newest migration (0013) adds notification.kind_count; drop it so it can re-apply.
-      probe.exec(`ALTER TABLE notification DROP COLUMN kind_count;`);
+      // The newest migration (0015) recreates the FTS tables without the Porter stemmer and refills them (decision 154):
+      // put back the tables 0001 made, with a stale row, so it can re-apply and must drop that row.
+      probe.exec(`DROP TABLE work_item_fts; DROP TABLE page_fts;`);
+      probe.exec(`CREATE VIRTUAL TABLE work_item_fts USING fts5(work_item_id UNINDEXED, project_id UNINDEXED, name, body, tokenize = 'porter unicode61 remove_diacritics 2')`);
+      probe.exec(`CREATE VIRTUAL TABLE page_fts USING fts5(page_id UNINDEXED, project_id UNINDEXED, name, body, tokenize = 'porter unicode61 remove_diacritics 2')`);
+      probe.prepare("INSERT INTO work_item_fts (work_item_id, project_id, name, body) VALUES ('stale', 'p', 'Stale row', '')").run();
       expect(pendingMigrations(probe)).toBe(1);
       probe.close();
 
@@ -619,6 +624,9 @@ describe("migrateIfNeeded", () => {
       const check = new Database(filePath);
       expect(pendingMigrations(check)).toBe(0);
       expect(tableNames(check)).toContain("page_fts");
+      const ftsSql = check.prepare<[], { sql: string }>("SELECT sql FROM sqlite_master WHERE name IN ('work_item_fts', 'page_fts')").all();
+      expect(ftsSql.map((row) => row.sql.includes("porter"))).toEqual([false, false]);
+      expect(check.prepare<[], { n: number }>("SELECT count(*) AS n FROM work_item_fts").get()?.n).toBe(0);
       check.close();
 
       const again = migrateIfNeeded(filePath);

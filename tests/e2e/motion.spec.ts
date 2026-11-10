@@ -6,9 +6,9 @@ import { waitForAppHydrated } from "./helpers-d";
 import { visibleScroller, visibleScrollerSource } from "./helpers-p12";
 
 /**
- * Sidebar and peek motion with the virtual lists (decisions 132–133 and docs/contracts/ui.md "Motion"): Astryx's rail
- * motion for a collapse or an expand and our panel width motion for the rail kind switch and for docking and undocking
- * a rail, the peek's slide and its
+ * Sidebar and peek motion with the virtual lists (decisions 132–133 and 149, docs/contracts/ui.md "Motion"): Tessera's
+ * strip glide (the panel's width, with Astryx's rail motion held off) for a collapse, an expand, the rail kind switch
+ * and docking and undocking a rail, the peek's slide and its
  * guarded close (an exit that holds the panel inert while the URL drops the item, a double Escape that closes once, a
  * close that never pulls the page back, focus back on the row), the layout and zoom fade, and the floating panel's
  * transition, each also under `prefers-reduced-motion: reduce`.
@@ -137,10 +137,14 @@ async function openPeek(page: Page, key: string, name: string): Promise<void> {
   await expect(peekCard(page).getByRole("heading", { name })).toBeVisible({ timeout: 15_000 });
 }
 
-/** In the same task as the action: the moves (translate) running anywhere, and the width animations on the sidebar panel. */
+/**
+ * In the same task as the action: the moves (translate) running outside menus and tooltips (a tooltip that opens under
+ * the resting pointer as the rail changes slides in on its own), and the width animations on the sidebar panel.
+ */
 const RUNNING_SOURCE = `(() => {
   const panel = document.querySelector(".astryx-app-shell-sidenav");
-  const moving = (a) => a.playState === "running" && (a.effect?.getKeyframes?.() ?? []).some((f) => "translate" in f || "transform" in f || "clipPath" in f);
+  const outsidePopups = (a) => !(a.effect?.target instanceof Element) || a.effect.target.closest('[role="menu"], [role="tooltip"], [popover], .astryx-tooltip') === null;
+  const moving = (a) => a.playState === "running" && outsidePopups(a) && (a.effect?.getKeyframes?.() ?? []).some((f) => "translate" in f || "transform" in f || "clipPath" in f);
   const width = (a) => a.playState === "running" && (a.effect?.getKeyframes?.() ?? []).some((f) => "width" in f);
   return { moves: document.getAnimations().filter(moving).length, widths: panel ? panel.getAnimations().filter(width).length : -1 };
 })()`;
@@ -158,33 +162,34 @@ test.describe("sidebar width motion", () => {
   });
 
   for (const rail of ["icons", "labels"] as const) {
-    test(`collapsing to the ${rail} rail and expanding again play Astryx's rail motion alone, with no sideways scroll`, async ({ page }) => {
+    test(`collapsing to the ${rail} rail and expanding again glide the panel's width alone, with no sideways scroll`, async ({ page }) => {
       await loadHome(page);
       if (rail === "labels") {
         await page.evaluate(() => window.localStorage.setItem("tessera.nav.v1", JSON.stringify({ display: "full", rail: "labels", dock: "docked" })));
         await loadHome(page);
       }
       const collapse = await page.evaluate(`(() => { document.getElementById("tessera-nav-toggle").click(); return null; })()`).then(() => page.evaluate<Running>(RUNNING_SOURCE));
-      expect(collapse.moves, "Astryx's rail motion runs (the content glides, the old rail is clipped)").toBeGreaterThan(0);
-      expect(collapse.widths, "our width animation does not run on top of it").toBe(0);
+      expect(collapse.widths, "the panel's width glides (decision 149)").toBe(1);
+      expect(collapse.moves, "Astryx's rail motion does not run on top of it").toBe(0);
       const railWidth = rail === "labels" ? 60 : 48;
       await expect.poll(() => liveNavWidth(page), { message: "nav width" }).toBe(railWidth);
       await expect.poll(() => panelWidth(page), { message: "panel width" }).toBe(railWidth);
 
-      // About 100 ms into the expand: Astryx's motion runs, ours does not, and the panel never scrolls sideways.
+      // About 100 ms into the expand: the glide runs, Astryx's motion does not, and the panel never scrolls sideways.
       const mid = await page.evaluate(async (source) => {
         document.getElementById("tessera-nav-toggle")!.click();
         await new Promise((resolve) => setTimeout(resolve, 100));
         const panel = document.querySelector<HTMLElement>(".astryx-app-shell-sidenav")!;
         return { running: (0, eval)(source) as Running, scrollWidth: panel.scrollWidth, clientWidth: panel.clientWidth };
       }, RUNNING_SOURCE);
-      expect(mid.running.widths, "no width animation of ours during the expand").toBe(0);
+      expect(mid.running.widths, "the panel's width glides during the expand").toBe(1);
+      expect(mid.running.moves, "no Astryx rail motion during the expand").toBe(0);
       expect(mid.scrollWidth, "the panel does not scroll sideways").toBeLessThanOrEqual(mid.clientWidth);
       await expect.poll(() => liveNavWidth(page), { message: "expanded nav width" }).toBe(250);
     });
   }
 
-  test("switching between the two rails animates the panel's width (Astryx does not move a rail that stays collapsed)", async ({ page }) => {
+  test("switching between the two rails glides the panel's width", async ({ page }) => {
     await loadHome(page);
     await page.evaluate(() => window.localStorage.setItem("tessera.nav.v1", JSON.stringify({ display: "rail", rail: "icons", dock: "docked" })));
     await loadHome(page);
@@ -247,7 +252,7 @@ test.describe("sidebar width motion", () => {
   }
 
   for (const rail of ["icons", "labels"] as const) {
-    test(`undocking from and docking to the ${rail} rail animate the panel's width alone, with no rail motion (decision 145)`, async ({ page }) => {
+    test(`undocking from and docking to the ${rail} rail glide the panel's width alone, with no rail motion (decisions 145 and 149)`, async ({ page }) => {
       await loadHome(page);
       await page.evaluate((kind) => window.localStorage.setItem("tessera.nav.v1", JSON.stringify({ display: "rail", rail: kind, dock: "docked" })), rail);
       await loadHome(page);

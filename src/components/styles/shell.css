@@ -107,9 +107,10 @@
     opacity: 1;
   }
 
+  /* visibility, not opacity: the sidebar collapse motion fades the rail's text with opacity (rail-motion.ts). */
   .astryx-side-nav-item:is(:hover, :focus-within) .tessera-row-count,
   .tessera-row-actions:has([aria-expanded="true"]) .tessera-row-count {
-    opacity: 0;
+    visibility: hidden;
   }
 }
 
@@ -868,4 +869,4 @@
   display: block;
 }
 
-/* The sidebar's inset beside the content card and the top bar toggle's column are in nav.css. */
+/* The sidebar's inset beside the content card and the top bar toggle's column are in nav.css (the collapse motion's copy of the rail keeps the `tessera-sidebar` class, so it gets them too). */

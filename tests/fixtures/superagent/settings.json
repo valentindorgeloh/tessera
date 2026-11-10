@@ -1,0 +1,13 @@
+{
+  "settings": {
+    "budgetsUsd": {
+      "S": 2,
+      "M": 6,
+      "L": 12
+    },
+    "dailyCapUsd": 20,
+    "maxParallel": 2,
+    "signoffM": true
+  },
+  "revision": 4
+}

@@ -14,10 +14,11 @@
  * the window bounds come from the instance's public `range`, and every measurement arrives through the scroller
  * store (`useSyncExternalStore`).
  */
-import { useCallback, useMemo, useRef, useState, type CSSProperties, type FocusEvent } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent } from "react";
 import { defaultRangeExtractor, measureElement as measureDefault, useVirtualizer, type Range, type VirtualItem, type Virtualizer } from "@tanstack/react-virtual";
 import { cssVars } from "@/components/shared/css-vars";
 import { usePrinting } from "./print-store";
+import { registerRevealer } from "./reveal";
 import { BOARD_GAP_ESTIMATE, ESTIMATE, INITIAL_OVERSCAN, OVERSCAN, type VirtualKind } from "./virtual-config";
 import { cssPx, gateWindow, initialRange, isOpenEnd, paddings, partitionKept, withKept } from "./virtual-math";
 import { useAnchorGap, useAnchorHead, useAnchorNear, useAnchorOffset, useScrollerMeasured, useScrollerStore, useScrollerViewport, useScrollPaddingStart } from "./VirtualScrollerProvider";
@@ -255,6 +256,29 @@ export function useVirtualRows(options: UseVirtualRowsOptions): VirtualRowsResul
   const keptIndexes = [...keptBefore, ...keptAfter].map((row) => row.index).join(",");
   const isKept = useCallback((index: number) => keptIndexes !== "" && keptIndexes.split(",").includes(String(index)), [keptIndexes]);
   const scrollToIndex = useCallback((index: number) => virtualizer.scrollToIndex(index, { align: "auto" }), [virtualizer]);
+
+  // While live, a row of this container can be asked into the window by key (./reveal.ts: the focus-follow of a moved
+  // item). The screen asks from its own layout effect in the commit that moved the item, so the revealer must already
+  // answer with this commit's rows: it reads them from a ref that a layout effect updates (a child's layout effects run
+  // before its ancestors'), and registers in a layout effect, so a group that mounts in that commit answers too. A
+  // passive effect left the previous commit's rows in place: the group the item left still claimed it at its old index.
+  const rowsForReveal = useRef({ count, getKey });
+  useLayoutEffect(() => {
+    rowsForReveal.current = { count, getKey };
+  }, [count, getKey]);
+  useLayoutEffect(() => {
+    const scroller = isLive ? store.element() : null;
+    if (!scroller) return;
+    return registerRevealer(scroller, (matches) => {
+      const { count: rowCount, getKey: keyOf } = rowsForReveal.current;
+      for (let i = 0; i < rowCount; i += 1) {
+        if (!matches(keyOf(i))) continue;
+        virtualizer.scrollToIndex(i, { align: "auto" });
+        return true;
+      }
+      return false;
+    });
+  }, [isLive, store, virtualizer]);
 
   return {
     isEnabled: isOn,

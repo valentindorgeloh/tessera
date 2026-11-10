@@ -1,17 +1,30 @@
 /**
- * The workspace singleton: name, home widgets, AI overrides and the Home
- * seen cursor. ensureWorkspaceSettings inserts the row at startup.
+ * The workspace singleton: name, home widgets, AI overrides, the Home seen
+ * cursor and the superagent settings. ensureWorkspaceSettings inserts the row
+ * at startup.
  */
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { TesseraContext } from "../core/context";
-import { validateInput } from "../core/errors";
+import { rule, validateInput, validation } from "../core/errors";
 import { nowIso } from "../core/time";
 import { withTx } from "../core/tx";
 import type { TesseraDb } from "../db/client";
 import { workspace_settings } from "../db/schema";
-import { AiEffortSchema, HOME_WIDGET_IDS, HomeWidgetIdSchema, HomeWidgetsSchema, WorkspaceAiSettingsSchema } from "../schemas";
-import type { HomeWidgetId, HomeWidgets, WorkspaceAiSettings, WorkspaceSettingsView } from "../types";
+import { getProjectRow } from "../projects";
+import {
+  AGENT_RUNNER_DEFAULT_URL,
+  AgentProjectSchema,
+  AgentRunnerUrlSchema,
+  AiEffortSchema,
+  HOME_WIDGET_IDS,
+  HomeWidgetIdSchema,
+  HomeWidgetsSchema,
+  WorkspaceAiSettingsSchema,
+} from "../schemas";
+import type { AgentProject, AgentSettings, HomeWidgetId, HomeWidgets, WorkspaceAiSettings, WorkspaceSettingsView } from "../types";
+
+export { AGENT_RUNNER_DEFAULT_URL };
 
 export const WORKSPACE_ID = "workspace";
 
@@ -37,6 +50,31 @@ export function normalizeHomeWidgets(raw: unknown): HomeWidgets {
     if (!seen.has(widget)) widgets.push({ widget, enabled: true });
   }
   return widgets;
+}
+
+/**
+ * Superagent settings as stored (decision 151). Null stays null (never set);
+ * otherwise a bad runner URL becomes the default and bad or repeated project
+ * entries are dropped. The URL is returned without a trailing "/". Pure.
+ */
+export function normalizeAgentSettings(raw: unknown): AgentSettings | null {
+  if (raw === null || raw === undefined) return null;
+  const record = typeof raw === "object" ? (raw as { runner_url?: unknown; projects?: unknown }) : {};
+  const url = AgentRunnerUrlSchema.safeParse(record.runner_url);
+  const seen = new Set<string>();
+  const projects: AgentProject[] = [];
+  for (const entry of Array.isArray(record.projects) ? record.projects : []) {
+    const parsed = AgentProjectSchema.safeParse(entry);
+    if (!parsed.success || seen.has(parsed.data.project_id)) continue;
+    seen.add(parsed.data.project_id);
+    projects.push(parsed.data);
+  }
+  return { runner_url: url.success ? url.data.replace(/\/$/, "") : AGENT_RUNNER_DEFAULT_URL, projects };
+}
+
+/** The repository mapped to a project, or null when the project is not mapped. */
+export function agentRepoFor(agents: AgentSettings | null, projectId: string): string | null {
+  return agents?.projects.find((entry) => entry.project_id === projectId)?.repo ?? null;
 }
 
 /**
@@ -79,6 +117,7 @@ function toView(row: typeof workspace_settings.$inferSelect): WorkspaceSettingsV
     name: row.name,
     home_widgets: normalizeHomeWidgets(row.home_widgets),
     ai: ai.success ? ai.data : DEFAULT_AI,
+    agents: normalizeAgentSettings(row.agents),
     last_seen_seq: row.last_seen_seq,
     last_seen_at: row.last_seen_at,
     auto_backup: row.auto_backup !== false,
@@ -127,6 +166,38 @@ export function updateWorkspaceSettings(ctx: TesseraContext, input: UpdateWorksp
         ai,
         updated_at: now,
       })
+      .where(eq(workspace_settings.id, WORKSPACE_ID))
+      .returning()
+      .get();
+    return toView(row);
+  });
+}
+
+export const SetAgentSettingsInput = z
+  .object({
+    runner_url: AgentRunnerUrlSchema.optional().describe("Runner URL, http://127.0.0.1:<port> or http://localhost:<port>. Omitted keeps the stored one (the default when none is stored)."),
+    projects: z.array(AgentProjectSchema).max(50).describe("The whole project to repository map, at most 50 entries, each project once. [] maps nothing."),
+  })
+  .strict();
+
+/** Replaces the superagent project map and, when given, the runner URL. User only (decision 151); no activity row, like updateWorkspaceSettings. */
+export function setAgentSettings(ctx: TesseraContext, input: z.input<typeof SetAgentSettingsInput>): WorkspaceSettingsView {
+  // Apply runs proposals as the assistant without assertToolAllowed, so the service refuses every non-user actor itself.
+  if (ctx.actor.kind !== "user") throw rule("user_only", "Only the user can change the superagent settings");
+  const data = validateInput(SetAgentSettingsInput, input);
+  return withTx(ctx, () => {
+    const mapped = new Set<string>();
+    for (const entry of data.projects) {
+      if (mapped.has(entry.project_id)) throw validation({ projects: data.projects }, "A project can be mapped once");
+      mapped.add(entry.project_id);
+    }
+    // Live projects only (NOT_FOUND otherwise); an archived project may stay mapped.
+    for (const entry of data.projects) getProjectRow(ctx, entry.project_id);
+    const before = readRow(ctx);
+    const runnerUrl = (data.runner_url ?? normalizeAgentSettings(before.agents)?.runner_url ?? AGENT_RUNNER_DEFAULT_URL).replace(/\/$/, "");
+    const row = ctx.db
+      .update(workspace_settings)
+      .set({ agents: { runner_url: runnerUrl, projects: data.projects }, updated_at: ctx.now() })
       .where(eq(workspace_settings.id, WORKSPACE_ID))
       .returning()
       .get();

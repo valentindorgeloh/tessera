@@ -1,10 +1,12 @@
 "use server";
 
 /** Sticky notes (docs/drafts/p9-plan.md U1). Each wrapper keeps the tool name. */
-import { toolAction } from "./_run";
+import { quietToolAction, toolAction } from "./_run";
 
 export const listStickiesAction = toolAction("list_stickies");
 export const createStickyAction = toolAction("create_sticky");
 export const updateStickyAction = toolAction("update_sticky");
+/** Quiet body autosave: the card keeps its own text. Name and colour edits keep `updateStickyAction`. */
+export const updateStickyBodyAction = quietToolAction("update_sticky");
 export const moveStickyAction = toolAction("move_sticky");
 export const deleteStickyAction = toolAction("delete_sticky");

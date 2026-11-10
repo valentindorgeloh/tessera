@@ -45,6 +45,12 @@ export type ProjectBundle = {
   intake_open: number;
   /** Live projects, for copy and move. */
   projects: readonly { id: string; name: string; identifier: string }[];
+  /**
+   * Repository the superagent works in for this project (decision 151), or null when it is not
+   * mapped. Only the project layout and `loadProjectBundle` fill it; other bundles leave it out
+   * and the detail then has no "Send to superagent" row.
+   */
+  superagent_repo?: string | null;
 };
 
 /** Input of a drag or keyboard move; mirrors MoveWorkItemInput minus the id. */

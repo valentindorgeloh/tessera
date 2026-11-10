@@ -68,6 +68,10 @@ type Internal = {
   theirs: { version: number; text: string } | null;
   lossy: string | null;
   awaitingTheirs: boolean;
+  /** A save landed and the page has not been refreshed since. */
+  savedSinceRefresh: boolean;
+  /** `refreshIfSaved` was asked while a save was in flight: refresh when it has landed and nothing more is queued. */
+  refreshWhenIdle: boolean;
 };
 
 const STATUS_TEXT: Record<SaveStatus, string> = {
@@ -113,6 +117,8 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
     theirs: null,
     lossy: null,
     awaitingTheirs: false,
+    savedSinceRefresh: false,
+    refreshWhenIdle: false,
   });
 
   const update = useCallback((patch: Partial<SaveState>) => {
@@ -125,6 +131,20 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
       clearTimeout(current.timer);
       current.timer = null;
     }
+  }, []);
+
+  // The body save no longer refreshes the page (the editor keeps its own text and version). A blur, mod+s or unmount
+  // refreshes once, so backlinks, the outline and "Updated" catch up.
+  const refreshIfSaved = useCallback(() => {
+    const current = internal.current;
+    if (current.inFlight !== null) {
+      current.refreshWhenIdle = true;
+      return;
+    }
+    if (!current.savedSinceRefresh) return;
+    current.savedSinceRefresh = false;
+    current.refreshWhenIdle = false;
+    void refreshAction();
   }, []);
 
   const sendRef = useRef<(expected?: number) => Promise<void>>(async () => {});
@@ -168,7 +188,13 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
         current.status = more ? "dirty" : "clean";
         update({ status: current.status, version: current.version, conflict: null, theirs: current.theirs, error: null });
         announce(STATUS_TEXT[current.status]);
-        if (more) void sendRef.current();
+        current.savedSinceRefresh = true;
+        if (more) {
+          // The resend may find nothing to send (a flush only queued it); the refresh a blur asked for still happens.
+          void sendRef.current().then(() => {
+            if (current.refreshWhenIdle && current.inFlight === null) refreshIfSaved();
+          });
+        } else if (current.refreshWhenIdle) refreshIfSaved();
         return;
       }
       current.resendAfter = false;
@@ -184,7 +210,7 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
       update({ status: "error", error: result.message });
       toast({ type: "error", body: `Could not save the page: ${result.message}` });
     },
-    [announce, readOnly, toast, update],
+    [announce, readOnly, refreshIfSaved, toast, update],
   );
 
   useEffect(() => {
@@ -325,9 +351,9 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
-      void flush();
+      void flush().then(refreshIfSaved);
     };
-  }, [flush]);
+  }, [flush, refreshIfSaved]);
 
   const openEntity = (link: EntityLink) => {
     if (link.scheme === "work") {
@@ -385,7 +411,7 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
         ref={editor}
         value={text}
         onChange={onChange}
-        onFlush={() => void flush()}
+        onFlush={() => void flush().then(refreshIfSaved)}
         onLossyParse={onLossyParse}
         readOnly={readOnly || lossy !== null}
         placeholder="Write the page. Type / for blocks, # for work items, @ for people."

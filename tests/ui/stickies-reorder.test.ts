@@ -20,9 +20,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/app/actions/stickies", () => ({
   createStickyAction: vi.fn(async () => ok),
   updateStickyAction: vi.fn(async () => ok),
+  updateStickyBodyAction: vi.fn(async () => ok),
   deleteStickyAction: vi.fn(async () => ok),
   moveStickyAction: mocks.moveStickyAction,
 }));
+vi.mock("@/app/actions/shell", () => ({ refreshAction: vi.fn(async () => undefined) }));
 vi.mock("@astryxdesign/core/Toast", () => ({ useToast: () => mocks.toast }));
 vi.mock("@/components/editor", () => ({ MarkdownEditor: () => null }));
 vi.mock("next/navigation", () => ({

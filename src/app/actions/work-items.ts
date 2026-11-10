@@ -6,12 +6,25 @@
  * input against the registry schema, runs as the user, calls `refresh()` and
  * returns an `ActionResult`; callers show a Toast on `{ ok: false }`.
  */
-import { toolAction } from "./_run";
+import { slimListRows } from "@/app/(tessera)/work-items/list-rows";
+import type { ToolInput, ToolOutput } from "@/lib/tessera/tools/registry";
+import { quietToolAction, toolAction, type ActionResult } from "./_run";
 
-export const listWorkItemsAction = toolAction("list_work_items");
+const listWorkItems = toolAction("list_work_items");
+
+/**
+ * The paged list read ("Show more", group paging). A read Server Action that
+ * returns slim rows, like the first page from the route (list-rows.ts).
+ */
+export async function listWorkItemsAction(input: ToolInput<"list_work_items">): Promise<ActionResult<ToolOutput<"list_work_items">>> {
+  const result = await listWorkItems(input);
+  if (!result.ok) return result;
+  return { ...result, data: { ...result.data, items: slimListRows(result.data.items) } };
+}
 export const createWorkItemAction = toolAction("create_work_item");
 export const updateWorkItemAction = toolAction("update_work_item");
-export const updateWorkItemDescriptionAction = toolAction("update_work_item_description");
+/** Quiet autosave: the editor keeps its own text and version from the result (useDescriptionSave). */
+export const updateWorkItemDescriptionAction = quietToolAction("update_work_item_description");
 export const moveWorkItemAction = toolAction("move_work_item");
 export const bulkUpdateWorkItemsAction = toolAction("bulk_update_work_items");
 export const bulkArchiveWorkItemsAction = toolAction("bulk_archive_work_items");

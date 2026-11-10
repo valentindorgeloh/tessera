@@ -25,6 +25,8 @@ test("an MCP-created item lands in Intake when agent intake is required, and Acc
   await page.goto(`/projects/${project.id}/work-items`);
   const row = page.getByRole("listitem").filter({ hasText: `${project.identifier}-1` });
   await expect(row).toBeVisible();
+  // The row's State control is a chip until the pointer enters the row (arming.tsx).
+  await row.hover();
   await expect(row.getByRole("combobox", { name: "State" })).toContainText("Backlog");
 });
 

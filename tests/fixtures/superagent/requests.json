@@ -1,0 +1,365 @@
+{
+  "requests": [
+    {
+      "id": "rq_signoff",
+      "itemKey": "TES-142",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000142",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera",
+      "title": "Add a keyboard shortcut for archiving a work item",
+      "size": "M",
+      "deliverable": "pr",
+      "stage": {
+        "kind": "needs_signoff",
+        "label": "Needs sign-off",
+        "reason": "M requests wait for your sign-off."
+      },
+      "models": [
+        "opus"
+      ],
+      "costUsd": 0.84,
+      "budgetUsd": 6,
+      "pr": null,
+      "createdAt": "2026-11-09T08:12:00.000Z",
+      "updatedAt": "2026-11-09T08:31:00.000Z",
+      "actions": [
+        "approve",
+        "stop",
+        "resize"
+      ]
+    },
+    {
+      "id": "rq_hold",
+      "itemKey": "TES-138",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000138",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera",
+      "title": "Rework the cycle burndown tooltip",
+      "size": "S",
+      "deliverable": "pr",
+      "stage": {
+        "kind": "needs_hold",
+        "label": "On hold",
+        "reason": "You asked the superagent to wait on this item."
+      },
+      "models": [
+        "sonnet"
+      ],
+      "costUsd": 0.2,
+      "budgetUsd": 2,
+      "pr": null,
+      "createdAt": "2026-11-08T15:02:00.000Z",
+      "updatedAt": "2026-11-09T07:40:00.000Z",
+      "actions": [
+        "lift_hold",
+        "stop"
+      ]
+    },
+    {
+      "id": "rq_blocked",
+      "itemKey": "TES-131",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000131",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera",
+      "title": "Fix the export of archived projects",
+      "size": "L",
+      "deliverable": "pr",
+      "stage": {
+        "kind": "needs_blocked",
+        "label": "Blocked",
+        "reason": "The $12.00 budget was reached after review round 2."
+      },
+      "models": [
+        "opus",
+        "sonnet"
+      ],
+      "costUsd": 12.03,
+      "budgetUsd": 12,
+      "pr": {
+        "number": 214,
+        "url": "https://github.com/example/tessera/pull/214",
+        "state": "draft"
+      },
+      "createdAt": "2026-11-07T10:20:00.000Z",
+      "updatedAt": "2026-11-09T06:55:00.000Z",
+      "actions": [
+        "budget",
+        "resize",
+        "stop"
+      ]
+    },
+    {
+      "id": "rq_review",
+      "itemKey": "TES-127",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000127",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera",
+      "title": "Show the superagent in the actor picker",
+      "size": "M",
+      "deliverable": "pr",
+      "stage": {
+        "kind": "needs_review",
+        "label": "Review the PR",
+        "reason": "Pull request #212 is ready for your review."
+      },
+      "models": [
+        "opus",
+        "sonnet"
+      ],
+      "costUsd": 3.1,
+      "budgetUsd": 6,
+      "pr": {
+        "number": 212,
+        "url": "https://github.com/example/tessera/pull/212",
+        "state": "open"
+      },
+      "createdAt": "2026-11-08T09:00:00.000Z",
+      "updatedAt": "2026-11-09T05:18:00.000Z",
+      "actions": [
+        "stop"
+      ]
+    },
+    {
+      "id": "rq_question",
+      "itemKey": "TES-150",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000150",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera",
+      "title": "Which projects should the weekly digest include?",
+      "size": "S",
+      "deliverable": "answer",
+      "stage": {
+        "kind": "needs_question",
+        "label": "Question for you",
+        "reason": "The superagent asked which projects count."
+      },
+      "models": [
+        "opus",
+        "haiku"
+      ],
+      "costUsd": 0.31,
+      "budgetUsd": 2,
+      "pr": null,
+      "createdAt": "2026-11-09T09:03:00.000Z",
+      "updatedAt": "2026-11-09T09:21:00.000Z",
+      "actions": [
+        "stop"
+      ]
+    },
+    {
+      "id": "rq_delivery",
+      "itemKey": "TES-119",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000119",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera-agents",
+      "title": "Document the MCP setup for new agents",
+      "size": "S",
+      "deliverable": "pr",
+      "stage": {
+        "kind": "needs_delivery",
+        "label": "Delivery stuck",
+        "reason": "The branch is pushed but the pull request could not be opened."
+      },
+      "models": [
+        "sonnet"
+      ],
+      "costUsd": 0.95,
+      "budgetUsd": 2,
+      "pr": null,
+      "createdAt": "2026-11-06T13:45:00.000Z",
+      "updatedAt": "2026-11-08T18:10:00.000Z",
+      "actions": [
+        "retry",
+        "stop"
+      ]
+    },
+    {
+      "id": "rq_failed",
+      "itemKey": "TES-110",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000110",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera",
+      "title": "Move the sidebar to the new navigation component",
+      "size": "M",
+      "deliverable": "pr",
+      "stage": {
+        "kind": "needs_failed",
+        "label": "Failed",
+        "reason": "Tests still failed after two fix rounds."
+      },
+      "models": [
+        "opus",
+        "sonnet"
+      ],
+      "costUsd": 4.7,
+      "budgetUsd": 6,
+      "pr": {
+        "number": 209,
+        "url": "https://github.com/example/tessera/pull/209",
+        "state": "draft"
+      },
+      "createdAt": "2026-11-05T11:30:00.000Z",
+      "updatedAt": "2026-11-08T12:44:00.000Z",
+      "actions": [
+        "retry",
+        "resize",
+        "stop"
+      ]
+    },
+    {
+      "id": "rq_paused",
+      "itemKey": "TES-148",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000148",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera",
+      "title": "Add a CSV export to the analytics tab",
+      "size": "M",
+      "deliverable": "pr",
+      "stage": {
+        "kind": "paused",
+        "label": "Paused",
+        "reason": "Paused by you."
+      },
+      "models": [
+        "sonnet"
+      ],
+      "costUsd": 1.2,
+      "budgetUsd": 6,
+      "pr": null,
+      "createdAt": "2026-11-08T10:05:00.000Z",
+      "updatedAt": "2026-11-08T16:20:00.000Z",
+      "actions": [
+        "stop"
+      ]
+    },
+    {
+      "id": "rq_queued",
+      "itemKey": "TES-152",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000152",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera-agents",
+      "title": "Rename Cycles to Sprints in the help text",
+      "size": "S",
+      "deliverable": "pr",
+      "stage": {
+        "kind": "queued",
+        "label": "Queued",
+        "reason": "Waiting for a free slot."
+      },
+      "models": [],
+      "costUsd": 0,
+      "budgetUsd": 2,
+      "pr": null,
+      "createdAt": "2026-11-09T09:40:00.000Z",
+      "updatedAt": "2026-11-09T09:40:00.000Z",
+      "actions": [
+        "stop"
+      ]
+    },
+    {
+      "id": "rq_working",
+      "itemKey": "TES-147",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000147",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera",
+      "title": "Find out why lists with 5,000 rows scroll slowly",
+      "size": "M",
+      "deliverable": "investigation",
+      "stage": {
+        "kind": "working",
+        "label": "Working",
+        "reason": null
+      },
+      "models": [
+        "sonnet"
+      ],
+      "costUsd": 1.76,
+      "budgetUsd": 6,
+      "pr": null,
+      "createdAt": "2026-11-09T07:58:00.000Z",
+      "updatedAt": "2026-11-09T09:36:00.000Z",
+      "actions": [
+        "stop"
+      ]
+    },
+    {
+      "id": "rq_done",
+      "itemKey": "TES-120",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000120",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera",
+      "title": "Fix the due date picker offset in Safari",
+      "size": "S",
+      "deliverable": "pr",
+      "stage": {
+        "kind": "done",
+        "label": "Done",
+        "reason": "Pull request #205 was merged."
+      },
+      "models": [
+        "haiku",
+        "sonnet"
+      ],
+      "costUsd": 0.62,
+      "budgetUsd": 2,
+      "pr": {
+        "number": 205,
+        "url": "https://github.com/example/tessera/pull/205",
+        "state": "merged"
+      },
+      "createdAt": "2026-11-04T14:10:00.000Z",
+      "updatedAt": "2026-11-05T09:02:00.000Z",
+      "actions": []
+    },
+    {
+      "id": "rq_dropped",
+      "itemKey": "TES-115",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000115",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera",
+      "title": "Add a dark theme to the print view",
+      "size": "S",
+      "deliverable": "pr",
+      "stage": {
+        "kind": "dropped",
+        "label": "Dropped",
+        "reason": "The item was closed before work began."
+      },
+      "models": [],
+      "costUsd": 0,
+      "budgetUsd": 2,
+      "pr": null,
+      "createdAt": "2026-11-04T08:30:00.000Z",
+      "updatedAt": "2026-11-04T08:52:00.000Z",
+      "actions": []
+    },
+    {
+      "id": "rq_stopped",
+      "itemKey": "TES-125",
+      "workItemId": "0192f6a8-1000-7000-8000-000000000125",
+      "projectId": "0192f6a8-0000-7000-8000-00000000a001",
+      "repo": "tessera",
+      "title": "Refactor the work item service",
+      "size": "L",
+      "deliverable": "pr",
+      "stage": {
+        "kind": "stopped",
+        "label": "Stopped",
+        "reason": "You stopped this request."
+      },
+      "models": [
+        "opus"
+      ],
+      "costUsd": 2.4,
+      "budgetUsd": 12,
+      "pr": {
+        "number": 207,
+        "url": "https://github.com/example/tessera/pull/207",
+        "state": "closed"
+      },
+      "createdAt": "2026-11-03T16:00:00.000Z",
+      "updatedAt": "2026-11-04T11:15:00.000Z",
+      "actions": []
+    }
+  ]
+}

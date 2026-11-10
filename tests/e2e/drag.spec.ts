@@ -50,6 +50,7 @@ test.describe("board", () => {
     await quickAddItems(page, ["Keyboard mover"]);
     await openLayout(page, project.id, "board");
 
+    // The card's menu is a plain icon button until the card arms (arming.tsx); a click on it arms and opens it.
     await page.getByRole("button", { name: `Actions for ${project.identifier}-1`, exact: true }).click();
     await page.getByRole("menuitem", { name: "Move to" }).click();
     await page.getByRole("menuitem", { name: "In Progress" }).click();

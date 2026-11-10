@@ -3,6 +3,7 @@ import { io } from "next/cache";
 import { notFound } from "next/navigation";
 import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { slimListResult } from "@/app/(tessera)/work-items/list-rows";
 import { loadWorkItemDetail } from "@/app/(tessera)/work-items/load-detail";
 import { PeekHost, type PeekData } from "@/components/detail/PeekHost";
 import { toWeekStart } from "@/components/work-items/calendar-math";
@@ -76,7 +77,7 @@ function loadWorkItems(scope: WorkItemsScope, settingsScope: SettingsScope, urlS
       ...ganttListExtras(display),
       ...(urlState.rich_filters !== undefined ? { rich_filters: urlState.rich_filters } : {}),
     });
-    return { settings, display, filters, result };
+    return { settings, display, filters, result: slimListResult(result) };
   });
 }
 

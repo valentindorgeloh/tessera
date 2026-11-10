@@ -46,6 +46,7 @@ import { clearedUrlState, hasActiveFilters } from "./clear-filters";
 import { CreateWorkItemDialog } from "./CreateWorkItemDialog";
 import { DisplayMenu, LayoutSwitch, useDisplayWriter } from "./DisplayMenu";
 import { FilterBar } from "./FilterBar";
+import { useFocusFollow } from "./focus-follow";
 import { GanttLayout } from "./GanttLayout";
 import { hrefWithLayout, layoutFromParam, LAYOUT_PARAM } from "./layout-param";
 import { ListLayout } from "./ListLayout";
@@ -225,7 +226,9 @@ export function WorkItemsScreen({
 
   const fail = (what: string, message: string) => toast({ type: "error", body: `${what}: ${message}` });
 
-  // The two handlers that reach every row keep one identity (a memoized row sees no new function) and call the latest closure.
+  // The handlers that reach the rows and the table's plugins keep one identity (a memoized row sees no new function) and call
+  // the latest closure. `canQuickAdd` stays a plain function: the layouts call it while rendering, which a stable callback
+  // must not do (it would answer from the previous render's closure).
   const onUpdate = useStableCallback((id: string, patch: UpdateWorkItemPatch) => {
     if (readOnly || isOptimisticId(id)) return;
     startTransition(async () => {
@@ -235,7 +238,6 @@ export function WorkItemsScreen({
     });
   });
 
-  // Event handlers only (a drop, a quick-add submit, a sort change): one identity, so memo rows and columns keep their props.
   const onMove = useStableCallback((input: MoveInput) => {
     if (readOnly || isOptimisticId(input.id)) return;
     const move: MoveInput = { ...input, before_id: realNeighbour(input.before_id), after_id: realNeighbour(input.after_id) };
@@ -311,7 +313,6 @@ export function WorkItemsScreen({
       if (!result.ok) fail("Could not create the work item", result.message);
     });
   });
-  const onOrderChange = useStableCallback((orderBy: OrderBy) => applyDisplay({ order_by: orderBy }));
 
   const onOpen = useStableCallback((id: string) => {
     if (isOptimisticId(id)) return;
@@ -337,9 +338,9 @@ export function WorkItemsScreen({
   // No-results state (docs/contracts/ui.md "Work items screen"): while a filter, a search or an Advanced tree applies,
   // an empty list offers "Clear filters", which clears like the filter bar (simple filters explicit-empty, Advanced tree dropped).
   const activeRich = effectiveRichFilters(richFilters, urlState.rich_filters);
-  const onClearFilters = hasActiveFilters(filters, activeRich)
-    ? () => router.replace(withSearchParam(pathname, searchParams, "q", encodeUrlState(clearedUrlState(urlState, filters, activeRich)) || null), { scroll: false })
-    : undefined;
+  const clearFilters = useStableCallback(() => router.replace(withSearchParam(pathname, searchParams, "q", encodeUrlState(clearedUrlState(urlState, filters, activeRich)) || null), { scroll: false }));
+  const onClearFilters = hasActiveFilters(filters, activeRich) ? clearFilters : undefined;
+  const onOrderChange = useStableCallback((orderBy: OrderBy) => applyDisplay({ order_by: orderBy }));
   // Set exactly when the list draws group bands: work-items.css keys the scroll padding for sticky bands on it.
   const scrollerClass = display.layout === "list" && listShowsGroups(optimistic, display, onClearFilters !== undefined) ? "tessera-wi-scroller tessera-wi-scroller--grouped" : "tessera-wi-scroller";
   const layoutProps: LayoutProps = {
@@ -381,6 +382,8 @@ export function WorkItemsScreen({
   // sort, a grouping or a data refresh keeps the key and so keeps the content still.
   const viewKey = display.layout === "calendar" ? `calendar:${display.calendar.layout}:${searchParams.get("cal") ?? ""}` : display.layout === "gantt" ? `gantt:${display.gantt.zoom}` : display.layout;
   useViewFade(scrollerRef, viewKey);
+  // A State change or a "Move to" that moves an item to another group takes the keyboard focus along (./focus-follow.ts).
+  useFocusFollow(scrollerRef);
 
   return (
     <>

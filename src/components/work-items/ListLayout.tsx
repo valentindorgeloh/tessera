@@ -12,7 +12,7 @@
  * the detail page and, in P2b, the peek panel. Quick-add placeholders
  * (./optimistic.ts) render as inert rows until the server item replaces them.
  */
-import { memo, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
@@ -30,96 +30,27 @@ import { useEdgeKeys } from "@/components/virtual/home-end";
 import { VIRTUAL_LIST_MIN } from "@/components/virtual/virtual-config";
 import { estimateStarts, shouldVirtualize } from "@/components/virtual/virtual-math";
 import { groupLimitKey } from "@/lib/tessera/core/group";
-import type { Display, Group, StateGroup, WorkItem } from "@/lib/tessera/types";
+import type { Display, Group, WorkItem } from "@/lib/tessera/types";
 import { visibleGroups, nothingMatches } from "./list-groups";
 import { isOptimisticId } from "./optimistic";
 import { useProjectRow } from "./project-provider";
 import { RowProject } from "./row-project";
-import { ActorLabel, CycleControl, DateControl, PriorityControl, PriorityLabel, StateControl, StateLabel, paletteTokenColor } from "./properties";
+import { CycleControl, DateControl, PriorityControl, StateControl, paletteTokenColor } from "./properties";
+import { ArmedContext, useArmed, useRowArming } from "./properties/arming";
 import { isOverdue } from "./properties/date-format";
 import { splitShownNames } from "./properties/membership-rules";
-import { GroupFooter, GroupPoints } from "./GroupFooter";
+import { GroupFooter } from "./GroupFooter";
+import { GroupHeader, NONE_GROUP_ID } from "./ListGroupHeader";
 import { ListGroupRows, virtualRowProps, type WindowRowProps } from "./ListGroupRows";
-import { UNGROUPED_KEY, loadedOfTotal } from "./paging";
+import { UNGROUPED_KEY } from "./paging";
 import { NoResults } from "./NoResults";
 import { OneLineText } from "./OneLineText";
 import { QuickAdd } from "./QuickAdd";
 import type { LayoutProps, QuickAddGroup, UpdateWorkItemPatch } from "./types";
 
-const NONE_GROUP_ID = "none";
-const STATE_GROUPS: readonly StateGroup[] = ["backlog", "unstarted", "started", "completed", "cancelled", "triage"];
-
-function isStateGroup(value: string): value is StateGroup {
-  return (STATE_GROUPS as readonly string[]).includes(value);
-}
-
 /** Day part of an ISO timestamp or date, for the created/updated columns. */
 function dayOf(value: string | null): string {
   return value ? value.slice(0, 10) : "";
-}
-
-// ---------------------------------------------------------------------------
-// Group header marker by group kind
-// ---------------------------------------------------------------------------
-
-function GroupMarker({ group }: { group: Group }) {
-  const { statesById, actorsById } = useProjectRow();
-  if (group.id === NONE_GROUP_ID) {
-    return (
-      <Text type="inherit" color="secondary" className="tessera-wi-label-text">
-        {group.name}
-      </Text>
-    );
-  }
-  switch (group.field) {
-    case "state":
-      return <StateLabel state={statesById.get(group.id)} name={group.name} />;
-    case "state_group":
-      return <StateLabel group={isStateGroup(group.id) ? group.id : "backlog"} name={group.name} />;
-    case "priority":
-      return <PriorityLabel value={group.id} />;
-    case "labels":
-    case "cycle":
-    case "module":
-      return <Token label={group.name} size="sm" color={paletteTokenColor(group.color)} />;
-    case "assignees":
-    case "created_by":
-      return <ActorLabel name={group.name} actor={actorsById.get(group.id) ?? null} />;
-    default:
-      return (
-        <Text type="inherit" className="tessera-wi-label-text">
-          {group.name}
-        </Text>
-      );
-  }
-}
-
-function GroupHeader({ group, display, selection, ids }: { group: Group; display: Display; selection?: LayoutProps["selection"]; ids: readonly string[] }) {
-  const selectedCount = selection ? ids.filter((id) => selection.selected.has(id)).length : 0;
-  const value = !selection || selectedCount === 0 ? false : selectedCount === ids.length ? true : "indeterminate";
-  return (
-    <HStack gap={2} vAlign="center" className="tessera-wi-group-header">
-      {/* Gutter furniture (work-items.css): positioned over the gutter, so it takes no slot and the group marker starts at the row key's x. */}
-      {selection && ids.length > 0 ? (
-        <CheckboxInput
-          className="tessera-wi-select tessera-wi-group-select"
-          size="sm"
-          isLabelHidden
-          label={group.has_more ? `Select ${group.name} (${loadedOfTotal(ids.length, group.count)})` : `Select ${group.name}`}
-          value={value}
-          onClick={(event) => event.stopPropagation()}
-          onChange={(checked) => selection.onToggleIds(ids, checked === true || value === "indeterminate")}
-        />
-      ) : null}
-      <HStack className="tessera-wi-group-name" vAlign="center">
-        <Text type="label" weight="medium">
-          <GroupMarker group={group} />
-        </Text>
-      </HStack>
-      <Badge label={group.count} />
-      <GroupPoints points={group.estimate_points} display={display} />
-    </HStack>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -144,13 +75,14 @@ export type WorkItemRowProps = RowProps & WindowRowProps;
 
 function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowProps, "item" | "display" | "onUpdate" | "readOnly">) {
   const { bundle, labelsById, actorsById, modulesById, statesById } = useProjectRow();
+  const { armed } = useArmed();
   const props = display.properties;
   const nodes: ReactNode[] = [];
   if (props.state) {
-    nodes.push(<StateControl key="state" compact readOnly={readOnly} value={item.state_id} onChange={(state_id) => onUpdate(item.id, { state_id })} />);
+    nodes.push(<StateControl key="state" armKey="state" compact readOnly={readOnly} value={item.state_id} onChange={(state_id) => onUpdate(item.id, { state_id })} />);
   }
   if (props.priority) {
-    nodes.push(<PriorityControl key="priority" compact readOnly={readOnly} value={item.priority} onChange={(priority) => onUpdate(item.id, { priority })} />);
+    nodes.push(<PriorityControl key="priority" armKey="priority" compact readOnly={readOnly} value={item.priority} onChange={(priority) => onUpdate(item.id, { priority })} />);
   }
   if (props.labels && item.label_ids.length > 0) {
     const labels = item.label_ids.flatMap((id) => {
@@ -165,15 +97,20 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowPr
           <Token key={label.id} label={label.name} size="sm" color={paletteTokenColor(label.color)} />
         ))}
         {hidden > 0 ? (
-          <Tooltip key="labels-more" content={labels.map((label) => label.name).join(", ")}>
-            <Token label={`+${hidden}`} size="sm" description={`${hidden} more labels`} />
-          </Tooltip>
+          // The tooltip's layer mounts once the row is armed; the token carries the count either way.
+          armed ? (
+            <Tooltip key="labels-more" content={labels.map((label) => label.name).join(", ")}>
+              <Token label={`+${hidden}`} size="sm" description={`${hidden} more labels`} />
+            </Tooltip>
+          ) : (
+            <Token key="labels-more" label={`+${hidden}`} size="sm" description={`${hidden} more labels`} />
+          )
         ) : null}
       </HStack>,
     );
   }
   if (props.cycle && bundle.project.cycles_enabled) {
-    nodes.push(<CycleControl key="cycle" compact readOnly={readOnly} value={item.cycle_id} onChange={(cycle_id) => onUpdate(item.id, { cycle_id })} />);
+    nodes.push(<CycleControl key="cycle" armKey="cycle" compact readOnly={readOnly} value={item.cycle_id} onChange={(cycle_id) => onUpdate(item.id, { cycle_id })} />);
   }
   if (props.modules && bundle.project.modules_enabled && item.module_ids.length > 0) {
     nodes.push(
@@ -199,6 +136,7 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowPr
     nodes.push(
       <DateControl
         key="start"
+        armKey="start"
         compact
         readOnly={readOnly}
         label="Start date"
@@ -212,6 +150,7 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowPr
     nodes.push(
       <DateControl
         key="target"
+        armKey="target"
         compact
         readOnly={readOnly}
         label="Target date"
@@ -303,6 +242,9 @@ export function PendingRow({ item, display, onUpdate, windowed = {} }: Pick<RowP
 export const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen, readOnly = false, selected, onToggle, ...windowed }: WorkItemRowProps) {
   // The key button owns the row's action: surface clicks delegate to it and it is the row's only tab stop.
   const openRef = useRef<HTMLButtonElement>(null);
+  // The row draws its property controls as chips until the pointer or keyboard focus reaches it (./properties/arming.tsx):
+  // the closed selectors and popovers of a long list cost more than the rows themselves.
+  const { state: arming, handlers } = useRowArming();
   // Placeholder from quick-add: nothing to open or edit until the server item arrives.
   if (isOptimisticId(item.id)) return <PendingRow item={item} display={display} onUpdate={onUpdate} windowed={windowed} />;
   return (
@@ -310,7 +252,11 @@ export const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, 
       label={<RowTitle name={item.name} />}
       {...virtualRowProps("tessera-wi-row", windowed)}
       data-selected={selected ? "" : undefined}
+      data-item-id={item.id}
       interactiveRef={openRef}
+      onPointerEnter={handlers.onPointerEnter}
+      onPointerMove={handlers.onPointerMove}
+      onFocus={handlers.onFocus}
       startContent={
         <HStack gap={1} vAlign="center">
           {selected !== undefined && onToggle ? (
@@ -326,17 +272,20 @@ export const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, 
           <Button
             ref={openRef}
             className="tessera-wi-open"
+            data-focus-key="open"
             variant="ghost"
             size="sm"
             label={item.key}
-            tooltip={display.properties.key ? undefined : item.key}
+            tooltip={arming.armed && !display.properties.key ? item.key : undefined}
             onClick={() => onOpen(item.id)}
           />
         </HStack>
       }
       endContent={
         <RowProject projectId={item.project_id}>
-          <RowProperties item={item} display={display} onUpdate={onUpdate} readOnly={readOnly} />
+          <ArmedContext value={arming}>
+            <RowProperties item={item} display={display} onUpdate={onUpdate} readOnly={readOnly} />
+          </ArmedContext>
         </RowProject>
       }
     />
@@ -459,7 +408,7 @@ export function ListLayout({
 }) {
   const itemsById = useMemo(() => new Map(result.items.map((item) => [item.id, item])), [result.items]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
-  const { listRef, handleKeyDown, handleFocus } = useListFocus<HTMLElement>({
+  const { listRef, handleKeyDown: moveBetweenRows, handleFocus } = useListFocus<HTMLElement>({
     itemSelector: ".tessera-wi-open",
     orientation: "vertical",
     wrap: false,
@@ -501,12 +450,19 @@ export function ListLayout({
     "list",
   );
   // Home/End in a virtual list scroll the scroller and focus the first or last loaded row once it is mounted and still.
-  const onKeyDown = useEdgeKeys({
+  const edgeKeys = useEdgeKeys({
     isVirtual,
     focusSelector: ".tessera-wi-open",
     lastCount: () => (shownGroups ? (groupItems.filter((items, i) => items.length > 0 && !collapsed.has(shownGroups[i].id)).at(-1)?.length ?? 0) : result.items.length),
-    onOtherKey: handleKeyDown,
+    onOtherKey: moveBetweenRows,
   });
+  // The arrow, Home and End keys of a control inside a row bubble up to this list: a selector (open or closed) and a
+  // calendar grid take them with `preventDefault`, and a key typed in an open layer (the date popover renders inline,
+  // as a native popover) belongs to that layer. Only a key nothing took moves between the rows or to the list's edge.
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.defaultPrevented || (event.target instanceof Element && event.target.closest("[popover]") !== null)) return;
+    edgeKeys(event);
+  };
 
   return (
     <VStack

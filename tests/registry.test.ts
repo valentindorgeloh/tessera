@@ -48,6 +48,7 @@ import * as estimates from "@/lib/tessera/estimates";
 import * as intake from "@/lib/tessera/intake";
 import * as automations from "@/lib/tessera/automations";
 import * as workItems from "@/lib/tessera/work-items";
+import * as workspaceSettings from "@/lib/tessera/workspace/settings";
 import { createTestContext, createTestDb } from "./helpers/db";
 
 const TOOLS: ToolDef[] = [...registry.values()];
@@ -102,6 +103,7 @@ const DOMAIN_MODULES = {
   estimates,
   automations,
   "work-items": workItems,
+  "workspace-settings": workspaceSettings,
 };
 
 function mutationFunctions(mod: object): string[] {
@@ -251,6 +253,10 @@ describe("tool names", () => {
       expect(def.description.trim().length, def.name).toBeGreaterThan(30);
       expect(def.description, def.name).not.toContain("\n");
     }
+  });
+
+  it("no tool name contains superagent or runner: the runner's control API is outside the registry (decision 152)", () => {
+    for (const def of TOOLS) expect(def.name, def.name).not.toMatch(/superagent|runner/);
   });
 
   it("registry keys equal tool names", () => {
@@ -466,7 +472,22 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   run_maintenance: "P11",
   get_undoable_assistant_batch: "P11",
   undo_last_assistant_batch: "P11",
+  set_agent_settings: "P11",
 };
+
+/** Tools only the user may run (RULE user_only for every other actor): webhooks, backups, maintenance, the assistant undo and the superagent settings (decision 151). */
+const CONTRACT_USER_ONLY = [
+  "create_backup",
+  "create_webhook",
+  "delete_webhook",
+  "redeliver_webhook_delivery",
+  "rotate_webhook_secret",
+  "run_maintenance",
+  "set_agent_settings",
+  "test_webhook",
+  "undo_last_assistant_batch",
+  "update_webhook",
+];
 
 describe("tool flags", () => {
   it("every delete_* tool and every contract-listed tool is destructive, nothing else", () => {
@@ -492,6 +513,12 @@ describe("tool flags", () => {
       .map((def) => def.name)
       .sort();
     expect(core).toEqual(CONTRACT_CORE);
+  });
+
+  it("the user-only tools are exactly the contract's, all mutating", () => {
+    const userOnly = TOOLS.filter((def) => def.userOnly === true);
+    expect(userOnly.map((def) => def.name).sort()).toEqual(CONTRACT_USER_ONLY);
+    for (const def of userOnly) expect(def.mutates, def.name).toBe(true);
   });
 
   it("phases follow the contract rows", () => {
@@ -800,6 +827,54 @@ describe("activity and cursor", () => {
     const polled = await runToolWithContext(ctx, "list_changes", { since_seq: 0 });
     expect(polled.data.cursor).toBe(created.cursor);
     expect(polled.cursor).toBe(created.cursor);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Superagent changes (decisions 150, 151 and 152)
+// ---------------------------------------------------------------------------
+
+describe("superagent registry entries", () => {
+  it("set_agent_settings is a user-only mutating tool of the last phase, after update_workspace_settings", () => {
+    const def = getTool("set_agent_settings");
+    expect(def.mutates).toBe(true);
+    expect(def.userOnly).toBe(true);
+    expect(def.destructive).not.toBe(true);
+    expect(def.core).not.toBe(true);
+    expect(def.phase).toBe(TOOL_PHASES[TOOL_PHASES.length - 1]);
+    expect(Object.keys(def.input.shape).sort()).toEqual(["projects", "runner_url"]);
+    const names = TOOLS.map((tool) => tool.name);
+    expect(names.indexOf("set_agent_settings")).toBe(names.indexOf("update_workspace_settings") + 1);
+  });
+
+  it("set_agent_settings advertises the loopback URL pattern and at most 50 projects", () => {
+    const json = z.toJSONSchema(getTool("set_agent_settings").input, { target: "draft-2020-12" }) as unknown as {
+      required?: string[];
+      properties: { runner_url: { pattern?: string }; projects: { maxItems?: number } };
+    };
+    expect(json.required).toEqual(["projects"]);
+    expect(json.properties.projects.maxItems).toBe(50);
+    expect(new RegExp(json.properties.runner_url.pattern ?? "$^").test("http://localhost:3090/")).toBe(true);
+  });
+
+  it("create_comment takes a described client_ref and says what a repeat does", () => {
+    const def = getTool("create_comment");
+    expect(Object.keys(def.input.shape)).toContain("client_ref");
+    expect(hasDescription(def.input.shape.client_ref)).toBe(true);
+    expect(def.description).toContain("Pass client_ref (1 to 200 printable characters, no spaces)");
+    expect(def.description).toContain("{ id, client_ref, deleted: true }");
+  });
+
+  it("get_workspace_settings and list_changes describe their new fields", () => {
+    expect(getTool("get_workspace_settings").description).toContain("superagent settings (agents: runner_url and the project to repository map, or null until they are set)");
+    expect(getTool("list_changes").description).toContain("latest_seq is the newest seq in the log: below your cursor, the history was rewound (a restore).");
+  });
+
+  it("list_changes returns latest_seq with the cursor", async () => {
+    const ctx = createTestContext(createTestDb());
+    const created = await runToolWithContext(ctx, "create_project", { name: "Seq", identifier: "SEQ" });
+    const polled = await runToolWithContext(ctx, "list_changes", { since_seq: 0 });
+    expect(polled.data.latest_seq).toBe(created.cursor);
   });
 });
 

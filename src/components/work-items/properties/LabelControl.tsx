@@ -2,9 +2,9 @@
 
 import { MultiSelector, type MultiSelectorOptionData } from "@astryxdesign/core/MultiSelector";
 import { Token } from "@astryxdesign/core/Token";
-import type { PaletteColor } from "@/lib/tessera/types";
 import { useProjectRow } from "../project-provider";
 import { summarizeNames } from "./membership-rules";
+import { paletteTokenColor } from "./option-helpers";
 
 export type LabelControlProps = {
   /** Label ids. */
@@ -15,10 +15,8 @@ export type LabelControlProps = {
   label?: string;
 };
 
-/** Palette keys are exactly Token's colour names (docs/contracts/schema.md, decision 22); null falls back to gray. */
-export function paletteTokenColor(color: PaletteColor | null | undefined): PaletteColor {
-  return color ?? "gray";
-}
+// The label colour helper lives in the directive-free ./option-helpers.ts.
+export { paletteTokenColor };
 
 /** Ghost multi-selector over the project's labels; rows and headers show the label as a coloured Token. */
 export function LabelControl({ value, onChange, compact = false, readOnly = false, label = "Labels" }: LabelControlProps) {

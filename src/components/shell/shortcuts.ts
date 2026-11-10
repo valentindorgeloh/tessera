@@ -373,3 +373,11 @@ export function formatKeys(keys: string, isMac: boolean): string {
     )
     .join(" then ");
 }
+
+/** A Mac or an iPhone/iPad: Cmd is the shortcut modifier and Option types characters. */
+export function isApplePlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+  const platform = nav.userAgentData?.platform || nav.platform || "";
+  return /mac|iphone|ipad|ipod/i.test(platform);
+}

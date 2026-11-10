@@ -15,6 +15,8 @@ test("an MCP state change refreshes an open list without a reload", async ({ pag
 
   await openWorkItems(page, project.id);
   const row = page.getByRole("listitem").filter({ hasText: `${project.identifier}-1` });
+  // The row's State control is a chip until the pointer enters the row (arming.tsx).
+  await row.hover();
   await expect(row.getByRole("combobox", { name: "State" })).toContainText("Backlog");
 
   await mcp("update_work_item", { work_item_id: item.id, state_id: progress!.id });

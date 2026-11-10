@@ -29,7 +29,6 @@
  */
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
-import { CommandPalette } from "@astryxdesign/core/CommandPalette";
 import { useHotkeys } from "@astryxdesign/core/hooks";
 import { Icon, type IconType } from "@astryxdesign/core/Icon";
 import { HStack } from "@astryxdesign/core/Stack";
@@ -79,9 +78,10 @@ import {
   type CommandSection,
   type CommandSource,
 } from "./command-source";
-import { PaletteFooter, PaletteInput, type PaletteMode, type PaletteScope } from "./palette-parts";
 import { isSidenavDrawer } from "./layout-motion";
 import { getNavPrefs, SIDEBAR_COMMAND_PREFIX, sidebarCommandPatch } from "./nav-prefs";
+import { LazyPalette, preloadPalette, usePalettePreload } from "./palette-lazy";
+import type { PaletteMode, PaletteScope } from "./palette-parts";
 import { readProjectFeatures } from "./project-features";
 import { onScreenPaths, otherRecents, projectIdFromPath, RECENTS_IN_PALETTE } from "./recents";
 import { readRecents } from "./recents-store";
@@ -125,6 +125,8 @@ export function CommandBar({ ref }: CommandBarProps) {
   const { singleKeys } = useShortcutPrefs();
   const { setNavView, setNavDock } = useShell();
   const [isOpen, setOpen] = useState(false);
+  // The palette (and its search UI) mounts at the first opening and stays mounted after it, so a reopen is as fast as before.
+  const [hasOpened, setHasOpened] = useState(false);
   // A new palette instance per opening, so a close from outside the palette
   // (the help dialog taking over) never leaves a stale query behind.
   const [session, setSession] = useState(0);
@@ -181,6 +183,8 @@ export function CommandBar({ ref }: CommandBarProps) {
     setScope(next);
     setInitialQuery(query ?? "");
     setSession((count) => count + 1);
+    setHasOpened(true);
+    preloadPalette();
     setOpen(true);
   }, []);
 
@@ -202,6 +206,8 @@ export function CommandBar({ ref }: CommandBarProps) {
     setHelpOpen(true);
   }, [onOpenChange]);
   const openCreateProject = useCallback(() => setCreateProjectOpen(true), []);
+
+  usePalettePreload();
 
   useImperativeHandle(ref, () => ({ open, openHelp, openCreateProject }), [open, openHelp, openCreateProject]);
 
@@ -379,20 +385,21 @@ export function CommandBar({ ref }: CommandBarProps) {
 
   return (
     <>
-      <CommandPalette<CommandSearchItem>
-        key={session}
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        searchSource={source}
-        value=""
-        onValueChange={handleSelect}
-        label="Command bar"
-        renderItem={(item) => <CommandRow item={item} />}
-        emptyBootstrapText="Type to search, or pick a command"
-        emptySearchText="No matches"
-        input={<PaletteInput initialQuery={initialQuery} mode={scope.mode} isAskShown={ask.isAskShown} onModeChange={setMode} />}
-        footer={<PaletteFooter scope={scope} onAllProjectsChange={setAllProjects} />}
-      />
+      {hasOpened ? (
+        <LazyPalette
+          key={session}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          searchSource={source}
+          onValueChange={handleSelect}
+          renderItem={renderRow}
+          initialQuery={initialQuery}
+          scope={scope}
+          isAskShown={ask.isAskShown}
+          onModeChange={setMode}
+          onAllProjectsChange={setAllProjects}
+        />
+      ) : null}
       <ShortcutsDialog isOpen={isHelpOpen} onOpenChange={setHelpOpen} singleKeys={singleKeys} />
       <CreateProjectDialog isOpen={isCreateProjectOpen} onOpenChange={setCreateProjectOpen} />
     </>
@@ -430,6 +437,8 @@ function commandIcon(item: CommandSearchItem): IconType {
   const group = item.auxiliaryData?.group;
   return (group && SECTION_ICONS[group]) || CompassIcon;
 }
+
+const renderRow = (item: CommandSearchItem) => <CommandRow item={item} />;
 
 /** A palette row re-renders on every keystroke and the palette is its own list of choices, so a row never gets Astryx's truncation tooltip (`hasTruncateTooltip={false}`: CSS clamp only, nothing measured). */
 function CommandRow({ item }: { item: CommandSearchItem }) {

@@ -5,9 +5,14 @@
  * stays within the line budget (docs/drafts/p5-plan.md §6 "U3"). The Ask tab
  * is hidden while the assistant is unavailable; Enter in either mode opens
  * the first result (decision 38: Ask then leaves the palette).
+ *
+ * This module also holds `PalettePanel`, the Astryx palette with this input
+ * and footer. ./palette-lazy.tsx loads the whole module on demand (decision
+ * 142), so CommandBar imports only types and the lazy wrapper from here, never
+ * the components.
  */
-import { useCallback, useEffect, useId, useRef, type KeyboardEvent } from "react";
-import { CommandPaletteFooter, CommandPaletteInput, useCommandPaletteContext } from "@astryxdesign/core/CommandPalette";
+import { useCallback, useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { CommandPalette, CommandPaletteFooter, CommandPaletteInput, useCommandPaletteContext } from "@astryxdesign/core/CommandPalette";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Kbd } from "@astryxdesign/core/Kbd";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
@@ -15,7 +20,7 @@ import { Switch } from "@astryxdesign/core/Switch";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Text } from "@astryxdesign/core/Text";
 import { SearchIcon, SparkleIcon } from "@/themes/catppuccin/icons";
-import { autoHighlightRow, liveHighlight } from "./command-source";
+import { autoHighlightRow, liveHighlight, type CommandSearchItem, type CommandSource } from "./command-source";
 
 export type PaletteMode = "search" | "ask";
 
@@ -211,5 +216,37 @@ export function PaletteFooter({ scope, onAllProjectsChange }: { scope: PaletteSc
         ) : null}
       </HStack>
     </CommandPaletteFooter>
+  );
+}
+
+export type PalettePanelProps = {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  searchSource: CommandSource;
+  onValueChange: (id: string) => void;
+  renderItem: (item: CommandSearchItem) => ReactNode;
+  initialQuery: string;
+  scope: PaletteScope;
+  isAskShown: boolean;
+  onModeChange: (mode: PaletteMode) => void;
+  onAllProjectsChange: (allProjects: boolean) => void;
+};
+
+/** The Power K palette with its search field and footer (CommandBar renders it through ./palette-lazy.tsx). */
+export function PalettePanel({ isOpen, onOpenChange, searchSource, onValueChange, renderItem, initialQuery, scope, isAskShown, onModeChange, onAllProjectsChange }: PalettePanelProps) {
+  return (
+    <CommandPalette<CommandSearchItem>
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      searchSource={searchSource}
+      value=""
+      onValueChange={onValueChange}
+      label="Command bar"
+      renderItem={renderItem}
+      emptyBootstrapText="Type to search, or pick a command"
+      emptySearchText="No matches"
+      input={<PaletteInput initialQuery={initialQuery} mode={scope.mode} isAskShown={isAskShown} onModeChange={onModeChange} />}
+      footer={<PaletteFooter scope={scope} onAllProjectsChange={onAllProjectsChange} />}
+    />
   );
 }

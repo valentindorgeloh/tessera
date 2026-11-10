@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { io } from "next/cache";
 import { notFound } from "next/navigation";
+import { slimListResult } from "@/app/(tessera)/work-items/list-rows";
 import { loadProjectBundles } from "@/app/(tessera)/work-items/load-detail";
 import { FavoriteButton } from "@/components/shell/FavoriteButton";
 import { ViewBar } from "@/components/views/ViewBar";
@@ -230,6 +231,6 @@ function loadList(
     const ids = [...new Set([...result.items.map((item) => item.project_id), ...(partial ? projects.map((project) => project.id) : [])])];
     const bundles = loadProjectBundles(ctx, ids);
     const host = hostBundle(bundles, projects, listActors(ctx), ctx.today(), latestSeq(ctx), ctx.now());
-    return { result, display, filters, settingsDisplay, storedFilters: stored.filters, bundles, host };
+    return { result: slimListResult(result), display, filters, settingsDisplay, storedFilters: stored.filters, bundles, host };
   });
 }

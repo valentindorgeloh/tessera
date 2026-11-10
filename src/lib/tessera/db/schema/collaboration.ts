@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import type { RelationType } from "../../types";
 import { DELETED_AT_IS_NULL, auditColumns } from "./columns";
@@ -41,9 +42,14 @@ export const comment = sqliteTable(
       .notNull()
       .references(() => actor.id, { onDelete: "restrict" }),
     edited_at: text("edited_at"),
+    /** Caller-chosen idempotency key (decision 150); unique per actor and work item, soft-deleted rows keep theirs. */
+    client_ref: text("client_ref"),
     ...auditColumns(),
   },
-  (t) => [index("comment_work_item_created_idx").on(t.work_item_id, t.created_at)],
+  (t) => [
+    index("comment_work_item_created_idx").on(t.work_item_id, t.created_at),
+    uniqueIndex("comment_client_ref_uq").on(t.actor_id, t.work_item_id, t.client_ref).where(sql`client_ref IS NOT NULL`),
+  ],
 );
 
 export const comment_reaction = sqliteTable(

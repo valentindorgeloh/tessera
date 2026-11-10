@@ -195,19 +195,29 @@ describe("preferences store", () => {
   });
 });
 
-describe("motion and SideNav remounts (decisions 132 and 145)", () => {
+describe("strip changes and SideNav remounts (decisions 132, 145 and 149)", () => {
   const prefsOf = (display: "full" | "rail", rail: "icons" | "labels", dock: "docked" | "floating") => ({ display, rail, dock }) as const;
 
-  it("plays Astryx's rail motion only for a docked collapse or expand; every dock change gets the width motion", async () => {
-    const { navChangeMotion } = await load();
-    expect(navChangeMotion(prefsOf("full", "icons", "docked"), prefsOf("rail", "icons", "docked"))).toBe("rail");
-    expect(navChangeMotion(prefsOf("rail", "labels", "docked"), prefsOf("full", "labels", "docked"))).toBe("rail");
-    expect(navChangeMotion(prefsOf("rail", "icons", "docked"), prefsOf("rail", "labels", "docked"))).toBe("width");
-    for (const display of ["full", "rail"] as const) {
-      for (const rail of ["icons", "labels"] as const) {
-        expect(navChangeMotion(prefsOf(display, rail, "docked"), prefsOf(display, rail, "floating")), `undock from ${display}/${rail}`).toBe("width");
-        expect(navChangeMotion(prefsOf(display, rail, "floating"), prefsOf(display, rail, "docked")), `dock to ${display}/${rail}`).toBe("width");
-      }
+  it("names the strip: a view while docked, floating otherwise", async () => {
+    const { navShape } = await load();
+    expect(navShape(prefsOf("full", "icons", "docked"))).toBe("full");
+    expect(navShape(prefsOf("rail", "icons", "docked"))).toBe("icons");
+    expect(navShape(prefsOf("rail", "labels", "docked"))).toBe("labels");
+    for (const display of ["full", "rail"] as const) expect(navShape(prefsOf(display, "labels", "floating"))).toBe("floating");
+  });
+
+  it("makes every view and dock change one strip change, narrowing or widening, and nothing for an unchanged strip", async () => {
+    const { railChange } = await load();
+    expect(railChange("full", "full")).toBeNull();
+    expect(railChange("full", "icons")).toEqual({ isCollapse: true, isDockChange: false });
+    expect(railChange("full", "labels")).toEqual({ isCollapse: true, isDockChange: false });
+    expect(railChange("icons", "full")).toEqual({ isCollapse: false, isDockChange: false });
+    expect(railChange("labels", "full")).toEqual({ isCollapse: false, isDockChange: false });
+    expect(railChange("icons", "labels")).toEqual({ isCollapse: false, isDockChange: false });
+    expect(railChange("labels", "icons")).toEqual({ isCollapse: true, isDockChange: false });
+    for (const view of ["full", "icons", "labels"] as const) {
+      expect(railChange(view, "floating"), `undock from ${view}`).toEqual({ isCollapse: true, isDockChange: true });
+      expect(railChange("floating", view), `dock to ${view}`).toEqual({ isCollapse: false, isDockChange: true });
     }
   });
 
@@ -216,7 +226,7 @@ describe("motion and SideNav remounts (decisions 132 and 145)", () => {
     expect(remountsSideNav(prefsOf("rail", "icons", "docked"), prefsOf("rail", "icons", "floating"))).toBe(true);
     expect(remountsSideNav(prefsOf("rail", "labels", "floating"), prefsOf("rail", "labels", "docked"))).toBe(true);
     expect(remountsSideNav(prefsOf("full", "icons", "docked"), prefsOf("full", "icons", "floating")), "Full stays expanded").toBe(false);
-    expect(remountsSideNav(prefsOf("full", "icons", "docked"), prefsOf("rail", "icons", "docked")), "a collapse here is Astryx's").toBe(false);
+    expect(remountsSideNav(prefsOf("full", "icons", "docked"), prefsOf("rail", "icons", "docked")), "a collapse here glides").toBe(false);
     expect(remountsSideNav(prefsOf("full", "icons", "docked"), prefsOf("rail", "icons", "docked"), true), "a collapse from another tab").toBe(true);
     expect(remountsSideNav(prefsOf("rail", "icons", "docked"), prefsOf("rail", "labels", "docked"), true), "still a rail").toBe(false);
   });

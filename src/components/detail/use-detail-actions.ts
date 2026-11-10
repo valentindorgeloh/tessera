@@ -52,6 +52,8 @@ export type DetailActions = {
   fail: (message: string) => void;
   update: (patch: DetailPatch) => void;
   setAssignees: (actorIds: string[]) => void;
+  /** `setAssignees` for a caller that tells the user it worked ("Send to superagent"): `prefix` heads the failure Toast, `onOk` runs once the write went through. */
+  setAssigneesReporting: (actorIds: string[], prefix: string, onOk: () => void) => void;
   setLabels: (labelIds: string[]) => void;
   setModules: (moduleIds: string[]) => void;
   isSubscribed: boolean;
@@ -60,7 +62,7 @@ export type DetailActions = {
   assignMe: () => void;
 };
 
-type Writer = (patch: OptimisticPatch, call: () => Promise<ActionOutcome<unknown>>, prefix?: string) => void;
+type Writer = (patch: OptimisticPatch, call: () => Promise<ActionOutcome<unknown>>, prefix?: string, onOk?: () => void) => void;
 
 export function useDetailActions(item: WorkItemDetail, currentActorId: string): DetailActions {
   const { run, fail } = useActionRunner();
@@ -74,14 +76,15 @@ export function useDetailActions(item: WorkItemDetail, currentActorId: string): 
 
   const itemId = item.id;
   const write = useCallback<Writer>(
-    (patch, call, prefix = "Could not save") => {
+    (patch, call, prefix = "Could not save", onOk) => {
       const changed = changedFields<OptimisticPatch>(latest.current, patch);
       if (changed === null) return;
       latest.current = applyPatch<WorkItemDetail>(latest.current, changed);
       startTransition(async () => {
         addOptimistic(changed);
         const result = await call();
-        if (!result.ok) fail(`${prefix}: ${result.message}`);
+        if (result.ok) onOk?.();
+        else fail(`${prefix}: ${result.message}`);
       });
     },
     [addOptimistic, fail],
@@ -93,12 +96,14 @@ export function useDetailActions(item: WorkItemDetail, currentActorId: string): 
       if (changed === null) return;
       write(changed, () => updateWorkItemAction({ work_item_id: itemId, ...changed }));
     };
-    const setAssignees = (actorIds: string[]) => {
-      write({ assignee_ids: actorIds }, () => setAssigneesAction({ work_item_id: itemId, actor_ids: actorIds }));
+    const assign = (actorIds: string[], prefix?: string, onOk?: () => void) => {
+      write({ assignee_ids: actorIds }, () => setAssigneesAction({ work_item_id: itemId, actor_ids: actorIds }), prefix, onOk);
     };
     return {
       update,
-      setAssignees,
+      // One argument only: the rail hands this function straight to a selector's `onChange`.
+      setAssignees: (actorIds: string[]) => assign(actorIds),
+      setAssigneesReporting: (actorIds: string[], prefix: string, onOk: () => void) => assign(actorIds, prefix, onOk),
       setLabels: (labelIds: string[]) => write({ label_ids: labelIds }, () => setLabelsAction({ work_item_id: itemId, label_ids: labelIds })),
       setModules: (moduleIds: string[]) => write({ module_ids: moduleIds }, () => setModulesAction({ work_item_id: itemId, module_ids: moduleIds })),
       toggleSubscribe: () => {
@@ -111,7 +116,7 @@ export function useDetailActions(item: WorkItemDetail, currentActorId: string): 
         );
         return !subscribed;
       },
-      assignMe: () => setAssignees(toggleId(latest.current.assignee_ids, currentActorId, true)),
+      assignMe: () => assign(toggleId(latest.current.assignee_ids, currentActorId, true)),
     };
   }, [currentActorId, itemId, write]);
 

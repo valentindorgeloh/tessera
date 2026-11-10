@@ -36,6 +36,8 @@ export type ChangesResult = {
   changes: Change[];
   /** Pass this as the next `since_seq`: the last returned seq when the page was cut by `limit`, else the latest seq in the log. */
   cursor: number;
+  /** The newest seq in the log, even when it is below `since_seq` (a restore rewound the history; decision 152). */
+  latest_seq: number;
 };
 
 /** Rows per call when `limit` is omitted; a cut page moves the cursor only as far as it returned. */
@@ -80,8 +82,9 @@ export function listChanges(ctx: TesseraContext, sinceSeq: number, options: List
     .all();
   const cut = rows.length > limit;
   const changes = cut ? rows.slice(0, limit) : rows;
-  const cursor = cut ? changes[changes.length - 1].seq : Math.max(data.since_seq, latestSeq(ctx));
-  return { changes, cursor };
+  const latest = latestSeq(ctx);
+  const cursor = cut ? changes[changes.length - 1].seq : Math.max(data.since_seq, latest);
+  return { changes, cursor, latest_seq: latest };
 }
 
 // ---------------------------------------------------------------------------

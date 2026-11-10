@@ -1,8 +1,9 @@
 "use client";
 
-/** Agents (docs/drafts/p9-plan.md U3). A row opens that actor's profile. */
+/** Agents (docs/drafts/p9-plan.md U3). A row opens that actor's profile; the header links to the superagent control screen (decision 152). */
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Table, type TablePlugin } from "@astryxdesign/core/Table";
@@ -60,7 +61,7 @@ export function AgentsScreen({ rows }: AgentsScreenProps) {
     <PanelPage
       header={
         <PanelHeader label="Agents">
-          <PanelBar start={<PanelTitle>Agents</PanelTitle>} />
+          <PanelBar start={<PanelTitle>Agents</PanelTitle>} end={<Button variant="secondary" size="sm" label="Superagent" icon={<RobotIcon />} href="/agents/superagent" />} />
         </PanelHeader>
       }
     >

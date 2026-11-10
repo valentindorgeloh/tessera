@@ -19,7 +19,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
 import { ActorAvatar } from "@/components/shell/ActorAvatar";
 import { useProject } from "@/components/work-items/project-provider";
-import { paletteTokenColor, stateGroupLabel, stateGroupVariant } from "@/components/work-items/properties";
+import { paletteTokenColor, stateGroupLabel, stateGroupVariant } from "@/components/work-items/properties/option-helpers";
 import type { ProgressBreakdownRow } from "@/lib/tessera/types";
 
 export type BreakdownTabsProps = {

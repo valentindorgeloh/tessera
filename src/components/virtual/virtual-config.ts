@@ -21,8 +21,10 @@ export const INITIAL_OVERSCAN: Record<VirtualKind, number> = { list: 2, table: 2
 
 /*
  * Row sizes and the fixed parts above each container, in CSS px. Measured in the 2026-10-29 refresh at 1280 px in
- * Latte and Frappé, on the small fixture and the 10 000-item one. They only place the first window (server render
- * and hydration); after the first paint every rendered row is measured and the measured sizes replace them.
+ * Latte and Frappé, on the small fixture and the 10 000-item one. Re-measured on 2026-11-10 with resting (unarmed)
+ * rows, after row arming: list 44 and table 37 exactly, board cards 108-160 around 136 with an 8 px gap, so nothing
+ * changed. They only place the first window (server render and hydration); after the first paint every rendered row
+ * is measured and the measured sizes replace them.
  */
 export const ESTIMATE: Record<VirtualKind, number> = { list: 44, table: 37, board: 136, gantt: 32 };
 /** The board's cards stack is `VStack gap={2}`. */

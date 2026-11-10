@@ -34,7 +34,9 @@ import { ARCHIVE_OPEN_ITEM_REASON, canArchiveWorkItem } from "@/components/plann
 import { registerCommandContext } from "@/components/shell/command-context";
 import { registerEntityLabel } from "@/components/shell/entity-labels";
 import { forgetRecentsUnder } from "@/components/shell/recents-store";
+import { sendToSuperagentState, sentToSuperagentText } from "@/components/superagent/send-to-superagent";
 import { useProject } from "@/components/work-items/project-provider";
+import { chatHref } from "@/components/superagent/chat-format";
 import type { WorkItemDetail as WorkItemDetailModel } from "@/lib/tessera/types";
 import { PencilIcon, RestoreIcon } from "@/themes/catppuccin/icons";
 import { DescriptionEditor } from "./DescriptionEditor";
@@ -155,6 +157,18 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
     );
   };
 
+  // "Send to superagent" (decision 152): the runner treats the superagent's assignment as the request, so a send is an assignment, through the detail's optimistic assignee path (a quick second edit builds on it). Then the item's chat opens (decision 153); an item the superagent already has opens it straight away.
+  const send = sendToSuperagentState({ repo: bundle.superagent_repo, actors: bundle.actors, assigneeIds: item.assignee_ids, readOnly });
+  const openChat = () => router.push(chatHref(item.key));
+  const sendToSuperagent = () => {
+    if (send.kind === "open") return openChat();
+    if (send.kind !== "ready") return;
+    actions.setAssigneesReporting(send.actorIds, "Could not send to the superagent", () => {
+      toast({ type: "info", body: sentToSuperagentText(send.repo) });
+      openChat();
+    });
+  };
+
   // Archive and restore share one pending flag, so the Banner's Restore shows its spinner and cannot fire twice.
   const [isArchiving, startArchiving] = useTransition();
   const archiveItem = () => {
@@ -248,6 +262,9 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
         archiveBlockedReason={readOnly || canArchive ? undefined : ARCHIVE_OPEN_ITEM_REASON}
         onRestore={itemArchived && !projectArchived ? restoreItem : undefined}
         onVersionHistory={() => setHistoryOpen(true)}
+        onSendToSuperagent={send.kind === "hidden" ? undefined : sendToSuperagent}
+        sendToSuperagentBlockedReason={send.kind === "blocked" ? send.reason : undefined}
+        sendToSuperagentLabel={send.kind === "open" ? "Open superagent chat" : undefined}
       />
       {/* Grid areas (detail.css): title, rail and main stack in one column; the page host from 960px puts the rail in a right column. */}
       <VStack gap={0} className="tessera-detail-body" as="section" aria-label={label}>

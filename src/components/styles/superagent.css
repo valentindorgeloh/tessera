@@ -1,0 +1,44 @@
+/*
+ * Superagent screen (decision 152; docs/contracts/ui.md "Superagent control").
+ * Tokens only. The body is a column of sections that may shrink below their
+ * content (a table's own scroll region takes over), so a phone never gets a
+ * horizontal page scroll.
+ */
+
+.tessera-superagent-body,
+.tessera-superagent-section {
+  min-inline-size: 0;
+}
+
+/* The spend bar takes the free width of its row, up to a readable length; the Pause button wraps under it on a phone. */
+.tessera-superagent-spend {
+  flex: 1 1 calc(var(--spacing-12) * 5);
+  min-inline-size: 0;
+  max-inline-size: calc(var(--spacing-12) * 10);
+}
+
+/* The two Routing tables sit side by side while each has room for its three columns, else one under the other. */
+.tessera-superagent-half {
+  flex: 1 1 calc(var(--spacing-12) * 6);
+  min-inline-size: 0;
+  max-inline-size: calc(var(--spacing-12) * 12);
+}
+
+/* The request's scope is free text from the runner: keep its line breaks, wrap anywhere, and stop at a readable line length. */
+.tessera-superagent-scope {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-inline-size: calc(var(--spacing-12) * 16);
+}
+
+/*
+ * Touch (decision 14): a text link in a row is as tall as a finger, the way the Agents table's profile links are
+ * (profile.css), so the row grows instead of the link getting a hit area over the text beside it.
+ */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-superagent-link {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--spacing-11);
+  }
+}

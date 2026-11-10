@@ -9,10 +9,11 @@
  * its window primitives (`virtualIndex`, `measureRef`, `keptTop`).
  */
 
-import { memo, useCallback, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AvatarGroup } from "@astryxdesign/core/AvatarGroup";
 import { ClickableCard } from "@astryxdesign/core/ClickableCard";
-import { Icon } from "@astryxdesign/core/Icon";
+import { Icon, useIcon } from "@astryxdesign/core/Icon";
+import { IconButton } from "@astryxdesign/core/IconButton";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
@@ -24,6 +25,7 @@ import { keptRowStyle } from "@/components/virtual/use-virtual-rows";
 import type { DisplayProperties, WorkItem } from "@/lib/tessera/types";
 import { DragHandleIcon } from "@/themes/catppuccin/icons";
 import { useProjectRow } from "./project-provider";
+import { ArmedContext, useArmed, useArmedHandoff, useChipHandoff, useRowArming } from "./properties/arming";
 import { PriorityLabel, StateLabel, paletteTokenColor } from "./properties";
 
 /** The press target that starts a touch or pen drag (board.css `.tessera-board-card-grip`). */
@@ -41,9 +43,87 @@ export function BoardCardGrip() {
 /** The card's menu slot: sized like the menu so the drag overlay's inert copy keeps the card's height (board.css). */
 export function BoardCardMenuSlot({ children }: { children?: ReactNode }) {
   return (
-    <HStack vAlign="center" className="tessera-board-card-menu" aria-hidden={children === undefined ? true : undefined}>
+    // Focus inside the slot (the button or its open menu) is the card's menu to the focus-follow (./focus-follow.ts).
+    <HStack vAlign="center" className="tessera-board-card-menu" aria-hidden={children === undefined ? true : undefined} data-focus-key={MENU_ARM_KEY}>
       {children}
     </HStack>
+  );
+}
+
+/** The key a card's actions menu goes by in the arming state (./properties/arming.tsx). */
+const MENU_ARM_KEY = "menu";
+
+type CardMenuProps = {
+  item: WorkItem;
+  currentColumn: string;
+  targets: { id: string; name: string }[];
+  onOpen: (id: string) => void;
+  onMoveTo: (itemId: string, fromColumn: string, toColumn: string) => void;
+};
+
+/** The card's "Actions" menu: an icon button until the card arms, and the real menu (open when its button was clicked) after. */
+function CardMenu(props: CardMenuProps) {
+  const { armed, arm } = useArmed();
+  const handoff = useChipHandoff(arm, MENU_ARM_KEY);
+  const moreIcon = useIcon("moreHorizontal");
+  // How the click that armed the card was made. A click from the keyboard or from assistive technology has no pointer, so
+  // its `detail` is 0 (the way Astryx's own menu button tells a key from a press); a mouse or a finger reports 1 or more.
+  const [isKeyClick, setKeyClick] = useState(false);
+  if (!armed) {
+    return (
+      <IconButton
+        ref={handoff}
+        variant="ghost"
+        size="sm"
+        label={`Actions for ${props.item.key}`}
+        icon={moreIcon}
+        data-arm-key={MENU_ARM_KEY}
+        onClick={(event) => {
+          setKeyClick(event.detail === 0);
+          arm(MENU_ARM_KEY, MENU_ARM_KEY);
+        }}
+      />
+    );
+  }
+  return <ArmedCardMenu {...props} isKeyOpen={isKeyClick} />;
+}
+
+function ArmedCardMenu({ item, currentColumn, targets, onOpen, onMoveTo, isKeyOpen }: CardMenuProps & { isKeyOpen: boolean }) {
+  const { isDefaultOpen, takeFocus } = useArmedHandoff(MENU_ARM_KEY);
+  // Mounts only once the card has armed, so the click that armed it decides how the menu opens. A pointer's click mounts it
+  // open and Astryx leaves the focus alone (a menu that mounts open is not an open anyone asked for). A key's click opens it
+  // after it has mounted, from the ref callback that has already put the focus on the button: Astryx then reads it as the
+  // keyboard open it is and moves the focus to the first item, and Escape or a pick returns it to the button.
+  const [isOpen, setOpen] = useState(isDefaultOpen && !isKeyOpen);
+  const handoff = useMemo(() => {
+    if (!takeFocus || !isDefaultOpen || !isKeyOpen) return takeFocus;
+    return (element: HTMLButtonElement | null) => {
+      takeFocus(element);
+      if (element) setOpen(true);
+    };
+  }, [takeFocus, isDefaultOpen, isKeyOpen]);
+  return (
+    <MoreMenu
+      ref={handoff}
+      label={`Actions for ${item.key}`}
+      size="sm"
+      alignment="end"
+      isMenuOpen={isOpen}
+      onOpenChange={setOpen}
+      items={[
+        { id: "open", label: "Open", onClick: () => onOpen(item.id) },
+        ...(targets.length > 0
+          ? [
+              { type: "divider" as const },
+              {
+                id: "move",
+                label: "Move to",
+                items: targets.map((column) => ({ id: column.id, label: column.name, onClick: () => onMoveTo(item.id, currentColumn, column.id) })),
+              },
+            ]
+          : []),
+      ]}
+    />
   );
 }
 
@@ -105,26 +185,15 @@ export const BoardCard = memo(function BoardCard({
 }: BoardCardProps) {
   const ref = useCardRef(cardRef, windowed.measureRef);
   const targets = columns.filter((column) => column.id !== currentColumn);
+  // The actions menu is an icon button until the pointer or focus reaches the card (./properties/arming.tsx). The state
+  // lives in this card, so a kept card (focused outside the window) stays armed; a card that mounts as the window moves
+  // starts at rest and arms on the pointer's next move or enter.
+  const { state: arming, handlers: armingHandlers } = useRowArming();
   const menu = (
     <BoardCardMenuSlot>
-      <MoreMenu
-        label={`Actions for ${item.key}`}
-        size="sm"
-        alignment="end"
-        items={[
-          { id: "open", label: "Open", onClick: () => onOpen(item.id) },
-          ...(targets.length > 0
-            ? [
-                { type: "divider" as const },
-                {
-                  id: "move",
-                  label: "Move to",
-                  items: targets.map((column) => ({ id: column.id, label: column.name, onClick: () => onMoveTo(item.id, currentColumn, column.id) })),
-                },
-              ]
-            : []),
-        ]}
-      />
+      <ArmedContext value={arming}>
+        <CardMenu item={item} currentColumn={currentColumn} targets={targets} onOpen={onOpen} onMoveTo={onMoveTo} />
+      </ArmedContext>
     </BoardCardMenuSlot>
   );
   // A mouse or pen drags from anywhere on the card; a finger only from the grip, so the rest of the card scrolls.
@@ -141,10 +210,14 @@ export const BoardCard = memo(function BoardCard({
       label={`${item.key} ${item.name}`}
       padding={3}
       aria-current={isPeeked ? "true" : undefined}
+      data-item-id={item.id}
       {...windowCardProps(handlers ? "tessera-board-card" : "tessera-board-card tessera-board-card-readonly", windowed)}
       onClick={() => onOpen(item.id)}
       onPointerDown={dragHandlers?.onPointerDown}
       onClickCapture={handlers?.onClickCapture}
+      onPointerEnter={armingHandlers.onPointerEnter}
+      onPointerMove={armingHandlers.onPointerMove}
+      onFocus={armingHandlers.onFocus}
     >
       <BoardCardBody item={item} properties={properties} menu={menu} grip={handlers ? <BoardCardGrip /> : null} />
     </ClickableCard>

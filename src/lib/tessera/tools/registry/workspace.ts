@@ -30,6 +30,8 @@ import {
   removeQuickLink,
   renameFavoriteFolder,
   RenameFavoriteFolderInput,
+  setAgentSettings,
+  SetAgentSettingsInput,
   updateQuickLink,
   UpdateQuickLinkInput,
   updateSticky,
@@ -252,7 +254,7 @@ export const workspaceTools = [
   defineTool({
     name: "get_workspace_settings",
     title: "Get workspace settings",
-    description: "Returns the workspace name, the normalized home widget list, AI overrides and the last time Home was marked seen.",
+    description: "Returns the workspace name, the normalized home widget list, AI overrides, the last time Home was marked seen, and the superagent settings (agents: runner_url and the project to repository map, or null until they are set).",
     input: EmptyInput,
     mutates: false,
     phase: "P9",
@@ -266,5 +268,15 @@ export const workspaceTools = [
     mutates: true,
     phase: "P9",
     run: (ctx, input) => updateWorkspaceSettings(ctx, input),
+  }),
+  defineTool({
+    name: "set_agent_settings",
+    title: "Set agent settings",
+    description: "Replaces the superagent settings: the project to repository map and, when given, the runner URL (http://127.0.0.1:<port> or http://localhost:<port> only; omitted keeps the stored one). Every project_id must be a live project and appear once. Only the user may run it (RULE user_only). The runner's token is never stored in Tessera.",
+    input: SetAgentSettingsInput,
+    mutates: true,
+    userOnly: true,
+    phase: "P11",
+    run: (ctx, input) => setAgentSettings(ctx, input),
   }),
 ];

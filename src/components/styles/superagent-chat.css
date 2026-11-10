@@ -1,0 +1,119 @@
+/* Superagent chat (decision 153): the chat list beside the open conversation, the Inbox frame. Tokens only. */
+
+.tessera-chat {
+  min-width: 0;
+  min-height: 0;
+}
+
+.tessera-chat-list {
+  min-width: 0;
+  min-height: 0;
+}
+
+/*
+ * The thread is a column that clips: the pane inside fills it and the chat's
+ * own scroller (ChatLayout, self-scrolling) takes the leftover height, so the
+ * composer stays docked at the bottom at both widths. The double selector wins
+ * over the content's own StyleX class.
+ */
+.tessera-chat .tessera-chat-thread {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.tessera-chat-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.tessera-chat-log {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* A long message or code block wraps inside its bubble; it never widens the page. */
+.tessera-chat-body {
+  min-width: 0;
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* The comment renderer inside a bubble: the bubble is the frame, so the editor's own box and inset go. */
+.tessera-chat-body .tessera-editor--readonly {
+  border: none;
+  background: transparent;
+}
+
+.tessera-chat-body .tessera-editor--readonly .tessera-editor-content {
+  padding: 0;
+}
+
+.tessera-chat-header {
+  flex: none;
+  min-width: 0;
+}
+
+.tessera-chat-row-meta {
+  flex-shrink: 0;
+}
+
+/*
+ * Below 1024px there is no room for a list beside the thread: one pane shows
+ * at a time (the list, or the thread / new-chat pane, which gets an "All chats"
+ * button back). The list fills the panel and has no resize handle. The classes
+ * carry two selectors so they win over the panel's own width (a StyleX class
+ * reading --x-width, set by useResizable).
+ */
+.tessera-chat .tessera-chat-back {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .tessera-chat .tessera-chat-list {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    flex: 1 1 auto;
+  }
+
+  .tessera-chat .astryx-resize-handle {
+    display: none;
+  }
+
+  .tessera-chat:not(.tessera-chat--open) .tessera-chat-thread {
+    display: none;
+  }
+
+  .tessera-chat--open .tessera-chat-list {
+    display: none;
+  }
+
+  .tessera-chat .tessera-chat-back {
+    display: flex;
+    flex: none;
+  }
+}
+
+/* Rows start on the panel header's 16px inset; the row keeps the full width so its hover and selected fill reach both edges. */
+.tessera-chat-list li.astryx-item {
+  padding-inline: var(--spacing-4);
+}
+
+/* A finger needs the row's main button (the label area) at 44px. */
+@media (pointer: coarse), (max-width: 480px) {
+  .tessera-chat-list li.astryx-item button:not(.astryx-button) {
+    min-block-size: var(--spacing-11);
+  }
+}
+
+/* The empty or not-found pane sits in the middle of the thread, not at its top. */
+.tessera-chat-empty {
+  min-block-size: 100%;
+}
+
+/* A message that is still being sent keeps the writer's line breaks, as the stored Markdown will show them. */
+.tessera-chat-pending {
+  white-space: pre-wrap;
+}

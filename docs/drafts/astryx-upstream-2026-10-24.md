@@ -13,6 +13,7 @@ Contents:
 2. Issue: `Text` measures truncation even when no tooltip can use it (perf).
 3. Issue: Selector, Popover and Tooltip mount closed content; `useLayer` already has `lazyMount` (perf).
 4. Tessera follow-up after an upgrade that ships the fix.
+5. Issue: AppShell gives no way to keep the content still while the side nav collapses (added 2026-11-10, against 0.7.11).
 
 ## 1. Bug: ContextMenu passes `start`, `moveTo` and `cancel` to its trigger element
 
@@ -277,3 +278,25 @@ In one change, after the Astryx release with fix 1:
 8. Once fix 2 ships (lazy measuring), replace Tessera's own `OneLineText` (`src/components/work-items/OneLineText.tsx`) with `Text maxLines={1}` again. The review of the rows lane added it so that `RowTitle`, the table's Name and Project cells and the gantt and modules-timeline labels keep their overflow tooltip while measuring only on hover, which is proposal 2 above done in the app. Re-run the dev navigation profile (docs/drafts/perf-2026-10-24/perf-run/scripts/code-nav-profile.mjs) to confirm that `checkTruncation` stays near 100 ms.
 
 Found along the way, and gone after step 2: on React 19.3 the `start`/`cancel` warning comes in its plural form ("Invalid values for props `start`, `cancel` on <div> tag"). The `REACT_PROP_WARNING` pattern only knows the singular "Invalid value for prop", so in development that warning is not matched. The e2e suite runs on `next start`, where React prints neither warning, so no spec is affected.
+
+## 5. AppShell: no way to keep the content still while the side nav collapses
+
+Added 2026-11-10, verified against the installed 0.7.11 (`dist/AppShell/AppShell.js`, `dist/SideNav/SideNav.js`, `dist/motion/animatedLayout.js`). Not filed: filing posts on GitHub, so the user decides when.
+
+Tessera's workaround is decision 149: `setNavCollapsed` sets the private `data-astryx-reduced-motion` mark on `<html>` for the change, so Astryx lands the change at once, and `src/components/shell/rail-motion.ts` glides the rail's real width instead. `tests/ui/nav-collapse-snap.test.ts` pins the Astryx code it relies on. When a release ships a documented option, use it, delete the mark and the pins, and update decision 149.
+
+### Issue text
+
+**Title:** AppShell: an option to collapse the side nav without the content cross-fade
+
+**Body:**
+
+When a collapsible `SideNav` inside `AppShell` collapses or expands, `AppShell`'s `beforeRailChange` holds a copy of the main content (`holdLayoutSwap(contentLayout, main, { isVisiblePart: true })`), and `afterRailChange` plays `playLayoutSwap`. The copy fades out, every child of `main` fades in from 0, and the column glides by the rail's travel. On a content-heavy page (a work-item list in a rounded `Card` panel) this reads as the panel reloading. Measured at 1280 px wide: `main`'s width changes from 1044 to 1232 px at once, while its left edge glides from 236 to 48 px over about 240 ms. The card inside goes 0.25 → 0.81 → 0.99 opacity over the same frames, so the eye loses its place in the list.
+
+The only ways to turn it off today are the user's Reduce Motion setting, or the theme-wide reduced-motion mark (`data-astryx-reduced-motion`, private: no package entry exports it). The theme-wide mark also stops every other animation. There is no `AppShell` or `SideNav` prop for this.
+
+Proposal (either would do):
+1. A documented `AppShell` prop, for example `contentRailMotion: 'swap' | 'resize' | 'none'`, default `'swap'`. `'resize'` animates the rail's real width so the column's leading edge follows it and its trailing edge stays put, with no copy and no fade (a relayout per frame, cheap on most pages). `'none'` lands at once, as Reduce Motion does with a mouse.
+2. Or a `SideNav` `collapsible` option such as `isAnimated: false`, which skips `beforeRailChange` and `afterRailChange` (and the rail's own copy) for that nav.
+
+Repro: any `AppShell` with `sideNav={<SideNav collapsible={{ isCollapsed, onCollapsedChange }} />}` and a main area holding a scrolled list. Toggle `isCollapsed` and record `getComputedStyle(main.firstElementChild).opacity` and `main.getBoundingClientRect().left` on each animation frame.

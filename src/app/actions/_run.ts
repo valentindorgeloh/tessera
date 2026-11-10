@@ -44,9 +44,10 @@ function failure(err: unknown): ActionFailure {
  * Runs a registry tool as `actorId` (the user by default) against the app
  * database. Never throws to the client: tool errors come back as
  * `{ ok: false }`. After a mutating tool it calls `refresh()` so the open page
- * re-renders; read tools skip it.
+ * re-renders; read tools skip it, and so does a caller that passes
+ * `refreshAfter = false` (`quietToolAction`).
  */
-export async function runTool(name: string, input: unknown, actorId: string = USER_ACTOR_ID): Promise<ActionResult> {
+export async function runTool(name: string, input: unknown, actorId: string = USER_ACTOR_ID, refreshAfter: boolean = true): Promise<ActionResult> {
   "use server";
   let result: ActionResult;
   let mutates = false;
@@ -63,7 +64,7 @@ export async function runTool(name: string, input: unknown, actorId: string = US
     return failure(err);
   }
   // Outside the try: a refresh() misuse (outside a Server Action) must surface, not masquerade as a tool failure.
-  if (mutates) refresh();
+  if (mutates && refreshAfter) refresh();
   return result;
 }
 
@@ -75,4 +76,15 @@ export function toolAction<N extends ToolName>(name: N): (input: ToolInput<N>) =
   // Fail at module load, not on first click, when the name is wrong.
   getTool(name);
   return (input) => runTool(name, input) as Promise<ActionResult<ToolOutput<N>>>;
+}
+
+/**
+ * Like `toolAction`, but the write does not call `refresh()`. For a save whose
+ * screen already shows the new state: an autosave whose editor holds its own
+ * text and version, or a display change that went into the URL. The caller
+ * refreshes once when derived views must catch up.
+ */
+export function quietToolAction<N extends ToolName>(name: N): (input: ToolInput<N>) => Promise<ActionResult<ToolOutput<N>>> {
+  getTool(name);
+  return (input) => runTool(name, input, USER_ACTOR_ID, false) as Promise<ActionResult<ToolOutput<N>>>;
 }

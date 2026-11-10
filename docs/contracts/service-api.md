@@ -583,3 +583,33 @@ check) inside the room lane 0 made (about 45); `modules.ts` about 3 inside about
 28. `projects.ts` (513) grows by about 45; `views.ts` (366) by about 45;
 `search.ts` (357) by about 30; `counts.ts` (304) by about 30; all stay under 600.
 `work-items/move.ts` and `work-items/read.ts` start at about 150 and 215 lines.
+
+## Superagent additions (lane A; decisions 150, 151 and 152)
+
+```ts
+// comments.ts
+export const ClientRefSchema: z.ZodString;                      // /^[\x21-\x7E]{1,200}$/, described
+// CreateCommentInput gains `client_ref: ClientRefSchema.optional()`
+export type DeletedCommentRef = { id: string; client_ref: string; deleted: true };
+export type CreateCommentResult = CommentView | DeletedCommentRef;
+export function createComment(ctx, workItemId: string, input: z.input<typeof CreateCommentInput> & { client_ref?: undefined }): CommentView;
+export function createComment(ctx, workItemId: string, input: z.input<typeof CreateCommentInput>): CreateCommentResult;
+
+// workspace/settings.ts
+export const AGENT_RUNNER_DEFAULT_URL = "http://127.0.0.1:3090";   // re-exported from schemas.ts
+export function normalizeAgentSettings(raw: unknown): AgentSettings | null;
+export function agentRepoFor(agents: AgentSettings | null, projectId: string): string | null;
+export const SetAgentSettingsInput: z.ZodObject;                 // { runner_url?: AgentRunnerUrlSchema, projects: AgentProjectSchema[] (max 50) }, strict
+export function setAgentSettings(ctx, input: z.input<typeof SetAgentSettingsInput>): WorkspaceSettingsView;
+
+// changes.ts
+export type ChangesResult = { changes: Change[]; cursor: number; latest_seq: number };
+```
+
+- **`createComment` with `client_ref`** (decision 150). Inside the transaction, in this order: `getWorkItemRow` (`NOT_FOUND` for a missing item); select the comment with this `actor_id = ctx.actor.id`, `work_item_id` and `client_ref`, deleted rows included; if found, return `{ id, client_ref, deleted: true }` when `deleted_at` is set, `CONFLICT` ("This client_ref was used with a different body", details `{ comment_id, client_ref }`) when `body_md` differs from the validated input body, else `getComment(ctx, id)`. Nothing else runs on these paths. Only when no row is found does the existing path run (`loadWritableWorkItem`, parent resolution, insert with `client_ref`, subscriber, mentions, activity). Without a ref the function is unchanged. `getComment`, `listComments` and the nested views carry `client_ref` (the column is part of `CommentRow`).
+- **`normalizeAgentSettings(raw)`**: `null`/`undefined` → `null`; otherwise `runner_url` parsed with `AgentRunnerUrlSchema` (trailing `/` dropped) or `AGENT_RUNNER_DEFAULT_URL`; `projects` taken from an array (else `[]`), each entry kept when `AgentProjectSchema` parses it and its `project_id` was not seen before. Pure; no database read.
+- **`setAgentSettings`**: first `if (ctx.actor.kind !== "user") throw rule("user_only", "Only the user can change the superagent settings")`, then `validateInput`, then in `withTx`: duplicate `project_id` → `validation({ projects }, "A project can be mapped once")`; each id through `getProjectRow` (live projects, archived allowed); stored `runner_url` kept when the input omits it (default when none is stored); writes `agents` and `updated_at`; no activity. Returns `toView(row)`.
+- **`toView`** adds `agents: normalizeAgentSettings(row.agents)`; `WorkspaceSettingsView` gains `agents: AgentSettings | null`. `UpdateWorkspaceSettingsInput` does not take `agents`.
+- **`agentRepoFor(agents, projectId)`**: the mapped repo or null. Pure, for the project bundle.
+- **`listChanges`** adds `latest_seq: latestSeq(ctx)` (the real newest seq, even when it is below `since_seq`); `cursor` is unchanged. `GET /api/changes` spreads it, so the route returns `{ changes, cursor, latest_seq, unread_notifications }`.
+- **Exports:** `workspace/index.ts` and the engine barrel export `normalizeAgentSettings`, `agentRepoFor`, `SetAgentSettingsInput`, `setAgentSettings`; `comments.ts` exports `ClientRefSchema`, `DeletedCommentRef`, `CreateCommentResult`.

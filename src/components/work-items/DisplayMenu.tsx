@@ -163,10 +163,29 @@ export function LayoutSwitch({ display, urlState, settingsScope }: LayoutSwitchP
   );
 }
 
+type DisplayMenuBodyProps = Pick<DisplayMenuProps, "display"> & {
+  hiddenGroupFields: readonly GroupBy[];
+  includeProject: boolean;
+  apply: (patch: Partial<Display>) => void;
+  reset: () => void;
+  isViewScoped: boolean;
+};
+
 export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupFields = NO_HIDDEN_FIELDS, includeProject = false }: DisplayMenuProps) {
-  const { bundle } = useProject();
   const [isOpen, setOpen] = useState(false);
   const { apply, reset } = useDisplayWriter(settingsScope, urlState);
+
+  // The body mounts only while the popover is open: its switches, selectors and checkboxes measure layout when they mount, even hidden.
+  const body = <DisplayMenuBody display={display} hiddenGroupFields={hiddenGroupFields} includeProject={includeProject} apply={apply} reset={reset} isViewScoped={settingsScope === null} />;
+  return (
+    <Popover isOpen={isOpen} onOpenChange={setOpen} content={isOpen ? body : null} label="Display options" placement="below" alignment="end" width={MENU_WIDTH} hasAutoFocus>
+      <Button variant="secondary" size="sm" label="Display" icon={<SlidersIcon />} />
+    </Popover>
+  );
+}
+
+function DisplayMenuBody({ display, hiddenGroupFields, includeProject, apply, reset, isViewScoped }: DisplayMenuBodyProps) {
+  const { bundle } = useProject();
 
   const toOption = (choice: { value: string | null; label: string }): SelectorOptionData => ({ value: choice.value ?? NONE, label: choice.label });
   const groupOptions = groupByChoices(bundle.project, hiddenGroupFields, includeProject).map(toOption);
@@ -187,7 +206,7 @@ export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupField
   };
 
   const hidesGrouping = display.layout === "calendar" || display.layout === "gantt";
-  const content = (
+  return (
     <VStack gap={4} padding={4} className="tessera-wi-display">
       {display.layout === "calendar" ? (
         <>
@@ -258,14 +277,8 @@ export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupField
         ))}
       </CheckboxList>
       <HStack hAlign="end">
-        <Button variant="ghost" size="sm" label={settingsScope === null ? "Reset to view" : "Reset to defaults"} onClick={reset} />
+        <Button variant="ghost" size="sm" label={isViewScoped ? "Reset to view" : "Reset to defaults"} onClick={reset} />
       </HStack>
     </VStack>
-  );
-
-  return (
-    <Popover isOpen={isOpen} onOpenChange={setOpen} content={content} label="Display options" placement="below" alignment="end" width={MENU_WIDTH} hasAutoFocus>
-      <Button variant="secondary" size="sm" label="Display" icon={<SlidersIcon />} />
-    </Popover>
   );
 }

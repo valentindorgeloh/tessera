@@ -40,6 +40,7 @@ import { useShared } from "./stable";
 import { buildColumns, isDataRow, type TableRow } from "./table-cells";
 import { TABLE_SORT_FIELDS, orderByFromSort, sortFromOrderBy } from "./table-sort";
 import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } from "./properties";
+import { createArmedRows, tableRowArmingHandlers } from "./properties/arming";
 import { VirtualTable } from "./VirtualTable";
 import type { LayoutProps } from "./types";
 
@@ -101,6 +102,8 @@ function GroupHeading({ group, field }: { group: Group | undefined; field: Group
 
 export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection, onLoadMore, onLoadMoreUngrouped, isLoadingMore, onOrderChange, onClearFilters }: LayoutProps) {
   const peekedId = usePeekedId();
+  // Property controls draw as chips until the pointer or focus reaches their row (./properties/arming.tsx).
+  const [armedRows] = useState(createArmedRows);
   const groups = useMemo(() => result.groups ?? [], [result.groups]);
   const grouped = display.group_by !== null && groups.length > 0;
 
@@ -126,9 +129,9 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
   const projectName = useMemo(() => (showProject ? new Map(projects.map((project) => [project.id, project.name])) : null), [projects, showProject]);
   const isSortable = onOrderChange !== undefined;
   const columns = useMemo(() => {
-    const built = buildColumns({ properties: display.properties, projectName, hasEstimates, readOnly, onUpdate, onOpen });
+    const built = buildColumns({ properties: display.properties, projectName, hasEstimates, readOnly, onUpdate, onOpen, armedRows });
     return isSortable ? built.map((column) => (column.key in TABLE_SORT_FIELDS ? { ...column, sortable: true } : column)) : built;
-  }, [display.properties, hasEstimates, isSortable, onOpen, onUpdate, projectName, readOnly]);
+  }, [armedRows, display.properties, hasEstimates, isSortable, onOpen, onUpdate, projectName, readOnly]);
 
   // The order lives in the display: a header click asks the server for it (whole list), the rows arrive already ordered.
   const sort = useMemo(() => sortFromOrderBy(display.order_by), [display.order_by]);
@@ -221,8 +224,11 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
           htmlProps: {
             ...props.htmlProps,
             className: "tessera-table-row",
+            // The focus-follow finds the item's row by it when a change moves the row to another group (./focus-follow.ts).
+            "data-item-id": row.item.id,
             "aria-current": row.item.id === peekedId ? "true" : undefined,
             onClick: () => onOpen(row.item.id),
+            ...tableRowArmingHandlers(armedRows, row.id),
           },
         };
       },
@@ -254,7 +260,7 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
         };
       },
     }),
-    [onOpen, peekedId],
+    [armedRows, onOpen, peekedId],
   );
 
   // Insertion order is the plugin order: the grouped plugin runs after the open handler so its header rows win.

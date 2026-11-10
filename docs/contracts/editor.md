@@ -311,7 +311,10 @@ Rules (docs/PLAN.md §7):
 - `{ ok: true, data }` → `version = data.description_version`, status `clean`
   unless edits arrived meanwhile. `runTool` already calls `refresh()`
   (`src/app/actions/_run.ts`), so the host's `serverVersion` catches up; a
-  `serverVersion === state.version` prop change is a no-op.
+  `serverVersion === state.version` prop change is a no-op. The autosave wrappers
+  (description, page body, sticky body) are quiet (`quietToolAction`) and skip
+  `refresh()`; the editor refreshes once on blur (`refreshIfSaved`: blur, mod+s,
+  Escape, unmount). Reset keeps refreshing.
 - `{ ok: false, code: "CONFLICT" }` → `conflict = { current_version: details.current_version }`,
   status `conflict`. The host shows the Banner (status `warning`, title "Changed
   elsewhere", description "Someone else saved this description while you were

@@ -112,6 +112,27 @@
   padding-block: var(--spacing-0-5);
 }
 
+/*
+ * The resting chip of a selector cell (properties/arming.tsx) fills the cell, value at the start and chevron at the
+ * end, exactly as the Astryx selector it stands for does once the row arms: no shift when the pointer arrives.
+ */
+.tessera-table .tessera-wi-chip[data-fill] > span:first-child {
+  flex: 1;
+  justify-content: space-between;
+  text-align: start;
+}
+
+/*
+ * A chip, and the wrapper Astryx puts around the armed date button, sits on its cell's text baseline. A chip that starts
+ * with a glyph (the priority glyph, the calendar icon) has its baseline 4px lower than one that starts with text, which
+ * makes its line box 29px against 28px, so the cell centres it half a pixel higher than the selectors: one device pixel
+ * on a Retina screen. Centring the chip on the line gives every chip and every armed control the same place.
+ */
+.tessera-table .tessera-wi-chip,
+.tessera-table .astryx-table-cell > div:has(> .tessera-wi-chip) {
+  vertical-align: middle;
+}
+
 /* The key cell is the row's accessible open control; the row click is a pointer convenience. */
 .tessera-table-open {
   font-variant-numeric: tabular-nums;

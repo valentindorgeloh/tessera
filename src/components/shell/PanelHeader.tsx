@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { Layout, LayoutContent, LayoutHeader } from "@astryxdesign/core/Layout";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Heading } from "@astryxdesign/core/Text";
@@ -101,15 +101,16 @@ export function PanelTitle({ children, className, accessibilityLevel = 1 }: { ch
 /**
  * A page in the content panel: the header pinned at the top and the content
  * scrolling under it. `width="reading"` centres the content in a 960px
- * column (Home, Projects); `"full"` gives it the panel's width.
+ * column (Home, Projects); `"full"` gives it the panel's width. `contentRef`
+ * reaches the element that scrolls, for `useAnimatedLayout`.
  */
-export function PanelPage({ header, width = "full", children }: { header: ReactNode; width?: "reading" | "full"; children: ReactNode }) {
+export function PanelPage({ header, width = "full", contentRef, children }: { header: ReactNode; width?: "reading" | "full"; contentRef?: Ref<HTMLDivElement>; children: ReactNode }) {
   return (
     <Layout
       height="fill"
       header={header}
       content={
-        <LayoutContent isScrollable padding={0}>
+        <LayoutContent ref={contentRef} isScrollable padding={0}>
           {width === "reading" ? <VStack className="tessera-reading">{children}</VStack> : children}
         </LayoutContent>
       }

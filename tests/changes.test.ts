@@ -155,6 +155,55 @@ describe("listChanges", () => {
     expect(errorCode(() => listChanges(ctx, 1.5))).toBe("VALIDATION");
   });
 
+  it("returns latest_seq, the newest seq in the log, next to the cursor (decision 152)", () => {
+    const { ctx, project } = setup();
+    expect(listChanges(ctx, 0).latest_seq).toBe(latestSeq(ctx));
+    const since = latestSeq(ctx);
+    createWorkItem(ctx, { project_id: project.id, name: "A" });
+    createWorkItem(ctx, { project_id: project.id, name: "B" });
+    const result = listChanges(ctx, since);
+    expect(result.latest_seq).toBe(latestSeq(ctx));
+    expect(result.latest_seq).toBe(result.cursor);
+    // A caught-up poller sees its own cursor.
+    expect(listChanges(ctx, result.cursor).latest_seq).toBe(result.cursor);
+  });
+
+  it("keeps the real latest_seq when excluded actors hide every row", () => {
+    const { ctx, assistant, project } = setup();
+    const since = latestSeq(ctx);
+    createWorkItem(assistant, { project_id: project.id, name: "By assistant" });
+    const result = listChanges(ctx, since, { excludeActors: [ASSISTANT_ACTOR_ID] });
+    expect(result.changes).toEqual([]);
+    expect(result.latest_seq).toBe(latestSeq(ctx));
+    expect(result.latest_seq).toBeGreaterThan(since);
+  });
+
+  it("a cut page keeps the cursor at its last row and still reports the real latest_seq", () => {
+    const { ctx, project } = setup();
+    const since = latestSeq(ctx);
+    for (let i = 0; i < 4; i += 1) createWorkItem(ctx, { project_id: project.id, name: `Item ${i}` });
+    const page = listChanges(ctx, since, { limit: 2 });
+    expect(page.changes).toHaveLength(2);
+    expect(page.cursor).toBe(page.changes[1].seq);
+    expect(page.cursor).toBeLessThan(latestSeq(ctx));
+    expect(page.latest_seq).toBe(latestSeq(ctx));
+  });
+
+  it("after a rewind latest_seq falls below since_seq while the cursor stays at since_seq", () => {
+    const { ctx, handles, project } = setup();
+    for (let i = 0; i < 3; i += 1) createWorkItem(ctx, { project_id: project.id, name: `Item ${i}` });
+    const polled = listChanges(ctx, 0);
+    expect(polled.cursor).toBe(latestSeq(ctx));
+    // A restore from a backup brings back a log that ends earlier than the poller's cursor.
+    const kept = polled.cursor - 2;
+    handles.sqlite.prepare("DELETE FROM activity WHERE seq > ?").run(kept);
+    const rewound = listChanges(ctx, polled.cursor);
+    expect(rewound.latest_seq).toBe(kept);
+    expect(rewound.latest_seq).toBeLessThan(polled.cursor);
+    expect(rewound.changes).toEqual([]);
+    expect(rewound.cursor).toBe(polled.cursor);
+  });
+
   it("re-exports latestSeq from activity.ts", () => {
     const { ctx } = setup();
     expect(latestSeq).toBe(activityLatestSeq);

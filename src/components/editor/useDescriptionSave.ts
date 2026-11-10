@@ -50,6 +50,11 @@ export type UseDescriptionSaveResult = {
   onChange: (markdown: string) => void;
   /** Sends now (blur, mod+s, Escape, unmount, item switch). */
   flush: () => Promise<void>;
+  /**
+   * One `refreshAction()` when a save landed since the last refresh, so the activity feed and "Updated" dates catch up
+   * (the save itself no longer refreshes the page). With a save still in flight, the refresh follows its result.
+   */
+  refreshIfSaved: () => void;
   /** Resends with expected_description_version = conflict.current_version (or theirs.version). */
   keepMine: () => Promise<void>;
   /** editor.setMarkdown(theirs.text), version = theirs.version, clean; refreshes first when theirs is unknown. */
@@ -85,6 +90,10 @@ type Internal = {
   unloading: boolean;
   /** Text the last pagehide beacon carried, if any. */
   beaconText: string | null;
+  /** A save landed and the page has not been refreshed since. */
+  savedSinceRefresh: boolean;
+  /** `refreshIfSaved` was asked while a save was in flight: refresh when it has landed and nothing more is queued. */
+  refreshWhenIdle: boolean;
 };
 
 /**
@@ -212,6 +221,8 @@ export function useDescriptionSave(input: UseDescriptionSaveInput): UseDescripti
     awaitingTheirs: false,
     unloading: false,
     beaconText: null,
+    savedSinceRefresh: false,
+    refreshWhenIdle: false,
   });
 
   const update = useCallback((patch: Partial<DescriptionSaveState>) => {
@@ -224,6 +235,18 @@ export function useDescriptionSave(input: UseDescriptionSaveInput): UseDescripti
       clearTimeout(m.timer);
       m.timer = null;
     }
+  }, []);
+
+  const refreshIfSaved = useCallback(() => {
+    const m = internal.current;
+    if (m.inFlight !== null) {
+      m.refreshWhenIdle = true;
+      return;
+    }
+    if (!m.savedSinceRefresh) return;
+    m.savedSinceRefresh = false;
+    m.refreshWhenIdle = false;
+    void refreshAction();
   }, []);
 
   // The timer, the listeners and the resend after a save call the latest `send` without re-registering.
@@ -270,7 +293,13 @@ export function useDescriptionSave(input: UseDescriptionSaveInput): UseDescripti
         m.resendAfter = false;
         m.status = more ? "dirty" : "clean";
         update({ status: m.status, version: m.version, conflict: null, theirs: m.theirs, error: null });
-        if (more) void sendRef.current();
+        m.savedSinceRefresh = true;
+        if (more) {
+          // The resend may find nothing to send (a flush only queued it); the refresh a blur asked for still happens.
+          void sendRef.current().then(() => {
+            if (m.refreshWhenIdle && m.inFlight === null) refreshIfSaved();
+          });
+        } else if (m.refreshWhenIdle) refreshIfSaved();
         return;
       }
       m.resendAfter = false;
@@ -287,7 +316,7 @@ export function useDescriptionSave(input: UseDescriptionSaveInput): UseDescripti
       update({ status: "error", error: result.message });
       toast({ type: "error", body: `Could not save the description: ${result.message}` });
     },
-    [toast, update],
+    [refreshIfSaved, toast, update],
   );
 
   useEffect(() => {
@@ -486,9 +515,9 @@ export function useDescriptionSave(input: UseDescriptionSaveInput): UseDescripti
   // action call outlives the component, and send() records the new version, so a route shown again builds on it.
   useEffect(() => {
     return () => {
-      void flush();
+      void flush().then(refreshIfSaved);
     };
-  }, [flush]);
+  }, [flush, refreshIfSaved]);
 
-  return { state, onChange, flush, keepMine, loadTheirs, editAnyway, viewSource, onLossyParse };
+  return { state, onChange, flush, refreshIfSaved, keepMine, loadTheirs, editAnyway, viewSource, onLossyParse };
 }

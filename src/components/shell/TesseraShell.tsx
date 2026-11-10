@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { AppShell } from "@astryxdesign/core/AppShell";
 import { Card } from "@astryxdesign/core/Card";
 import { useHotkeys, useMediaQuery } from "@astryxdesign/core/hooks";
@@ -10,12 +11,11 @@ import { AiStatusProvider } from "@/components/ai/AiStatusProvider";
 import { AssistantPanel } from "@/components/ai/AssistantPanel";
 import { AssistantProvider, useAssistant } from "@/components/ai/AssistantProvider";
 import { CommandBar, type CommandBarHandle } from "./CommandBar";
-import { isSidenavDrawer, sideNavPanel, SIDENAV_DRAWER_QUERY, withWidthMotion } from "./layout-motion";
+import { isSidenavDrawer, SIDENAV_DRAWER_QUERY } from "./layout-motion";
 import {
   getNavOpen,
   getNavPrefs,
   isRailShown,
-  navChangeMotion,
   navViewPatch,
   setNavOpenFlag,
   setNavPrefs,
@@ -133,21 +133,21 @@ function focusTarget(target: NavFocusTarget): HTMLElement | null {
 }
 
 /**
- * Applies a sidebar preference change with its motion (decisions 132, 133 and 145; `navChangeMotion` in nav-prefs.ts).
- * A docked collapse or expand (Full ↔ a rail) plays Astryx's own rail motion (0.7.5+: the rail and the content beside
- * it glide), so it only sets the store. Every other change is one Astryx does not animate, and `withWidthMotion`
- * animates the panel's width: Icons only ↔ Icons and labels, and docking or undocking from any view. A dock change
- * from or to a rail flips SideNav's `isCollapsed` too (the floating panel is always Full), so it remounts the SideNav
- * (`remountsSideNav`): Astryx plays no rail motion for it, and the width motion is the only one.
+ * Applies a sidebar preference change made on this page (decisions 132, 133 and 149). Every change of the strip, a view
+ * (Full, Icons and labels, Icons only) or the dock, is one motion: the store sets Astryx's reduced-motion mark so
+ * Astryx's own rail motion never plays, and `rail-motion.ts` glides the strip's width in the commit that shows it
+ * (`RailChangeSnapshot` and `playRail` in Sidebar.tsx). The change commits synchronously (`flushSync`), so the glide
+ * starts in the same task as the click or the key; call it only from event handlers or a `setTimeout` callback.
+ * `animate: false` (the resize drag below Astryx's threshold) lands at once, still under the mark.
  */
-function applyNavChange(change: () => void, after: NavPrefs, options?: { animate?: boolean }) {
-  if (options?.animate === false || navChangeMotion(getNavPrefs(), after) === "rail") change();
-  else withWidthMotion(sideNavPanel(), change);
+function applyNavChange(change: () => void, options?: { animate?: boolean }) {
+  if (options?.animate === false) change();
+  else flushSync(change);
 }
 
 function setNavView(view: NavView, options?: { animate?: boolean }) {
   const patch = navViewPatch(view);
-  applyNavChange(() => setNavPrefs(patch), { ...getNavPrefs(), ...patch }, options);
+  applyNavChange(() => setNavPrefs(patch, options), options);
   refocusNav();
 }
 
@@ -156,13 +156,10 @@ function setNavCollapsed(collapsed: boolean, options?: { animate?: boolean }) {
 }
 
 function setNavDock(dock: NavDock) {
-  applyNavChange(
-    () => {
-      setNavPrefs({ dock });
-      setNavOpenFlag(false);
-    },
-    { ...getNavPrefs(), dock },
-  );
+  applyNavChange(() => {
+    setNavPrefs({ dock });
+    setNavOpenFlag(false);
+  });
   refocusNav();
 }
 

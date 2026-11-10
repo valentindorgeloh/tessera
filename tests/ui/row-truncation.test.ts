@@ -19,6 +19,7 @@ const stripCss = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, "");
 
 const ROW_FILES = [
   "src/components/work-items/ListLayout.tsx",
+  "src/components/work-items/ListGroupHeader.tsx",
   "src/components/work-items/TableLayout.tsx",
   "src/components/work-items/VirtualTable.tsx",
   "src/components/work-items/table-cells.tsx",
@@ -57,8 +58,8 @@ describe("row text truncation", () => {
   it("puts the one-line class on the row title and on every label Text", () => {
     const list = read("src/components/work-items/ListLayout.tsx");
     expect(list).toMatch(/<OneLineText className="tessera-wi-title" weight="medium">/);
-    // GroupMarker: the "none" group and the plain-name fallback.
-    expect(list.match(/className="tessera-wi-label-text"/g)).toHaveLength(2);
+    // GroupMarker (ListGroupHeader.tsx): the "none" group and the plain-name fallback.
+    expect(read("src/components/work-items/ListGroupHeader.tsx").match(/className="tessera-wi-label-text"/g)).toHaveLength(2);
     for (const file of ["StateControl", "PriorityControl", "AssigneeControl"]) {
       expect(read(`src/components/work-items/properties/${file}.tsx`)).toMatch(/<Text type="inherit" className="tessera-wi-label-text">/);
     }

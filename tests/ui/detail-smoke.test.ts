@@ -586,6 +586,7 @@ describe("DescriptionEditor banners", () => {
       state: { status: "clean", version: 1, conflict: null, theirs: null, lossy: null, error: null, ...state },
       onChange: vi.fn(),
       flush: vi.fn(async () => {}),
+      refreshIfSaved: vi.fn(),
       keepMine: vi.fn(async () => {}),
       loadTheirs: vi.fn(),
       editAnyway: vi.fn(),

@@ -8,11 +8,13 @@
  */
 import type { ProjectBundle } from "@/components/work-items/types";
 import {
+  agentRepoFor,
   countOpenIntake,
   getActiveEstimate,
   getProject,
   getState,
   getWorkItem,
+  getWorkspaceSettings,
   isTrackerError,
   latestSeq,
   listActivity,
@@ -63,6 +65,8 @@ export function loadProjectBundle(ctx: TesseraContext, projectId: string): Proje
     estimate: project.estimates_enabled ? getActiveEstimate(ctx, project.id) : null,
     intake_open: countOpenIntake(ctx, project.id),
     projects: listProjects(ctx, {}).map((row) => ({ id: row.id, name: row.name, identifier: row.identifier })),
+    // The repository the superagent works in for this project (decision 151); the detail's "Send to superagent" reads it.
+    superagent_repo: agentRepoFor(getWorkspaceSettings(ctx).agents, project.id),
   };
 }
 

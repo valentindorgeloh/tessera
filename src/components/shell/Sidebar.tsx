@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useOptimistic, useSyncExternalStore } from "react";
+import { startTransition, useEffect, useLayoutEffect, useOptimistic, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
 import { useMediaQuery } from "@astryxdesign/core/hooks";
@@ -13,12 +13,16 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { usePointerDrag } from "@/components/dnd/use-pointer-drag";
 import { isFavoriteInTree, reorderByPlacement, stepPlacement, type FavoritesTree } from "@/components/favorites/tree";
 import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provider";
+import { SUPERAGENT_CHAT_PATH } from "@/lib/superagent/types";
 import type { Project } from "@/lib/tessera/types";
-import { AgentIcon, BellIcon, BurndownIcon, CycleIcon, DraftIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, TableIcon, UserIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { AgentIcon, AssistantIcon, BellIcon, BurndownIcon, CycleIcon, DraftIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, TableIcon, UserIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { FavoritesSection } from "./FavoritesSection";
 import { ProjectMenu, projectMove } from "./ProjectMenu";
+import { RailChangeSnapshot } from "./RailChangeSnapshot";
+import { playRail, registerRailNav } from "./rail-motion";
 import { ExpandedOnly, NewItemButton, RailItem, RowActions } from "./RailParts";
 import { projectIdFromPath } from "./recents";
+import { navShape } from "./nav-prefs";
 import { formatKeys, SHORTCUT_BY_ID } from "./shortcuts";
 import { useSideNavChrome, useSideNavKey } from "./side-nav-chrome";
 import { SidebarOptionsMenu } from "./SidebarOptionsMenu";
@@ -147,15 +151,17 @@ export function useSidebarResize(): { key: string; resizable: { defaultWidth: nu
  * landmark name): a quiet "New work item" button for the last visited (else
  * first) project, then Home, Inbox, Your work, Drafts, Wiki, Favourites, the
  * projects, and Workspace views,
- * Active cycles, Analytics and Agents. A project's own pages are the tabs
+ * Active cycles, Analytics, Agents and Superagent chat. A project's own pages are the tabs
  * in its panel header (`ProjectFrame`), not children here. The view (Full,
  * Icons and labels, Icons only) and the dock come from the stored
  * preferences (decisions 128–130) through `useSideNavChrome()`; the rail
  * reaches the rows and the button through Astryx's collapse context
  * (RailParts.tsx), which the mobile drawer does not provide. Undocked, the
  * nav floats over the page (`useFloatingNav`, an edge strip opens it on
- * hover); "Sidebar options" sits in the footer except in the drawer. The width
- * and the last visited project are remembered in localStorage.
+ * hover); "Sidebar options" sits in the footer except in the drawer. A change
+ * of the strip glides (`RailChangeSnapshot` and `playRail`, rail-motion.ts,
+ * decision 149). The width and the last visited project are remembered in
+ * localStorage.
  */
 export function Sidebar({ projects, unreadCount, draftCount, favorites }: { projects: Project[]; unreadCount: number; draftCount: number; favorites: FavoritesTree }) {
   const pathname = usePathname();
@@ -172,10 +178,18 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
   // The strip stays while the panel is open: it is part of the hover area, so a pointer resting there keeps the panel open.
   const hasEdge = navPrefs.dock === "floating" && !isDrawer && canHover;
   const activeProjectId = projectIdFromPath(pathname);
+  // The chat lives under /agents/superagent/chat, so "Agents" yields the rail's selection to "Superagent chat" there (decision 153).
+  const onSuperagentChat = pathname === SUPERAGENT_CHAT_PATH || pathname.startsWith(`${SUPERAGENT_CHAT_PATH}/`);
 
   useEffect(() => {
     if (activeProjectId && projects.some((project) => project.id === activeProjectId)) rememberProject(activeProjectId);
   }, [activeProjectId, projects]);
+
+  // The strip motion (rail-motion.ts, decision 149): the commit that shows the new view or dock glides the strip before it paints.
+  const shape = navShape(navPrefs);
+  useLayoutEffect(() => {
+    playRail();
+  }, [shape]);
 
   const createTarget = ordered.find((project) => project.id === lastProject) ?? ordered[0] ?? null;
   const projectIds = ordered.map((project) => project.id);
@@ -210,8 +224,10 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
   return (
     <>
       {hasEdge ? <VStack className="tessera-nav-edge" aria-hidden="true" {...edgeHandlers} /> : null}
+      <RailChangeSnapshot shape={shape} />
       <SideNav
         key={sideNavKey}
+        ref={registerRailNav}
         {...chrome}
         {...panelHandlers}
         aria-label="Work"
@@ -287,7 +303,8 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
           <RailItem label="Workspace views" icon={TableIcon} href="/workspace-views" isSelected={pathname === "/workspace-views" || pathname.startsWith("/workspace-views/")} />
           <RailItem label="Active cycles" icon={CycleIcon} href="/active-cycles" isSelected={pathname === "/active-cycles" || pathname.startsWith("/active-cycles/")} />
           <RailItem label="Analytics" icon={BurndownIcon} href="/analytics/overview" isSelected={pathname === "/analytics" || pathname.startsWith("/analytics/")} />
-          <RailItem label="Agents" icon={AgentIcon} href="/agents" isSelected={pathname === "/agents" || pathname.startsWith("/agents/")} />
+          <RailItem label="Agents" icon={AgentIcon} href="/agents" isSelected={(pathname === "/agents" || pathname.startsWith("/agents/")) && !onSuperagentChat} />
+          <RailItem label="Superagent chat" icon={AssistantIcon} href={SUPERAGENT_CHAT_PATH} isSelected={onSuperagentChat} />
         </SideNavSection>
       </SideNav>
     </>

@@ -21,10 +21,17 @@ import { getWorkItemRow, insertSubscriber, loadWritableWorkItem } from "./work-i
 
 const BODY = z.string().trim().min(1).max(50_000);
 
+/** Idempotency key for a comment (decision 150): printable ASCII without spaces, unique per caller and work item. */
+export const ClientRefSchema = z
+  .string()
+  .regex(/^[\x21-\x7E]{1,200}$/)
+  .describe("Idempotency key, 1 to 200 printable ASCII characters without spaces. Repeating the same ref with the same body returns the stored comment; another body is CONFLICT.");
+
 export const CreateCommentInput = z
   .object({
     body_md: BODY.describe("Comment body in markdown, from 1 to 50,000 characters."),
     parent_comment_id: IdSchema.optional().describe("Comment being replied to. A reply to a reply attaches to the root."),
+    client_ref: ClientRefSchema.optional(),
   })
   .strict();
 
@@ -42,6 +49,10 @@ export type CommentView = CommentRow & {
   reactions: ReactionSummary[];
   replies: CommentView[];
 };
+
+/** What a repeated `client_ref` returns when its comment has since been deleted (decision 150). */
+export type DeletedCommentRef = { id: string; client_ref: string; deleted: true };
+export type CreateCommentResult = CommentView | DeletedCommentRef;
 
 type ActorInfo = { name: string; kind: ActorKind; color: PaletteColor };
 
@@ -145,9 +156,27 @@ function resolveParentId(ctx: TesseraContext, workItemId: string, parentId: stri
   return current.id;
 }
 
-export function createComment(ctx: TesseraContext, workItemId: string, input: z.input<typeof CreateCommentInput>): CommentView {
+export function createComment(ctx: TesseraContext, workItemId: string, input: z.input<typeof CreateCommentInput> & { client_ref?: undefined }): CommentView;
+export function createComment(ctx: TesseraContext, workItemId: string, input: z.input<typeof CreateCommentInput>): CreateCommentResult;
+export function createComment(ctx: TesseraContext, workItemId: string, input: z.input<typeof CreateCommentInput>): CreateCommentResult {
   const data = validateInput(CreateCommentInput, input);
   return withTx(ctx, () => {
+    if (data.client_ref !== undefined) {
+      // Decision 150: after the item exists, before the archived check, so a repeat on an item archived since still answers. Deleted rows count.
+      const item = getWorkItemRow(ctx, workItemId);
+      const prior = ctx.db
+        .select()
+        .from(comment)
+        .where(and(eq(comment.actor_id, ctx.actor.id), eq(comment.work_item_id, item.id), eq(comment.client_ref, data.client_ref)))
+        .get();
+      if (prior) {
+        if (prior.deleted_at !== null) return { id: prior.id, client_ref: data.client_ref, deleted: true as const };
+        if (prior.body_md !== data.body_md) {
+          throw conflict("This client_ref was used with a different body", { comment_id: prior.id, client_ref: data.client_ref });
+        }
+        return getComment(ctx, prior.id);
+      }
+    }
     const loaded = loadWritableWorkItem(ctx, workItemId);
     const parentId = data.parent_comment_id ? resolveParentId(ctx, loaded.item.id, data.parent_comment_id) : null;
     const id = newId();
@@ -162,6 +191,7 @@ export function createComment(ctx: TesseraContext, workItemId: string, input: z.
         body_version: 0,
         actor_id: ctx.actor.id,
         edited_at: null,
+        client_ref: data.client_ref ?? null,
         created_at: now,
         updated_at: now,
         created_by: ctx.actor.id,
