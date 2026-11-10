@@ -139,3 +139,56 @@ test("the agent refresh does not fade the content", async ({ page }) => {
   expect((await sampled(page)).frames).toBeGreaterThan(10);
   expect((await sampled(page)).min).toBe(1);
 });
+
+/**
+ * The sidebar collapse snaps (decision 149): Astryx would glide the content
+ * column and cross-fade a copy of the old content, which reads as a reload.
+ * With motion on, every frame after the click shows the content at full
+ * opacity, no copy of the old content or rail appears, and the column is
+ * either where it was or where it lands, never in between, in both directions.
+ */
+test("collapsing and opening the sidebar moves the content in one step without a fade", async ({ page }) => {
+  await page.addInitScript(() => {
+    const state = { min: 1, lefts: [] as number[], copies: 0 };
+    (window as unknown as { __snap: typeof state }).__snap = state;
+    const tick = () => {
+      const main = document.getElementById("astryx-app-shell-main");
+      if (main) {
+        state.lefts.push(Math.round(main.getBoundingClientRect().left));
+        for (const child of Array.from(main.children)) state.min = Math.min(state.min, parseFloat(getComputedStyle(child).opacity));
+        state.copies = Math.max(state.copies, document.querySelectorAll('[aria-hidden="true"][inert]').length);
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/inbox");
+  await waitForAppHydrated(page);
+  const main = page.locator("#astryx-app-shell-main");
+  const leftOf = () => main.evaluate((element) => Math.round(element.getBoundingClientRect().left));
+
+  for (const label of ["Close sidebar", "Open sidebar"]) {
+    const before = await leftOf();
+    // Astryx's motion copies are inert and hidden; count them against what the page holds at rest.
+    const atRest = await page.evaluate(() => {
+      const state = (window as unknown as { __snap: { min: number; lefts: number[]; copies: number } }).__snap;
+      state.min = 1;
+      state.lefts = [];
+      state.copies = document.querySelectorAll('[aria-hidden="true"][inert]').length;
+      return state.copies;
+    });
+    await page.getByRole("button", { name: label }).click();
+    await expect.poll(leftOf).not.toBe(before);
+    const after = await leftOf();
+    await page.waitForTimeout(600);
+    const snap = await page.evaluate(() => (window as unknown as { __snap: { min: number; lefts: number[]; copies: number } }).__snap);
+    expect(snap.lefts.length).toBeGreaterThan(10);
+    expect(snap.min).toBe(1);
+    expect(snap.copies).toBe(atRest);
+    const low = Math.min(before, after);
+    const high = Math.max(before, after);
+    expect(snap.lefts.filter((left) => left > low && left < high)).toEqual([]);
+    await expect(page.locator("html")).not.toHaveAttribute("data-astryx-reduced-motion");
+  }
+});
