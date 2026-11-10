@@ -330,6 +330,7 @@ const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen,
       label={<RowTitle name={item.name} />}
       className="tessera-wi-row"
       data-selected={selected ? "" : undefined}
+      data-item-id={item.id}
       interactiveRef={openRef}
       onPointerEnter={handlers.onPointerEnter}
       onPointerMove={handlers.onPointerMove}
@@ -349,6 +350,7 @@ const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen,
           <Button
             ref={openRef}
             className="tessera-wi-open"
+            data-focus-key="open"
             variant="ghost"
             size="sm"
             label={item.key}

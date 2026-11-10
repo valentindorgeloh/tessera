@@ -21,7 +21,7 @@ import { ActorAvatar } from "@/components/shell/ActorAvatar";
 import type { DisplayProperties, WorkItem } from "@/lib/tessera/types";
 import { DragHandleIcon } from "@/themes/catppuccin/icons";
 import { PriorityLabel, StateLabel, paletteTokenColor } from "./properties";
-import { ArmedContext, useArmed, useArmedHandoff, useRowArming } from "./properties/arming";
+import { ArmedContext, useArmed, useArmedHandoff, useChipHandoff, useRowArming } from "./properties/arming";
 import type { ProjectBundle } from "./types";
 
 /** The press target that starts a touch or pen drag (board.css `.tessera-board-card-grip`). */
@@ -38,8 +38,9 @@ export function BoardCardGrip() {
 
 /** The card's menu slot: sized like the menu so the drag overlay's inert copy keeps the card's height (board.css). */
 export function BoardCardMenuSlot({ children }: { children?: ReactNode }) {
+  // Focus inside the slot (the button or its open menu) is the card's menu to the focus-follow (./focus-follow.ts).
   return (
-    <HStack vAlign="center" className="tessera-board-card-menu" aria-hidden={children === undefined ? true : undefined}>
+    <HStack vAlign="center" className="tessera-board-card-menu" aria-hidden={children === undefined ? true : undefined} data-focus-key={MENU_ARM_KEY}>
       {children}
     </HStack>
   );
@@ -59,6 +60,7 @@ type CardMenuProps = {
 /** The card's "Actions" menu: an icon button until the card arms, and the real menu (open when its button was clicked) after. */
 function CardMenu(props: CardMenuProps) {
   const { armed, arm } = useArmed();
+  const handoff = useChipHandoff(arm, MENU_ARM_KEY);
   const moreIcon = useIcon("moreHorizontal");
   // How the click that armed the card was made. A click from the keyboard or from assistive technology has no pointer, so
   // its `detail` is 0 (the way Astryx's own menu button tells a key from a press); a mouse or a finger reports 1 or more.
@@ -66,6 +68,7 @@ function CardMenu(props: CardMenuProps) {
   if (!armed) {
     return (
       <IconButton
+        ref={handoff}
         variant="ghost"
         size="sm"
         label={`Actions for ${props.item.key}`}
@@ -169,6 +172,7 @@ export function BoardCard({
       ref={cardRef}
       label={`${item.key} ${item.name}`}
       padding={3}
+      data-item-id={item.id}
       aria-current={isPeeked ? "true" : undefined}
       className={handlers ? "tessera-board-card" : "tessera-board-card tessera-board-card-readonly"}
       onClick={() => onOpen(item.id)}

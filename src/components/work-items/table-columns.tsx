@@ -115,6 +115,7 @@ export function buildColumns(
           variant="ghost"
           size="sm"
           className="tessera-table-open"
+          data-focus-key="open"
           label={row.item.key}
           tooltip={properties.key ? undefined : row.item.key}
           onClick={(event) => {

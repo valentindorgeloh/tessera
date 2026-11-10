@@ -17,7 +17,7 @@
  * same reason a mouse arms the row synchronously (`flushSync`): a pointer that arrives and presses within a few
  * milliseconds must press the real control, not a chip that React swaps out between its press and its release.
  */
-import { createContext, useContext, useMemo, useState, useSyncExternalStore, type FocusEvent, type PointerEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, useSyncExternalStore, type FocusEvent, type PointerEvent, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -59,6 +59,39 @@ const UNARMED: Intent = { armed: false, openKey: null, focusKey: null };
 function spent(intent: Intent, armKey: string): Intent {
   if (intent.openKey !== armKey && intent.focusKey !== armKey) return intent;
   return { ...intent, openKey: intent.openKey === armKey ? null : intent.openKey, focusKey: intent.focusKey === armKey ? null : intent.focusKey };
+}
+
+/** The armed controls' triggers by element, with the `armKey` each stands for (a resting chip carries it as an attribute). */
+const ARMED_TRIGGERS = new WeakMap<Element, string>();
+
+/** What arms a resting chip's row with the focus aimed at the chip's control, by chip element. */
+const CHIP_HANDOFFS = new WeakMap<Element, () => void>();
+
+/** The `armKey` of the property control `element` is, a resting chip or an armed control's trigger; null for anything else. */
+export function armKeyOf(element: Element): string | null {
+  return element.getAttribute(ARM_KEY_ATTRIBUTE) ?? ARMED_TRIGGERS.get(element) ?? null;
+}
+
+/**
+ * Arms the row of `chip`, a resting chip that has just taken the focus, and hands that focus on to the real control
+ * once it mounts (the `takeFocus` handoff), closed. False when `element` is no chip (an armed control keeps the focus
+ * it was given). The focus-follow of a moved row (../focus-follow.ts) uses it, so a moved row's State is a combobox again.
+ */
+export function handFocusToControl(element: Element): boolean {
+  const handoff = CHIP_HANDOFFS.get(element);
+  if (!handoff) return false;
+  handoff();
+  return true;
+}
+
+/** The ref of a resting chip: registers what `handFocusToControl` does for it (arm the row, focus aimed at `armKey`). */
+export function useChipHandoff(arm: ArmState["arm"], armKey: string): (element: HTMLElement | null) => void {
+  return useCallback(
+    (element: HTMLElement | null) => {
+      if (element) CHIP_HANDOFFS.set(element, () => arm(undefined, armKey));
+    },
+    [arm, armKey],
+  );
 }
 
 /** The `armKey` of the chip that holds focus inside `row`, or null. */
@@ -205,6 +238,7 @@ type PropertyChipProps = {
  */
 export function PropertyChip({ label, armKey, arm, children, icon, isIconOnly, isDisabled, isOverdue, isEmpty, className, isSelector = false, isPill = false, hasClear = false, tooltip }: PropertyChipProps) {
   const { isCell } = useArmed();
+  const handoff = useChipHandoff(arm, armKey);
   const fillsCell = isSelector && isCell && !isPill;
   // A pill has no slot for it: its selector lays the clear button over the pill's end while hovered (work-items.css).
   const clear = hasClear && !isPill ? <Icon icon="close" size="sm" color="secondary" className="tessera-wi-chip-clear" /> : null;
@@ -214,6 +248,7 @@ export function PropertyChip({ label, armKey, arm, children, icon, isIconOnly, i
   const endContent = clear && chevron ? <HStack gap={2} vAlign="center">{clear}{chevron}</HStack> : (clear ?? chevron ?? undefined);
   return (
     <Button
+      ref={handoff}
       variant="ghost"
       size="sm"
       className={className ? `tessera-wi-chip ${className}` : "tessera-wi-chip"}
@@ -237,10 +272,10 @@ export function PropertyChip({ label, armKey, arm, children, icon, isIconOnly, i
 
 /**
  * Props for the armed control's trigger. `takeFocus`, a callback ref, runs at commit once the control has mounted: it
- * takes the focus a chip held when the row armed (only while focus is on the body, since the chip left the DOM), then
- * spends the row's intent for this control through `consume`, so the control opens and takes focus that once. A later
- * mount of the same control (a property switched off and on, a group collapsed and expanded) starts closed and leaves the
- * focus alone. It is undefined while the row asks nothing of the control.
+ * names the trigger for `armKeyOf`, takes the focus a chip held when the row armed (only while focus is on the body,
+ * since the chip left the DOM), then spends the row's intent for this control through `consume`, so the control opens
+ * and takes focus that once. A later mount of the same control (a property switched off and on, a group collapsed and
+ * expanded) starts closed and leaves the focus alone. It is undefined for a control with no `armKey` (outside a row).
  */
 export function useArmedHandoff(armKey: string | undefined): { isDefaultOpen: boolean; takeFocus: ((element: HTMLButtonElement | null) => void) | undefined } {
   const { openKey, focusKey, consume } = useArmed();
@@ -248,9 +283,12 @@ export function useArmedHandoff(armKey: string | undefined): { isDefaultOpen: bo
   const isDefaultOpen = armKey !== undefined && openKey === armKey;
   const takeFocus = useMemo(
     () =>
-      armKey !== undefined && (wantsFocus || isDefaultOpen)
+      armKey !== undefined
         ? (element: HTMLButtonElement | null) => {
             if (!element) return;
+            // Named before it takes the focus, so the focus-follow (../focus-follow.ts) reads which control has it.
+            ARMED_TRIGGERS.set(element, armKey);
+            if (!wantsFocus && !isDefaultOpen) return;
             if (wantsFocus && element.ownerDocument.activeElement === element.ownerDocument.body) element.focus({ preventScroll: true });
             consume(armKey);
           }

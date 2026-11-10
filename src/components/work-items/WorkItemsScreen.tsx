@@ -40,6 +40,7 @@ import { BulkBar } from "./BulkBar";
 import { clearedUrlState, hasActiveFilters } from "./clear-filters";
 import { CreateWorkItemDialog } from "./CreateWorkItemDialog";
 import { useDisplayWriter } from "./DisplayMenu";
+import { useFocusFollow } from "./focus-follow";
 import { GanttLayout } from "./GanttLayout";
 import { hrefWithLayout, layoutFromParam, LAYOUT_PARAM } from "./layout-param";
 import { ListLayout } from "./ListLayout";
@@ -366,6 +367,8 @@ export function WorkItemsScreen({
   // sort, a grouping or a data refresh keeps the key and so keeps the content still.
   const viewKey = display.layout === "calendar" ? `calendar:${display.calendar.layout}:${searchParams.get("cal") ?? ""}` : display.layout === "gantt" ? `gantt:${display.gantt.zoom}` : display.layout;
   useViewFade(scrollerRef, viewKey);
+  // A State change or a "Move to" that moves an item to another group takes the keyboard focus along (./focus-follow.ts).
+  useFocusFollow(scrollerRef);
 
   return (
     <>
