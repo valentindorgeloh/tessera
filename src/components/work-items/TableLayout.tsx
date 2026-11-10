@@ -114,6 +114,7 @@ function buildColumns(
           variant="ghost"
           size="sm"
           className="tessera-table-open"
+          data-focus-key="open"
           label={row.item.key}
           tooltip={properties.key ? undefined : row.item.key}
           onClick={(event) => {
@@ -438,6 +439,8 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
           htmlProps: {
             ...props.htmlProps,
             className: "tessera-table-row",
+            // The focus-follow finds the item's row by it when a change moves the row to another group (./focus-follow.ts).
+            "data-item-id": row.item.id,
             "aria-current": row.item.id === peekedId ? "true" : undefined,
             onClick: () => onOpen(row.item.id),
             ...tableRowArmingHandlers(armedRows, row.id),
