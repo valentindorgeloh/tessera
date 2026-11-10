@@ -42,3 +42,17 @@
     min-block-size: var(--spacing-11);
   }
 }
+
+/*
+ * Setup guide (decision 155). Sections, action rows and the label column of a row may shrink below a long command,
+ * so a phone never scrolls sideways; a command wraps inside its own block. An anchored heading keeps a little room above it.
+ */
+.tessera-setup-body,
+.tessera-setup-step,
+.tessera-setup-action {
+  min-inline-size: 0;
+}
+
+.tessera-setup-anchor {
+  scroll-margin-block-start: var(--spacing-4);
+}

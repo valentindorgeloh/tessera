@@ -90,7 +90,8 @@ export const RunnerStateSchema = z.object({
   spend: z.object({ todayUsd: z.number(), dailyCapUsd: z.number() }),
   slots: z.object({ running: Count, max: Count }),
   counts: z.object({ needsYou: Count, working: Count, queued: Count }),
-  intake: z.object({ rewound: z.boolean(), cursor: z.number().int(), latestSeq: z.number().int() }),
+  // The runner sends `latestSeq` null always and `cursor` null before its first poll (tessera-agents `src/api/views.ts:91`, `src/api/schemas.ts:60`; decision 152, Task 0 of decision 155).
+  intake: z.object({ rewound: z.boolean(), cursor: z.number().int().nullable(), latestSeq: z.number().int().nullable() }),
 });
 
 export const RunnerStatsSchema = z.object({

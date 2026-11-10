@@ -42,7 +42,7 @@ const RunnerId = z.string().min(1).max(200);
 const PauseInput = z.object({ paused: z.boolean() });
 const RequestActionInput = z.object({ request_id: RunnerId, action: SimpleActionSchema });
 const ResizeInput = z.object({ request_id: RunnerId, size: RequestSizeSchema });
-const BudgetInput = z.object({ request_id: RunnerId, usd: z.number().gt(0).max(10000) });
+const BudgetInput = z.object({ request_id: RunnerId, usd: z.number().gt(0).max(200) });
 const RetryTriageInput = z.object({ triage_id: RunnerId });
 const SaveSettingsInput = z.object({ settings: RunnerSettingsSchema, base_revision: RevisionSchema });
 const SavePromptsInput = z.object({ team_sections: z.array(TeamSectionSchema).max(200), base_revision: RevisionSchema });
@@ -78,7 +78,7 @@ export async function superagentResizeAction(input: { request_id: string; size: 
   return act(ResizeInput, input, (client, data) => client.resize(data.request_id, data.size));
 }
 
-/** Sets a request's budget in USD (above 0, at most 10000). */
+/** Sets a request's budget in USD (above 0, at most 200, the runner's ceiling). */
 export async function superagentBudgetAction(input: { request_id: string; usd: number }): Promise<RunnerResult<RequestSummary>> {
   return act(BudgetInput, input, (client, data) => client.setBudget(data.request_id, data.usd));
 }

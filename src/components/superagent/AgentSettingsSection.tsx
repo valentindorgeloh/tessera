@@ -60,10 +60,11 @@ export type AgentSettingsSectionProps = {
 
 /** Container threshold in px (not a width cap): below it the paired fields stack, i.e. the mapping's project and repository, the three budgets, the cap and the parallel limit. */
 const PAIR_FORM_WIDTH = 480;
-/** Per-request and daily spend limits the form accepts, in USD (the budget action's own ceiling). */
-const MAX_USD = 10000;
+/** The runner's own ceilings (tessera-agents `SettingsBody`): it refuses a save above them. */
+const MAX_BUDGET_USD = 200;
+const MAX_DAILY_CAP_USD = 1000;
 const MIN_USD = 0.01;
-const MAX_PARALLEL = 8;
+const MAX_PARALLEL = 6;
 
 export function AgentSettingsSection({ agents, projects, runnerSettings, state, context }: AgentSettingsSectionProps) {
   const { ref, isNarrow } = useNarrowContainer(PAIR_FORM_WIDTH);
@@ -206,8 +207,8 @@ function RunnerForm({ doc, note, context, isNarrow }: RunnerFormProps) {
       toast(saveFailureToast("Could not save the runner settings", result.failure, context));
     });
   };
-  const usd = (label: string, value: number | null, onChange: (usd: number) => void) => (
-    <NumberInput label={label} value={value} onChange={onChange} min={MIN_USD} max={MAX_USD} step={0.5} formatValue={formatUsd} isDisabled={isDisabled} />
+  const usd = (label: string, value: number | null, onChange: (usd: number) => void, max = MAX_BUDGET_USD) => (
+    <NumberInput label={label} value={value} onChange={onChange} min={MIN_USD} max={max} step={0.5} formatValue={formatUsd} isDisabled={isDisabled} />
   );
 
   return (
@@ -225,7 +226,7 @@ function RunnerForm({ doc, note, context, isNarrow }: RunnerFormProps) {
           {usd("Budget for L (USD)", values?.budgetsUsd.L ?? null, (value) => setBudget("L", value))}
         </FormLayout>
         <FormLayout direction={direction}>
-          {usd("Daily cap (USD)", values?.dailyCapUsd ?? null, (value) => patch({ dailyCapUsd: value }))}
+          {usd("Daily cap (USD)", values?.dailyCapUsd ?? null, (value) => patch({ dailyCapUsd: value }), MAX_DAILY_CAP_USD)}
           <NumberInput
             label="Parallel requests"
             value={values?.maxParallel ?? null}

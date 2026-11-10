@@ -9,6 +9,7 @@
  */
 import { useRouter } from "next/navigation";
 import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
@@ -16,7 +17,7 @@ import { RelativeTime } from "@/components/detail/RelativeTime";
 import { StageLabel } from "@/components/superagent/request-parts";
 import { failureCopy } from "@/components/superagent/superagent-format";
 import { chatHref, lastMessageLine } from "@/components/superagent/chat-format";
-import type { SuperagentChatLoad } from "@/lib/superagent/types";
+import { SUPERAGENT_SETUP_PATH, type SuperagentChatLoad } from "@/lib/superagent/types";
 
 export function ConversationList({ load }: { load: SuperagentChatLoad }) {
   const router = useRouter();
@@ -26,7 +27,12 @@ export function ConversationList({ load }: { load: SuperagentChatLoad }) {
     <VStack gap={0}>
       {load.superagentActorId === null ? (
         <VStack padding={4}>
-          <Banner status="info" title="The superagent hasn't connected yet" description="It shows up after the runner first connects to Tessera. New chats start once it has." />
+          <Banner
+            status="info"
+            title="The superagent hasn't connected yet"
+            description="It shows up after the runner first connects to Tessera. New chats start once it has."
+            endContent={<Button variant="secondary" size="sm" label="Open setup guide" href={SUPERAGENT_SETUP_PATH} />}
+          />
         </VStack>
       ) : null}
       {!load.requests.ok ? (

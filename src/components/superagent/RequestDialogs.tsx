@@ -26,7 +26,7 @@ type Props = { dialog: RequestDialog | null; context: FailureContext; onClose: (
 
 const SIZES: readonly RequestSize[] = ["S", "M", "L"];
 const MIN_BUDGET_USD = 0.01;
-const MAX_BUDGET_USD = 10000;
+const MAX_BUDGET_USD = 200;
 
 export function RequestDialogs({ dialog, context, onClose }: Props) {
   if (dialog === null) return null;

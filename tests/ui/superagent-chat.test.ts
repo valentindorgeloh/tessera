@@ -271,6 +271,7 @@ describe("SuperagentChat", () => {
     const text = el.textContent ?? "";
     expect(text).toContain("The superagent hasn't connected yet");
     expect(text).toContain("It shows up after the runner first connects to Tessera.");
+    expect(control(el, "Open setup guide").getAttribute("href")).toBe("/agents/superagent/setup");
     expect(text).toContain("No chats yet");
     expect(isOff(control(el, "New chat"))).toBe(true);
     expect(control(el, "Control screen").getAttribute("href")).toBe("/agents/superagent");

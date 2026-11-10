@@ -349,11 +349,41 @@ describe("SuperagentScreen", () => {
     const el = await render(loaded({ state: down, requests: down, triage: down, stats: down, settings: down, prompts: down, request: null }));
     const text = el.textContent ?? "";
     expect(text).toContain("Runner not set up");
-    expect(text).toContain("Tessera reads the runner's token from /Users/me/.tessera-agents/api-token.");
+    expect(text).toContain("Tessera reads the runner's token from /Users/me/.tessera-agents/api-token. The runner's setup creates it.");
     // Needs you, Health and Routing each say it, History too.
     expect(text.split("Not available: Runner not set up.").length - 1).toBeGreaterThanOrEqual(4);
     expect(el.querySelector("table")).toBeNull();
     expect(text).not.toContain("Triage unavailable");
+  });
+
+  it("links to the setup guide from the header and from the banners the guide fixes", async () => {
+    const SETUP = "/agents/superagent/setup";
+    /** The links with this visible text or accessible name (a Button with an href renders an anchor). */
+    const links = (el: HTMLElement, name: string) => Array.from(el.querySelectorAll("a")).filter((a) => a.getAttribute("aria-label") === name || a.textContent?.trim() === name);
+    const down = (state: "not_set_up" | "unreachable" | "bad_response") => ({ ok: false as const, failure: { state, message: "x", status: null, code: null } });
+    for (const state of ["not_set_up", "unreachable"] as const) {
+      const el = await render(loaded({ state: down(state) }));
+      expect(links(el, "Setup guide").map((a) => a.getAttribute("href")), state).toEqual([SETUP]);
+      expect(links(el, "Open setup guide").map((a) => a.getAttribute("href")), state).toEqual([SETUP]);
+      await act(async () => root?.unmount());
+      container?.remove();
+    }
+    // A failure the guide cannot fix has the header link only.
+    const odd = await render(loaded({ state: down("bad_response") }));
+    expect(links(odd, "Setup guide")).toHaveLength(1);
+    expect(links(odd, "Open setup guide")).toHaveLength(0);
+    await act(async () => root?.unmount());
+    container?.remove();
+    // A failed setup has the button too.
+    const state = fixture<RunnerState>("state");
+    const failed = await render(loaded({ state: ok({ ...state, health: { ...state.health, status: "setup_failed" } }) }));
+    expect(links(failed, "Open setup guide").map((a) => a.getAttribute("href"))).toEqual([SETUP]);
+    await act(async () => root?.unmount());
+    container?.remove();
+    // A loaded healthy state has the header link and no banner button.
+    const healthy = await render(loaded({ state: ok({ ...state, health: { ...state.health, status: "ok" } }) }));
+    expect(links(healthy, "Setup guide").map((a) => a.getAttribute("href"))).toEqual([SETUP]);
+    expect(links(healthy, "Open setup guide")).toHaveLength(0);
   });
 
   it("shows the failure title of a part whose own load failed while the state is fine", async () => {

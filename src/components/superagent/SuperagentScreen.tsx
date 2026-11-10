@@ -19,7 +19,7 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { superagentRefreshAction } from "@/app/actions/superagent";
 import { PanelBar, PanelHeader, PanelPage, PanelTitle } from "@/components/shell/PanelHeader";
 import type { RequestScope, RunnerResult, SuperagentLoad } from "@/lib/superagent/types";
-import { REQUEST_SCOPES, SUPERAGENT_CHAT_PATH } from "@/lib/superagent/types";
+import { REQUEST_SCOPES, SUPERAGENT_CHAT_PATH, SUPERAGENT_SETUP_PATH } from "@/lib/superagent/types";
 import type { AgentSettings } from "@/lib/tessera/types";
 import { RetryIcon } from "@/themes/catppuccin/icons";
 import { AgentSettingsSection } from "./AgentSettingsSection";
@@ -80,6 +80,7 @@ export function SuperagentScreen({ runner, agents, projects, scope, requestId }:
             start={<PanelTitle>Superagent</PanelTitle>}
             end={
               <>
+                <Button variant="ghost" size="sm" label="Setup guide" href={SUPERAGENT_SETUP_PATH} />
                 <Button variant="secondary" size="sm" label="Chat" href={SUPERAGENT_CHAT_PATH} />
                 <IconButton label="Refresh" tooltip="Refresh" variant="ghost" size="sm" icon={<RetryIcon />} isLoading={isRefreshing} onClick={refresh} />
               </>

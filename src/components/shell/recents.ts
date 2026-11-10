@@ -123,6 +123,7 @@ function decodeSegment(segment: string): string {
 /**
  * Label and icon for a route. Known routes: `/` (Home; `/home` still
  * resolves to Home), `/agents/superagent` ("Superagent"),
+ * `/agents/superagent/setup` ("Superagent setup"),
  * `/agents/superagent/chat` ("Superagent chat") and its `/<KEY>` ("Chat KEY"), `/projects`,
  * `/projects/archives` ("Archived projects"), `/projects/[id]`,
  * `/projects/[id]/work-items`, `/projects/[id]/work-items/[workItemId]`,
@@ -153,6 +154,8 @@ export function resolveRoute(pathname: string, lookup: RouteLookup): RouteInfo {
     if (projectId === undefined) return { label: "Agents", icon: "agents" };
     // A static segment next to `[actorId]` (decision 152); real actor ids are uuids, so the literal word is the superagent screen.
     if (projectId === "superagent") {
+      // The setup guide (decision 155): `/agents/superagent/setup`.
+      if (section === "setup") return { label: "Superagent setup", icon: "agents" };
       // The chat (decision 153): `/agents/superagent/chat` and `/agents/superagent/chat/<KEY>`.
       if (section === "chat") return { label: entityId === undefined ? "Superagent chat" : `Chat ${decodeSegment(entityId)}`, icon: "agents" };
       return { label: "Superagent", icon: "agents" };
