@@ -107,9 +107,10 @@
     opacity: 1;
   }
 
+  /* visibility, not opacity: the sidebar collapse motion fades the rail's text with opacity (rail-motion.ts). */
   .astryx-side-nav-item:is(:hover, :focus-within) .tessera-row-count,
   .tessera-row-actions:has([aria-expanded="true"]) .tessera-row-count {
-    opacity: 0;
+    visibility: hidden;
   }
 }
 
@@ -874,9 +875,9 @@
  * collapsed rail's icons sat at x=24 in a 56px strip. A 12px/4px padding centres them at x=28 and
  * gives the expanded rows 12px on both sides of the strip. It applies in both states, so the icons
  * keep their x when the sidebar collapses or expands; the top bar's sidebar toggle sits on the
- * same x=28 column.
+ * same x=28 column. The collapse motion's copy of the rail (rail-motion.ts) gets it too.
  */
-.astryx-side-nav[aria-label="Work"] > * {
+.astryx-side-nav:is([aria-label="Work"], [data-tessera-rail-copy]) > * {
   padding-inline: var(--spacing-3) var(--spacing-1);
 }
 

@@ -9,7 +9,10 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { act, createElement } from "react";
+import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { RailChangeSnapshot } from "@/components/shell/RailChangeSnapshot";
 import { SNAP_MARK, setNavCollapsed, subscribe } from "@/components/shell/nav-collapse-store";
 
 const ASTRYX = join(process.cwd(), "node_modules/@astryxdesign/core/dist");
@@ -95,5 +98,21 @@ describe("setNavCollapsed holds the mark for the change", () => {
     setNavCollapsed(true);
     while (frames.length > 0) runFrame();
     expect(hasMark()).toBe(true);
+  });
+
+  it("is set again in the commit that changes the rail, also when it lands after the toggle's frames", () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const host = document.createElement("div");
+    const root = createRoot(host);
+    act(() => root.render(createElement(RailChangeSnapshot, { isCollapsed: false })));
+    expect(hasMark()).toBe(false);
+    act(() => root.render(createElement(RailChangeSnapshot, { isCollapsed: true })));
+    expect(hasMark()).toBe(true);
+    runFrame();
+    runFrame();
+    expect(hasMark()).toBe(false);
+    act(() => root.render(createElement(RailChangeSnapshot, { isCollapsed: true })));
+    expect(hasMark()).toBe(false); // an unchanged value is no rail change
+    act(() => root.unmount());
   });
 });

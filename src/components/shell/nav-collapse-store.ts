@@ -45,8 +45,9 @@ export function getServerNavCollapsed(): boolean {
  * a reload, and Astryx 0.7.11 has no option to keep the content still. So the change is made under the mark Astryx
  * reads as Reduce Motion (`data-astryx-reduced-motion` on `<html>`, private to Astryx and pinned by
  * tests/ui/nav-collapse-snap.test.ts), held for the commit and the frame after it: Astryx lands the rail and the
- * content at once, and every other motion is untouched. `rail-motion.ts` then glides the rail's real width and
- * crossfades its contents. A mark the theme set is left alone.
+ * content at once (with a mouse; a coarse pointer gets Astryx's short cross-fade instead), and every other motion is
+ * untouched. `rail-motion.ts` then glides the rail's real width and crossfades its contents. A mark the theme set is
+ * left alone.
  */
 export const SNAP_MARK = "data-astryx-reduced-motion";
 let snapToken = 0;
@@ -71,10 +72,20 @@ function nextFrame(callback: () => void): void {
   else window.setTimeout(callback, 16);
 }
 
+/**
+ * In the commit that changes the sidebar's collapse state, before the DOM changes (`RailChangeSnapshot`): holds the
+ * rail for Tessera's glide and sets the mark for Astryx. That commit is also the one in which a sidebar that hydrated
+ * after a toggle catches up, after the mark `setNavCollapsed` set has gone.
+ */
+export function prepareRailChange(isCollapse: boolean): void {
+  if (typeof document === "undefined") return;
+  holdRail(isCollapse, document.documentElement.hasAttribute(SNAP_MARK) && snapToken === 0);
+  snapNextChange();
+}
+
 /** Sets the flag; nobody is notified when the value is unchanged. */
 export function setNavCollapsed(next: boolean): void {
   if (next === collapsed) return;
-  holdRail(next, typeof document !== "undefined" && document.documentElement.hasAttribute(SNAP_MARK) && snapToken === 0);
   collapsed = next;
   snapNextChange();
   for (const listener of [...listeners]) listener();

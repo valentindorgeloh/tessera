@@ -16,6 +16,7 @@ import type { Project } from "@/lib/tessera/types";
 import { AgentIcon, AssistantIcon, BellIcon, BurndownIcon, CycleIcon, DraftIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, TableIcon, UserIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { FavoritesSection } from "./FavoritesSection";
 import { ProjectMenu, projectMove } from "./ProjectMenu";
+import { RailChangeSnapshot } from "./RailChangeSnapshot";
 import { playRail, registerRailNav } from "./rail-motion";
 import { ExpandedOnly, NewItemButton, RailItem, RowActions } from "./RailParts";
 import { projectIdFromPath } from "./recents";
@@ -203,86 +204,89 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
   };
 
   return (
-    <SideNav
-      key={resize.key}
-      ref={registerRailNav}
-      aria-label="Work"
-      collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed, hasButton: false }}
-      resizable={resize.resizable}
-      topContent={<NewItemButton label="New work item" tooltip={createTooltip} isDisabled={createTarget === null} onClick={openCreate} />}
-    >
-      <SideNavSection title="Workspace" isHeaderHidden>
-        <RailItem label="Home" icon={HouseIcon} href="/" isSelected={pathname === "/"} />
-        <RailItem
-          label="Inbox"
-          icon={BellIcon}
-          href="/inbox"
-          isSelected={pathname === "/inbox"}
-          endContent={unreadCount > 0 ? <Badge label={String(unreadCount)} /> : undefined}
-        />
-        <RailItem label="Your work" icon={UserIcon} href="/your-work/summary" isSelected={pathname === "/your-work" || pathname.startsWith("/your-work/")} />
-        <RailItem
-          label="Drafts"
-          icon={DraftIcon}
-          href="/drafts"
-          isSelected={pathname === "/drafts"}
-          endContent={draftCount > 0 ? <Badge label={String(draftCount)} /> : undefined}
-        />
-        <RailItem label="Wiki" icon={PageIcon} href="/wiki" isSelected={pathname === "/wiki" || pathname.startsWith("/pages/")} />
-      </SideNavSection>
-      <FavoritesSection tree={favorites} />
-      <SideNavSection
-        ref={registerContainer("projects")}
-        title="Projects"
-        endContent={
-          <ExpandedOnly>
-            <IconButton label="Create project" variant="ghost" size="sm" icon={<Icon icon={PlusIcon} />} tooltip="Create project" onClick={openCreateProject} />
-          </ExpandedOnly>
-        }
+    <>
+      <RailChangeSnapshot isCollapsed={isNavCollapsed} />
+      <SideNav
+        key={resize.key}
+        ref={registerRailNav}
+        aria-label="Work"
+        collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed, hasButton: false }}
+        resizable={resize.resizable}
+        topContent={<NewItemButton label="New work item" tooltip={createTooltip} isDisabled={createTarget === null} onClick={openCreate} />}
       >
-        <RailItem label="Projects" icon={FolderIcon} href="/projects" isSelected={isProjectsPage(pathname)} />
-        {ordered.length === 0 ? (
-          <ExpandedOnly>
-            <Text type="supporting" color="secondary" as="p">
-              No projects yet.
-            </Text>
-          </ExpandedOnly>
-        ) : (
-          ordered.map((project, index) => (
-            <RailItem
-              key={project.id}
-              ref={registerItem(project.id)}
-              {...itemHandlers(project.id, "projects")}
-              className="tessera-project-row"
-              label={project.name}
-              // The count sits in the actions slot, outside the link, so the link's
-              // name carries it: "Website 48" (the visible label stays inside the name).
-              aria-label={`${project.name} ${project.counts.total}`}
-              icon={resolveLogoIcon(project.logo?.icon)}
-              href={`/projects/${project.id}/work-items`}
-              isSelected={project.id === activeProjectId}
-              actions={
-                <RowActions count={project.counts.total}>
-                  <ProjectMenu
-                    project={project}
-                    isFavorite={isFavoriteInTree(favorites, "project", project.id)}
-                    canMoveUp={index > 0}
-                    canMoveDown={index < ordered.length - 1}
-                    onMove={(direction) => moveProject(project.id, direction)}
-                  />
-                </RowActions>
-              }
-            />
-          ))
-        )}
-      </SideNavSection>
-      <SideNavSection title="Workspace" isHeaderHidden className="tessera-sidebar-last">
-        <RailItem label="Workspace views" icon={TableIcon} href="/workspace-views" isSelected={pathname === "/workspace-views" || pathname.startsWith("/workspace-views/")} />
-        <RailItem label="Active cycles" icon={CycleIcon} href="/active-cycles" isSelected={pathname === "/active-cycles" || pathname.startsWith("/active-cycles/")} />
-        <RailItem label="Analytics" icon={BurndownIcon} href="/analytics/overview" isSelected={pathname === "/analytics" || pathname.startsWith("/analytics/")} />
-        <RailItem label="Agents" icon={AgentIcon} href="/agents" isSelected={(pathname === "/agents" || pathname.startsWith("/agents/")) && !onSuperagentChat} />
-        <RailItem label="Superagent chat" icon={AssistantIcon} href={SUPERAGENT_CHAT_PATH} isSelected={onSuperagentChat} />
-      </SideNavSection>
-    </SideNav>
+        <SideNavSection title="Workspace" isHeaderHidden>
+          <RailItem label="Home" icon={HouseIcon} href="/" isSelected={pathname === "/"} />
+          <RailItem
+            label="Inbox"
+            icon={BellIcon}
+            href="/inbox"
+            isSelected={pathname === "/inbox"}
+            endContent={unreadCount > 0 ? <Badge label={String(unreadCount)} /> : undefined}
+          />
+          <RailItem label="Your work" icon={UserIcon} href="/your-work/summary" isSelected={pathname === "/your-work" || pathname.startsWith("/your-work/")} />
+          <RailItem
+            label="Drafts"
+            icon={DraftIcon}
+            href="/drafts"
+            isSelected={pathname === "/drafts"}
+            endContent={draftCount > 0 ? <Badge label={String(draftCount)} /> : undefined}
+          />
+          <RailItem label="Wiki" icon={PageIcon} href="/wiki" isSelected={pathname === "/wiki" || pathname.startsWith("/pages/")} />
+        </SideNavSection>
+        <FavoritesSection tree={favorites} />
+        <SideNavSection
+          ref={registerContainer("projects")}
+          title="Projects"
+          endContent={
+            <ExpandedOnly>
+              <IconButton label="Create project" variant="ghost" size="sm" icon={<Icon icon={PlusIcon} />} tooltip="Create project" onClick={openCreateProject} />
+            </ExpandedOnly>
+          }
+        >
+          <RailItem label="Projects" icon={FolderIcon} href="/projects" isSelected={isProjectsPage(pathname)} />
+          {ordered.length === 0 ? (
+            <ExpandedOnly>
+              <Text type="supporting" color="secondary" as="p">
+                No projects yet.
+              </Text>
+            </ExpandedOnly>
+          ) : (
+            ordered.map((project, index) => (
+              <RailItem
+                key={project.id}
+                ref={registerItem(project.id)}
+                {...itemHandlers(project.id, "projects")}
+                className="tessera-project-row"
+                label={project.name}
+                // The count sits in the actions slot, outside the link, so the link's
+                // name carries it: "Website 48" (the visible label stays inside the name).
+                aria-label={`${project.name} ${project.counts.total}`}
+                icon={resolveLogoIcon(project.logo?.icon)}
+                href={`/projects/${project.id}/work-items`}
+                isSelected={project.id === activeProjectId}
+                actions={
+                  <RowActions count={project.counts.total}>
+                    <ProjectMenu
+                      project={project}
+                      isFavorite={isFavoriteInTree(favorites, "project", project.id)}
+                      canMoveUp={index > 0}
+                      canMoveDown={index < ordered.length - 1}
+                      onMove={(direction) => moveProject(project.id, direction)}
+                    />
+                  </RowActions>
+                }
+              />
+            ))
+          )}
+        </SideNavSection>
+        <SideNavSection title="Workspace" isHeaderHidden className="tessera-sidebar-last">
+          <RailItem label="Workspace views" icon={TableIcon} href="/workspace-views" isSelected={pathname === "/workspace-views" || pathname.startsWith("/workspace-views/")} />
+          <RailItem label="Active cycles" icon={CycleIcon} href="/active-cycles" isSelected={pathname === "/active-cycles" || pathname.startsWith("/active-cycles/")} />
+          <RailItem label="Analytics" icon={BurndownIcon} href="/analytics/overview" isSelected={pathname === "/analytics" || pathname.startsWith("/analytics/")} />
+          <RailItem label="Agents" icon={AgentIcon} href="/agents" isSelected={(pathname === "/agents" || pathname.startsWith("/agents/")) && !onSuperagentChat} />
+          <RailItem label="Superagent chat" icon={AssistantIcon} href={SUPERAGENT_CHAT_PATH} isSelected={onSuperagentChat} />
+        </SideNavSection>
+      </SideNav>
+    </>
   );
 }

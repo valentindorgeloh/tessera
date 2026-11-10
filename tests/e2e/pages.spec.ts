@@ -228,7 +228,7 @@ test.describe("the page tree glide", () => {
     await expect(tree.getByRole("treeitem", { name: "Alpha child" })).toBeVisible();
     await page.waitForTimeout(500);
     const rowHeight = (await page.locator(ROW(beta.id)).boundingBox())!.height;
-    const search = page.getByLabel("Search pages");
+    const search = page.getByRole("textbox", { name: "Search pages" });
 
     // "t" keeps Alpha parent, Beta and Delta as a flat list and drops Alpha child: Beta and Delta move up by its row, at once.
     const stopEntering = await recordTops(page, [beta.id, delta.id]);

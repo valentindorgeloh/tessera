@@ -10,20 +10,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RAIL_COPY_ATTRIBUTE, endRailMotion, holdRail, parseDuration, playRail, registerRailNav } from "@/components/shell/rail-motion";
 
-type Played = { element: Element; keyframes: Keyframe[]; options: KeyframeAnimationOptions; animation: { cancel: ReturnType<typeof vi.fn>; finish: () => void } };
+type Played = { element: Element; keyframes: Keyframe[]; options: KeyframeAnimationOptions; animation: { cancel: ReturnType<typeof vi.fn>; finish: () => void; currentTime: number } };
 
 let played: Played[] = [];
 let railWidth = 236;
 let rail: HTMLElement;
 let nav: HTMLElement;
 let reduced = false;
+let coarse = false;
 
 function fakeAnimate(this: Element, keyframes: Keyframe[], options: KeyframeAnimationOptions) {
   let finish = () => {};
   const finished = new Promise<void>((resolve) => {
     finish = resolve;
   });
-  const animation = { cancel: vi.fn(), finish, finished };
+  const animation = { cancel: vi.fn(), finish, finished, currentTime: 0 };
   played.push({ element: this, keyframes, options, animation });
   return animation as unknown as Animation;
 }
@@ -36,13 +37,14 @@ beforeEach(() => {
   played = [];
   railWidth = 236;
   reduced = false;
+  coarse = false;
   document.body.innerHTML = '<div id="rail"><nav id="work" aria-label="Work"><a id="home" href="/"><svg></svg><span>Home</span></a><p>Projects</p></nav></div>';
   rail = document.getElementById("rail")!;
   nav = document.getElementById("work")!;
   rail.getBoundingClientRect = () => box(railWidth);
   nav.getBoundingClientRect = () => box(railWidth);
   Object.defineProperty(Element.prototype, "animate", { value: fakeAnimate, configurable: true, writable: true });
-  window.matchMedia = vi.fn((query: string) => ({ matches: reduced && query.includes("reduce") }) as MediaQueryList);
+  window.matchMedia = vi.fn((query: string) => ({ matches: (reduced && query.includes("reduce")) || (coarse && query.includes("coarse")) }) as MediaQueryList);
   registerRailNav(nav);
 });
 
@@ -72,12 +74,14 @@ describe("rail motion", () => {
     expect(held?.hasAttribute("id")).toBe(false);
     expect(held?.style.backgroundColor).toBe("var(--color-background-body)");
     expect(rail.style.overflow).toBe("clip");
+    expect(nav.style.flexShrink).toBe("0"); // the nav keeps its width; the rail clips it instead of squeezing it
 
     glide?.animation.finish();
     await Promise.resolve();
     await Promise.resolve();
     expect(copy()).toBeNull();
     expect(rail.style.overflow).toBe("");
+    expect(nav.style.flexShrink).toBe("");
   });
 
   it("fades the copy's text early and the copy late on a collapse, and the real labels in late on an expand", () => {
@@ -108,6 +112,33 @@ describe("rail motion", () => {
     playRail();
     expect(played.filter((entry) => entry.element === rail).at(-1)?.keyframes).toEqual([{ width: "140px" }, { width: "236px" }]);
     expect(rail.querySelectorAll(`[${RAIL_COPY_ATTRIBUTE}]`)).toHaveLength(1);
+  });
+
+  it("carries what the rail shows into a change made during a glide, so the labels neither blink nor flash", () => {
+    holdRail(true, false);
+    railWidth = 48;
+    playRail();
+    const collapse = widthGlide()!;
+    collapse.animation.currentTime = 0.2 * Number(collapse.options.duration); // 20% in: labels at half, the collapsed rail not yet showing
+    railWidth = 90;
+    played = [];
+    holdRail(false, false);
+    railWidth = 236;
+    playRail();
+    const copied = copy()!;
+    expect(played.find((entry) => entry.element === copied)?.keyframes[0]).toEqual({ opacity: 0 });
+    const labels = played.filter((entry) => nav.contains(entry.element));
+    expect(labels.length).toBeGreaterThan(0);
+    for (const entry of labels) expect(entry.keyframes[0]?.opacity).toBeCloseTo(0.5);
+  });
+
+  it("leaves a coarse pointer to Astryx's own short cross-fade", () => {
+    coarse = true;
+    holdRail(true, false);
+    railWidth = 48;
+    playRail();
+    expect(played).toHaveLength(0);
+    expect(copy()).toBeNull();
   });
 
   it("lands at once under Reduce Motion, while the theme reduces motion, or without a held change", () => {
