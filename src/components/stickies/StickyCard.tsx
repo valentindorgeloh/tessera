@@ -141,7 +141,11 @@ export function StickyCard({ sticky, registerItem, handlers, isDragged, canMoveE
         if (mounted.current || !pending) return;
         if (bodyTimer.current) clearTimeout(bodyTimer.current);
         bodyTimer.current = null;
-        if (markdown === lastSent.current) return;
+        if (markdown === lastSent.current) {
+          // Nothing left to send, but the quiet saves that landed before still get their one refresh.
+          bodySaves.refreshIfSaved();
+          return;
+        }
         lastSent.current = markdown;
         // Silent on failure, as before; the refresh follows the save.
         bodySaves.send(stickyId, markdown, () => {});

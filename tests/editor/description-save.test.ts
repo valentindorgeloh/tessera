@@ -610,6 +610,30 @@ describe("useDescriptionSave", () => {
     });
     expect(refreshAction).toHaveBeenCalledTimes(1);
   });
+
+  it("a blur flush while a save is in flight still refreshes once when that save has landed", async () => {
+    let resolveSave: (value: unknown) => void = () => {};
+    updateAction.mockImplementationOnce(() => new Promise((resolve) => (resolveSave = resolve)));
+    const editor = fakeEditor("a");
+    const { sink } = await mount({ serverText: "a", serverVersion: 1, editor: { current: editor } });
+    await act(async () => {
+      current(sink).onChange("ab");
+    });
+    await tick(DESCRIPTION_SAVE_DELAY_MS);
+    expect(updateAction).toHaveBeenCalledTimes(1);
+    // The blur: flush (which finds the save in flight and queues a resend), then the refresh.
+    await act(async () => {
+      await current(sink).flush();
+      current(sink).refreshIfSaved();
+    });
+    expect(refreshAction).not.toHaveBeenCalled();
+    await act(async () => {
+      resolveSave({ ok: true, data: { description_version: 2 }, cursor: 3 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(updateAction).toHaveBeenCalledTimes(1);
+    expect(refreshAction).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("beacon payload", () => {

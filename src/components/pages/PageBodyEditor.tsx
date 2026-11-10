@@ -189,8 +189,12 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
         update({ status: current.status, version: current.version, conflict: null, theirs: current.theirs, error: null });
         announce(STATUS_TEXT[current.status]);
         current.savedSinceRefresh = true;
-        if (more) void sendRef.current();
-        else if (current.refreshWhenIdle) refreshIfSaved();
+        if (more) {
+          // The resend may find nothing to send (a flush only queued it); the refresh a blur asked for still happens.
+          void sendRef.current().then(() => {
+            if (current.refreshWhenIdle && current.inFlight === null) refreshIfSaved();
+          });
+        } else if (current.refreshWhenIdle) refreshIfSaved();
         return;
       }
       current.resendAfter = false;

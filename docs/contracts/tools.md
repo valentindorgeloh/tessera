@@ -92,7 +92,7 @@ export function toolAction<N extends ToolName>(name: N): (input: ToolInput<N>) =
 // actions/work-items.ts ("use server" at file level):  export const moveWorkItemAction = toolAction("move_work_item");
 ```
 
-- `runTool` resolves the tool (`NOT_FOUND` for unknown names), validates with `def.input` before opening the database, runs with a context for the given actor, then calls `refresh()` from `next/cache` (outside the try block) so the open page re-renders. `refresh()` is skipped for read tools.
+- `runTool` resolves the tool (`NOT_FOUND` for unknown names), validates with `def.input` before opening the database, runs with a context for the given actor, then calls `refresh()` from `next/cache` (outside the try block) so the open page re-renders. `refresh()` is skipped for read tools. Quiet wrappers (`quietToolAction`, used by autosaves and view-settings saves) skip `refresh()` too: the editor refreshes once on blur instead, and reset keeps refreshing.
 - Actions never throw to the client; `TrackerError` comes back as `{ ok: false, code, message, details }`, anything else as `code: "INTERNAL"` (logged server-side) and the UI shows a Toast.
 - `toolAction(name)` resolves the tool at module load so a typo fails at import time; client code imports only the exported wrappers from file-level `"use server"` action files, never `_run.ts` or the registry.
 

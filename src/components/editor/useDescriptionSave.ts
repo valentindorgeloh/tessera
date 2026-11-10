@@ -294,8 +294,12 @@ export function useDescriptionSave(input: UseDescriptionSaveInput): UseDescripti
         m.status = more ? "dirty" : "clean";
         update({ status: m.status, version: m.version, conflict: null, theirs: m.theirs, error: null });
         m.savedSinceRefresh = true;
-        if (more) void sendRef.current();
-        else if (m.refreshWhenIdle) refreshIfSaved();
+        if (more) {
+          // The resend may find nothing to send (a flush only queued it); the refresh a blur asked for still happens.
+          void sendRef.current().then(() => {
+            if (m.refreshWhenIdle && m.inFlight === null) refreshIfSaved();
+          });
+        } else if (m.refreshWhenIdle) refreshIfSaved();
         return;
       }
       m.resendAfter = false;
