@@ -15,7 +15,7 @@
  * an ask during the exit takes it back at once. With no panel element, or under
  * Reduce Motion, it closes at once.
  */
-import { createContext, Suspense, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Button } from "@astryxdesign/core/Button";
 import { useToast, type ToastDismissFn } from "@astryxdesign/core/Toast";
@@ -145,18 +145,30 @@ function ScopeReader({ onScope }: { onScope: (scope: AssistantScope) => void }) 
   return null;
 }
 
+/**
+ * The provider's value with `status` read through `useAiStatus`, a store read
+ * with a null server snapshot, instead of from the value itself. The value
+ * changes when the status lands, and a page that hydrates after that (the page
+ * area streams behind the frame's boundary, decision 156: the intake's Triage
+ * button, the views page's Describe dialog) would otherwise hydrate with the new
+ * status against server HTML rendered without it (error 418, docs/contracts/ui.md
+ * "Shell").
+ */
+function useControllerWithLiveStatus(value: AssistantController | null, hook: string): AssistantController {
+  const { status } = useAiStatus();
+  const live = useMemo(() => (value === null || status === value.status ? value : { ...value, status }), [status, value]);
+  if (!live) throw new Error(`${hook} must be used inside AssistantProvider`);
+  return live;
+}
+
 /** The assistant: open state, the conversation, and `ask` for Power K. */
 export function useAssistant(): AssistantValue {
-  const value = useContext(AssistantContext);
-  if (!value) throw new Error("useAssistant must be used inside AssistantProvider");
-  return value;
+  return useControllerWithLiveStatus(useContext(AssistantContext), "useAssistant");
 }
 
 /** Panel controls. The shell's public hook is `useAssistant`. */
 export function useAssistantController(): AssistantController {
-  const value = useContext(AssistantContext);
-  if (!value) throw new Error("useAssistantController must be used inside AssistantProvider");
-  return value;
+  return useControllerWithLiveStatus(useContext(AssistantContext), "useAssistantController");
 }
 
 export function AssistantProvider({ children }: { children: ReactNode }) {

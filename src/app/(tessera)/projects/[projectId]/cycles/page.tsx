@@ -1,8 +1,5 @@
-import { Suspense } from "react";
 import { io } from "next/cache";
 import { notFound } from "next/navigation";
-import { Skeleton } from "@astryxdesign/core/Skeleton";
-import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { CyclesScreen } from "@/components/planning/CyclesScreen";
 import { FeatureOffState } from "@/components/planning/FeatureOffState";
 import type { CycleDetailData } from "@/components/planning/types";
@@ -16,6 +13,16 @@ type Props = {
 };
 
 /**
+ * `instant = false`: this page keeps no Suspense boundary of its own. The
+ * frame's boundary in `(tessera)/layout.tsx` covers a cold load, and a client
+ * navigation keeps the old page on screen until this one is ready, so React
+ * never commits a skeleton and holds the content for 300 ms. The opt-out
+ * turns off dev validation of instant navigation for this segment
+ * (`02-route-segment-config/instant.md`).
+ */
+export const instant = false;
+
+/**
  * Cycles of a project (docs/contracts/ui.md "Routes and data loading"): the
  * non-archived cycles in engine order and, for the current one, its full
  * progress (points too with an active estimate) for the summary card. A
@@ -23,11 +30,7 @@ type Props = {
  * `?create=1` opens the create dialog.
  */
 export default function CyclesPage({ params, searchParams }: Props) {
-  return (
-    <Suspense fallback={<CyclesSkeleton />}>
-      <CyclesData params={params} searchParams={searchParams} />
-    </Suspense>
-  );
+  return <CyclesData params={params} searchParams={searchParams} />;
 }
 
 async function CyclesData({ params, searchParams }: Props) {
@@ -55,19 +58,4 @@ function loadCycles(projectId: string) {
     const active: CycleDetailData | null = current ? loadCycleDetail(ctx, project, current.id, false) : null;
     return { cycles, active, today: ctx.today() };
   });
-}
-
-function CyclesSkeleton() {
-  return (
-    <VStack gap={4} padding={5}>
-      <HStack gap={3} hAlign="between">
-        <Skeleton width={120} height={28} />
-        <Skeleton width={112} height={28} index={1} />
-      </HStack>
-      <Skeleton height={200} index={2} />
-      <Skeleton height={48} index={3} />
-      <Skeleton height={48} index={4} />
-      <Skeleton height={48} index={5} />
-    </VStack>
-  );
 }

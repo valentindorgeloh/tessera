@@ -24,7 +24,7 @@ import { fixture } from "../superagent/support";
 
 const STEP_IDS: SetupStepId[] = ["before", "runner", "api-key", "agent-account", "agent-token", "agent-login", "agent-identity", "repos", "access", "connect", "start", "first-request"];
 const FILLS = [{ tesseraUrl: null }, { tesseraUrl: "http://127.0.0.1:3000" }];
-const RUNNER_CHECKS = ["config", "node", "agent account", "api key", "api token", "gitconfig", "gh-agent login", "repo my-app", "sandbox", "disk", "tessera", "github"];
+const RUNNER_CHECKS = ["config", "node", "agent account", "your account", "api key", "api token", "gitconfig", "gh-agent login", "repo my-app", "sandbox", "disk", "tessera", "github"];
 
 /** Every text of the guide, as the personal-data and step-number checks read it. */
 function allText(): string {

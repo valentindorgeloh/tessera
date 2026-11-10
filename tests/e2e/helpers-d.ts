@@ -213,9 +213,9 @@ export type EarlyAction = "toggle" | "chord" | "open-nav" | "assistant" | "help"
 export type EarlyRecord = {
   /** The action ran (for "chord": the sidebar label flipped). */
   fired: boolean;
-  /** The script stopped without firing: the 200th chord press left the label as it was, or 60 s passed in the document. */
+  /** The script stopped without firing: chord presses for 15 s left the label as it was, or 60 s passed in the document. */
   gaveUp: boolean;
-  /** Number of attempts; 1 for a click, up to 200 for a chord. */
+  /** Number of attempts; 1 for a click, one per task for a chord until its press lands. */
   tries: number;
   /** Whether `nav[aria-label="Work"]` had a React fibre when the first attempt ran; "absent" when it was not in the DOM. */
   workHydratedAtFirstTry: boolean | "absent";
@@ -234,12 +234,21 @@ export type EarlyRecord = {
  *
  * It polls on a MessageChannel (one task per tick, so rendering and network
  * keep running) from document start, and fires once. "chord" dispatches a
- * keydown `b` with the page's `mod` key every 80 ms, at most 200 times,
- * until the toggle's label flips: the hotkey only exists after the shell's
- * effects have run, so the first presses can be lost. The other actions click
- * the target once. Either way the script gives up (`gaveUp`) after the 200th
- * press or 60 s into the document. Call before `page.goto`; read the outcome
- * with `earlyRecord`.
+ * keydown `b` with the page's `mod` key in every task until the toggle's label
+ * flips, and checks the label in the next task: the hotkey only exists once
+ * the shell's effects have run, a few milliseconds after the toggle hydrates,
+ * so the first presses are lost, and the one that lands is the first press
+ * after the listener exists. It used to press every 80 ms; when the first
+ * press came just before the listener, the next one came after the sidebar had
+ * hydrated and missed the gap (the round 6 chord case on Projects missed all 3
+ * attempts that way on 2026-11-10, while the press itself still collapsed the
+ * sidebar). A press that lands flips the label before the next task: the
+ * keydown handler sets the collapse store synchronously, and React renders the
+ * store's sync update in a microtask (the top bar subscribes to the store in an
+ * effect that runs before the shell's hotkey effect, its ancestor's). The other
+ * actions click the target once. The script gives up (`gaveUp`) after 15 s of
+ * chord presses or 60 s into the document. Call before `page.goto`; read the
+ * outcome with `earlyRecord`.
  *
  * The init script decides the `mod` key in the document it runs in, by
  * helpers-b `modifierKey`'s rule (`userAgentData.platform` when the browser
@@ -283,7 +292,11 @@ export async function armEarlyAction(page: Page, action: EarlyAction): Promise<v
       const channel = new MessageChannel();
       const next = () => channel.port2.postMessage(0);
       const giveUpAt = 60_000;
+      const chordFor = 15_000;
       let labelBefore: string | null = null;
+      let firstPressAt: number | null = null;
+      /** The Work nav's state at the chord press that waits for its check in this task, else null. */
+      let pressed: boolean | "absent" | null = null;
       const tick = () => {
         if (record.fired || record.gaveUp) return;
         if (performance.now() > giveUpAt) {
@@ -292,6 +305,18 @@ export async function armEarlyAction(page: Page, action: EarlyAction): Promise<v
         }
         const element = target();
         if (element === null || hydrated(element) !== true) return next();
+        if (pressed !== null) {
+          if (toggle()?.getAttribute("aria-label") !== labelBefore) {
+            record.workHydratedAtFire = pressed;
+            record.fired = true;
+            return;
+          }
+          pressed = null;
+          if (firstPressAt !== null && performance.now() - firstPressAt > chordFor) {
+            record.gaveUp = true;
+            return;
+          }
+        }
         record.tries += 1;
         if (record.tries === 1) record.workHydratedAtFirstTry = hydrated(work());
         if (what !== "chord") {
@@ -301,18 +326,12 @@ export async function armEarlyAction(page: Page, action: EarlyAction): Promise<v
           return;
         }
         labelBefore ??= element.getAttribute("aria-label");
-        const workAtPress = hydrated(work());
+        firstPressAt ??= performance.now();
+        pressed = hydrated(work());
         document.dispatchEvent(
           new KeyboardEvent("keydown", { key: "b", code: "KeyB", ctrlKey: key === "Control", metaKey: key === "Meta", bubbles: true }),
         );
-        setTimeout(() => {
-          if (toggle()?.getAttribute("aria-label") !== labelBefore) {
-            record.workHydratedAtFire = workAtPress;
-            record.fired = true;
-          } else if (record.tries >= 200) {
-            record.gaveUp = true;
-          } else next();
-        }, 80);
+        next();
       };
       channel.port1.onmessage = tick;
       next();

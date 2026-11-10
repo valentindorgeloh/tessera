@@ -51,13 +51,13 @@ Agents by role:
 - Build round 1: 5 workers (prep, sidebar, motion, calendar, virtual list; Opus 5.5) and 2 gates (Haiku).
 - Build round 2: 3 workers (board, table and gantt windows; two Playwright parts; Opus 5.5), 1 reconciler (bundle check) and 2 gates (Haiku).
 - Close-out: 1 worker (as-built maps, this file, docs/improvements.md, README; Opus 5.5).
-- Verification: see below.
+- Verification: acceptance by 4 parallel verifiers (Opus 5.5) with refuters, and the gates of the three merges with the main line (Opus 5.5 resolvers, reviewers and refuters, Haiku gates).
 
 Tests: 30 Playwright spec files (new: `sidebar`, `motion`, `calendar-zoom`, `virtual-scroll`, and `virtual-perf` beside `perf`, both opt-in through `playwright.perf.config.ts`), and new Vitest files beside each part.
 
-Measured (decision 138, `virtual-perf.spec.ts` on the 10 000-item fixture): scrolling the list, table, gantt and the board's first column keeps the median frame interval at 16.7 ms, with no long task (the table had none on the quieter of its runs); the first-render budget of decision 115 is under investigation. Numbers and the open performance items: docs/improvements.md, "Performance".
+Measured (decision 138, `virtual-perf.spec.ts` on the 10 000-item fixture): scrolling the list, table, gantt and the board's first column keeps the median frame interval at 16.7 ms, with no long task (the table had none on the quieter of its runs); the first-render budget of decision 115 holds on the merged result (p95 list 183, board 166, table 257, flat list 150, flat table 264 ms; the 542 to 686 ms measured on this round alone was machine load). Numbers and the open performance items: docs/improvements.md, "Performance".
 
-Verification: _to be filled in by the root planner (gate results, browser checks, open findings)._
+Verification: acceptance in a real browser found two bugs that were fixed before the merge (the floating sidebar opened and closed in a loop under a resting pointer; a focused row in a grouped list unmounted for one frame). The result was then merged with the Astryx motion work, the superagent and speed batch, the quieter work items screen and the first-visit hold, and gated on that: 4,082 unit tests, the full Playwright suite (247 passed, the perf specs skipped as opt-in), both perf specs once on the merged virtual lists and speed batch, and a production build within the bundle baseline. Open findings, to be fixed next: Escape in the floating sidebar also closes the side peek or clears the selection, and Escape or `mod+b` in a dialog opened from it also closes it; in the table a gap spacer can swap keys around a kept row, so focus drops; "Show more" moves the view past the newly loaded rows; a virtual list can show blank after Back and a sidebar navigation; dragging a sidebar project to reorder never starts (older than this round); after a keyboard state change the server's order can move the item out of view (from the focus-follow work).
 
 ## Superagent control and chat (2026-11-09 to 2026-11-10)
 

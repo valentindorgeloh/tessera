@@ -5,7 +5,7 @@
  * layout stays free of the fetch: this provider is a client child of it.
  * A failed request is `offline`, so entry points stay hidden.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { AiStatusSchema } from "@/lib/tessera/schemas";
 import { assistantUnavailableCopy, type AiStatus } from "./ai-status";
 
@@ -17,7 +17,41 @@ type AiStatusContextValue = {
   refresh: () => void;
 };
 
-const AiStatusContext = createContext<AiStatusContextValue | null>(null);
+/**
+ * The status lives in a small store the provider owns; the context carries the
+ * store, which never changes. A consumer reads the status through
+ * `useSyncExternalStore` with a null server snapshot, so a status that lands
+ * before a streamed boundary hydrates (the page area now streams behind the
+ * frame's boundary, decision 156) hydrates against the server's null instead of
+ * a changed context value (error 418, docs/contracts/ui.md "Shell").
+ */
+type StatusStore = {
+  get: () => AiStatus | null;
+  set: (next: AiStatus) => void;
+  subscribe: (listener: () => void) => () => void;
+};
+
+function createStatusStore(): StatusStore {
+  let current: AiStatus | null = null;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => current,
+    set: (next) => {
+      current = next;
+      for (const listener of listeners) listener();
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+}
+
+const AiStatusContext = createContext<StatusStore | null>(null);
+
+const SERVER_STATUS = (): null => null;
 
 async function loadStatus(): Promise<AiStatus> {
   try {
@@ -32,21 +66,19 @@ async function loadStatus(): Promise<AiStatus> {
 
 /** Status of the assistant. `status` is null until the first response. */
 export function useAiStatus(): AiStatusContextValue {
-  const value = useContext(AiStatusContext);
-  if (!value) throw new Error("useAiStatus must be used inside AiStatusProvider");
-  return value;
+  const store = useContext(AiStatusContext);
+  if (!store) throw new Error("useAiStatus must be used inside AiStatusProvider");
+  const status = useSyncExternalStore(store.subscribe, store.get, SERVER_STATUS);
+  const refresh = useCallback(() => {
+    void loadStatus().then(store.set);
+  }, [store]);
+  return useMemo<AiStatusContextValue>(() => ({ status, refresh }), [status, refresh]);
 }
 
 export function AiStatusProvider({ children }: { children: ReactNode }) {
-  const [status, setStatus] = useState<AiStatus | null>(null);
-  const refresh = useCallback(() => {
-    void loadStatus().then(setStatus);
-  }, []);
-
+  const [store] = useState(createStatusStore);
   useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  const value = useMemo<AiStatusContextValue>(() => ({ status, refresh }), [status, refresh]);
-  return <AiStatusContext.Provider value={value}>{children}</AiStatusContext.Provider>;
+    void loadStatus().then(store.set);
+  }, [store]);
+  return <AiStatusContext.Provider value={store}>{children}</AiStatusContext.Provider>;
 }

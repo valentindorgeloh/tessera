@@ -1,10 +1,19 @@
-import { Suspense } from "react";
-import { ListSkeleton, ScopedWorkItems } from "./scoped-list";
+import { ScopedWorkItems } from "./scoped-list";
 
 type Props = {
   params: Promise<{ projectId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+/**
+ * `instant = false`: this page keeps no Suspense boundary of its own. The
+ * frame's boundary in `(tessera)/layout.tsx` covers a cold load, and a client
+ * navigation keeps the old page on screen until this one is ready, so React
+ * never commits a skeleton and holds the content for 300 ms. The opt-out
+ * turns off dev validation of instant navigation for this segment
+ * (`02-route-segment-config/instant.md`).
+ */
+export const instant = false;
 
 /**
  * Work items of a project (docs/contracts/ui.md "Work items screen"). The
@@ -14,11 +23,7 @@ type Props = {
  * their own scope.
  */
 export default function WorkItemsPage({ params, searchParams }: Props) {
-  return (
-    <Suspense fallback={<ListSkeleton />}>
-      <WorkItemsData params={params} searchParams={searchParams} />
-    </Suspense>
-  );
+  return <WorkItemsData params={params} searchParams={searchParams} />;
 }
 
 async function WorkItemsData({ params, searchParams }: Props) {

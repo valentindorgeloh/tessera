@@ -1,7 +1,5 @@
-import { Suspense, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { io } from "next/cache";
-import { Skeleton } from "@astryxdesign/core/Skeleton";
-import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { ProjectFrame } from "@/components/work-items/ProjectFrame";
 import { ProjectProvider } from "@/components/work-items/project-provider";
 import type { ProjectBundle } from "@/components/work-items/types";
@@ -14,8 +12,10 @@ type Props = { children: ReactNode; params: Promise<{ projectId: string }> };
  * bundle once per navigation and hands it to every screen below through
  * `ProjectProvider`; the frame draws the header and tabs.
  *
- * `instant = false`: the layout blocks on the project lookup, which it
- * streams in under Suspense. With the default validation, Next's
+ * `instant = false`: the layout blocks on the project lookup, which streams
+ * in under the frame's boundary in `(tessera)/layout.tsx` (no boundary of its
+ * own: a navigation from outside the project would commit a frame skeleton
+ * and React would hold the content for 300 ms). With the default validation, Next's
  * instant-navigation check still reports the shell's `usePathname()` holes
  * on every route whose page calls `notFound()` (the not-found boundary
  * replaces the page before the validator sees it render); opting the segment
@@ -24,11 +24,7 @@ type Props = { children: ReactNode; params: Promise<{ projectId: string }> };
 export const instant = false;
 
 export default function ProjectLayout({ children, params }: Props) {
-  return (
-    <Suspense fallback={<FrameSkeleton />}>
-      <ProjectShell params={params}>{children}</ProjectShell>
-    </Suspense>
-  );
+  return <ProjectShell params={params}>{children}</ProjectShell>;
 }
 
 async function ProjectShell({ children, params }: Props) {
@@ -68,17 +64,5 @@ async function ProjectShell({ children, params }: Props) {
     <ProjectProvider bundle={bundle}>
       <ProjectFrame>{children}</ProjectFrame>
     </ProjectProvider>
-  );
-}
-
-function FrameSkeleton() {
-  return (
-    <VStack gap={3} padding={5}>
-      <HStack gap={3} vAlign="center">
-        <Skeleton width={64} height={24} />
-        <Skeleton width={240} height={28} index={1} />
-      </HStack>
-      <Skeleton width={120} height={20} index={2} />
-    </VStack>
   );
 }

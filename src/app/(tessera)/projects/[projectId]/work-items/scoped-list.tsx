@@ -22,8 +22,9 @@ export type { WorkItemsScope };
  * The work items list of a project, a cycle or a module (docs/contracts/ui.md
  * "Integration (E4)"). An async Server Component without a directive: it reads
  * through `@/lib/tessera/server`, which is why it lives under `src/app/`.
- * The project page renders it on its own; the cycle and module detail screens
- * render it as their children inside `<Suspense fallback={<ListSkeleton />}>`.
+ * The project page and the cycle page render it on their own, under the
+ * frame's boundary (no boundary of their own, see `instant` there); the module
+ * detail screen renders it as its child inside `<Suspense fallback={<ListSkeleton />}>`.
  *
  * The effective display and filters are defaults <- saved view settings of
  * `settingsScope` <- the URL's `q` state. `?peek=<id>` opens that item next to

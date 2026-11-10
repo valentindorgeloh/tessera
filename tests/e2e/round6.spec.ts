@@ -115,7 +115,7 @@ async function loadWithEarlyAction(page: Page, path: string, action: EarlyAction
 
 /** Fresh starts a case gets to land its early action in the gap. */
 const WINDOW_ATTEMPTS = 3;
-/** How long one attempt waits for its action to fire or give up (the chord gives up after 200 presses, about 17 s). */
+/** How long one attempt waits for its action to fire or give up (the chord gives up after 15 s of presses). */
 const FIRE_WAIT_MS = 30_000;
 /** What each further attempt adds to the test's timeout. */
 const RETRY_BUDGET_MS = 60_000;

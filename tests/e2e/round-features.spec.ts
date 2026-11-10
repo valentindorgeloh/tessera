@@ -83,7 +83,10 @@ test.describe("page links (pages-editor)", () => {
 
     await page.goto(`/projects/${project.id}/pages/${source.id}`);
     await expect(page.getByRole("heading", { level: 1, name: "Linking page" })).toBeVisible();
-    const editor = page.getByRole("textbox").last();
+    // The editor mounts once the page has hydrated, a moment after the streamed title shows (decision 156);
+    // until then the page's last textbox is the top bar's search field, which opens Power K on a key.
+    const editor = page.getByRole("main").getByRole("textbox").last();
+    await expect(editor).toHaveAttribute("contenteditable", "true");
     await editor.click();
     await page.keyboard.type("See [[Zeta");
 
@@ -93,14 +96,14 @@ test.describe("page links (pages-editor)", () => {
     await page.keyboard.press("Enter");
 
     // The link is `[Zeta runbook](page:<id>)` in Markdown: an anchor with a `page:` href and the page's name.
-    const link = page.getByRole("textbox").last().locator('a[href^="page:"]');
+    const link = editor.locator('a[href^="page:"]');
     await expect(link).toHaveText("Zeta runbook");
     await expect(link).toHaveAttribute("href", `page:${target.id}`);
     await waitForSaved(page);
 
     await page.reload();
     await expect(page.getByRole("heading", { level: 1, name: "Linking page" }).first()).toBeVisible();
-    const after = page.getByRole("textbox").last().locator('a[href^="page:"]');
+    const after = page.getByRole("main").getByRole("textbox").last().locator('a[href^="page:"]');
     await expect(after).toHaveText("Zeta runbook");
   });
 });

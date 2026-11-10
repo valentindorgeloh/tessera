@@ -3,6 +3,7 @@ import { io } from "next/cache";
 import { FavoritesPublisher } from "@/components/favorites/store";
 import { EMPTY_FAVORITES, type FavoritesTree } from "@/components/favorites/tree";
 import { ChangesPoller } from "@/components/shell/ChangesPoller";
+import { PageSkeleton } from "@/components/shell/PageSkeleton";
 import { projectFeatureMap } from "@/components/shell/project-features";
 import { projectNameMap } from "@/components/shell/recents";
 import { RecentsTracker } from "@/components/shell/RecentsTracker";
@@ -25,6 +26,13 @@ import "../../components/styles/favorites.css";
  * shell itself stays in the static prerender. The poller sits with the
  * content, not in the sidebar: below the mobile breakpoint the sidebar lives
  * in a drawer whose content React pauses while it is closed.
+ *
+ * The page boundary sits here, above every route (not inside the pages the
+ * navigation experiment covers): a client navigation does not re-trigger a
+ * boundary of an already-mounted layout, so React keeps the old page on
+ * screen and commits the new one in a single transition, and its 300 ms
+ * reveal throttle after a skeleton never applies. A cold load still streams
+ * through `PageSkeleton`. See `instant-navigation.md` "Client navigations".
  */
 export default function TesseraLayout({ children }: { children: ReactNode }) {
   return (
@@ -38,7 +46,7 @@ export default function TesseraLayout({ children }: { children: ReactNode }) {
       <Suspense fallback={null}>
         <WatchersData />
       </Suspense>
-      {children}
+      <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
     </TesseraShell>
   );
 }

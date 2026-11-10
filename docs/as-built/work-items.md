@@ -25,7 +25,7 @@ Routes (`src/app/(tessera)/projects/`):
 | `[projectId]/page.tsx` (47) | Index route: redirects to `work-items`; calls `notFound()` for an unknown project so Tessera's 404 shows | `default ProjectIndexPage` |
 | `[projectId]/not-found.tsx` (31) | Not-found boundary; framed when the project context exists, bare otherwise (`useOptionalProject`) | `default ProjectNotFound` |
 | `[projectId]/work-items/page.tsx` (34) | Awaits params/searchParams, mounts `ScopedWorkItems` with the project scope | `default WorkItemsPage` |
-| `[projectId]/work-items/scoped-list.tsx` (165) | Async Server Component: decode `q`, read `view_settings`, merge display/filters, `listWorkItems`, mount `PeekHost` + `WorkItemsScreen`. Used by project, cycle and module pages | `ScopedWorkItems`, `loadPeek`, `ListSkeleton`, types `WorkItemsScope`, `ScopedWorkItemsProps` |
+| `[projectId]/work-items/scoped-list.tsx` (165) | Async Server Component: decode `q`, read `view_settings`, merge display/filters, `listWorkItems`, mount `PeekHost` + `WorkItemsScreen`. Used by project, cycle and module pages; the project and cycle pages render it with no boundary of their own (decision 156), the module page keeps `ListSkeleton` | `ScopedWorkItems`, `loadPeek`, `ListSkeleton`, types `WorkItemsScope`, `ScopedWorkItemsProps` |
 | `[projectId]/work-items/[workItemId]/page.tsx` (49) | Full detail page inside the frame; 404 if the item is in another project | `default WorkItemPage` |
 
 `src/components/work-items/` (all client unless noted "pure"):
@@ -223,7 +223,7 @@ Deferred, from the contracts:
 
 - The calendar is not memoized (section 3a): a tick or an agent write redraws every chip there. `properties/index.ts` still names `useProject()` in a comment; the controls now read `useProjectRow()`. A cross-project list (`RowProject`) rebuilds each row's `ProjectScope` when the server hands in new `bundles`, because `BundlesProvider` does not share structure.
 - Virtual windows (decision 137): find-in-page finds only rendered rows of a list above the threshold; the filter field and Power K find any item. Printing turns windowing off. A Playwright locator for a list row must be scoped to the visible route (field guide).
-- The decision 115 first-render budget is still missed with the windows (p95 542 to 686 ms under a load average of 16 to 28, under investigation), while the decision 138 scroll budget holds; numbers in docs/improvements.md "Performance".
+- The decision 115 first-render budget holds with the windows on the merged result (p95 150 to 264 ms), and so does the decision 138 scroll budget; numbers in docs/improvements.md "Performance".
 
 Quirks that cost agents time:
 - `projects/[projectId]/layout.tsx` has `instant = false` and never throws: it returns `children` so each page can `notFound()` itself.

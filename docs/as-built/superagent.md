@@ -76,6 +76,5 @@ npx tsx scripts/superagent-stub.ts --port 3391 --token-file data/superagent/api-
 - Readings of runner API v1 that the runner session must match (ui.md, "Mismatches and assumptions"): `revision` is a string or a number; `intake.cursor` and `intake.latestSeq` may be null (decision 155: the runner sends both as null before its first poll); empty-body POSTs send no body; `workItemId` is Tessera's id; `firstPassReviewRate` is a fraction from 0 to 1; sizes are S, M or L.
 - The editor's people picker matches the start of an actor's name, and the superagent's actor is named `mcp:superagent`, so a mention is found by typing `@mcp`, not `@super`.
 - `loadProjectBundle` reads the workspace settings once per project bundle (cross-project lists read it per project); cheap, but could be hoisted.
-- The runner ships personal defaults (`configTemplate` repos and `evidenceRepo`, `githubRequesters`); other users replace them (setup guide steps 7 and 8).
 - Playwright is not a runner dependency; the guide shows a workaround for screen changes.
 - There is no reset for a rewound intake: the runner stays stopped.

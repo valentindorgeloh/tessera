@@ -26,7 +26,7 @@ vi.mock("@/app/actions/superagent", () => ({
 
 const { SetupGuideScreen } = await import("@/components/superagent/setup/SetupGuideScreen");
 
-const CHECKS_OK = ["config", "node", "agent account", "api key", "api token", "gitconfig", "gh-agent login", "repo my-app", "sandbox", "disk", "tessera", "github"].map((name) => ({ name, ok: true, detail: null }));
+const CHECKS_OK = ["config", "node", "agent account", "your account", "api key", "api token", "gitconfig", "gh-agent login", "repo my-app", "sandbox", "disk", "tessera", "github"].map((name) => ({ name, ok: true, detail: null }));
 
 function healthy(over: Partial<SuperagentSetupLoad> = {}): SuperagentSetupLoad {
   const state: RunnerState = { ...fixture<RunnerState>("state"), health: { status: "ok", checks: CHECKS_OK }, intake: { rewound: false, cursor: null, latestSeq: null } };
