@@ -38,9 +38,6 @@ Sources: docs/drafts/perf-report-2026-10-28.md (sections 1, 5 and 6) and the spe
 ### Operations
 - Backup file names do not name their database: every backup is `tessera-<kind>-<stamp>.db` in `backups/` next to the database file (`src/lib/tessera/db/backups.ts`), so two databases in one folder (`data/tessera.db` and a perf or acceptance copy in `data/`) share one folder whose list, rotation and restore mix their copies. Put the source file's base name in the backup name and filter by it. Medium.
 
-### Search (found 2026-11-10)
-- A word loses its hits partway through typing it. The full-text index uses the Porter stemmer (`FTS_TOKENIZER` in `src/lib/tessera/db/fts.ts`), so "billing" is stored as "bill", and the prefix query `"billi"*` matches nothing: on the 10k data "bil" finds 1,032 items, "billi" and "billin" none, "billing" 1,032 again ("onboardi" the same). In Power K the results vanish and come back while a word is typed; `#` mentions and the parent picker use the same search. Medium.
-
 ### Coverage gaps (not checked this round)
 - Real devices: all touch checks are Playwright emulation (the page-tree grip uses CDP touch events in `coverage-touch.spec.ts`). Playwright WebKit would add Safari-engine emulation, but installing it is a download and needs your approval.
 
@@ -71,6 +68,9 @@ The `npm run db:demo` run (about 70 routes at 1440 and 375 in both schemes on a 
 - Calendar zoom Week / Month / Quarter, consistent with the gantt zoom (decision 90).
 
 ## Closed
+
+### Search matches word starts (2026-11-10)
+- A word lost its hits partway through typing it: the full-text index stored Porter stems, so "billing" was "bill" and the prefix "billi" matched nothing (on the 10k data "bil" found 1,032 items, "billi" and "billin" none, "billing" 1,032 again; "onboardi" and "settin" the same). Power K, `search_all`, the list filter's text search, `#` mentions and the pickers all showed it. Decision 154: the index keeps words as written (migration `0015_fts_word_starts` rebuilds both FTS tables), and each typed word matches words that start with it or with its Porter stem, so "invoices" still finds "invoice" and "queries" finds "query" (`src/lib/tessera/db/fts.ts`). Tests: `tests/fts-word-starts.test.ts` (7 tests; 6 fail on the old index) and the updated match-expression and migration cases in `tests/foundation.test.ts`. Production build on a fresh copy of the 10k data: the migration ran on start (backup taken, 12,000 rows re-indexed), Power K keeps its 20 work items at every letter of "billing", "onboarding" and "settings" (before: "No matches" at "billi", "billin", "onboardi" and "onboardin", and only commands from "sett" to "settin"), search requests take 5 to 16 ms, no console errors.
 
 ### Speed batch (2026-11-10)
 Four lanes on 43298e6 (row arming, closed surfaces and lazy charts and palette, quiet saves and slim rows, and an experimental navigation hold kept apart), gated once on the merged result (3,764 unit tests, 179 Playwright tests) and live as d679da3. Then the old head, the batch and the batch plus the navigation hold were measured side by side: production builds, same machine and data, 5 interleaved rounds, medians.
