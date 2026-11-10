@@ -286,6 +286,11 @@ describe("an unarmed list row", () => {
     });
     expect([...counts.byName.keys()]).toEqual(["Item 3"]);
     expect(comboboxes(rows()[3]!).length).toBeGreaterThanOrEqual(2);
+    // The row arms within the pointer event itself, so a press that follows at once lands on the real control.
+    await act(async () => {
+      pointerMove(rows()[5]!, "mouse");
+      expect(comboboxes(rows()[5]!).length).toBeGreaterThanOrEqual(2);
+    });
     // Further moves over the armed row render nothing.
     counts.byName.clear();
     await act(async () => {
@@ -405,11 +410,11 @@ describe("an unarmed table row", () => {
     expect(editable(tableRows()[4]!).length).toBeGreaterThanOrEqual(2);
     expect(chips(tableRows()[5]!)).toHaveLength(5);
     expect(editable(tableRows()[5]!)).toHaveLength(0);
-    // A move arms a row too, as when a row appears under a resting pointer.
+    // A move arms a row too, as when a row appears under a resting pointer, and within the pointer event itself.
     await act(async () => {
       pointerMove(tableRows()[6]!, "mouse");
+      expect(chips(tableRows()[6]!)).toHaveLength(0);
     });
-    expect(chips(tableRows()[6]!)).toHaveLength(0);
     expect(editable(tableRows()[6]!).length).toBeGreaterThanOrEqual(2);
   });
 
@@ -451,6 +456,8 @@ describe("an unarmed board card", () => {
     }
     await act(async () => {
       pointerEnter(cards()[1]!, "mouse");
+      // Within the pointer event: a press that follows at once lands on the real menu button.
+      expect(menuChip(cards()[1]!)).toBeNull();
     });
     expect(menuChip(cards()[1]!)).toBeNull();
     expect(menuTrigger(cards()[1]!)).not.toBeNull();

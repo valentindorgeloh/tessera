@@ -13,9 +13,12 @@
  * per-table store), so arming re-renders that row alone.
  *
  * No arming on pointer-down or on a touch pointer: a tap that replaced its own target between pointer-down and
- * pointer-up would lose its click. A touch tap arms through the chip's click, which also opens the control.
+ * pointer-up would lose its click. A touch tap arms through the chip's click, which also opens the control. For the
+ * same reason a mouse arms the row synchronously (`flushSync`): a pointer that arrives and presses within a few
+ * milliseconds must press the real control, not a chip that React swaps out between its press and its release.
  */
 import { createContext, useContext, useMemo, useState, useSyncExternalStore, type FocusEvent, type PointerEvent, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { HStack } from "@astryxdesign/core/Stack";
@@ -89,7 +92,9 @@ export function useRowArming(): { state: ArmState; handlers: RowArmingHandlers }
   });
   // Once armed, a move returns before any state update, so moving over an armed row renders nothing.
   const onPointer = useStableCallback((event: PointerEvent<HTMLElement>) => {
-    if (!intent.armed && event.pointerType === "mouse") arm(undefined, focusedChipKey(event.currentTarget) ?? undefined);
+    if (intent.armed || event.pointerType !== "mouse") return;
+    const focusKey = focusedChipKey(event.currentTarget) ?? undefined;
+    flushSync(() => arm(undefined, focusKey));
   });
   const onFocus = useStableCallback((event: FocusEvent<HTMLElement>) => {
     // A chip is a real button: focusing it keeps it a chip, and its click arms and opens the control.
@@ -144,7 +149,9 @@ export function createArmedRows(): ArmedRows {
 /** The arming handlers of a Table row (`transformBodyRow`), for `rowId`. */
 export function tableRowArmingHandlers(store: ArmedRows, rowId: string): RowArmingHandlers {
   const onPointer = (event: PointerEvent<HTMLElement>) => {
-    if (event.pointerType === "mouse") store.arm(rowId, undefined, focusedChipKey(event.currentTarget) ?? undefined);
+    if (event.pointerType !== "mouse" || store.get(rowId).armed) return;
+    const focusKey = focusedChipKey(event.currentTarget) ?? undefined;
+    flushSync(() => store.arm(rowId, undefined, focusKey));
   };
   return {
     onPointerEnter: onPointer,
