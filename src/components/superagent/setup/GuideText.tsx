@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * One paragraph of the setup guide (decision 155): text with `backticks` for inline code, drawn as Astryx
  * `Code`. The guide's strings are data (`setup-guide.ts`); this is the one place that turns them into elements.

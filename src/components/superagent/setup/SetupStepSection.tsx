@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * One step of the setup guide (decision 155): a heading that doubles as the anchor, the step's state when a check
  * covers it, why it matters, a numbered list of actions (a command or a `config.json` fragment sits in a block with

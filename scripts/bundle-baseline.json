@@ -11,6 +11,7 @@
     "/agents/superagent": 709309,
     "/agents/superagent/chat": 983722,
     "/agents/superagent/chat/[itemKey]": 983722,
+    "/agents/superagent/setup": 672291,
     "/analytics": 670296,
     "/analytics/[tab]": 725044,
     "/browse/[key]": 670296,

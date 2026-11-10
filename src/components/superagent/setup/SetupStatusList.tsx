@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The setup guide's "Where you are" block (decision 155; docs/contracts/ui.md "Superagent control", "Setup guide"):
  * four rows (token file, runner, mapped projects, the superagent's connection), each with a status dot and a link

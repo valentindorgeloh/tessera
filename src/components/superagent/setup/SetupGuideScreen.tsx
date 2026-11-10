@@ -1,21 +1,19 @@
-"use client";
-
 /**
  * The superagent setup guide (decision 155; docs/contracts/ui.md "Superagent control", "Setup guide"): a panel page
  * that walks a Tessera user through setting up the runner on a Mac. The "Where you are" block shows what Tessera can
  * check, then the 12 steps and the doctor troubleshooting list follow. The page (server) loads the status once;
  * "Check again" asks Next to reload it. There is no polling: the user works in Terminal and comes back.
+ * A Server Component, like the step and troubleshooting parts: the guide's text never ships as browser code
+ * (check:bundle forbids the API key's variable name there); "Check again" is the one client island.
  */
-import { useTransition } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { VStack } from "@astryxdesign/core/Stack";
-import { superagentRefreshAction } from "@/app/actions/superagent";
 import { PanelBar, PanelHeader, PanelPage, PanelTitle } from "@/components/shell/PanelHeader";
 import type { SuperagentSetupLoad } from "@/lib/superagent/types";
-import { RetryIcon } from "@/themes/catppuccin/icons";
 import { GUIDE_INTRO, SETUP_STEPS } from "../setup-guide";
 import { stepStates } from "../setup-status";
 import { GuideText } from "./GuideText";
+import { SetupCheckAgain } from "./SetupCheckAgain";
 import { SetupStatusList } from "./SetupStatusList";
 import { SetupStepSection } from "./SetupStepSection";
 import { SetupTroubleshooting } from "./SetupTroubleshooting";
@@ -27,14 +25,7 @@ export type SetupGuideScreenProps = {
 };
 
 export function SetupGuideScreen({ load, tesseraUrl }: SetupGuideScreenProps) {
-  const [isChecking, startCheck] = useTransition();
   const states = stepStates(load);
-  const check = () => {
-    startCheck(async () => {
-      // Tessera's server may be restarting; a throw here would replace the screen with the error boundary.
-      await superagentRefreshAction().catch(() => undefined);
-    });
-  };
   return (
     <PanelPage
       width="reading"
@@ -46,7 +37,7 @@ export function SetupGuideScreen({ load, tesseraUrl }: SetupGuideScreenProps) {
             end={
               <>
                 <Button variant="ghost" size="sm" label="Control screen" href="/agents/superagent" />
-                <Button variant="secondary" size="sm" label="Check again" icon={<RetryIcon />} isLoading={isChecking} onClick={check} />
+                <SetupCheckAgain />
               </>
             }
           />

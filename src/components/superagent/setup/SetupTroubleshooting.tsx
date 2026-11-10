@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * "When a check fails" (decision 155): every `npm run doctor` check and exit code with the step that fixes it, then
  * the problems doctor does not catch. The content is data in `setup-guide.ts`.
