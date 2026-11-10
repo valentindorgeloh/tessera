@@ -213,7 +213,8 @@ describe("CommandBar", () => {
     });
     await vi.waitFor(() => expect(document.querySelector("[role='combobox']")).not.toBeNull());
     expect(document.querySelectorAll("dialog").length).toBe(before + 1);
-    expect((document.querySelector("[role='combobox']") as HTMLInputElement).value).toBe("ab");
+    // The palette module loads on demand, so the open can land before it: the typed key is kept and seeded once the palette mounts.
+    await vi.waitFor(() => expect((document.querySelector("[role='combobox']") as HTMLInputElement).value).toBe("ab"));
     expect(document.activeElement).toBe(document.querySelector("[role='combobox']"));
 
     // Close from outside the palette (the help dialog takes over): the palette element stays.
