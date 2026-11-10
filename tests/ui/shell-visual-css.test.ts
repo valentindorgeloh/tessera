@@ -51,7 +51,9 @@ describe("sidebar row menus (S9)", () => {
   it("reveals it on hover, focus within and an open menu, and swaps the count out", () => {
     expect(fine).toMatch(/\.astryx-side-nav-item:is\(:hover, :focus-within\) \.tessera-row-menu/);
     expect(fine).toMatch(/\.tessera-row-menu:has\(\[aria-expanded="true"\]\)/);
-    expect(fine).toMatch(/\.astryx-side-nav-item:is\(:hover, :focus-within\) \.tessera-row-count[^}]*\{\s*opacity:\s*0/);
+    // The count hides with visibility, not opacity: the sidebar glide fades the rail's text with opacity, which would
+    // otherwise show the count under the hovered row's menu while it runs (decision 149).
+    expect(fine).toMatch(/\.astryx-side-nav-item:is\(:hover, :focus-within\) \.tessera-row-count[^}]*\{\s*visibility:\s*hidden/);
   });
 
   it("stacks the count in the menu's place, ending 8px short of the slot edge", () => {
