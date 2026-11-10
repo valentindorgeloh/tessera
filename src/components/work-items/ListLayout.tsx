@@ -316,6 +316,7 @@ const WorkItemRow = memo(function WorkItemRow({ item, display, onUpdate, onOpen,
       data-selected={selected ? "" : undefined}
       interactiveRef={openRef}
       onPointerEnter={handlers.onPointerEnter}
+      onPointerMove={handlers.onPointerMove}
       onFocus={handlers.onFocus}
       startContent={
         <HStack gap={1} vAlign="center">

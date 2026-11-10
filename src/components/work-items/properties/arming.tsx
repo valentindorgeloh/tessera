@@ -64,8 +64,13 @@ function focusedChipKey(row: HTMLElement): string | null {
   return active instanceof HTMLElement && row.contains(active) ? active.getAttribute(ARM_KEY_ATTRIBUTE) : null;
 }
 
+/**
+ * A mouse arms the row when it enters it or moves over it. The move covers a row that appears under a resting pointer
+ * (a quick-add, a refresh that moves the rows): the browser sends that row no enter until the pointer leaves it.
+ */
 export type RowArmingHandlers = {
   onPointerEnter: (event: PointerEvent<HTMLElement>) => void;
+  onPointerMove: (event: PointerEvent<HTMLElement>) => void;
   onFocus: (event: FocusEvent<HTMLElement>) => void;
 };
 
@@ -82,15 +87,16 @@ export function useRowArming(): { state: ArmState; handlers: RowArmingHandlers }
   const consume = useStableCallback((armKey: string) => {
     setIntent((previous) => spent(previous, armKey));
   });
-  const onPointerEnter = useStableCallback((event: PointerEvent<HTMLElement>) => {
-    if (event.pointerType === "mouse") arm(undefined, focusedChipKey(event.currentTarget) ?? undefined);
+  // Once armed, a move returns before any state update, so moving over an armed row renders nothing.
+  const onPointer = useStableCallback((event: PointerEvent<HTMLElement>) => {
+    if (!intent.armed && event.pointerType === "mouse") arm(undefined, focusedChipKey(event.currentTarget) ?? undefined);
   });
   const onFocus = useStableCallback((event: FocusEvent<HTMLElement>) => {
     // A chip is a real button: focusing it keeps it a chip, and its click arms and opens the control.
     if (event.target.hasAttribute(ARM_KEY_ATTRIBUTE)) return;
     arm();
   });
-  const handlers = useMemo<RowArmingHandlers>(() => ({ onPointerEnter, onFocus }), [onPointerEnter, onFocus]);
+  const handlers = useMemo<RowArmingHandlers>(() => ({ onPointerEnter: onPointer, onPointerMove: onPointer, onFocus }), [onPointer, onFocus]);
   const state = useMemo<ArmState>(() => ({ ...intent, arm, consume, isCell: false }), [intent, arm, consume]);
   return { state, handlers };
 }
@@ -137,10 +143,12 @@ export function createArmedRows(): ArmedRows {
 
 /** The arming handlers of a Table row (`transformBodyRow`), for `rowId`. */
 export function tableRowArmingHandlers(store: ArmedRows, rowId: string): RowArmingHandlers {
+  const onPointer = (event: PointerEvent<HTMLElement>) => {
+    if (event.pointerType === "mouse") store.arm(rowId, undefined, focusedChipKey(event.currentTarget) ?? undefined);
+  };
   return {
-    onPointerEnter: (event) => {
-      if (event.pointerType === "mouse") store.arm(rowId, undefined, focusedChipKey(event.currentTarget) ?? undefined);
-    },
+    onPointerEnter: onPointer,
+    onPointerMove: onPointer,
     onFocus: (event) => {
       if (!event.target.hasAttribute(ARM_KEY_ATTRIBUTE)) store.arm(rowId);
     },

@@ -146,6 +146,7 @@ export function BoardCard({
       className={handlers ? "tessera-board-card" : "tessera-board-card tessera-board-card-readonly"}
       onClick={() => onOpen(item.id)}
       onPointerEnter={armingHandlers.onPointerEnter}
+      onPointerMove={armingHandlers.onPointerMove}
       onFocus={armingHandlers.onFocus}
       onPointerDown={dragHandlers?.onPointerDown}
       onClickCapture={handlers?.onClickCapture}

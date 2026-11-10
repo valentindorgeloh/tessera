@@ -224,6 +224,13 @@ function pointerEnter(element: Element, pointerType: string) {
   element.dispatchEvent(event);
 }
 
+/** A pointer moving over `element` (React's `onPointerMove`). */
+function pointerMove(element: Element, pointerType: string) {
+  const event = new MouseEvent("pointermove", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "pointerType", { value: pointerType });
+  element.dispatchEvent(event);
+}
+
 const comboboxes = (row: HTMLElement) => row.querySelectorAll('[role="combobox"]');
 const chips = (row: HTMLElement) => [...row.querySelectorAll<HTMLButtonElement>("button[data-arm-key]")];
 const chip = (row: HTMLElement, key: string) => row.querySelector<HTMLButtonElement>(`button[data-arm-key="${key}"]`)!;
@@ -264,6 +271,26 @@ describe("an unarmed list row", () => {
     counts.byName.clear();
     await act(async () => {
       pointerEnter(rows()[3]!, "mouse");
+    });
+    expect(rowRenders()).toBe(0);
+  });
+
+  it("arms a row the mouse moves over without entering it, as when the row appeared under a resting pointer", async () => {
+    await mount(datedWorld());
+    await act(async () => {
+      pointerMove(rows()[3]!, "touch");
+    });
+    expect(rowRenders()).toBe(0);
+    await act(async () => {
+      pointerMove(rows()[3]!, "mouse");
+    });
+    expect([...counts.byName.keys()]).toEqual(["Item 3"]);
+    expect(comboboxes(rows()[3]!).length).toBeGreaterThanOrEqual(2);
+    // Further moves over the armed row render nothing.
+    counts.byName.clear();
+    await act(async () => {
+      pointerMove(rows()[3]!, "mouse");
+      pointerMove(rows()[3]!, "mouse");
     });
     expect(rowRenders()).toBe(0);
   });
@@ -378,6 +405,12 @@ describe("an unarmed table row", () => {
     expect(editable(tableRows()[4]!).length).toBeGreaterThanOrEqual(2);
     expect(chips(tableRows()[5]!)).toHaveLength(5);
     expect(editable(tableRows()[5]!)).toHaveLength(0);
+    // A move arms a row too, as when a row appears under a resting pointer.
+    await act(async () => {
+      pointerMove(tableRows()[6]!, "mouse");
+    });
+    expect(chips(tableRows()[6]!)).toHaveLength(0);
+    expect(editable(tableRows()[6]!).length).toBeGreaterThanOrEqual(2);
   });
 
   it("opens the state selector a click on its chip was aimed at, and keeps focus on the key button when focus arms a row", async () => {
