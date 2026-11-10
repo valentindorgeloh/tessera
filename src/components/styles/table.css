@@ -44,11 +44,32 @@
   overflow: visible;
 }
 
+/*
+ * Column headers are quiet, as Notion's are: 36px tall, regular weight, tertiary text, a small property icon before the
+ * label, on the opaque surface with one faint hairline under them. Sticky, so they stay above the scrolling rows.
+ */
 .tessera-table .astryx-table-header-cell {
   position: sticky;
   inset-block-start: 0;
   z-index: 2;
+  height: var(--spacing-9);
+  padding-block: 0;
   background-color: var(--color-background-surface);
+  border-bottom-color: var(--color-border-faint);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-normal);
+}
+
+.tessera-table .astryx-table-header-cell button {
+  color: inherit;
+  font-weight: inherit;
+}
+
+/* The header's property icon sits before its label (table-columns.tsx, Head). */
+.tessera-table-head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1-5);
 }
 
 /* The pinned key columns' headers stay above the headers that scroll under them. */
@@ -67,16 +88,57 @@
 
 /*
  * A sortable header is a wrapper holding the sort button and, absolutely placed on the wrapper's end edge, the 8px resize
- * handle. The wrapper pads that 8px (--spacing-2) so the button ends where the handle begins. The idle sort glyph is at
- * full strength: Astryx dims it to 0.35, which is 1.7:1 on the header in both schemes (secondary text at full strength
- * is above 4.5:1).
+ * handle. The wrapper pads that 8px (--spacing-2) so the button ends where the handle begins. The sort glyph is drawn
+ * only where it is useful: while the header is hovered, when its button has keyboard focus, and on the column the table
+ * is sorted by (Astryx sets `aria-sort` on that header). Astryx dims an idle glyph to 0.35, which is 1.7:1 on the
+ * header; hidden at rest and at full strength when shown, it never sits between. Without hover (touch) it stays drawn.
  */
 .tessera-table .astryx-table-header-cell > div:has(> button) {
   padding-inline-end: var(--spacing-2);
 }
 
 .tessera-table .astryx-table-header-cell button > span:has(> .astryx-icon) {
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .tessera-table .astryx-table-header-cell:hover button > span:has(> .astryx-icon) {
+    opacity: 1;
+  }
+}
+
+.tessera-table .astryx-table-header-cell button:focus-visible > span:has(> .astryx-icon),
+.tessera-table .astryx-table-header-cell:is([aria-sort="ascending"], [aria-sort="descending"]) button > span:has(> .astryx-icon) {
   opacity: 1;
+}
+
+@media (hover: none) {
+  .tessera-table .astryx-table-header-cell button > span:has(> .astryx-icon) {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tessera-table .astryx-table-header-cell button > span:has(> .astryx-icon),
+  .tessera-table-name-open {
+    transition: none;
+  }
+}
+
+/*
+ * Dividers are the one faint hairline (--color-border-faint): a line under every cell and a line between columns, none
+ * after the last column and none beside the selection column. Astryx draws the row dividers (`dividers="rows"`) in the
+ * border colour, which stays on containers, so only their colour is set here; the column lines are drawn here, since
+ * Astryx's own (`dividers="grid"`) cannot be recoloured without its private variables and also close the last column.
+ */
+.tessera-table .astryx-table-cell {
+  border-bottom-color: var(--color-border-faint);
+}
+
+.tessera-table .astryx-table-cell:not(:last-child, .tessera-table-select-cell),
+.tessera-table .astryx-table-header-cell:not(:last-child, [data-column-key="__xds_selection"]) {
+  border-inline-end: var(--border-width) solid var(--color-border-faint);
 }
 
 /*
@@ -107,9 +169,15 @@
   outline-offset: calc(-1 * var(--border-width));
 }
 
+/* A body cell is 36px at least (Notion's row); a touch screen sets 44px below. */
+.tessera-table .astryx-table-cell {
+  height: var(--spacing-9);
+  padding-block: 0;
+}
+
+/* An editable cell is a click target as a whole (table-columns.tsx, openCellEditor). */
 .tessera-table-cell-edit {
-  cursor: default;
-  padding-block: var(--spacing-0-5);
+  cursor: pointer;
 }
 
 /*
@@ -131,6 +199,152 @@
 .tessera-table .tessera-wi-chip,
 .tessera-table .astryx-table-cell > div:has(> .tessera-wi-chip) {
   vertical-align: middle;
+}
+
+/*
+ * The quiet resting look of a property cell (properties/arming.tsx draws a chip until the row arms, then the real Astryx
+ * control, in the same box): the value alone, with no outline and no chevron. A selector's chevron and clear button, and
+ * the chip's stand-ins for them, are drawn while the cell is hovered, holds keyboard focus or its selector is open;
+ * `opacity` only, so each keeps its place and the box does not change. Without hover (touch) they stay drawn.
+ */
+.tessera-table .tessera-wi-chip,
+.tessera-table .astryx-selector[data-variant="ghost"] {
+  border-color: transparent;
+}
+
+.tessera-table .astryx-selector-indicator-icon,
+.tessera-table .tessera-wi-chevron,
+.tessera-table .tessera-wi-chip-clear,
+.tessera-table .astryx-input-clear-button {
+  opacity: 0;
+}
+
+@media (hover: hover) {
+  .tessera-table .astryx-table-cell:hover :is(.astryx-selector-indicator-icon, .astryx-input-clear-button) {
+    opacity: 1;
+  }
+}
+
+.tessera-table .astryx-table-cell:has(:focus-visible) :is(.astryx-selector-indicator-icon, .tessera-wi-chevron, .astryx-input-clear-button, .tessera-wi-chip-clear),
+.tessera-table .astryx-selector:has([aria-expanded="true"]) :is(.astryx-selector-indicator-icon, .astryx-input-clear-button) {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .tessera-table :is(.astryx-selector-indicator-icon, .tessera-wi-chevron, .tessera-wi-chip-clear, .astryx-input-clear-button) {
+    opacity: 1;
+  }
+}
+
+/* A set cycle is a tinted pill; an empty cycle, estimate or date is drawn on a hovered or focused cell (as the list does). */
+.tessera-table .tessera-wi-pill {
+  height: calc(var(--size-element-sm) - var(--spacing-2));
+  min-height: 0;
+  background-color: var(--color-background-gray);
+  color: var(--color-text-gray);
+  border-radius: var(--radius-inner);
+  font-size: var(--text-supporting-size);
+}
+
+/* A pill is a block of its own height, as the armed selector's wrapper is, so both centre on the cell alike (a 20px inline chip sat 1px off its 21px line). */
+.tessera-table .astryx-selector.tessera-wi-pill,
+.tessera-table .tessera-wi-chip.tessera-wi-pill {
+  display: flex;
+  width: fit-content;
+}
+
+.tessera-table .tessera-wi-pill .astryx-selector-indicator-icon {
+  display: none;
+}
+
+.tessera-table .tessera-wi-chip--date {
+  color: var(--color-text-secondary);
+}
+
+.tessera-table .tessera-wi-chip[data-overdue] {
+  color: var(--color-text-red);
+}
+
+.tessera-table .tessera-wi-chip[data-empty],
+.tessera-table .tessera-wi-chip--empty {
+  opacity: 0;
+}
+
+@media (hover: hover) {
+  .tessera-table .astryx-table-cell:hover :is(.tessera-wi-chip[data-empty], .tessera-wi-chip--empty) {
+    opacity: 1;
+  }
+}
+
+.tessera-table .astryx-table-cell:has(:focus-visible) :is(.tessera-wi-chip[data-empty], .tessera-wi-chip--empty),
+.tessera-table :is(.tessera-wi-chip[data-empty][aria-expanded="true"], .tessera-wi-chip--empty:has([aria-expanded="true"])) {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .tessera-table :is(.tessera-wi-chip[data-empty], .tessera-wi-chip--empty) {
+    opacity: 1;
+  }
+}
+
+/* Labels, modules and the assignees are plain values: pills and avatars with names, on one line. */
+.tessera-wi-cell-tokens,
+.tessera-wi-cell-assignees {
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+/*
+ * The "Open" button of a row (table-columns.tsx): over the end of the Name cell, on the surface with a faint outline so
+ * it reads above the title it covers. Invisible at rest (`opacity: 0` only; a mouse click on it still lands), drawn while
+ * the row is hovered (under `(hover: hover)`, so a tap's own hover does not show it) or anything in the row has keyboard
+ * focus (`:has(:focus-visible)` on the row, never on the scroller). Where there is no hover (touch) it is left out: the
+ * key button and the row stay the ways in, and a phone's rows stay clean.
+ */
+.tessera-table-name-cell {
+  position: relative;
+}
+
+.tessera-table-name-open {
+  position: absolute;
+  inset-inline-end: var(--spacing-1);
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  background-color: var(--color-background-surface);
+  border: var(--border-width) solid var(--color-border-faint);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .tessera-table-row:hover .tessera-table-name-open {
+    opacity: 1;
+  }
+}
+
+.tessera-table-row:has(:focus-visible) .tessera-table-name-open {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .tessera-table-name-open {
+    display: none;
+  }
+}
+
+/* A group header row has no muted band: the surface colour and the faint hairline under it. */
+.tessera-table .astryx-table-row:has(> td[colspan]) {
+  background-color: var(--color-background-surface);
+  border-bottom-color: var(--color-border-faint);
+}
+
+/* A group header is quiet: the name in medium weight, the count plain tabular text in the tertiary colour. */
+.tessera-table .astryx-table-row > td[colspan] .tessera-wi-label-text {
+  font-weight: var(--font-weight-medium);
+}
+
+.tessera-table .tessera-table-group-count {
+  color: var(--color-text-tertiary);
 }
 
 /* The key cell is the row's accessible open control; the row click is a pointer convenience. */

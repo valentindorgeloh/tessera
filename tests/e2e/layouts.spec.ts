@@ -71,6 +71,8 @@ test("an advanced filter narrows the list to its condition and shows the count",
   await openLayout(page, project.id, "list");
   await expect(page.getByRole("listitem").filter({ hasText: "Calm one" })).toBeVisible();
 
+  // The filters row is drawn only on demand: the Filter toggle opens it.
+  await page.getByRole("button", { name: "Filter work items" }).click();
   await page.getByRole("button", { name: /^Advanced/ }).click();
   const dialog = await waitForDialog(page, "Advanced filters");
   // The first condition is Priority is Urgent.
@@ -91,6 +93,8 @@ test("exporting a list writes a CSV that downloads and shows under Settings, Exp
   await mcp("create_work_item", { project_id: project.id, name: "Exported row" });
   await openLayout(page, project.id, "list");
 
+  // Export… lives in the Display menu.
+  await page.getByRole("button", { name: "Display", exact: true }).click();
   await page.getByRole("button", { name: "Export…" }).click();
   const dialog = await waitForDialog(page, "Export work items");
   await dialog.getByRole("button", { name: "Export", exact: true }).click();

@@ -5,6 +5,11 @@ import { useProjectRow } from "../project-provider";
 import { PropertyChip, useArmed, useArmedHandoff } from "./arming";
 import { cycleControlModel } from "./membership-rules";
 
+/** The class of a set cycle's pill in a row; the chip and the armed selector carry it alike (work-items.css). */
+const PILL_CLASS = "tessera-wi-pill";
+/** The class of a selector with no value, in place of the `data-empty` attribute of a chip (work-items.css). */
+const EMPTY_CLASS = "tessera-wi-chip--empty";
+
 export type CycleControlProps = {
   /** Cycle id or null. */
   value: string | null;
@@ -30,7 +35,7 @@ export function CycleControl({ value, onChange, compact = false, readOnly = fals
   if (!armed && !readOnly && !model.readOnly && armKey !== undefined) {
     const current = model.options.find((option) => option.value === value)?.label;
     return (
-      <PropertyChip label={`${label}: ${current ?? "none"}`} armKey={armKey} arm={arm} isSelector hasClear={value !== null}>
+      <PropertyChip label={`${label}: ${current ?? "none"}`} armKey={armKey} arm={arm} isSelector hasClear={value !== null} isEmpty={value === null} isPill={value !== null} className={value !== null ? PILL_CLASS : undefined}>
         {current ?? (compact ? "Cycle" : "No cycle")}
       </PropertyChip>
     );
@@ -48,6 +53,8 @@ export function CycleControl({ value, onChange, compact = false, readOnly = fals
       value={value}
       onChange={(next) => onChange(next)}
       hasClear
+      // A set cycle reads as a tinted pill in a row (work-items.css), an empty one is drawn on a hovered cell only; at rest as a chip and armed as the selector.
+      controlClassName={compact ? (value !== null ? PILL_CLASS : EMPTY_CLASS) : undefined}
       isReadOnly={readOnly || model.readOnly}
       placeholder={compact ? "Cycle" : "No cycle"}
       emptyText="No open cycles in this project"

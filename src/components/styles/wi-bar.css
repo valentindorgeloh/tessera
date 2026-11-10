@@ -1,0 +1,94 @@
+/*
+ * The work items bar (WorkItemsBar.tsx, docs/contracts/ui.md "Work items screen"):
+ * one quiet row (title, count, layout pills | Filter, Display, New work item) and
+ * a filters row only while it is in use. Tokens only.
+ */
+
+/* The bar is the size container: the pills collapse by its width (a peek beside the list squeezes it), not the window's. */
+.tessera-wi-bar {
+  container: tessera-wi-bar / inline-size;
+}
+
+/* Title first, then the pills: when both do not fit the pills wrap under the title instead of shrinking. */
+.tessera-wi-bar > .tessera-panel-bar-start {
+  flex-wrap: wrap;
+  row-gap: var(--spacing-1);
+}
+
+/* The count: quiet tabular text beside the title (Astryx Text has no tertiary colour, so the token goes on the class). */
+.tessera-wi-bar .tessera-wi-count {
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Layout pills. The Astryx SegmentedControl keeps the radio group and the arrow keys; here
+ * it loses its track and its raised thumb: a pill is plain secondary text, the active one a
+ * soft neutral fill in primary text at medium weight, an inactive one a hover overlay.
+ */
+.tessera-wi-layouts.astryx-segmented-control {
+  background: transparent;
+  padding: 0;
+  gap: var(--spacing-1);
+  border-radius: var(--radius-full);
+  box-shadow: none;
+}
+
+.tessera-wi-layouts .astryx-segmented-control-item {
+  border-radius: var(--radius-full);
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-text-secondary);
+  padding-inline: var(--spacing-3);
+}
+
+.tessera-wi-layouts .astryx-segmented-control-item:hover {
+  background: var(--color-overlay-hover);
+}
+
+.tessera-wi-layouts .astryx-segmented-control-item:active {
+  background: var(--color-overlay-pressed);
+}
+
+.tessera-wi-layouts .astryx-segmented-control-item[data-selected] {
+  background: var(--color-neutral);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/*
+ * Under 56rem of bar (a window below about 900px of content, a peek beside the list, a phone) the
+ * inactive pills keep only their icon. The label stays in the accessibility tree: clipped, never
+ * display: none. LayoutPills.tsx adds a tooltip with the name in the same state.
+ */
+@container tessera-wi-bar (width < 56rem) {
+  .tessera-wi-layouts .astryx-segmented-control-item:not([data-selected]) [data-astryx-segment-title] {
+    position: absolute;
+    inline-size: 0;
+    block-size: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .tessera-wi-layouts .astryx-segmented-control-item:not([data-selected]) {
+    padding-inline: var(--spacing-2);
+  }
+}
+
+/* The Filter toggle: a small accent dot while filters apply, so a hidden-looking row never hides that they do. */
+.tessera-wi-filter-toggle {
+  position: relative;
+}
+
+.tessera-wi-filter-toggle[data-filters-active]::after {
+  content: "";
+  position: absolute;
+  inset-block-start: var(--spacing-1);
+  inset-inline-end: var(--spacing-1);
+  inline-size: var(--spacing-2);
+  block-size: var(--spacing-2);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  pointer-events: none;
+}

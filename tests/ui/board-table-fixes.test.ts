@@ -242,10 +242,58 @@ describe("table row selection", () => {
     const onOpen = vi.fn();
     const el = await render(createElement(TableLayout, tableProps(onOpen, vi.fn())));
     const row = [...el.querySelectorAll("tbody tr")].find((entry) => entry.textContent?.includes("Item 1")) as HTMLElement;
-    const nameCell = [...row.querySelectorAll("td")].find((cell) => cell.textContent === "Item 1") as HTMLElement;
+    // The Name cell also holds the row's "Open" button, so it is found by its text span.
+    const nameCell = row.querySelector(".tessera-wi-cell-text")!.closest("td") as HTMLElement;
     await act(async () => {
       nameCell.click();
     });
     expect(onOpen).toHaveBeenCalledWith(first.id);
   });
 });
+
+describe("table cells", () => {
+  const tableProps = (onOpen: () => void) => layoutProps({ display: { ...DEFAULT_DISPLAY, layout: "table" }, onOpen });
+  const rowOf = (el: HTMLElement) => [...el.querySelectorAll("tbody tr")].find((entry) => entry.textContent?.includes("Item 1")) as HTMLElement;
+
+  it("opens an editable cell's editor from a click anywhere in the cell, and not the item", async () => {
+    const onOpen = vi.fn();
+    const el = await render(createElement(TableLayout, tableProps(onOpen)));
+    const row = rowOf(el);
+    // The resting chip is inside the cell; the click lands on the cell itself (its padding), not on the chip.
+    const cell = row.querySelector('[data-arm-key="state"]')!.closest("td") as HTMLElement;
+    await act(async () => {
+      cell.click();
+    });
+    expect(row.querySelector('[role="combobox"][aria-expanded="true"]')).not.toBeNull();
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("gives every row an Open button with its own accessible name, which opens the item and nothing else", async () => {
+    const onOpen = vi.fn();
+    const el = await render(createElement(TableLayout, tableProps(onOpen)));
+    const open = rowOf(el).querySelector<HTMLButtonElement>('button[aria-label="Open WEB-1"]');
+    expect(open).not.toBeNull();
+    // Label-in-name: the visible text is "Open", the name keeps it; the key button stays the keyboard route.
+    expect(open!.textContent).toContain("Open");
+    expect(open!.tabIndex).toBe(-1);
+    await act(async () => {
+      open!.click();
+    });
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen).toHaveBeenCalledWith(first.id);
+  });
+
+  it("draws the read-only cells (labels, modules, assignees) as plain values and lets a click on them open the item", async () => {
+    const onOpen = vi.fn();
+    const el = await render(createElement(TableLayout, tableProps(onOpen)));
+    const row = rowOf(el);
+    expect(row.querySelector('[role="combobox"][aria-label="Labels"], [aria-haspopup="listbox"][aria-label="Labels"]')).toBeNull();
+    // The first cell that is neither the key, the name nor an editor is the assignees cell.
+    const plain = [...row.querySelectorAll("td")].find((cell) => !/tessera-table-(key|name|cell-edit)/.test(cell.className)) as HTMLElement;
+    await act(async () => {
+      plain.click();
+    });
+    expect(onOpen).toHaveBeenCalledWith(first.id);
+  });
+});
+

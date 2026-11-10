@@ -90,10 +90,26 @@ describe("catppuccin palette contrast", () => {
       ["text-primary", SEMANTIC_TOKENS["--color-text-primary"]],
       ["text-secondary", SEMANTIC_TOKENS["--color-text-secondary"]],
       ["text-accent", ACCENT_TOKENS["--color-text-accent"]],
+      // Column headers and row meta (the third text level), also under a hovered row's overlay below.
+      ["text-tertiary", SEMANTIC_TOKENS["--color-text-tertiary"]],
     ])("%s reads on every surface", (_token, pair) => {
       for (const [surface, background] of surfaces) {
         expect(ratio(paint(pair[mode]), paint(background)), surface).toBeGreaterThanOrEqual(TEXT);
       }
+    });
+
+    it("tertiary text reads on a hovered row", () => {
+      const row = paint(SEMANTIC_TOKENS["--color-background-surface"][mode], SEMANTIC_TOKENS["--color-overlay-hover"][mode]);
+      expect(ratio(paint(SEMANTIC_TOKENS["--color-text-tertiary"][mode]), row)).toBeGreaterThanOrEqual(TEXT);
+    });
+
+    // A divider is decoration between rows, not a control outline: it only has to stay fainter than the container border.
+    it("the faint row divider is quieter than the container border", () => {
+      const surface = paint(SEMANTIC_TOKENS["--color-background-surface"][mode]);
+      const faint = paint(SEMANTIC_TOKENS["--color-background-surface"][mode], SEMANTIC_TOKENS["--color-border-faint"][mode]);
+      const border = paint(SEMANTIC_TOKENS["--color-border"][mode]);
+      expect(ratio(faint, surface)).toBeLessThan(ratio(border, surface));
+      expect(ratio(faint, surface)).toBeGreaterThan(1.05);
     });
 
     it("icon-secondary is visible on every surface", () => {

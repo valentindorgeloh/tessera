@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Display menu and layout switch (docs/contracts/ui.md "Work items screen"):
- * the switch in the sub-header picks the layout; the menu holds grouping,
- * ordering, toggles and visible properties. Every change is written twice:
+ * Display menu (docs/contracts/ui.md "Work items screen"): the layout switch
+ * (./LayoutPills.tsx) picks the layout; the menu holds grouping, ordering,
+ * toggles, visible properties and, last, "Export…". Every change is written twice:
  * to the URL (`q`, display half) so the page re-renders with it, and to the
  * list's view settings (the project's, or a cycle's or module's in a scoped
  * list, decision 23) through `saveViewSettingsAction` so it survives a plain
@@ -28,9 +28,9 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { resetViewSettingsAction, saveViewSettingsAction } from "@/app/actions/views";
 import { withSearchParam } from "@/components/detail/peek-url";
 import { GROUPABLE_FIELDS, ORDER_BY_VALUES } from "@/lib/tessera/core/group";
-import { CalendarLayoutSchema, GanttZoomSchema, LayoutSchema, SubGroupBySchema } from "@/lib/tessera/schemas";
-import type { Display, DisplayProperties, GroupBy, Layout, OrderBy, SubGroupBy } from "@/lib/tessera/types";
-import { CalendarIcon, GanttIcon, KanbanIcon, RowsIcon, SlidersIcon, TableIcon } from "@/themes/catppuccin/icons";
+import { CalendarLayoutSchema, GanttZoomSchema, SubGroupBySchema } from "@/lib/tessera/schemas";
+import type { Display, DisplayProperties, GroupBy, OrderBy, SubGroupBy } from "@/lib/tessera/types";
+import { ExportIcon, SlidersIcon } from "@/themes/catppuccin/icons";
 import { groupByChoices, groupByPatch, orderByChoices, orderBySelectValue, subGroupChoices } from "./display-options";
 import { useProject } from "./project-provider";
 import type { SettingsScope, UrlState } from "./types";
@@ -55,6 +55,8 @@ export type DisplayMenuProps = LayoutSwitchProps & {
   hiddenGroupFields?: readonly GroupBy[];
   /** A workspace or profile list can group by project. A project list cannot. */
   includeProject?: boolean;
+  /** Opens the export dialog; the menu closes first. Left out, the menu has no Export row. */
+  onExport?: () => void;
 };
 
 const NO_HIDDEN_FIELDS: readonly GroupBy[] = [];
@@ -91,9 +93,6 @@ function isSubGroupBy(value: string): value is SubGroupBy {
 }
 function isOrderBy(value: string): value is OrderBy {
   return (ORDER_BY_VALUES as readonly string[]).includes(value);
-}
-function isLayout(value: string): value is Layout {
-  return (LayoutSchema.options as readonly string[]).includes(value);
 }
 function isCalendarView(value: string): value is "month" | "week" {
   return (CalendarLayoutSchema.options as readonly string[]).includes(value);
@@ -144,38 +143,29 @@ export function useDisplayWriter(settingsScope: SettingsScope | null, urlState: 
   return { apply, reset };
 }
 
-/**
- * The layout switch of the work items sub-header: list, board, table,
- * calendar and gantt as icon segments. Workspace views do not mount it
- * (decision 18: those views stay table-only).
- */
-export function LayoutSwitch({ display, urlState, settingsScope }: LayoutSwitchProps) {
-  const { apply } = useDisplayWriter(settingsScope, urlState);
-  return (
-    <SegmentedControl label="Layout" size="sm" value={display.layout} onChange={(value) => isLayout(value) && apply({ layout: value })}>
-      <SegmentedControlItem value="list" label="List" isLabelHidden icon={<RowsIcon />} />
-      <SegmentedControlItem value="board" label="Board" isLabelHidden icon={<KanbanIcon />} />
-      <SegmentedControlItem value="table" label="Table" isLabelHidden icon={<TableIcon />} />
-      <SegmentedControlItem value="calendar" label="Calendar" isLabelHidden icon={<CalendarIcon />} />
-      <SegmentedControlItem value="gantt" label="Gantt" isLabelHidden icon={<GanttIcon />} />
-    </SegmentedControl>
-  );
-}
-
 type DisplayMenuBodyProps = Pick<DisplayMenuProps, "display"> & {
   hiddenGroupFields: readonly GroupBy[];
   includeProject: boolean;
   apply: (patch: Partial<Display>) => void;
   reset: () => void;
   isViewScoped: boolean;
+  onExport?: () => void;
 };
 
-export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupFields = NO_HIDDEN_FIELDS, includeProject = false }: DisplayMenuProps) {
+export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupFields = NO_HIDDEN_FIELDS, includeProject = false, onExport }: DisplayMenuProps) {
   const [isOpen, setOpen] = useState(false);
   const { apply, reset } = useDisplayWriter(settingsScope, urlState);
 
   // The body mounts only while the popover is open: its switches, selectors and checkboxes measure layout when they mount, even hidden.
-  const body = <DisplayMenuBody display={display} hiddenGroupFields={hiddenGroupFields} includeProject={includeProject} apply={apply} reset={reset} isViewScoped={settingsScope === null} />;
+  const exportAndClose = onExport
+    ? () => {
+        setOpen(false);
+        onExport();
+      }
+    : undefined;
+  const body = (
+    <DisplayMenuBody display={display} hiddenGroupFields={hiddenGroupFields} includeProject={includeProject} apply={apply} reset={reset} isViewScoped={settingsScope === null} onExport={exportAndClose} />
+  );
   return (
     <Popover isOpen={isOpen} onOpenChange={setOpen} content={isOpen ? body : null} label="Display options" placement="below" alignment="end" width={MENU_WIDTH} hasAutoFocus>
       <Button variant="secondary" size="sm" label="Display" icon={<SlidersIcon />} />
@@ -183,7 +173,7 @@ export function DisplayMenu({ display, urlState, settingsScope, hiddenGroupField
   );
 }
 
-function DisplayMenuBody({ display, hiddenGroupFields, includeProject, apply, reset, isViewScoped }: DisplayMenuBodyProps) {
+function DisplayMenuBody({ display, hiddenGroupFields, includeProject, apply, reset, isViewScoped, onExport }: DisplayMenuBodyProps) {
   const { bundle } = useProject();
 
   const toOption = (choice: { value: string | null; label: string }): SelectorOptionData => ({ value: choice.value ?? NONE, label: choice.label });
@@ -274,7 +264,8 @@ function DisplayMenuBody({ display, hiddenGroupFields, includeProject, apply, re
           <CheckboxListItem key={key} value={key} label={PROPERTY_LABELS[key]} />
         ))}
       </CheckboxList>
-      <HStack hAlign="end">
+      <HStack hAlign={onExport ? "between" : "end"} vAlign="center">
+        {onExport ? <Button variant="ghost" size="sm" label="Export…" icon={<ExportIcon />} onClick={onExport} /> : null}
         <Button variant="ghost" size="sm" label={isViewScoped ? "Reset to view" : "Reset to defaults"} onClick={reset} />
       </HStack>
     </VStack>

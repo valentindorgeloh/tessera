@@ -13,12 +13,12 @@
  * (./optimistic.ts) render as inert rows until the server item replaces them.
  */
 import { memo, useCallback, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { useEntryAnimation, useListFocus, type AnimatedLayout } from "@astryxdesign/core/hooks";
+import { Icon, type IconType } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
@@ -26,6 +26,7 @@ import { Token } from "@astryxdesign/core/Token";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { formatEstimateValue } from "@/components/estimates/estimate-format";
 import { ActorAvatar } from "@/components/shell/ActorAvatar";
+import { LinkIcon, ParentIcon } from "@/themes/catppuccin/icons";
 import { groupLimitKey } from "@/lib/tessera/core/group";
 import type { Display, Group, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { visibleGroups, nothingMatches } from "./list-groups";
@@ -113,7 +114,10 @@ function GroupHeader({ group, display, selection, ids }: { group: Group; display
           <GroupMarker group={group} />
         </Text>
       </HStack>
-      <Badge label={group.count} />
+      {/* The group's full count as plain tertiary text (the rows under it may be only the first page). */}
+      <Text type="supporting" className="tessera-wi-group-count" hasTabularNumbers>
+        {group.count}
+      </Text>
       <GroupPoints points={group.estimate_points} display={display} />
     </HStack>
   );
@@ -135,6 +139,18 @@ type RowProps = {
   /** The selection hook's fixed-identity toggle (use-selection.ts); present exactly when `selected` is. */
   onToggle?: (id: string, shift: boolean) => void;
 };
+
+/** A count of the row (sub-items, links): a small icon and quiet tertiary text, not a badge. */
+function RowMeta({ icon, label }: { icon: IconType; label: string }) {
+  return (
+    <HStack gap={1} vAlign="center" className="tessera-wi-meta">
+      <Icon icon={icon} size="sm" color="inherit" />
+      <Text type="supporting" className="tessera-wi-prop-text" hasTabularNumbers>
+        {label}
+      </Text>
+    </HStack>
+  );
+}
 
 function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowProps, "item" | "display" | "onUpdate" | "readOnly">) {
   const { bundle, labelsById, actorsById, modulesById, statesById } = useProjectRow();
@@ -225,10 +241,10 @@ function RowProperties({ item, display, onUpdate, readOnly = false }: Pick<RowPr
     );
   }
   if (props.sub_items_count && item.sub_items_count > 0) {
-    nodes.push(<Badge key="sub" label={`${item.sub_items_count} sub-items`} className="tessera-wi-count" />);
+    nodes.push(<RowMeta key="sub" icon={ParentIcon} label={`${item.sub_items_count} sub-items`} />);
   }
   if (props.links && item.links_count > 0) {
-    nodes.push(<Badge key="links" label={`${item.links_count} links`} className="tessera-wi-count" />);
+    nodes.push(<RowMeta key="links" icon={LinkIcon} label={`${item.links_count} links`} />);
   }
   if (props.estimate && item.estimate_point_id && bundle.estimate) {
     const point = bundle.estimate.points.find((entry) => entry.id === item.estimate_point_id);

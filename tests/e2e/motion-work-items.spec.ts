@@ -143,6 +143,7 @@ test("a layout change fades the scroller; first load, a filter and the agent ref
   // A filter keeps the layout: the content stays still. It is applied inside the loaded page (a client-side change that
   // rewrites the URL state), after the samples are reset: a hard navigation would only repeat the first-load check.
   await resetSamples(page);
+  await page.getByRole("button", { name: "Filter work items" }).click(); // the filters row is drawn on demand
   await page.getByRole("button", { name: /^Advanced/ }).click();
   const dialog = await waitForDialog(page, "Advanced filters");
   await expect(dialog.getByRole("combobox", { name: "Field" })).toContainText("Priority"); // the first condition: Priority is Urgent

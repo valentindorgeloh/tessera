@@ -99,6 +99,9 @@ export const SEMANTIC_TOKENS = {
   "--color-background-muted": [LATTE.crust, FRAPPE.mantle],
   "--color-background-inverted": pair("text"),
   "--color-border": pair("surface0"),
+  // Dividers between data rows and table cells (docs/drafts/notion-design-research.md): the text colour at a
+  // low alpha, fainter than the container border, so a dense table reads as rows of content and not as a grid.
+  "--color-border-faint": tint("text", 0.09, 0.07),
   // Control outlines: inputs, selectors, checkbox and radio rings, and the off
   // switch track (catppuccinTheme.ts) need 3:1 (WCAG 1.4.11). Latte overlay2 is
   // nudged one step darker so the board's quick-add input keeps 3:1 on crust.
@@ -107,6 +110,9 @@ export const SEMANTIC_TOKENS = {
   // subtext1 in both flavours: subtext0 drops below 4.5:1 on base (Latte) and on
   // the neutral and mauve-tinted fills behind segments, avatars and selected rows (Frappé).
   "--color-text-secondary": pair("subtext1"),
+  // A third text level for column headers and row meta on the content surfaces. Frappé steps down to subtext0
+  // (5.5:1 on base); Latte subtext0 is 4.4:1 on base, so Latte keeps subtext1 and the step is Frappé-only.
+  "--color-text-tertiary": [LATTE.subtext1, FRAPPE.subtext0],
   "--color-text-disabled": pair("overlay0"),
   "--color-icon-primary": pair("text"),
   // Latte overlay2 is 2.99:1 on crust (board columns), so Latte icons step up to subtext0.

@@ -30,7 +30,7 @@ export function EstimateControl({ value, onChange, size = "md", isLabelHidden = 
     const point = value === null ? undefined : estimate.points.find((candidate) => candidate.id === value);
     const shown = point === undefined ? undefined : formatEstimateValue(estimate.type, point.value);
     return (
-      <PropertyChip label={`Estimate: ${shown ?? "none"}`} armKey={armKey} arm={arm} isSelector hasClear={value !== null}>
+      <PropertyChip label={`Estimate: ${shown ?? "none"}`} armKey={armKey} arm={arm} isSelector hasClear={value !== null} isEmpty={value === null}>
         {shown ?? "No estimate"}
       </PropertyChip>
     );
@@ -49,6 +49,8 @@ export function EstimateControl({ value, onChange, size = "md", isLabelHidden = 
       hasClear
       variant="ghost"
       size={size}
+      // An empty estimate in a row is drawn on a hovered cell only, as its chip is (work-items.css).
+      controlClassName={size === "sm" && value === null ? "tessera-wi-chip--empty" : undefined}
       options={options}
       value={value}
       onChange={(next) => onChange(next === "" || next === null ? null : next)}

@@ -20,6 +20,7 @@ const stripCss = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, "");
 const ROW_FILES = [
   "src/components/work-items/ListLayout.tsx",
   "src/components/work-items/TableLayout.tsx",
+  "src/components/work-items/table-columns.tsx",
   "src/components/work-items/GanttLayout.tsx",
   "src/components/planning/ModulesTimeline.tsx",
   "src/components/work-items/properties/StateControl.tsx",
@@ -62,10 +63,10 @@ describe("row text truncation", () => {
   });
 
   it("cuts the table's Name and Project cells with OneLineText, inside the Table's own textOverflow=\"truncate\"", () => {
-    const table = read("src/components/work-items/TableLayout.tsx");
-    expect(table).toMatch(/textOverflow="truncate"/);
-    expect(table).toMatch(/<OneLineText className="tessera-wi-cell-text" weight="medium">\s*\{row\.item\.name\}/);
-    expect(table).toMatch(/<OneLineText className="tessera-wi-cell-text">\{projectName\.get\(row\.item\.project_id\) \?\? ""\}<\/OneLineText>/);
+    expect(read("src/components/work-items/TableLayout.tsx")).toMatch(/textOverflow="truncate"/);
+    const columns = read("src/components/work-items/table-columns.tsx");
+    expect(columns).toMatch(/<OneLineText className="tessera-wi-cell-text" weight="medium">\s*\{row\.item\.name\}/);
+    expect(columns).toMatch(/<OneLineText className="tessera-wi-cell-text">\{projectName\.get\(row\.item\.project_id\) \?\? ""\}<\/OneLineText>/);
   });
 
   it("cuts the gantt's band labels, row names and bar labels with OneLineText", () => {

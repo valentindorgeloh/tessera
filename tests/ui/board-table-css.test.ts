@@ -3,7 +3,7 @@
  * no layout: a card is no whole-card touch grip (only the grip has `touch-action: none`), the strip snaps hard on a
  * phone, a card's menu is quiet until hover or focus (and always on where there is no hover), the swimlane heads and
  * lane bars stick, the table header sticks (its wrapper no longer clips), and the 44px touch rules exist only under
- * "(pointer: coarse), (max-width: 480px)" so the 1440 density (rows 37px, header 29.5px) is untouched.
+ * "(pointer: coarse), (max-width: 480px)" so the 1440 density (rows and header 36px, the quiet Notion-style table) is untouched.
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -178,7 +178,58 @@ describe("table.css", () => {
     const headers = blocks(css).find((block) => block.prelude.includes('[data-column-key="state"]') && block.prelude.includes('[data-column-key="estimate"]'));
     expect(headers?.body).toMatch(/padding-inline-start:\s*var\(--spacing-5\)/);
     expect(rule(css, ".tessera-table .astryx-table-header-cell > div:has(> button)")).toMatch(/padding-inline-end:\s*var\(--spacing-2\)/);
-    expect(rule(css, ".tessera-table .astryx-table-header-cell button > span:has(> .astryx-icon)")).toMatch(/opacity:\s*1/);
+  });
+
+  it("draws the sort glyph on header hover, keyboard focus and the sorted column only, and always where there is no hover", () => {
+    const glyph = ".tessera-table .astryx-table-header-cell button > span:has(> .astryx-icon)";
+    // Hidden at rest (the idle glyph no longer sits at full strength on every header).
+    expect(rule(css, glyph)).toMatch(/opacity:\s*0/);
+    expect(media(css, "@media (hover: hover)")).toMatch(/\.astryx-table-header-cell:hover button > span:has\(> \.astryx-icon\)\s*\{[^}]*opacity:\s*1/);
+    // Astryx marks the sorted column's header with aria-sort; a keyboard-focused sort button shows its glyph.
+    const shown = blocks(css).find((block) => block.prelude.includes('[aria-sort="ascending"]') && block.prelude.includes('button:focus-visible'));
+    expect(shown?.prelude).toContain('[aria-sort="descending"]');
+    expect(shown?.body).toMatch(/opacity:\s*1/);
+    expect(media(css, "@media (hover: none)")).toMatch(/astryx-table-header-cell button > span:has\(> \.astryx-icon\)\s*\{[^}]*opacity:\s*1/);
+  });
+
+  it("makes headers 36px, regular and tertiary, rows 36px, and draws every divider in the faint colour", () => {
+    const header = rule(css, ".tessera-table .astryx-table-header-cell");
+    expect(header).toMatch(/height:\s*var\(--spacing-9\)/);
+    expect(header).toMatch(/font-weight:\s*var\(--font-weight-normal\)/);
+    expect(header).toMatch(/color:\s*var\(--color-text-tertiary\)/);
+    expect(header).toMatch(/border-bottom-color:\s*var\(--color-border-faint\)/);
+    expect(header).toMatch(/background-color:\s*var\(--color-background-surface\)/);
+    const cell = rule(css, ".tessera-table .astryx-table-cell");
+    expect(cell).toMatch(/height:\s*var\(--spacing-9\)/);
+    expect(cell).toMatch(/border-bottom-color:\s*var\(--color-border-faint\)/);
+    // A line between columns, none after the last column and none beside the selection column.
+    const columns = blocks(css).find((block) => block.prelude.includes(".astryx-table-cell:not(:last-child, .tessera-table-select-cell)"));
+    expect(columns?.prelude).toContain('.astryx-table-header-cell:not(:last-child, [data-column-key="__xds_selection"])');
+    expect(columns?.body).toMatch(/border-inline-end:\s*var\(--border-width\) solid var\(--color-border-faint\)/);
+  });
+
+  it("draws the resting property cell without a chevron, clear glyph or outline, and a set cycle as a tinted pill", () => {
+    const chrome = blocks(css).find((block) => block.prelude.includes(".tessera-table .astryx-selector-indicator-icon") && block.prelude.includes(".tessera-table .tessera-wi-chevron"));
+    expect(chrome?.body).toMatch(/opacity:\s*0/);
+    expect(media(css, "@media (hover: none)")).toMatch(/astryx-selector-indicator-icon[\s\S]*opacity:\s*1/);
+    expect(rule(css, ".tessera-table .tessera-wi-pill")).toMatch(/background-color:\s*var\(--color-background-gray\)/);
+    expect(rule(css, '.tessera-table .astryx-selector[data-variant="ghost"]')).toMatch(/border-color:\s*transparent/);
+  });
+
+  it("reveals the row's Open button on hover and keyboard focus only, with opacity, and omits it where there is no hover", () => {
+    expect(rule(css, ".tessera-table-name-open")).toMatch(/opacity:\s*0/);
+    expect(rule(css, ".tessera-table-name-open")).toMatch(/transition:\s*opacity var\(--duration-fast\)/);
+    // The hover reveal is under (hover: hover), so a tap's own hover does not show it; the keyboard reveal is scoped to the row.
+    expect(media(css, "@media (hover: hover)")).toMatch(/\.tessera-table-row:hover \.tessera-table-name-open\s*\{[^}]*opacity:\s*1/);
+    expect(rule(css, ".tessera-table-row:has(:focus-visible) .tessera-table-name-open")).toMatch(/opacity:\s*1/);
+    expect(media(css, "@media (hover: none)")).toMatch(/\.tessera-table-name-open\s*\{[^}]*display:\s*none/);
+    expect(media(css, "@media (prefers-reduced-motion: reduce)")).toMatch(/\.tessera-table-name-open[\s\S]*transition:\s*none/);
+  });
+
+  it("gives a group header row no muted band: the surface colour and a faint hairline", () => {
+    const body = rule(css, ".tessera-table .astryx-table-row:has(> td[colspan])");
+    expect(body).toMatch(/background-color:\s*var\(--color-background-surface\)/);
+    expect(body).toMatch(/border-bottom-color:\s*var\(--color-border-faint\)/);
   });
 
   it("marks the peeked row with an accent edge on its first cell", () => {

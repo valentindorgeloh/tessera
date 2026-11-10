@@ -9,8 +9,8 @@
  * `display.group_by` is set, resizable columns and inline edits through the ghost property
  * controls of ./properties. The key cell is the row's accessible open control
  * (a ghost button, as in the list layout) and is always present; a click on
- * the rest of the row opens the item as a pointer convenience, while clicks
- * inside an editable cell stay in the cell.
+ * the rest of the row opens the item as a pointer convenience, while a click
+ * anywhere in an editable cell opens that cell's editor (./table-columns.tsx).
  *
  * Labels, assignees and modules are shown read-only: `onUpdate` carries the
  * update_work_item patch, which has no set-style fields for them. Quick-add
@@ -19,265 +19,44 @@
  */
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { Badge } from "@astryxdesign/core/Badge";
-import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { HStack } from "@astryxdesign/core/Stack";
 import {
   Table,
-  pixel,
-  proportional,
   useTableColumnResize,
   useTableGroupedRows,
   useTableSelection,
   useTableSortable,
   useTableStickyColumns,
-  type TableColumn,
   type TablePlugin,
 } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { Token } from "@astryxdesign/core/Token";
 import { groupLimitKey } from "@/lib/tessera/core/group";
-import type { DisplayProperties, Group, GroupBy, StateGroup, WorkItem } from "@/lib/tessera/types";
+import type { Group, GroupBy, StateGroup, WorkItem } from "@/lib/tessera/types";
 import { GroupFooter, GroupPoints } from "./GroupFooter";
 import { isOptimisticId } from "./optimistic";
+import { EDITABLE, buildColumns, isDataRow, openCellEditor, type ProjectNames, type TableRow } from "./table-columns";
 import { UNGROUPED_KEY, hasUnloaded, loadedOfTotal } from "./paging";
 import { usePeekedId } from "./peeked";
 import { NoResults } from "./NoResults";
-import { OneLineText } from "./OneLineText";
 import { useProjectRow, type RowBundle } from "./project-provider";
-import { RowProject } from "./row-project";
 import { useShared } from "./stable";
 import { TABLE_SORT_FIELDS, orderByFromSort, sortFromOrderBy } from "./table-sort";
-import { ActorLabel, AssigneeControl, CycleControl, DateControl, EstimateControl, LabelControl, ModuleControl, PriorityControl, PriorityLabel, StateControl, StateLabel, isPriority, paletteTokenColor } from "./properties";
-import { ArmedCell, createArmedRows, tableRowArmingHandlers, type ArmedRows } from "./properties/arming";
-import type { LayoutProps, UpdateWorkItemPatch } from "./types";
-
-/** One table row; a grouped result repeats an item under every group it belongs to, so the row id carries the group. */
-interface TableRow extends Record<string, unknown> {
-  id: string;
-  item: WorkItem;
-  groupKey: string;
-}
-
-/** Group headers injected by the grouped-rows plugin read every unknown field as "" (never an object). */
-function isDataRow(row: TableRow): boolean {
-  return typeof row.item === "object" && row.item !== null;
-}
-
-type ColumnKey = "key" | "name" | "project" | "state" | "priority" | "assignees" | "labels" | "cycle" | "modules" | "estimate" | "start_date" | "target_date" | "created_at" | "updated_at";
-
-/** Columns whose cells hold a control; clicks inside them do not open the row. */
-const EDITABLE: ReadonlySet<string> = new Set<ColumnKey>(["state", "priority", "assignees", "labels", "cycle", "modules", "estimate", "start_date", "target_date"]);
+import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } from "./properties";
+import { createArmedRows, tableRowArmingHandlers } from "./properties/arming";
+import type { LayoutProps } from "./types";
 
 /** Id of the selection plugin's column (`__xds_selection` in the DOM); its cell stops clicks like an editable one. */
 const SELECTION_KEY = "__xds_selection";
 
-/** The Name column grows with the table but never below Plane's first-column floor of 240px (reference section 8). */
-const NAME_COLUMN_WIDTH = proportional(2, { minWidth: 240 });
 /** The key (and selection) columns stay pinned from tablet width up; on a phone the whole row scrolls. */
 const PIN_COLUMNS_QUERY = "(min-width: 768px)";
 
 const STATE_GROUPS: ReadonlySet<string> = new Set<StateGroup>(["backlog", "unstarted", "started", "completed", "cancelled", "triage"]);
 /** Id of the synthetic "no value" group (`NONE_GROUP_ID` in the engine's filters.ts). */
 const NONE_GROUP = "none";
-
-/** The project names of the Project column: `null` while the table has no such column. */
-type ProjectNames = readonly { id: string; name: string }[] | null;
-
-function buildColumns(
-  properties: DisplayProperties,
-  projects: ProjectNames,
-  hasEstimate: boolean,
-  onUpdate: (id: string, patch: UpdateWorkItemPatch) => void,
-  onOpen: (id: string) => void,
-  readOnly: boolean,
-  armedRows: ArmedRows,
-): TableColumn<TableRow>[] {
-  const columns: TableColumn<TableRow>[] = [];
-  const pending = (row: TableRow) => isOptimisticId(row.item.id);
-  // An archived project passes `readOnly` to every property control (F3.4); a placeholder row is always locked.
-  const locked = (row: TableRow) => pending(row) || readOnly;
-  // The key column stays even when the key property is off: it is the row's keyboard-reachable open control.
-  columns.push({
-    key: "key",
-    header: "Key",
-    width: pixel(104),
-    renderCell: (row) =>
-      pending(row) ? (
-        <Text type="supporting" color="secondary">
-          Saving…
-        </Text>
-      ) : (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="tessera-table-open"
-          label={row.item.key}
-          tooltip={properties.key ? undefined : row.item.key}
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpen(row.item.id);
-          }}
-        />
-      ),
-  });
-  columns.push({
-    key: "name",
-    header: "Name",
-    width: NAME_COLUMN_WIDTH,
-    renderCell: (row) => (
-      <OneLineText className="tessera-wi-cell-text" weight="medium">
-        {row.item.name}
-      </OneLineText>
-    ),
-  });
-  if (projects !== null) {
-    const projectName = new Map(projects.map((project) => [project.id, project.name]));
-    columns.push({
-      key: "project",
-      header: "Project",
-      width: pixel(160),
-        renderCell: (row) => (
-        <OneLineText className="tessera-wi-cell-text">{projectName.get(row.item.project_id) ?? ""}</OneLineText>
-      ),
-    });
-  }
-  if (properties.state) {
-    columns.push({
-      key: "state",
-      header: "State",
-      width: pixel(176),
-        renderCell: (row) => (
-        <RowProject projectId={row.item.project_id}>
-          <ArmedCell store={armedRows} rowId={row.id}>
-            <StateControl armKey="state" compact readOnly={locked(row)} value={row.item.state_id} onChange={(stateId) => onUpdate(row.item.id, { state_id: stateId })} />
-          </ArmedCell>
-        </RowProject>
-      ),
-    });
-  }
-  if (properties.priority) {
-    columns.push({
-      key: "priority",
-      header: "Priority",
-      width: pixel(148),
-        renderCell: (row) => (
-        <ArmedCell store={armedRows} rowId={row.id}>
-          <PriorityControl armKey="priority" compact readOnly={locked(row)} value={row.item.priority} onChange={(priority) => onUpdate(row.item.id, { priority })} />
-        </ArmedCell>
-      ),
-    });
-  }
-  if (properties.assignees) {
-    columns.push({
-      key: "assignees",
-      header: "Assignees",
-      width: pixel(184),
-      renderCell: (row) => <AssigneeControl compact readOnly value={row.item.assignee_ids} onChange={() => undefined} />,
-    });
-  }
-  if (properties.labels) {
-    columns.push({
-      key: "labels",
-      header: "Labels",
-      width: pixel(200),
-      renderCell: (row) => (
-        <RowProject projectId={row.item.project_id}>
-          <LabelControl compact readOnly value={row.item.label_ids} onChange={() => undefined} />
-        </RowProject>
-      ),
-    });
-  }
-  if (properties.cycle) {
-    columns.push({
-      key: "cycle",
-      header: "Cycle",
-      width: pixel(168),
-      renderCell: (row) => (
-        <RowProject projectId={row.item.project_id}>
-          <ArmedCell store={armedRows} rowId={row.id}>
-            <CycleControl armKey="cycle" compact readOnly={locked(row)} value={row.item.cycle_id} onChange={(cycleId) => onUpdate(row.item.id, { cycle_id: cycleId })} />
-          </ArmedCell>
-        </RowProject>
-      ),
-    });
-  }
-  if (properties.modules) {
-    columns.push({
-      key: "modules",
-      header: "Modules",
-      width: pixel(184),
-      renderCell: (row) => (
-        <RowProject projectId={row.item.project_id}>
-          <ModuleControl compact readOnly value={row.item.module_ids} onChange={() => undefined} />
-        </RowProject>
-      ),
-    });
-  }
-  if (properties.start_date) {
-    columns.push({
-      key: "start_date",
-      header: "Start date",
-      width: pixel(156),
-        renderCell: (row) => (
-        <ArmedCell store={armedRows} rowId={row.id}>
-          <DateControl armKey="start" compact readOnly={locked(row)} label="Start date" value={row.item.start_date} max={row.item.target_date} onChange={(date) => onUpdate(row.item.id, { start_date: date })} />
-        </ArmedCell>
-      ),
-    });
-  }
-  if (properties.target_date) {
-    columns.push({
-      key: "target_date",
-      header: "Target date",
-      width: pixel(156),
-        renderCell: (row) => (
-        <ArmedCell store={armedRows} rowId={row.id}>
-          <DateControl armKey="target" compact readOnly={locked(row)} label="Target date" value={row.item.target_date} min={row.item.start_date} onChange={(date) => onUpdate(row.item.id, { target_date: date })} />
-        </ArmedCell>
-      ),
-    });
-  }
-  if (properties.estimate && hasEstimate) {
-    columns.push({
-      key: "estimate",
-      header: "Estimate",
-      width: pixel(140),
-        renderCell: (row) => (
-        <ArmedCell store={armedRows} rowId={row.id}>
-          <EstimateControl armKey="estimate" value={row.item.estimate_point_id} readOnly={locked(row)} size="sm" onChange={(estimate_point_id) => onUpdate(row.item.id, { estimate_point_id })} />
-        </ArmedCell>
-      ),
-    });
-  }
-  if (properties.created_at) {
-    columns.push({
-      key: "created_at",
-      header: "Created",
-      width: pixel(128),
-        renderCell: (row) => (
-        <Text type="supporting" color="secondary" hasTabularNumbers>
-          {row.item.created_at.slice(0, 10)}
-        </Text>
-      ),
-    });
-  }
-  if (properties.updated_at) {
-    columns.push({
-      key: "updated_at",
-      header: "Updated",
-      width: pixel(128),
-        renderCell: (row) => (
-        <Text type="supporting" color="secondary" hasTabularNumbers>
-          {row.item.updated_at.slice(0, 10)}
-        </Text>
-      ),
-    });
-  }
-  return columns;
-}
 
 /** Work item ids the table can select, once each when a grouped result repeats a row. */
 function selectableIds(rows: readonly TableRow[]): string[] {
@@ -293,10 +72,10 @@ function selectableIds(rows: readonly TableRow[]): string[] {
 
 /** Group section title: StatusDot for states, the priority glyph, a coloured Token for labels, cycles and modules. */
 function GroupHeading({ group, field, bundle }: { group: Group | undefined; field: GroupBy | null; bundle: Pick<RowBundle, "states" | "actors"> }) {
-  if (!group) return <Text weight="semibold">Ungrouped</Text>;
+  if (!group) return <Text weight="medium">Ungrouped</Text>;
   if (group.id === NONE_GROUP && field !== "priority") {
     return (
-      <Text weight="semibold" color="secondary">
+      <Text weight="medium" color="secondary">
         {group.name}
       </Text>
     );
@@ -309,7 +88,7 @@ function GroupHeading({ group, field, bundle }: { group: Group | undefined; fiel
   if (field === "state_group" && STATE_GROUPS.has(group.id)) return <StateLabel group={group.id as StateGroup} name={group.name} />;
   if (field === "priority" && isPriority(group.id)) return <PriorityLabel value={group.id} />;
   if (group.color !== null) return <Token label={group.name} size="md" color={paletteTokenColor(group.color)} />;
-  return <Text weight="semibold">{group.name}</Text>;
+  return <Text weight="medium">{group.name}</Text>;
 }
 
 export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnly = false, showProject = false, selection, onLoadMore, onLoadMoreUngrouped, isLoadingMore, onOrderChange, onClearFilters }: LayoutProps) {
@@ -383,8 +162,10 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
       return (
         <HStack gap={2} vAlign="center">
           <GroupHeading group={group} field={display.group_by} bundle={rowBundle} />
-          {/* The badge is the group's full count (decision 113); the rows under it may be only the first page. */}
-          <Badge label={group?.count ?? loadedCount} variant="neutral" />
+          {/* The count is the group's full count (decision 113; the rows under it may be only the first page), plain tertiary text. */}
+          <Text type="supporting" className="tessera-table-group-count" hasTabularNumbers>
+            {group?.count ?? loadedCount}
+          </Text>
           <GroupPoints points={group?.estimate_points} display={display} />
           {group?.has_more && onLoadMore ? (
             <GroupFooter
@@ -448,6 +229,8 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
         if (!isDataRow(row)) return props;
         // The key cell's text starts where the Key header's does (table.css): its open button brings the inset.
         if (column.key === "key") return { ...props, htmlProps: { ...props.htmlProps, className: "tessera-table-key-cell" } };
+        // The row's "Open" button sits over the end of the Name cell (table.css).
+        if (column.key === "name") return { ...props, htmlProps: { ...props.htmlProps, className: "tessera-table-name-cell" } };
         // Ticking a row's checkbox selects it; the click (and Space on the checkbox) must not also open the peek.
         if (column.key === SELECTION_KEY) {
           return {
@@ -466,7 +249,8 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
           htmlProps: {
             ...props.htmlProps,
             className: "tessera-table-cell-edit",
-            onClick: (event) => event.stopPropagation(),
+            // Anywhere in the cell opens its editor, never the row.
+            onClick: openCellEditor,
             onKeyDown: (event) => event.stopPropagation(),
           },
         };
