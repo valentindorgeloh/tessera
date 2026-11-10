@@ -5,17 +5,30 @@
  * renders no rows and no `List`, also below the threshold: Astryx `Collapsible` keeps closed content mounted
  * (`Collapsible.js:306-313`). The footer and quick-add stay in `GroupSection`'s body.
  *
+ * With a glide (`glidesOnClose`: the group's Collapsible has the scroller's `animatedLayout` handle, docs/contracts/ui.md
+ * "Motion") a closing group keeps its rows for `closeHoldMs()`, so Astryx conceals the rows themselves while the groups
+ * below glide up, as an unwindowed list does; then they unmount as above. Under Reduce Motion they unmount at once.
+ *
  * The row component comes in as `Row` (ListLayout's `WorkItemRow`), so this file imports ListLayout for types only
  * and the two modules have no runtime cycle.
  */
-import { useCallback, useLayoutEffect, useRef, type ComponentType, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentType, type KeyboardEvent } from "react";
 import { List } from "@astryxdesign/core/List";
 import type { Display, WorkItem } from "@/lib/tessera/types";
 import { stampTabStops } from "@/components/virtual/roving";
 import { keptRowStyle, useVirtualRows, type VirtualRow } from "@/components/virtual/use-virtual-rows";
 import { isNavKey } from "@/components/virtual/virtual-math";
+import { layoutMotionMs, prefersReducedMotion } from "@/components/shell/layout-motion";
 import type { WorkItemRowProps } from "./ListLayout";
 import type { LayoutProps } from "./types";
+
+/**
+ * How long a closing group keeps its rows: the glide's token (`--duration-medium`, 280 ms in the theme; Astryx's conceal
+ * runs the shorter `--duration-medium-min`) and half again for the frames before the glide starts.
+ */
+function closeHoldMs(): number {
+  return layoutMotionMs() * 1.5;
+}
 
 /** A row's window props (decision 137); all absent while the list is not windowed. */
 export type WindowRowProps = {
@@ -54,9 +67,27 @@ export type ListGroupRowsProps = {
   estimateStart: number;
   row: ListRowFixed;
   Row: ComponentType<WorkItemRowProps>;
+  /** The group's Collapsible glides (it has an `animatedLayout` handle): keep the rows while it closes. */
+  glidesOnClose?: boolean;
 };
 
-export function ListGroupRows({ anchorId, items, setSize, isVirtual, isOpen, estimateStart, row, Row }: ListGroupRowsProps) {
+/**
+ * `isOpen`, held true for `closeHoldMs()` after a close when `holds` and motion is on (read at the change, decision 133).
+ * Derived while rendering; only the timer sets state.
+ */
+function useShownOpen(isOpen: boolean, holds: boolean): boolean {
+  const [shown, setShown] = useState(isOpen);
+  if (shown !== isOpen && (isOpen || !holds || prefersReducedMotion())) setShown(isOpen);
+  useEffect(() => {
+    if (isOpen || !shown) return;
+    const timer = setTimeout(() => setShown(false), closeHoldMs());
+    return () => clearTimeout(timer);
+  }, [isOpen, shown]);
+  return shown;
+}
+
+export function ListGroupRows({ anchorId, items, setSize, isVirtual, isOpen: isOpenProp, estimateStart, row, Row, glidesOnClose = false }: ListGroupRowsProps) {
+  const isOpen = useShownOpen(isOpenProp, glidesOnClose);
   const getKey = useCallback((i: number) => items[i].id, [items]);
   const v = useVirtualRows({ anchorId, kind: "list", count: items.length, getKey, isEnabled: isVirtual && isOpen, estimateStart });
   const { anchorRef, isKept, scrollToIndex } = v;

@@ -1,17 +1,17 @@
 "use client";
 
 /**
- * Layout motion (decisions 132 and 133; docs/contracts/ui.md "Sidebar views,
- * motion, virtual lists, calendar zoom"): WAAPI helpers for the sidebar
- * panel's width, the floating sidebar and peek card slides, and the layout
- * fade, all timed by the theme's `--duration-medium` with `ease-in-out`.
+ * Sidebar width motion (decisions 132 and 133; docs/contracts/ui.md "Sidebar
+ * views, motion, virtual lists, calendar zoom"): WAAPI helpers for the
+ * sidebar panel's width on the changes Astryx's own rail motion does not
+ * cover (TesseraShell.tsx `applyNavChange`), timed by the theme's
+ * `--duration-medium` with `ease-in-out`. The peek and the work-items fades
+ * are Astryx's motion now (docs/contracts/ui.md "Motion").
  *
  * Nothing here checks the viewport width: below `md` there is no sidebar panel
- * (`sideNavPanel()` is null), and the peek and the fade animate at every width.
- * Every `matchMedia` call checks that `window.matchMedia` exists first, so a
- * jsdom test without a shim still renders.
+ * (`sideNavPanel()` is null). Every `matchMedia` call checks that
+ * `window.matchMedia` exists first, so a jsdom test without a shim still renders.
  */
-import { useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 
 export const LAYOUT_MOTION_EASING = "ease-in-out";
@@ -149,31 +149,6 @@ export function withWidthMotion(el: HTMLElement | null, change: () => void): Ani
   const animation = animateWidth(el, plan);
   if (animation) guardJank(animation);
   return animation;
-}
-
-/** A `transform` slide with the motion timing; callers check reduced motion first. */
-export function animateSlide(el: HTMLElement, from: string, to: string, options?: { fill?: FillMode }): Animation | null {
-  if (typeof el.animate !== "function") return null;
-  const fill = options?.fill;
-  return el.animate([{ transform: from }, { transform: to }], fill ? { ...timing(), fill } : timing());
-}
-
-/** Opacity 0 → 1, skipped under reduced motion. */
-export function fadeIn(el: HTMLElement | null): Animation | null {
-  if (!el || typeof el.animate !== "function" || prefersReducedMotion()) return null;
-  return el.animate([{ opacity: 0 }, { opacity: 1 }], timing());
-}
-
-/** Fades `el` in when `key` changes after the first render; the first key never fades. */
-export function useFadeOnChange(el: HTMLElement | null, key: string): void {
-  const lastKey = useRef(key);
-  useLayoutEffect(() => {
-    if (lastKey.current === key) return;
-    lastKey.current = key;
-    const animation = fadeIn(el);
-    // A hidden route runs its layout-effect cleanups: do not leave the fade running there.
-    return () => animation?.cancel();
-  }, [el, key]);
 }
 
 /** Astryx AppShell's inline sidebar panel; null below `md`, where there is none. */

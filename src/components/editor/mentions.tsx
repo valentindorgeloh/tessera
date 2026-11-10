@@ -13,6 +13,7 @@ import type { Editor, Range } from "@tiptap/core";
 import type { EditorState } from "@tiptap/pm/state";
 import { exitSuggestion, type SuggestionOptions, type SuggestionProps } from "@tiptap/suggestion";
 import type { MentionNodeAttrs } from "@tiptap/extension-mention";
+import { useAnnounce } from "@astryxdesign/core/hooks";
 import { Icon, type IconProps } from "@astryxdesign/core/Icon";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
@@ -59,7 +60,11 @@ export const BLOCK_ICONS: Readonly<Record<string, IconProps["icon"]>> = {
   divider: DividerIcon,
 };
 
-type PopoverHandle = { onKeyDown: (event: KeyboardEvent) => boolean };
+type PopoverHandle = {
+  onKeyDown: (event: KeyboardEvent) => boolean;
+  /** Speaks a message to screen readers (polite, replacing the one before it that has not been spoken yet). */
+  announce: (message: string) => void;
+};
 
 type PopoverProps = {
   items: SuggestionRow[];
@@ -101,6 +106,8 @@ function applyAria(dom: HTMLElement, attrs: Record<string, string | null>): void
  */
 function SuggestionPopover({ items, loading, emptyText, listLabel, editorDom, onSelect, ref }: PopoverProps) {
   const listId = useId();
+  // Called by the renderer below when a search ends empty (the list has no option for the editor's aria-activedescendant to point at).
+  const announce = useAnnounce({ hasReplace: true });
   const [index, setIndex] = useState(0);
   // A new result set starts at the top (state-from-props pattern, no effect).
   const [seen, setSeen] = useState(items);
@@ -129,8 +136,9 @@ function SuggestionPopover({ items, loading, emptyText, listLabel, editorDom, on
         }
         return false;
       },
+      announce: (message) => announce(message),
     }),
-    [active, items, onSelect],
+    [active, announce, items, onSelect],
   );
 
   // The editor (where the focus stays) announces the list and its active option; the attributes go when the list closes.
@@ -147,7 +155,7 @@ function SuggestionPopover({ items, loading, emptyText, listLabel, editorDom, on
   return (
     <VStack className="tessera-editor-popover" gap={0} padding={1}>
       {items.length === 0 ? (
-        <Text type="supporting" color="secondary" display="block" className="tessera-editor-popover-empty" role="status">
+        <Text type="supporting" color="secondary" display="block" className="tessera-editor-popover-empty">
           {loading ? "Searching…" : emptyText}
         </Text>
       ) : (
@@ -204,6 +212,8 @@ function createRenderer<TSelected>(
   return () => {
     let component: ReactRenderer<PopoverHandle, PopoverProps> | null = null;
     let unmount: (() => void) | null = null;
+    // The empty text last spoken for this open list, so a second keystroke that is still empty says nothing again.
+    let spoken: string | null = null;
     const toProps = (props: SuggestionProps<SuggestionRow, TSelected>): PopoverProps => ({
       items: props.items,
       loading: props.loading,
@@ -212,13 +222,22 @@ function createRenderer<TSelected>(
       editorDom: props.editor.view.dom,
       onSelect: (row) => props.command(toSelected(row)),
     });
+    // The list says "No work items match" in its place, which is not a live region (a region inserted with its text is often not read):
+    // the outcome of a finished search that found nothing is spoken from here instead. "Searching…" is shown and not spoken.
+    const speakEmpty = (props: SuggestionProps<SuggestionRow, TSelected>) => {
+      const text = props.items.length === 0 && !props.loading ? emptyText : null;
+      if (text !== null && text !== spoken) component?.ref?.announce(text);
+      spoken = text;
+    };
     return {
       onStart: (props) => {
         component = new ReactRenderer<PopoverHandle, PopoverProps>(SuggestionPopover, { editor: props.editor, props: toProps(props) });
         unmount = props.mount(component.element);
+        speakEmpty(props);
       },
       onUpdate: (props) => {
         component?.updateProps(toProps(props));
+        speakEmpty(props);
       },
       onKeyDown: ({ event, view }) => {
         if (event.key === "Escape") {
@@ -232,6 +251,7 @@ function createRenderer<TSelected>(
         unmount = null;
         component?.destroy();
         component = null;
+        spoken = null;
       },
     };
   };

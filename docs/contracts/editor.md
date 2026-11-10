@@ -425,4 +425,4 @@ tokens, `a[href^="work:"], a[href^="page:"], a[href^="cycle:"], a[href^="module:
 drawn as chips), `.tessera-editor--compact`, `.tessera-editor-source`,
 `.tessera-editor-popover`, `.tessera-editor-bubble`, `.tessera-editor-drag`,
 `.is-editor-empty::before { content: attr(data-placeholder) }` (Placeholder writes
-`data-placeholder`), task list and table layout. No hex, no xstyle.
+`data-placeholder`), task list and table layout. No hex, no xstyle except an Astryx hook's style (ui.md Motion).

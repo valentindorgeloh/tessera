@@ -179,11 +179,11 @@ describe("catppuccin palette contrast", () => {
       }
     });
 
-    // --color-error is also text: destructive menu rows keep it when
+    // --color-text-error is destructive menu rows, which keep it when
     // highlighted (hover or keyboard focus) on the menu surface. The press
     // overlay lasts only while the pointer is down and is not measured.
     it("error text reads on every surface and on a highlighted menu row", () => {
-      const text = STATUS_TOKENS["--color-error"][mode];
+      const text = STATUS_TOKENS["--color-text-error"][mode];
       for (const [surface, background] of surfaces) {
         expect(ratio(paint(text), paint(background)), surface).toBeGreaterThanOrEqual(TEXT);
       }
@@ -212,6 +212,19 @@ describe("catppuccin palette contrast", () => {
       }
     });
 
+    // The 0.7.5 status roles (palette.ts STATUS_TOKENS): text reads on every
+    // surface; icon and border roles (StatusDot, invalid field outlines) keep 3:1.
+    it.each(["info", "success", "warning", "error"] as const)("%s text, icon and border roles read on every surface", (status) => {
+      const text = STATUS_TOKENS[`--color-text-${status}`][mode];
+      const icon = STATUS_TOKENS[`--color-icon-${status}`][mode];
+      const border = STATUS_TOKENS[`--color-border-${status}`][mode];
+      for (const [surface, background] of surfaces) {
+        expect(ratio(paint(text), paint(background)), `${surface} text`).toBeGreaterThanOrEqual(TEXT);
+        expect(ratio(paint(icon), paint(background)), `${surface} icon`).toBeGreaterThanOrEqual(ICON);
+        expect(ratio(paint(border), paint(background)), `${surface} border`).toBeGreaterThanOrEqual(ICON);
+      }
+    });
+
     // Toasts and other media surfaces (Astryx MediaTheme): the label Astryx
     // picks reads, and the focus ring around their buttons stays visible.
     it.each([
@@ -226,6 +239,7 @@ describe("catppuccin palette contrast", () => {
 
     it.each([
       ["on-accent", ACCENT_TOKENS["--color-on-accent"], ACCENT_TOKENS["--color-accent"]],
+      ["on-info", STATUS_TOKENS["--color-on-info"], STATUS_TOKENS["--color-info"]],
       ["on-success", STATUS_TOKENS["--color-on-success"], STATUS_TOKENS["--color-success"]],
       ["on-error", STATUS_TOKENS["--color-on-error"], STATUS_TOKENS["--color-error"]],
       ["on-error (inverted)", STATUS_TOKENS["--color-on-error"], STATUS_TOKENS["--color-background-error-inverted"]],
@@ -251,27 +265,24 @@ describe("catppuccin palette contrast", () => {
       }
     });
 
-    // Banner header (catppuccinTheme.ts banner overrides): secondary text reads
-    // as primary on the status tint, a ghost button's hover overlay stacks on
-    // the tint, a secondary button sits on the plain surface, and the status
-    // icon (warning and success take their text colour) stays visible. Banners
-    // render on content surfaces (the detail page, cards, dialogs), never on the
-    // shell wash or a muted well, where the Latte error tint under a hover
-    // overlay would fall to 4.4:1.
+    // Banner header (catppuccinTheme.ts banner overrides): the title and the
+    // status icon take --color-on-<status>-muted on the status tint, the
+    // description (secondary text, read as primary inside a banner) reads on
+    // it, a ghost button's hover overlay stacks on the tint, and a secondary
+    // button sits on the plain surface. Banners render on content surfaces
+    // (the detail page, cards, dialogs), never on the shell wash or a muted
+    // well, where the Latte error tint under a hover overlay would fall to 4.4:1.
     const bannerSurfaces = surfaces.filter(([name]) => name === "surface" || name === "card" || name === "popover");
-    it.each([
-      ["info", ACCENT_TOKENS["--color-accent-muted"], ACCENT_TOKENS["--color-accent"]],
-      ["warning", STATUS_TOKENS["--color-warning-muted"], CHIP_TOKENS["--color-text-yellow"]],
-      ["error", STATUS_TOKENS["--color-error-muted"], STATUS_TOKENS["--color-error"]],
-      ["success", STATUS_TOKENS["--color-success-muted"], CHIP_TOKENS["--color-text-green"]],
-    ] as const)("%s banners read on their tint", (_status, tint, icon) => {
+    it.each(["info", "warning", "error", "success"] as const)("%s banners read on their tint", (status) => {
+      const tint = STATUS_TOKENS[`--color-${status}-muted`];
+      const onMuted = paint(STATUS_TOKENS[`--color-on-${status}-muted`][mode]);
       const text = paint(SEMANTIC_TOKENS["--color-text-primary"][mode]);
       const hover = SEMANTIC_TOKENS["--color-overlay-hover"][mode];
       for (const [surface, background] of bannerSurfaces) {
         const fill = paint(background, tint[mode]);
-        expect(ratio(text, fill), `${surface} text`).toBeGreaterThanOrEqual(TEXT);
+        expect(ratio(onMuted, fill), `${surface} title and icon`).toBeGreaterThanOrEqual(TEXT);
+        expect(ratio(text, fill), `${surface} description`).toBeGreaterThanOrEqual(TEXT);
         expect(ratio(text, paint(background, tint[mode], hover)), `${surface} ghost button hover`).toBeGreaterThanOrEqual(TEXT);
-        expect(ratio(paint(icon[mode]), fill), `${surface} icon`).toBeGreaterThanOrEqual(ICON);
       }
       const button = SEMANTIC_TOKENS["--color-background-surface"][mode];
       expect(ratio(text, paint(button, hover)), "secondary button hover").toBeGreaterThanOrEqual(TEXT);

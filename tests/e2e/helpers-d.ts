@@ -207,7 +207,7 @@ export async function searchAddonBoxMisses(page: Page): Promise<string[]> {
 // ---------------------------------------------------------------------------
 
 /** The control an early action targets. */
-export type EarlyAction = "toggle" | "chord" | "open-nav" | "assistant" | "help" | "account" | "search";
+export type EarlyAction = "toggle" | "chord" | "open-nav" | "assistant" | "help" | "scheme" | "search";
 
 /** What the init script of `armEarlyAction` recorded on `window.__early`. */
 export type EarlyRecord = {
@@ -270,8 +270,8 @@ export async function armEarlyAction(page: Page, action: EarlyAction): Promise<v
             return document.querySelector<HTMLElement>('button[aria-label="Assistant"]');
           case "help":
             return document.querySelector<HTMLElement>('button[aria-label="Help and keyboard shortcuts"]');
-          case "account":
-            return document.querySelector<HTMLElement>('button[aria-label="Account and preferences"]');
+          case "scheme":
+            return document.querySelector<HTMLElement>('button[aria-label="Colour scheme"]');
           case "search":
             return document.querySelector<HTMLElement>('input[aria-haspopup="dialog"]');
         }
@@ -361,6 +361,10 @@ export async function waitForAppHydrated(page: Page, timeout = 45_000): Promise<
         (element) =>
           !element.closest("script, noscript, template, style, next-route-announcer, .ProseMirror, .tessera-peek-node, .tessera-editor-drag, .drag-handle") &&
           !(element.parentElement === document.body && (element.tagName === "DIV" || element.tagName === "SPAN") && !element.hasChildNodes()) &&
+          // Nodes Astryx 0.7 creates outside React: the layer host wrapper and its live regions.
+          !(element.style?.display === "contents" && element.firstElementChild?.hasAttribute("data-astryx-layer-root")) &&
+          !element.hasAttribute("data-astryx-live-region") &&
+          !element.hasAttribute("data-astryx-modal-live-region") &&
           // The wrapper the drag-handle extension puts around the handle inside the editor surface.
           element.querySelector(":scope > .tessera-editor-drag") === null,
       )

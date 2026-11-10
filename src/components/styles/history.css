@@ -1,9 +1,12 @@
 /*
  * Version history diff marks. Tokens only.
+ *
+ * The two panes and the page activity feed are Astryx ScrollableAreas: the
+ * area's own viewport scrolls and takes the Tab stop while it overflows, so
+ * these rules only cap its height and let it shrink (no `overflow` here).
  */
 .tessera-history-pane {
   max-height: 70vh;
-  overflow: auto;
   min-width: 0;
 }
 
@@ -83,7 +86,6 @@
 /* Page Activity tab: one wrapping row per change, the time at the end. */
 .tessera-history-activity {
   max-height: 70vh;
-  overflow: auto;
   min-width: 0;
 }
 

@@ -12,7 +12,6 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { HStack, Stack } from "@astryxdesign/core/Stack";
 import { SideNavItem, useSideNavCollapse } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
-import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { PlusIcon } from "@/themes/catppuccin/icons";
 
 /**
@@ -59,13 +58,10 @@ export function ExpandedOnly({ children }: { children: ReactNode }) {
 }
 
 /**
- * A SideNavItem that names itself in a tooltip while the rail is collapsed (S3).
- * Astryx tries the same through a sibling-mode Tooltip, but its ref is not set
- * yet when that Tooltip attaches (0.6.8), so no hover or focus ever opens it.
- * This wrapper anchors on the rendered row instead, and opens on keyboard focus
- * too (`focusTrigger="always"`: the row's wrapper is not focusable itself, the
- * link inside it is). Expanded, the row renders bare. Rows with children keep
- * the plain SideNavItem: their flyout already shows the label on hover.
+ * A sidebar destination row (S3). Since Astryx 0.7.5 a collapsed SideNavItem
+ * names itself in a tooltip on its own link, opened by hover or keyboard focus,
+ * so this renders the bare row; the 0.6.8 wrapper Tooltip would now show a
+ * second one.
  *
  * `data-rail-label` lands on the collapsed link (Astryx spreads the rest props
  * there): the Icons and labels rail shows it as the link's `::after` (nav.css,
@@ -73,14 +69,7 @@ export function ExpandedOnly({ children }: { children: ReactNode }) {
  * the name shows is CSS on the nav's `data-rail`; no preference is read here.
  */
 export function RailItem(props: ComponentProps<typeof SideNavItem>) {
-  const { isCollapsed } = useSideNavCollapse();
-  const item = <SideNavItem {...props} data-rail-label={props.label} />;
-  if (!isCollapsed) return item;
-  return (
-    <Tooltip content={props.label} placement="end" focusTrigger="always">
-      {item}
-    </Tooltip>
-  );
+  return <SideNavItem {...props} data-rail-label={props.label} />;
 }
 
 /**

@@ -6,15 +6,18 @@ import { waitForAppHydrated } from "./helpers-d";
 import { visibleScroller, visibleScrollerSource } from "./helpers-p12";
 
 /**
- * Layout motion (decisions 132–133): the sidebar panel's width animation, the
- * peek card slide with its guarded close, the layout and zoom fade, and the
- * floating panel's transition, each with `prefers-reduced-motion: reduce`.
+ * Sidebar and peek motion with the virtual lists (decisions 132–133 and docs/contracts/ui.md "Motion"): Astryx's rail
+ * motion for a collapse or an expand and our panel width motion for the rail kind switch, the peek's slide and its
+ * guarded close (an exit that holds the panel inert while the URL drops the item, a double Escape that closes once, a
+ * close that never pulls the page back, focus back on the row), the layout and zoom fade, and the floating panel's
+ * transition, each also under `prefers-reduced-motion: reduce`.
  *
- * Every `Element.animate` call is recorded by an init script (`window.__anims`),
- * so a check does not depend on catching a 280 ms animation in flight; where the
- * contract asks for a running animation, the page reads `getAnimations()` in the
- * same task as the action that starts it.
+ * The suite runs with Reduce Motion (playwright.config.ts); this file opts back in. Every `Element.animate` call is
+ * recorded by an init script (`window.__anims`), so a check does not depend on catching a 280 ms animation in flight;
+ * where the contract asks for a running animation, the page reads `getAnimations()` in the same task as the action.
  */
+
+test.use({ reducedMotion: "no-preference" });
 
 type Recorded = { cls: string; props: string[] };
 
@@ -59,21 +62,24 @@ async function smallProject(): Promise<{ project: CreatedProject; key: string; n
 const peekCard = (page: Page) => page.locator(".tessera-peek-card:visible");
 const peekPanel = (page: Page) => page.locator(".tessera-peek-panel:visible");
 
-/** Watches the visible peek panel and the URL from now on: whether the panel got data-motion="closing" and inert, and URL samples per frame. */
+/**
+ * Watches the visible peek panel and the URL from now on: whether the panel started its exit (`data-exiting`, set by
+ * playExit) while inert, whether a CSS exit animation then ran on it, and URL samples per frame.
+ */
 async function watchClose(page: Page): Promise<void> {
   await page.evaluate(() => {
     const panel = [...document.querySelectorAll<HTMLElement>(".tessera-peek-panel")].find((el) => el.offsetParent !== null);
-    const state = { closing: false, inert: false, peekWhenClosing: false, samples: [] as { t: number; peek: boolean }[], start: performance.now() };
+    const state = { closing: false, inert: false, animated: false, samples: [] as { t: number; peek: boolean }[], start: performance.now() };
     (window as unknown as { __close: typeof state }).__close = state;
     if (panel === undefined) return;
     const check = () => {
-      if (panel.getAttribute("data-motion") === "closing" && !state.closing) {
+      if (panel.hasAttribute("data-exiting") && !state.closing) {
         state.closing = true;
         state.inert = panel.hasAttribute("inert");
-        state.peekWhenClosing = new URL(window.location.href).searchParams.has("peek");
+        state.animated = panel.getAnimations().some((animation) => animation.playState === "running");
       }
     };
-    new MutationObserver(check).observe(panel, { attributes: true, attributeFilter: ["data-motion", "inert"] });
+    new MutationObserver(check).observe(panel, { attributes: true, attributeFilter: ["data-exiting", "inert"] });
     const sample = (t: number) => {
       state.samples.push({ t: t - state.start, peek: new URL(window.location.href).searchParams.has("peek") });
       if (t - state.start < 2000) requestAnimationFrame(sample);
@@ -82,7 +88,7 @@ async function watchClose(page: Page): Promise<void> {
   });
 }
 
-type CloseState = { closing: boolean; inert: boolean; peekWhenClosing: boolean; samples: { t: number; peek: boolean }[] };
+type CloseState = { closing: boolean; inert: boolean; animated: boolean; samples: { t: number; peek: boolean }[] };
 
 async function closeState(page: Page): Promise<CloseState> {
   return page.evaluate(() => (window as unknown as { __close: CloseState }).__close);
@@ -92,7 +98,8 @@ type CardFrame = { transform: boolean; panel: number; skeleton: boolean; editor:
 
 /**
  * Resolves on the first animation frame in which a visible peek card exists (start it before the click that opens
- * the peek): whether the card then has a running transform animation, the panel's width, and what the card holds.
+ * the peek): whether its panel then runs a slide (a `translate` animation: `tessera-motion-slide-end`), the panel's
+ * width, and what the card holds.
  */
 function firstCardFrame(page: Page): Promise<CardFrame> {
   return page.evaluate(
@@ -106,8 +113,11 @@ function firstCardFrame(page: Page): Promise<CardFrame> {
             else requestAnimationFrame(check);
             return;
           }
+          const panel = card.closest<HTMLElement>(".tessera-peek-panel");
           resolve({
-            transform: card.getAnimations().some((animation) => animation.playState === "running" && ((animation.effect as KeyframeEffect | null)?.getKeyframes() ?? []).some((frame) => "transform" in frame)),
+            transform: (panel?.getAnimations() ?? []).some(
+              (animation) => animation.playState === "running" && ((animation.effect as KeyframeEffect | null)?.getKeyframes() ?? []).some((frame) => "translate" in frame || "transform" in frame),
+            ),
             panel: card.closest<HTMLElement>(".tessera-peek-panel")?.getBoundingClientRect().width ?? -1,
             skeleton: card.querySelector('[class*="skeleton" i]') !== null,
             editor: card.querySelector(".ProseMirror") !== null,
@@ -124,6 +134,19 @@ async function openPeek(page: Page, key: string, name: string): Promise<void> {
   await expect(peekCard(page).getByRole("heading", { name })).toBeVisible({ timeout: 15_000 });
 }
 
+/** In the same task as the action: the moves (translate) running anywhere, and the width animations on the sidebar panel. */
+const RUNNING_SOURCE = `(() => {
+  const panel = document.querySelector(".astryx-app-shell-sidenav");
+  const moving = (a) => a.playState === "running" && (a.effect?.getKeyframes?.() ?? []).some((f) => "translate" in f || "transform" in f || "clipPath" in f);
+  const width = (a) => a.playState === "running" && (a.effect?.getKeyframes?.() ?? []).some((f) => "width" in f);
+  return { moves: document.getAnimations().filter(moving).length, widths: panel ? panel.getAnimations().filter(width).length : -1 };
+})()`;
+
+type Running = { moves: number; widths: number };
+
+const liveNavWidth = (page: Page) => page.evaluate(() => Math.round(document.querySelector('nav[aria-label="Work"]:not([aria-hidden="true"] *)')!.getBoundingClientRect().width));
+const panelWidth = (page: Page) => page.evaluate(() => Math.round(document.querySelector(".astryx-app-shell-sidenav")!.getBoundingClientRect().width));
+
 test.describe("sidebar width motion", () => {
   test("the motion token is 280 ms", async ({ page }) => {
     await loadHome(page);
@@ -132,72 +155,74 @@ test.describe("sidebar width motion", () => {
   });
 
   for (const rail of ["icons", "labels"] as const) {
-    test(`collapsing to the ${rail} rail animates the panel's width, and expanding reveals a nav that is already at full width`, async ({ page }) => {
+    test(`collapsing to the ${rail} rail and expanding again play Astryx's rail motion alone, with no sideways scroll`, async ({ page }) => {
       await loadHome(page);
       if (rail === "labels") {
         await page.evaluate(() => window.localStorage.setItem("tessera.nav.v1", JSON.stringify({ display: "full", rail: "labels", dock: "docked" })));
         await loadHome(page);
       }
-      const running = await page.evaluate(() => {
-        document.getElementById("tessera-nav-toggle")!.click();
-        const panel = document.querySelector<HTMLElement>(".astryx-app-shell-sidenav")!;
-        return panel.getAnimations().some((animation) => animation.playState === "running");
-      });
-      expect(running, "the panel has a running animation right after the click").toBe(true);
-      await page.waitForTimeout(600);
+      const collapse = await page.evaluate(`(() => { document.getElementById("tessera-nav-toggle").click(); return null; })()`).then(() => page.evaluate<Running>(RUNNING_SOURCE));
+      expect(collapse.moves, "Astryx's rail motion runs (the content glides, the old rail is clipped)").toBeGreaterThan(0);
+      expect(collapse.widths, "our width animation does not run on top of it").toBe(0);
       const railWidth = rail === "labels" ? 60 : 48;
-      const settled = await page.evaluate(() => ({
-        panel: Math.round(document.querySelector(".astryx-app-shell-sidenav")!.getBoundingClientRect().width),
-        nav: Math.round(document.querySelector('nav[aria-label="Work"]')!.getBoundingClientRect().width),
-      }));
-      expect(settled.nav, "nav width").toBe(railWidth);
-      expect(settled.panel, "panel width").toBe(railWidth);
+      await expect.poll(() => liveNavWidth(page), { message: "nav width" }).toBe(railWidth);
+      await expect.poll(() => panelWidth(page), { message: "panel width" }).toBe(railWidth);
 
-      // About 100 ms into the expand: the nav is at its final width already and the panel clips it.
-      const mid = await page.evaluate(() => {
+      // About 100 ms into the expand: Astryx's motion runs, ours does not, and the panel never scrolls sideways.
+      const mid = await page.evaluate(async (source) => {
         document.getElementById("tessera-nav-toggle")!.click();
+        await new Promise((resolve) => setTimeout(resolve, 100));
         const panel = document.querySelector<HTMLElement>(".astryx-app-shell-sidenav")!;
-        const animation = panel.getAnimations()[0];
-        if (animation === undefined) return null;
-        animation.pause();
-        animation.currentTime = 100;
-        const result = {
-          nav: Math.round(document.querySelector('nav[aria-label="Work"]')!.getBoundingClientRect().width),
-          panel: panel.getBoundingClientRect().width,
-          scrollWidth: panel.scrollWidth,
-          clientWidth: panel.clientWidth,
-        };
-        animation.play();
-        return result;
-      });
-      expect(mid, "an expand animation exists").not.toBeNull();
-      expect(mid!.nav, "nav width 100 ms into the expand").toBe(250);
-      expect(mid!.panel, "panel width 100 ms into the expand").toBeLessThan(250);
-      expect(mid!.scrollWidth, "the panel does not scroll sideways").toBeLessThanOrEqual(mid!.clientWidth);
+        return { running: (0, eval)(source) as Running, scrollWidth: panel.scrollWidth, clientWidth: panel.clientWidth };
+      }, RUNNING_SOURCE);
+      expect(mid.running.widths, "no width animation of ours during the expand").toBe(0);
+      expect(mid.scrollWidth, "the panel does not scroll sideways").toBeLessThanOrEqual(mid.clientWidth);
+      await expect.poll(() => liveNavWidth(page), { message: "expanded nav width" }).toBe(250);
     });
   }
 
-  test("under reduced motion nothing animates and the rail width applies in the same frame", async ({ page }) => {
+  test("switching between the two rails animates the panel's width (Astryx does not move a rail that stays collapsed)", async ({ page }) => {
+    await loadHome(page);
+    await page.evaluate(() => window.localStorage.setItem("tessera.nav.v1", JSON.stringify({ display: "rail", rail: "icons", dock: "docked" })));
+    await loadHome(page);
+    await expect.poll(() => panelWidth(page)).toBe(48);
+    await page.locator("#tessera-nav-options").click();
+    const item = page.getByRole("menuitemradio", { name: "Icons and labels" });
+    await expect(item).toBeVisible();
+    const running = await item.evaluate((element, source) => {
+      (element as HTMLElement).click();
+      return (0, eval)(source) as Running;
+    }, RUNNING_SOURCE);
+    expect(running.widths, "the panel's width animates").toBe(1);
+    await expect.poll(() => panelWidth(page), { message: "panel width" }).toBe(60);
+    await expect.poll(() => liveNavWidth(page), { message: "nav width" }).toBe(60);
+  });
+
+  test("under reduced motion nothing animates and the rail width applies in the first frame", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await loadHome(page);
-    const result = await page.evaluate(() => {
+    // The collapse is Astryx's rail state, rendered by React after the click: read the width in the next animation
+    // frame, before it paints (decision 133: the state applies in the same frame).
+    const result = await page.evaluate(async (source) => {
       document.getElementById("tessera-nav-toggle")!.click();
+      const atClick = (0, eval)(source) as Running;
+      await new Promise((resolve) => requestAnimationFrame(resolve));
       const panel = document.querySelector<HTMLElement>(".astryx-app-shell-sidenav")!;
-      return { animations: panel.getAnimations().length, width: Math.round(panel.getBoundingClientRect().width) };
-    });
-    expect(result).toEqual({ animations: 0, width: 48 });
+      return { atClick, atFrame: (0, eval)(source) as Running, width: Math.round(panel.getBoundingClientRect().width) };
+    }, RUNNING_SOURCE);
+    expect(result).toEqual({ atClick: { moves: 0, widths: 0 }, atFrame: { moves: 0, widths: 0 }, width: 48 });
   });
 });
 
 test.describe("peek motion", () => {
-  test("open slides the card while the panel takes its width at once; Escape slides it out, then drops peek and refocuses the key", async ({ page }) => {
+  test("open slides the panel in at its final width; Escape holds it inert while it slides out, drops peek and refocuses the key", async ({ page }) => {
     const { project, key, name } = await smallProject();
     await openWorkItems(page, project.id);
     await waitForAppHydrated(page);
     const watch = firstCardFrame(page);
     await visibleScroller(page).getByRole("button", { name: key, exact: true }).click();
     const atOpen = await watch;
-    expect(atOpen.transform, "the card has a running transform animation").toBe(true);
+    expect(atOpen.transform, "the panel runs its slide").toBe(true);
     await expect(peekCard(page).getByRole("heading", { name })).toBeVisible({ timeout: 15_000 });
     const panelLater = (await peekPanel(page).boundingBox())!.width;
     expect(Math.abs(panelLater - atOpen.panel), "the panel had its final width at once").toBeLessThanOrEqual(1);
@@ -206,13 +231,14 @@ test.describe("peek motion", () => {
     await page.keyboard.press("Escape");
     await expect.poll(() => page.evaluate(() => new URL(window.location.href).searchParams.has("peek")), { message: "peek drops from the URL" }).toBe(false);
     const state = await closeState(page);
-    expect(state.closing, 'the panel got data-motion="closing"').toBe(true);
-    expect(state.inert, "the closing panel is inert").toBe(true);
-    expect(state.peekWhenClosing, "the URL keeps peek while the card slides").toBe(true);
+    expect(state.closing, "the panel started its exit (data-exiting)").toBe(true);
+    expect(state.inert, "the leaving panel is inert").toBe(true);
+    expect(state.animated, "the exit slide runs").toBe(true);
     const dropped = state.samples.find((sample) => !sample.peek);
     expect(dropped, "a frame without peek").toBeDefined();
-    expect(dropped!.t, "peek dropped after the slide").toBeGreaterThanOrEqual(200);
-    expect(dropped!.t, "peek dropped within 600 ms").toBeLessThanOrEqual(600);
+    // The close navigates at once and the exit (140 ms) runs meanwhile (docs/contracts/ui.md "Motion").
+    expect(dropped!.t, "peek dropped within 1 s").toBeLessThanOrEqual(1000);
+    await expect(peekPanel(page)).toHaveCount(0);
     await expect(visibleScroller(page).getByRole("button", { name: key, exact: true })).toBeFocused();
   });
 
@@ -244,7 +270,7 @@ test.describe("peek motion", () => {
     expect(new URL(page.url()).pathname, "still Inbox 800 ms later").toBe("/inbox");
   });
 
-  test("with the detail chunk delayed 1 s the card slides in with the skeleton, and the detail is never remounted", async ({ page }) => {
+  test("with the detail chunk delayed 1 s the panel slides in with the skeleton, and the detail is never remounted", async ({ page }) => {
     const { project, key, name } = await smallProject();
     // Keep the idle-time preload from fetching the detail chunk before the click (peek-detail-lazy.tsx).
     await page.addInitScript(() => {
@@ -276,7 +302,7 @@ test.describe("peek motion", () => {
     expect(same, "the editor is the same node after a re-render").toBe(true);
   });
 
-  test("under reduced motion Escape drops peek at once, without a closing slide", async ({ page }) => {
+  test("under reduced motion Escape drops peek at once, without an exit animation", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const { project, key, name } = await smallProject();
     await openWorkItems(page, project.id);
@@ -286,7 +312,7 @@ test.describe("peek motion", () => {
     await page.keyboard.press("Escape");
     await expect.poll(() => page.evaluate(() => new URL(window.location.href).searchParams.has("peek")), { message: "peek drops from the URL" }).toBe(false);
     const state = await closeState(page);
-    expect(state.closing, "no closing slide").toBe(false);
+    expect(state.animated, "no exit animation ran").toBe(false);
   });
 });
 

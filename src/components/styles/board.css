@@ -272,7 +272,11 @@
   cursor: grabbing;
 }
 
-/* Quick-add placeholder cards: shown at once, not draggable or openable until the server item replaces them. */
+/*
+ * Quick-add placeholder cards: shown at once, not draggable or openable until the server item replaces them. Dimmed with
+ * `filter`, not `opacity`: Astryx's fadeIn entry animation drives `opacity` from 0 to 1, so an `opacity: 0.6` here would
+ * climb to 1 and drop back to 0.6 when the animation ends (the same reason as .tessera-wi-row-pending).
+ */
 .tessera-board-card-pending {
-  opacity: 0.6;
+  filter: opacity(0.6);
 }

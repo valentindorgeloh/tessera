@@ -85,7 +85,7 @@ export function IntakeScreen({ projectId, query, items, counts, children }: Inta
               size="filters"
               canWrap
               className="tessera-intake-filters"
-              start={<TextInput size="sm" width="100%" label="Search intake" isLabelHidden hasClear value={search} onChange={setSearch} placeholder="Search intake" className="tessera-intake-search" />}
+              start={<TextInput size="sm" width="100%" label="Search intake" isLabelHidden hasClear value={search} onChange={setSearch} placeholder="Search intake" controlClassName="tessera-intake-search" />}
               end={
                 <HStack gap={1}>
                   <Button variant="secondary" size="sm" label="New intake item" icon={<PlusIcon />} onClick={() => setCreateOpen(true)} />

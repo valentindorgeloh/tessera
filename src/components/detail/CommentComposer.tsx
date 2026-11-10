@@ -14,12 +14,12 @@
  * on the comment row (`ReactionBar`), not here.
  */
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { useToast } from "@astryxdesign/core/Toast";
 import { createCommentAction, updateCommentAction } from "@/app/actions/relations-comments";
 import { MarkdownEditor, type EntityLink, type MarkdownEditorHandle } from "@/components/editor";
+import { EntryBanner } from "@/components/shared/EntryBanner";
 
 export type CommentComposerProps = {
   workItemId: string;
@@ -118,8 +118,10 @@ export function CommentComposer({
   return (
     <VStack gap={2} ref={root} className="tessera-comment-composer">
       {conflict !== null ? (
-        <Banner
+        // Astryx 0.7 Banners announce nothing on their own; this one answers a save, so it asks to be read (role="alert") and slides in.
+        <EntryBanner
           status="warning"
+          role="alert"
           title="This comment changed"
           description="Someone else saved this comment while you were editing."
           endContent={conflict.body !== null ? <Button variant="secondary" size="sm" label="Load theirs" onClick={loadTheirs} /> : undefined}

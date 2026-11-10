@@ -12,6 +12,7 @@
  */
 import { useCallback } from "react";
 import { Card } from "@astryxdesign/core/Card";
+import { useEntryAnimation } from "@astryxdesign/core/hooks";
 import { VStack } from "@astryxdesign/core/Stack";
 import type { ItemDragHandlers } from "@/components/dnd/use-pointer-drag";
 import { useVirtualRows, type VirtualRow } from "@/components/virtual/use-virtual-rows";
@@ -46,10 +47,15 @@ function PlaceholderCard({ height, measureRef, ...windowed }: WindowCardProps & 
   return <Card ref={measureRef} variant="muted" padding={0} height={height} {...windowCardProps("tessera-board-placeholder", windowed)} />;
 }
 
-/** A quick-add placeholder: inert until the server item replaces it. */
-function PendingCard({ item, properties, measureRef, ...windowed }: WindowCardProps & { item: WorkItem; properties: DisplayProperties }) {
+/**
+ * The card a quick-add shows until the server item arrives: inert, and it fades in. It is the only card that animates:
+ * the real cards mount on scroll, on "Show more" and on the agent refresh, which must stay still. `useEntryAnimation`
+ * is Astryx's own (docs/contracts/ui.md "Motion"): null on first paint and while hydrating, off under Reduce Motion.
+ */
+export function PendingCard({ item, properties, measureRef, ...windowed }: WindowCardProps & { item: WorkItem; properties: DisplayProperties }) {
+  const entry = useEntryAnimation("fadeIn");
   return (
-    <Card ref={measureRef} padding={3} aria-busy="true" {...windowCardProps("tessera-board-card tessera-board-card-pending", windowed)}>
+    <Card ref={measureRef} padding={3} aria-busy="true" xstyle={entry ?? undefined} {...windowCardProps("tessera-board-card tessera-board-card-pending", windowed)}>
       <BoardCardBody item={item} properties={properties} menu={<BoardCardMenuSlot />} />
     </Card>
   );

@@ -10,6 +10,12 @@
  * `<Activity>` route keeps its last values). A passive `scroll` listener, also rAF-coalesced, recomputes each
  * anchor's near-viewport flag and emits only when one flipped.
  *
+ * Offsets are layout places: an anchor's box is read with the `translate` and `transform` of the anchor and its
+ * ancestors up to the scroller taken out (`movedBy`). While an Astryx `useAnimatedLayout` glide moves a list group or a
+ * board lane, or a drop settles, the box is drawn somewhere else for a moment; reading it as the offset would give the
+ * window the wrong rows and leave it so after the glide ends. With the move taken out, a pass mid-glide windows the
+ * rows of the group's final place, which then glide in with it.
+ *
  * React reads it through `useSyncExternalStore`, so no state is set in an effect body (decision 134); every selector
  * returns a primitive, so a subscriber re-renders only when its own number changes. Until the first pass the store
  * equals its server snapshot (`viewport` = the initial viewport, not measured), so hydration matches.
@@ -60,6 +66,31 @@ export type ScrollerStoreHandle = ScrollerStore & {
 type Anchor = { el: HTMLElement; margin: number; offset?: number; height: number; gap: number; head: number; near: boolean };
 
 type Frames = Pick<Window, "requestAnimationFrame" | "cancelAnimationFrame">;
+
+/** The block-axis part of a computed `translate` ("none", "12px", "0px 120px", "0px 120px 0px"). */
+function translateY(value: string | undefined): number {
+  if (!value || value === "none") return 0;
+  const parts = value.trim().split(/\s+/);
+  return parts.length < 2 ? 0 : px(parts[1]);
+}
+
+/** The block-axis translation of a computed `transform` matrix ("none", "matrix(a, b, c, d, tx, ty)", "matrix3d(…)"). */
+function transformY(value: string | undefined): number {
+  const match = /^matrix(3d)?\((.*)\)$/.exec(value?.trim() ?? "");
+  if (!match) return 0;
+  const values = match[2].split(",");
+  return px(values[match[1] ? 13 : 5]);
+}
+
+/** How far `el` is drawn below its layout place by the moves on it and its ancestors up to `root` (excluded). */
+function movedBy(el: Element, root: Element): number {
+  let dy = 0;
+  for (let node: Element | null = el; node !== null && node !== root; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    dy += translateY(style.translate) + transformY(style.transform);
+  }
+  return dy;
+}
 
 /** A px length from computed style; "normal", "auto" and anything unparsable read 0. */
 function px(value: string | undefined): number {
@@ -127,7 +158,7 @@ export function createScrollerStore(initialViewport: number, virtualizes: boolea
     }
     for (const anchor of anchors.values()) {
       const box = anchor.el.getBoundingClientRect();
-      const offset = offsetWithin(box.top, rect.top, scrollTop, el.clientTop);
+      const offset = offsetWithin(box.top - movedBy(anchor.el, el), rect.top, scrollTop, el.clientTop);
       const gap = px(getComputedStyle(anchor.el).getPropertyValue("row-gap"));
       const headEl = anchor.el.tagName === "TBODY" ? anchor.el.previousElementSibling : null;
       const head = headEl ? headEl.getBoundingClientRect().height : 0;

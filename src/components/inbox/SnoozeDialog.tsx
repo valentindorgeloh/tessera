@@ -53,7 +53,7 @@ function SnoozeForm({ openedAt, onOpenChange, onConfirm }: { openedAt: Date; onO
         <LayoutContent>
           <DateTimeInput
             label="Snooze until"
-            className="tessera-snooze-field"
+            controlClassName="tessera-snooze-field"
             value={asDateTime(value)}
             onChange={(next) => setValue(next ?? formatLocalDateTime(initial))}
             min={asDateTime(formatLocalDateTime(bounds.min))}

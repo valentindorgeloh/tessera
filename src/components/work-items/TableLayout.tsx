@@ -18,9 +18,10 @@
  * replaces them.
  */
 
-import { useCallback, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Badge } from "@astryxdesign/core/Badge";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { HStack } from "@astryxdesign/core/Stack";
 import { useTableColumnResize, useTableGroupedRows, useTableSelection, useTableSortable, useTableStickyColumns, type TablePlugin } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
@@ -41,15 +42,6 @@ import { TABLE_SORT_FIELDS, orderByFromSort, sortFromOrderBy } from "./table-sor
 import { ActorLabel, PriorityLabel, StateLabel, isPriority, paletteTokenColor } from "./properties";
 import { VirtualTable } from "./VirtualTable";
 import type { LayoutProps } from "./types";
-
-function subscribeWide(onChange: () => void): () => void {
-  const query = window.matchMedia(PIN_COLUMNS_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-const readWide = () => window.matchMedia(PIN_COLUMNS_QUERY).matches;
-/** The server (and the first client render) pins, as a tablet or desktop does; a phone unpins right after hydration. */
-const serverWide = () => true;
 
 type ColumnKey = "key" | "name" | "project" | "state" | "priority" | "assignees" | "labels" | "cycle" | "modules" | "estimate" | "start_date" | "target_date" | "created_at" | "updated_at";
 
@@ -212,7 +204,8 @@ export function TableLayout({ result, display, bundle, onUpdate, onOpen, readOnl
     columns: resizeColumns,
   });
   // Pinned key columns need room to leave something to scroll; on a phone the whole row scrolls (reference section 8).
-  const pinColumns = useSyncExternalStore(subscribeWide, readWide, serverWide);
+  // The server (and the first client render) pins, as a tablet or desktop does; a phone unpins right after hydration.
+  const pinColumns = useMediaQuery(PIN_COLUMNS_QUERY, true);
   const stickyPlugin = useTableStickyColumns<TableRow>({ startKeys: pinColumns ? ["key"] : [] });
 
   /** A pointer click on the row opens the item (the key button is the keyboard route); editable cells keep their clicks. */

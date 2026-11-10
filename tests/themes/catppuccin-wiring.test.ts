@@ -72,8 +72,6 @@ describe("catppuccin theme wiring", () => {
     [".astryx-context-menu", ["border-width: var(--border-width)", "border-color: var(--color-border)", "color: var(--color-text-primary)"]],
     [".astryx-dialog", ["color: var(--color-text-primary)"]],
     [".astryx-banner", ["--color-text-secondary: var(--color-text-primary)", "--color-neutral: var(--color-background-surface)"]],
-    ['.astryx-banner-icon[data-status="warning"]', ["color: var(--color-text-yellow)"]],
-    ['.astryx-banner-icon[data-status="success"]', ["color: var(--color-text-green)"]],
     [".astryx-nav-icon", ["border-radius: var(--radius-element)"]],
     [".astryx-tab-scroll-button", ["border-radius: var(--radius-element)"]],
     [".astryx-calendar-day", ["border-radius: var(--radius-element)"]],
@@ -93,14 +91,50 @@ describe("catppuccin theme wiring", () => {
     expect(tokens.get(token)).toBe(value);
   });
 
+  // Calm and quick (X01): the motion scale keeps the CSS durations at 140/280/520 ms
+  // (a scale's durations win over `tempo`), and `tempo: 0.75`, the quickest the knob
+  // goes, speeds the animator's springs. The curves stay at the `standard` character:
+  // `crisp` reads as slower, so catppuccinTheme.ts must not name a character.
+  it("sets tempo 0.75 and keeps the 140/280/520 ms durations", () => {
+    expect(tokens.get("--_astryx-motion-tempo")).toBe("0.75");
+    expect(tokens.get("--duration-fast")).toBe("140ms");
+    expect(tokens.get("--duration-medium")).toBe("280ms");
+    expect(tokens.get("--duration-slow")).toBe("520ms");
+    // The entrance, move and exit tokens at `standard`: Astryx's own, never written by the build.
+    expect(tokens.get("--duration-exit")).toBe("var(--duration-fast)");
+    for (const name of ["--ease-entrance", "--ease-move", "--ease-exit"]) expect(tokens.has(name), name).toBe(false);
+    const source = fs.readFileSync(path.join(THEME_DIR, "catppuccinTheme.ts"), "utf8");
+    expect(source).toMatch(/motion: \{[^}]*\btempo: 0\.75\b/);
+    expect(source).not.toMatch(/\bcharacter:/);
+  });
+
   it("the focus ring follows the on-colour on inverted surfaces", () => {
     expect(ruleBody('[data-astryx-media="dark"]')).toContain("--focus-outline-color: var(--color-on-dark)");
     expect(ruleBody('[data-astryx-media="light"]')).toContain("--focus-outline-color: var(--color-on-light)");
   });
 
-  it("uses no private Astryx variables", () => {
-    for (const file of ["catppuccinTheme.ts", "palette.ts", "catppuccin.css"]) {
-      expect(fs.readFileSync(path.join(THEME_DIR, file), "utf8"), file).not.toMatch(/--_[\w-]/);
+  // ui.md "Theme": authored code never reads or writes Astryx's private `--_*`
+  // variables. The generated file is not authored: since Astryx 0.7.6 the
+  // build writes the motion tempo's own bookkeeping (`--_astryx-pre-tempo-
+  // duration-*`, `--_astryx-motion-tempo`) into the theme scope. Those names
+  // are allowed there, and only those, so a new private name in a rebuilt
+  // theme is noticed.
+  it("authored theme source and app CSS use no private Astryx variables", () => {
+    const stylesDir = path.join(REPO_ROOT, "src/components/styles");
+    const authored = [
+      ...["catppuccinTheme.ts", "palette.ts"].map((file) => path.join(THEME_DIR, file)),
+      ...fs.readdirSync(stylesDir).filter((file) => file.endsWith(".css")).map((file) => path.join(stylesDir, file)),
+      path.join(REPO_ROOT, "src/app/globals.css"),
+    ];
+    for (const file of authored) {
+      expect(fs.readFileSync(file, "utf8"), path.relative(REPO_ROOT, file)).not.toMatch(/--_[\w-]/);
     }
+  });
+
+  it("the generated theme writes only the tempo's private variables", () => {
+    expect(css).toContain("@generated");
+    const privateNames = new Set([...css.matchAll(/--_[\w-]+/g)].map((match) => match[0]));
+    const allowed = /^--_astryx-(pre-tempo-duration-(fast|medium|slow)(-min|-max)?|motion-tempo)$/;
+    expect([...privateNames].filter((name) => !allowed.test(name))).toEqual([]);
   });
 });

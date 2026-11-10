@@ -6,6 +6,14 @@
   background: var(--color-background-surface);
 }
 
+/*
+ * The slide in and out comes from motion.css (`tessera-motion-slide-end` on the panel, AssistantPanel; the content card
+ * clips it). A panel that is leaving takes no more clicks.
+ */
+.tessera-ai-panel[data-exiting] {
+  pointer-events: none;
+}
+
 .tessera-ai-fill,
 .tessera-ai-chat {
   min-height: 0;

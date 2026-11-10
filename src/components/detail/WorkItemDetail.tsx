@@ -98,7 +98,7 @@ function DetailTitle({ item, host, readOnly, actions }: TitleProps) {
           }
         }}
         hasAutoFocus
-        className="tessera-detail-title-input"
+        controlClassName="tessera-detail-title-input"
       />
     );
   }

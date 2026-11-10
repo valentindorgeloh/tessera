@@ -118,6 +118,39 @@ describe("board.css", () => {
   });
 });
 
+/**
+ * The quick-add placeholder row and card fade in on Astryx's `fadeIn` entry animation, which drives `opacity` from 0 to 1
+ * and holds the first frame (`fill: backwards`). A rule that rests at `opacity: 0.6` would therefore climb to 1 and drop
+ * to 0.6 when the animation ends: a visible pop. They are dimmed with `filter: opacity(0.6)`, a property the animation
+ * does not touch, so the fade and the dimming compose.
+ */
+describe("quick-add placeholders", () => {
+  const files = ["src/components/styles/work-items.css", "src/components/styles/board.css"];
+  const dimmed = [
+    { file: files[0]!, selector: ".tessera-wi-row-pending" },
+    { file: files[1]!, selector: ".tessera-board-card-pending" },
+  ];
+
+  it("dims the row and the card with filter: opacity(0.6)", () => {
+    for (const { file, selector } of dimmed) {
+      expect(rule(read(file), selector), `${selector} in ${file}`).toMatch(/filter:\s*opacity\(0\.6\)/);
+    }
+  });
+
+  it("sets no opacity on a pending rule anywhere, in a media query or not (the pop would come back)", () => {
+    for (const file of files) {
+      const css = read(file);
+      for (const match of css.matchAll(/([^{}]*-pending[^{}]*)\{([^{}]*)\}/g)) {
+        expect(match[2], `${match[1]!.trim()} in ${file}`).not.toMatch(/(^|[;\s])opacity\s*:/);
+      }
+    }
+  });
+
+  it("finds both rules in the first place (the scan above would otherwise pass on nothing)", () => {
+    for (const { file, selector } of dimmed) expect(read(file)).toContain(`${selector} {`);
+  });
+});
+
 describe("table.css", () => {
   const css = read("src/components/styles/table.css");
 

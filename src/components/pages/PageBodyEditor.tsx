@@ -22,11 +22,13 @@ import { useRouter } from "next/navigation";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { useAnnounce } from "@astryxdesign/core/hooks";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { refreshAction } from "@/app/actions/shell";
 import { updatePageBodyAction } from "@/app/actions/pages";
 import { DESCRIPTION_SAVE_DELAY_MS, MarkdownEditor, entityRoute, type EntityLink, type MarkdownEditorHandle } from "@/components/editor";
+import { EntryBanner } from "@/components/shared/EntryBanner";
 
 export type PageBodyEditorProps = {
   pageId: string;
@@ -84,6 +86,10 @@ function conflictVersion(details: unknown): number | null {
 
 export function PageBodyEditor({ pageId, text, version, readOnly = false, projectId = null, mentionActors = [], bodyRef }: PageBodyEditorProps) {
   const toast = useToast();
+  // The status line under the editor is plain text; each change of it is spoken from the save queue's own transitions
+  // (below), through one replacing instance: "Saving…" that "Saved" overtakes within a frame is withdrawn.
+  // A conflict has its alert Banner and a failed save its toast, so those two say nothing more.
+  const announce = useAnnounce({ hasReplace: true });
   const router = useRouter();
   const editor = useRef<MarkdownEditorHandle | null>(null);
   const [state, setState] = useState<SaveState>({
@@ -137,6 +143,7 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
         if (current.status === "dirty") {
           current.status = "clean";
           update({ status: "clean" });
+          announce(STATUS_TEXT.clean);
         }
         return;
       }
@@ -144,6 +151,7 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
       current.inFlight = body;
       current.status = "saving";
       update({ status: "saving", error: null });
+      announce(STATUS_TEXT.saving);
       const result = await updatePageBodyAction({
         page_id: current.pageId,
         description_md: body,
@@ -159,6 +167,7 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
         current.resendAfter = false;
         current.status = more ? "dirty" : "clean";
         update({ status: current.status, version: current.version, conflict: null, theirs: current.theirs, error: null });
+        announce(STATUS_TEXT[current.status]);
         if (more) void sendRef.current();
         return;
       }
@@ -175,7 +184,7 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
       update({ status: "error", error: result.message });
       toast({ type: "error", body: `Could not save the page: ${result.message}` });
     },
-    [readOnly, toast, update],
+    [announce, readOnly, toast, update],
   );
 
   useEffect(() => {
@@ -192,6 +201,8 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
         update({ lossy: null });
       }
       if (current.status !== "conflict" && current.status !== "saving") {
+        // Spoken once, when typing starts; the keystrokes after it keep the status as it is.
+        if (current.status !== "dirty") announce(STATUS_TEXT.dirty);
         current.status = "dirty";
         update({ status: "dirty" });
       }
@@ -201,7 +212,7 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
         void sendRef.current();
       }, DESCRIPTION_SAVE_DELAY_MS);
     },
-    [clearTimer, readOnly, update],
+    [announce, clearTimer, readOnly, update],
   );
 
   const flush = useCallback(async () => {
@@ -241,11 +252,14 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
     clearTimer();
     if (current.theirs !== null) {
       applyServer(current.theirs.text, current.theirs.version);
+      // The status line is plain text now, so the switch to "Saved" is spoken from this handler.
+      // The awaitingTheirs path below says nothing: it resolves from the effect that applies the refreshed page.
+      announce(STATUS_TEXT.clean);
       return;
     }
     current.awaitingTheirs = true;
     void refreshAction();
-  }, [applyServer, clearTimer]);
+  }, [announce, applyServer, clearTimer]);
 
   const onLossyParse = useCallback(
     (serialised: string) => {
@@ -331,9 +345,12 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
   const lossy = state.lossy;
   let banner = null;
   if (state.status === "conflict" || state.theirs !== null) {
+    // Astryx 0.7 Banners announce nothing on their own; this one appears while the person types, so it asks to be read (role="alert") and slides in.
     banner = (
-      <Banner
+      <EntryBanner
+        key="conflict"
         status="warning"
+        role="alert"
         title={state.status === "conflict" ? "Changed elsewhere" : "Updated elsewhere"}
         description="Someone else saved this page while you were editing."
         endContent={
@@ -377,7 +394,7 @@ export function PageBodyEditor({ pageId, text, version, readOnly = false, projec
         pageId={pageId}
         onOpenEntity={openEntity}
       />
-      <Text type="supporting" color="secondary" aria-live="polite">
+      <Text type="supporting" color="secondary">
         {readOnly ? "Read only" : STATUS_TEXT[state.status]}
       </Text>
     </VStack>

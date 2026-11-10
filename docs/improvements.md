@@ -6,7 +6,9 @@ Updated on 2026-10-28 with the performance round (commit after 21f8ae3): its ope
 
 Updated on 2026-10-29 with performance round 2 (roadmap lanes B and C, decisions 141 and 142, commit after 6331186): "Performance" is rewritten from its profile and review, its results are under "Closed".
 
-Updated on 2026-11-10 with the sidebar views, motion, virtual lists and calendar zoom round (commits cb5d6f8 to 9bb3010, decisions 127–139): the planned list moved to "Closed", and its measurements are under "Performance".
+Updated on 2026-11-09 with the Astryx 0.7.11 motion adoption: its open follow-ups are under "Astryx follow-ups"; the decisions are 143 to 148 in `docs/PLAN.md`.
+
+Updated on 2026-11-10 with the sidebar views, motion, virtual lists and calendar zoom round (commits cb5d6f8 to 9bb3010, decisions 127–139): the planned list moved to "Closed", and its measurements are under "Performance". The two were merged on 2026-11-10: Astryx's motion wins where both animate the same thing (decision 145 records what of decision 132 stays).
 
 ## Open
 
@@ -36,6 +38,11 @@ Sources: the decision 138 spec `tests/e2e/virtual-perf.spec.ts` and decision 115
 - The ProjectFrame heading and the "Work items" Text in `WorkItemsScreen` still use `Text maxLines`: up to 64 ms at CPU 1x on a 10k list (about 300 ms at 4x, upper bound). Low.
 - Per-row popovers were made lazy in the list, table, gantt, modules timeline and calendar only; other popovers with heavy closed content are not audited. Low.
 
+### Astryx follow-ups (2026-11-09)
+- Adopt Astryx `List` `animatedLayout` and `ListItem` `itemKey` for the inbox and proposal lists, and `LayoutPanel` slide-on-collapse, once they ship in an Astryx release (they are not in 0.7.11); they also close the gap below a removed row (decision 143) and give the inbox and proposal rows exit fades (decision 148). Low.
+- A list group collapse in a windowed list (above the virtual threshold): for the first few frames the group below is still below the viewport while it glides up, so the scroller shows no rows for about three frames and fills over the rest of the 280 ms glide (headless probe on a grouped list above the virtual threshold, 2026-11-10; nothing is blank once it settles, and an expand fills within four frames). The store measures anchors at their layout place and the closing group keeps its rows for the glide (docs/contracts/ui.md "Motion"); a full fix would window against the glide's drawn positions. Low.
+- Give `useDescriptionSave` and `use-work-item-search` an event callback (a handler that runs when a save settles or a search returns), so `DescriptionEditor` and the parent and relation pickers can announce through `useAnnounce` from it instead of keeping their `aria-live` status lines; announcing from an effect is not allowed (ui.md "Motion"). Low.
+
 ### Operations
 - Backup file names do not name their database: every backup is `tessera-<kind>-<stamp>.db` in `backups/` next to the database file (`src/lib/tessera/db/backups.ts`), so two databases in one folder (`data/tessera.db` and a perf or acceptance copy in `data/`) share one folder whose list, rotation and restore mix their copies. Put the source file's base name in the backup name and filter by it. Medium.
 
@@ -56,7 +63,7 @@ The `npm run db:demo` run (about 70 routes at 1440 and 375 in both schemes on a 
 - Home quick links whose URL is an internal path show the raw path with the project UUID as their subtitle. Low.
 
 ## Waiting for the user
-- Astryx upstream: approve filing the issue and PR drafted in docs/drafts/astryx-upstream-2026-10-24.md (public, on your GitHub account): the ContextMenu `moveTo`/`start`/`cancel` prop warning, lazy `Text maxLines` measuring, lazy closed layers. Later, approve the Astryx upgrade download once a release has the fixes; then `OneLineText` goes back to `Text maxLines`.
+- Astryx upstream (docs/drafts/astryx-upstream-2026-10-24.md): Astryx 0.7.11 is installed (2026-11-09). It fixed the ContextMenu `moveTo`/`start`/`cancel` warning (0.7.0, no issue needed), unmeasured `Text maxLines` with `hasTruncateTooltip={false}` (0.7.2) and deferred closed-layer `readPortalWritingContext` (0.7.5). Still open and worth filing: Popover, Selector and Tooltip content mounts while closed (no `lazyMount`). `OneLineText` goes back to `Text maxLines` only after a profile on 0.7.11.
 - Live assistant acceptance with the real model: needs about $1–3 of API usage per run and your approval; never ran. The no-cost route (decision 124 fake client, `TESSERA_AI_FAKE`) is built and `assistant.spec.ts` and `round-features.spec.ts` pass on it.
 
 ## Closed

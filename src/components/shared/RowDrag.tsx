@@ -42,7 +42,8 @@ export function RowDragOverlay({
     <Card ref={registerOverlay} padding={3} elevation="high" className="tessera-drag-overlay" aria-hidden="true">
       <HStack gap={3} vAlign="center">
         <Icon icon={icon} color={color} size="sm" />
-        <Text weight="medium" maxLines={1}>
+        {/* A clone that follows the pointer and is aria-hidden: no truncation tooltip. */}
+        <Text weight="medium" maxLines={1} hasTruncateTooltip={false}>
           {label}
         </Text>
       </HStack>

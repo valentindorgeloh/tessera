@@ -313,6 +313,36 @@ describe("collapsed groups", () => {
     expect(drawn.some((row) => row.textContent?.includes("Item g0-"))).toBe(false);
   });
 
+  it("keep their rows while a gliding group closes, then unmount them (docs/contracts/ui.md \"Motion\")", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const { result, display } = grouped(2, 3);
+      const { useAnimatedLayout } = await import("@astryxdesign/core/hooks");
+      const { useRef } = await import("react");
+      // The scroller's handle, as WorkItemsScreen makes it (jsdom has no layout, so nothing glides).
+      function Gliding() {
+        const containerRef = useRef<HTMLElement | null>(null);
+        const animatedLayout = useAnimatedLayout({ containerRef });
+        return createElement(ListLayout, layoutProps({ result, display, animatedLayout }));
+      }
+      const el = await render(createElement(ProjectProvider, { bundle } as ComponentProps<typeof ProjectProvider>, createElement(Gliding)));
+      await collapseFirst(el);
+      expect(rows(el).some((row) => row.textContent?.includes("Item g0-")), "held while the conceal runs").toBe(true);
+      await act(async () => {
+        // The hold is the motion token and half again: jsdom has no theme, so 300 ms fallback, 450 ms.
+        vi.advanceTimersByTime(449);
+      });
+      expect(rows(el).some((row) => row.textContent?.includes("Item g0-")), "still held just before the end").toBe(true);
+      await act(async () => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(rows(el).some((row) => row.textContent?.includes("Item g0-")), "gone once the hold ends").toBe(false);
+      expect(rows(el)).toHaveLength(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("mount no rows above the threshold", async () => {
     const { result, display } = grouped(2, 50);
     const el = await render(tree(layoutProps({ result, display })));

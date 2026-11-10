@@ -30,6 +30,9 @@ import { autoScrollFor, containerAt, dropIndexFor, dropIndexForGrid, exceedsThre
 
 export type { DropTarget } from "./drag-math";
 
+/** A rectangle in viewport pixels (a `DOMRect`'s four numbers, so it can be kept after the node is gone). */
+export type DropRect = { left: number; top: number; width: number; height: number };
+
 export type DragDropEvent = {
   id: string;
   fromContainer: string;
@@ -40,6 +43,12 @@ export type DragDropEvent = {
   before_id?: string;
   /** Item that will sit directly after the dropped one. */
   after_id?: string;
+  /**
+   * Where the drag overlay was at the moment of the drop, measured before the drag state clears (the overlay unmounts
+   * with it). Absent when the surface renders no overlay. A layout that settles the dropped item into its slot
+   * (the board) animates from here; every other surface ignores it.
+   */
+  overlayRect?: DropRect;
 };
 
 export type DragState = {
@@ -90,6 +99,8 @@ export type UsePointerDragResult = {
   registerContainer: (id: string) => (el: HTMLElement | null) => void;
   /** Stable ref callback for a draggable item's element. */
   registerItem: (id: string) => (el: HTMLElement | null) => void;
+  /** The element an item registered under `id` right now, or null. For code that acts on a dropped item after the commit. */
+  getItemElement: (id: string) => HTMLElement | null;
   /** Optional outer scroller (e.g. the board's horizontal strip) that auto-scrolls near its edges. */
   registerScroller: (el: HTMLElement | null) => void;
   /** Ref callback for the overlay clone rendered while dragging; positions it under the pointer. */
@@ -168,6 +179,8 @@ export function usePointerDrag(options: UsePointerDragOptions): UsePointerDragRe
     }
     return cb;
   }, []);
+
+  const getItemElement = useCallback((id: string) => itemEls.current.get(id) ?? null, []);
 
   const registerScroller = useCallback((el: HTMLElement | null) => {
     scrollerEl.current = el;
@@ -273,6 +286,8 @@ export function usePointerDrag(options: UsePointerDragOptions): UsePointerDragRe
       raf.current = null;
     }
     document.body.classList.remove(DRAGGING_CLASS);
+    // The overlay unmounts with the drag state, so its place is read first (a rectangle copied out of the DOMRect).
+    const overlay = commit && active.started ? overlayEl.current?.getBoundingClientRect() : undefined;
     if (active.started) {
       // The click that follows pointerup must not open the item; the flag clears after this task.
       suppressClick.current = true;
@@ -292,6 +307,7 @@ export function usePointerDrag(options: UsePointerDragOptions): UsePointerDragRe
       toContainer: target.container,
       index: target.index,
       ...neighboursAt(stayIds, target.index),
+      ...(overlay ? { overlayRect: { left: overlay.left, top: overlay.top, width: overlay.width, height: overlay.height } } : {}),
     });
   }, []);
 
@@ -401,7 +417,7 @@ export function usePointerDrag(options: UsePointerDragOptions): UsePointerDragRe
   useEffect(() => () => finish(false), [finish]);
 
   return useMemo(
-    () => ({ drag, isDragging: drag !== null, registerContainer, registerItem, registerScroller, registerOverlay, itemHandlers, cancel }),
-    [cancel, drag, itemHandlers, registerContainer, registerItem, registerOverlay, registerScroller],
+    () => ({ drag, isDragging: drag !== null, registerContainer, registerItem, getItemElement, registerScroller, registerOverlay, itemHandlers, cancel }),
+    [cancel, drag, getItemElement, itemHandlers, registerContainer, registerItem, registerOverlay, registerScroller],
   );
 }

@@ -172,6 +172,25 @@ describe("createScrollerStore", () => {
     expect(store.isNear("list:far")).toBe(true);
   });
 
+  it("reads a gliding anchor at its layout place: the translate and transform of a move are taken out", () => {
+    const f = frames();
+    const store = createScrollerStore(768, true, f);
+    const el = scroller(layout);
+    store.attach(el);
+    // The group below a closing one is drawn 120px (translate) plus 30px (a transform) below its layout place mid-glide.
+    const below = anchor(el, layout, 200 + 150, 400);
+    const group = below.parentElement!;
+    const real = window.getComputedStyle.bind(window);
+    vi.spyOn(window, "getComputedStyle").mockImplementation((node: Element) => {
+      const style = real(node);
+      if (node === group) return { ...style, getPropertyValue: style.getPropertyValue.bind(style), translate: "0px 120px", transform: "matrix(1, 0, 0, 1, 0, 30)" } as CSSStyleDeclaration;
+      return style;
+    });
+    store.register("list:below", below, 176);
+    f.run();
+    expect(store.offsetOf("list:below")).toBe(200);
+  });
+
   it("detaches its listener and observers", () => {
     const f = frames();
     const store = createScrollerStore(768, true, f);

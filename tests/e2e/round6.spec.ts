@@ -176,8 +176,12 @@ async function settle(page: Page, errors: ErrorCollector): Promise<void> {
   expect(errors.list(), "console errors and page errors").toEqual([]);
 }
 
+/**
+ * Astryx 0.7.5 animates the rail collapse and expand: while it runs, an `aria-hidden` copy of the "Work" nav sits
+ * beside the live one, so the bare selector matches two elements (strict mode violation). Read the live nav only.
+ */
 async function navWidth(page: Page): Promise<number> {
-  const box = await page.locator('nav[aria-label="Work"]').boundingBox();
+  const box = await page.locator('nav[aria-label="Work"]:not([aria-hidden="true"] *)').boundingBox();
   return Math.round(box?.width ?? -1);
 }
 
@@ -193,7 +197,7 @@ async function expandedWidth(page: Page): Promise<number> {
   });
 }
 
-/** End state of a toggle or chord: collapsed to the 48 px rail, and a click on the button expands it again. */
+/** End state of a toggle or chord (the top bar button is named "Open sidebar" while collapsed and "Close sidebar" while open, TopBar.tsx): collapsed to the 48 px rail, and a click on the button expands it again. */
 async function expectCollapsedThenExpanded(page: Page): Promise<void> {
   // The docked top-bar toggle reads "Open sidebar" on the rail and "Close sidebar" on the Full sidebar (TopBar.tsx).
   const toggle = page.locator("#tessera-nav-toggle");
@@ -332,7 +336,7 @@ type OtherControl = { action: EarlyAction; name: string; opened: (page: Page) =>
 const OTHER_CONTROLS: readonly OtherControl[] = [
   { action: "assistant", name: "Assistant", opened: (page) => page.getByRole("complementary", { name: "Assistant" }) },
   { action: "help", name: "Help", opened: (page) => page.getByRole("dialog", { name: "Keyboard shortcuts" }) },
-  { action: "account", name: "Account", opened: (page) => page.getByRole("menu") },
+  { action: "scheme", name: "Colour scheme", opened: (page) => page.getByRole("menu") },
   { action: "search", name: "search", opened: (page) => page.getByRole("dialog", { name: "Command bar" }) },
 ];
 

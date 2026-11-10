@@ -45,7 +45,7 @@ export function ArchivedProjects({ projects }: ArchivedProjectsProps) {
           description="Projects you archive leave the sidebar and are kept here, read-only, until you restore them."
         />
       ) : (
-        <List hasDividers edgeCompensation="inline" aria-label="Archived projects">
+        <List hasDividers edge="outset" aria-label="Archived projects">
           {projects.map((project) => (
             <ArchivedProjectRow key={project.id} project={project} onDelete={askDelete} />
           ))}

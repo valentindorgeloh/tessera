@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { AppShell } from "@astryxdesign/core/AppShell";
 import { Card } from "@astryxdesign/core/Card";
 import { useHotkeys, useMediaQuery } from "@astryxdesign/core/hooks";
@@ -24,6 +24,7 @@ import {
   type NavPrefs,
   type NavView,
 } from "./nav-prefs";
+import { PageFade } from "./PageFade";
 import { TopBar } from "./TopBar";
 
 export type NavFocusTarget = "panel" | "toggle" | "main" | "none";
@@ -130,10 +131,21 @@ function focusTarget(target: NavFocusTarget): HTMLElement | null {
   }
 }
 
+/**
+ * Applies a sidebar preference change with its motion (decisions 132 and 133). A change that collapses or expands
+ * Astryx's SideNav (its `isCollapsed` flips: Full ↔ a rail while docked, or a docked rail ↔ the floating Full panel)
+ * plays Astryx's own rail motion (0.7.5+: the rail and the content beside it glide), so it only sets the store.
+ * Every other change (Icons only ↔ Icons and labels, docked Full ↔ floating) is one Astryx does not animate:
+ * `withWidthMotion` animates the panel's width.
+ */
+function applyNavChange(change: () => void, after: NavPrefs, options?: { animate?: boolean }) {
+  if (options?.animate === false || isRailShown(getNavPrefs()) !== isRailShown(after)) change();
+  else withWidthMotion(sideNavPanel(), change);
+}
+
 function setNavView(view: NavView, options?: { animate?: boolean }) {
   const patch = navViewPatch(view);
-  if (options?.animate === false) setNavPrefs(patch);
-  else withWidthMotion(sideNavPanel(), () => setNavPrefs(patch));
+  applyNavChange(() => setNavPrefs(patch), { ...getNavPrefs(), ...patch }, options);
   refocusNav();
 }
 
@@ -142,10 +154,13 @@ function setNavCollapsed(collapsed: boolean, options?: { animate?: boolean }) {
 }
 
 function setNavDock(dock: NavDock) {
-  withWidthMotion(sideNavPanel(), () => {
-    setNavPrefs({ dock });
-    setNavOpenFlag(false);
-  });
+  applyNavChange(
+    () => {
+      setNavPrefs({ dock });
+      setNavOpenFlag(false);
+    },
+    { ...getNavPrefs(), dock },
+  );
   refocusNav();
 }
 
@@ -175,13 +190,30 @@ function toggleNav() {
   setNavCollapsed(getNavPrefs().display === "full");
 }
 
-/** The content panel, with the assistant in the Layout end slot while it is open. */
+/**
+ * The content panel, with the assistant in the Layout end slot while it is open. The content
+ * element's ref goes to PageFade, the page change fade: a leaf that reads the pathname, so this
+ * frame does not render on a navigation (and its Suspense boundary keeps the request-bound
+ * `usePathname()` out of the static shell).
+ */
 function ShellFrame({ sideNav, children }: { sideNav: ReactNode; children: ReactNode }) {
   const { isOpen } = useAssistant();
+  const contentRef = useRef<HTMLDivElement>(null);
   return (
     <AppShell height="fill" variant="wash" contentPadding={2} topNav={<TopBar />} sideNav={sideNav}>
       <Card padding={0} height="100%" className="tessera-panel">
-        <Layout height="fill" content={<LayoutContent isScrollable>{children}</LayoutContent>} end={isOpen ? <AssistantPanel /> : undefined} />
+        <Layout
+          height="fill"
+          content={
+            <LayoutContent ref={contentRef} isScrollable>
+              {children}
+            </LayoutContent>
+          }
+          end={isOpen ? <AssistantPanel /> : undefined}
+        />
+        <Suspense fallback={null}>
+          <PageFade targetRef={contentRef} />
+        </Suspense>
       </Card>
     </AppShell>
   );

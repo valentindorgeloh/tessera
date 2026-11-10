@@ -9,7 +9,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 <!-- END:nextjs-agent-rules -->
 
 <!-- ASTRYX:START -->
-Astryx v0.6.8 · 168 components
+Astryx v0.7.11 · 174 components
 CLI: run every command as `npx astryx <cmd>` (shown below as `astryx ...`).
 
 SETUP (once, in app entry e.g. main.tsx) — without these, components render unstyled:
@@ -21,25 +21,27 @@ WORKFLOW — start every page from a template, never from scratch:
 2. `astryx template <name> <path>` — scaffold it; keep its frame, gap and padding; replace the content.
 3. `astryx template <Block>` for parts it lacks; `astryx component <Name>` to read props before using one.
 Changing an existing page? Keep it: skip step 2 and add blocks/components inside its sections.
+Before you deliver a build, run `astryx doctor --built <dir>`; don't deliver it if it fails.
 
 RULES:
 - No <div> — components handle all layout and spacing.
 - Read `astryx docs layout` before changing a template's frame.
 - Dense data = rows (Table, List/Item), not Card-wrapped lists. Badge = counts only.
 - Style with component props first, then tokens (var(--color-*|--spacing-*|--radius-*)). No raw hex/px. No StyleX/Tailwind compiler here — don't use xstyle/utility classes directly. Some templates use StyleX and need a compiler plugin; see `astryx docs styling-overview`.
-- Palettes and custom colors go through the theme, never :root overrides. See `astryx docs theme`.
+- Palettes and custom colors go through the theme, never :root overrides. Run `astryx theme add <slug>` to import; `theme eject <slug>` only forks source. See `astryx docs theme`.
 - SELF-CHECK: re-read the file; replace any raw <div>/<span>, imported .css/@apply, or hardcoded #hex/px with the component or a token.
 
 `astryx help` lists every command. Key ones beyond the workflow:
   search "<query>"   find any component / hook / doc / template
   discover <words>   integrations you could add
   docs <topic>       getting-started, principles, tokens, theme … (`astryx docs` lists all)
-  docs cli           commands, API reference, integration authoring
+  docs cli           commands and API reference
+  docs authoring     build an integration package, and every field it holds
   upgrade --from <old version> --apply   run after a dependency bump
 <!-- ASTRYX:END -->
 
 ## Tessera project rules
 
-`docs/contracts/ui.md` refines the Astryx block above for this repo. Per-instance layout may use a className with tokens only, in the area's file under `src/components/styles/` (imported once from `src/app/globals.css`). Theme-wide restyles go through `src/themes/catppuccin/` (see the "Theme" section of `docs/contracts/ui.md`). Fonts load through `next/font` in `src/app/layout.tsx`, so `astryx doctor` keeps one documented `theme-fonts` warning.
+`docs/contracts/ui.md` refines the Astryx block above for this repo. Per-instance layout may use a className with tokens only, in the area's file under `src/components/styles/` (imported once from `src/app/globals.css`). The Astryx block's "don't use xstyle" has one exception here: a style object that an Astryx hook returns (today `useEntryAnimation`) may go to an Astryx component's `xstyle`; never `stylex.create`. Theme-wide restyles go through `src/themes/catppuccin/` (see the "Theme" section of `docs/contracts/ui.md`). Fonts load through `next/font` in `src/app/layout.tsx`, so `astryx doctor` keeps one documented `theme-fonts` warning.
 
 Agents build Tessera as a swarm with fixed roles (planner, worker, reviewer, reconciler); the roles, models and rules are in `docs/process/swarm.md`. Before starting any task, read `docs/field-guide/index.md`, the short list of surprises that cost earlier agents time.

@@ -10,9 +10,7 @@ import {
   JANK_FRAME_MS,
   LAYOUT_MOTION_FALLBACK_MS,
   LAYOUT_MOTION_TOKEN,
-  animateSlide,
   animateWidth,
-  fadeIn,
   guardJank,
   isJanky,
   isResizing,
@@ -203,9 +201,6 @@ describe("jsdom fallbacks", () => {
     const el = document.createElement("div");
     expect(typeof el.animate).not.toBe("function");
     expect(animateWidth(el, { from: 250, to: 48 })).toBeNull();
-    expect(animateSlide(el, "translateX(100%)", "none")).toBeNull();
-    expect(fadeIn(el)).toBeNull();
-    expect(fadeIn(null)).toBeNull();
   });
 
   it("animates with the token's timing when animate exists", () => {
@@ -213,8 +208,6 @@ describe("jsdom fallbacks", () => {
     const el = document.createElement("div");
     const animate = vi.fn(() => ({}) as Animation);
     Object.defineProperty(el, "animate", { value: animate });
-    animateSlide(el, "translateX(100%)", "none", { fill: "forwards" });
-    expect(animate).toHaveBeenCalledWith([{ transform: "translateX(100%)" }, { transform: "none" }], { duration: 280, easing: "ease-in-out", fill: "forwards" });
     animateWidth(el, { from: 250, to: 48 });
     expect(animate).toHaveBeenLastCalledWith([{ width: "250px" }, { width: "48px" }], { duration: 280, easing: "ease-in-out" });
   });

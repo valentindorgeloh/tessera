@@ -467,7 +467,7 @@ export function MarkdownEditor({
           rows={compact ? 10 : 16}
           isReadOnly={readOnly}
           hasSpellCheck={false}
-          className="tessera-editor-source"
+          controlClassName="tessera-editor-source"
         />
       ) : null}
       {editor && mode === "rich" ? (
@@ -533,7 +533,7 @@ export function MarkdownEditor({
                 }}
                 placeholder="https://… or work:WEB-12"
                 hasAutoFocus
-                className="tessera-editor-link-input"
+                controlClassName="tessera-editor-link-input"
               />
             ) : null}
           </VStack>

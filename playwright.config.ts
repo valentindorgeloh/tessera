@@ -37,6 +37,12 @@ export default defineConfig({
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
     ...devices["Desktop Chrome"],
+    // Motion is off for the suite: with a mouse Astryx's own primitives (the rail, the
+    // animators, entry animations) land at once and every Tessera keyframe is
+    // `animation: none` (src/components/styles/motion.css), so fixed waits and
+    // position probes stay valid. A tests/e2e/motion-*.spec.ts opts back in with
+    // test.use({ reducedMotion: "no-preference" }).
+    reducedMotion: "reduce",
   },
   webServer: {
     command: `npx tsx tests/e2e/prepare-db.ts && npx next start -H 127.0.0.1 -p ${PORT}`,

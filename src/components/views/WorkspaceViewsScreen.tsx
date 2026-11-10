@@ -118,7 +118,7 @@ export function WorkspaceViewsScreen({ views, favoriteIds, counts, createOnOpen:
                     hasClear
                     value={search}
                     onChange={setSearch}
-                    className="tessera-views-search"
+                    controlClassName="tessera-views-search"
                   />
                   <Selector
                     label="Sort"

@@ -105,7 +105,7 @@ describe("touch fixes in the planning dialogs (P12)", () => {
     expect(trigger).toMatch(/min-block-size:\s*var\(--spacing-11\)/);
     expect(trigger).toMatch(/margin-block:\s*calc\(\(var\(--size-element-md\) - var\(--spacing-11\)\) \/ 2\)/);
     expect(inMedia(planning, TOUCH, '.tessera-cycle-dates > button[aria-label="Open calendar"]::before')).toMatch(/inset-inline:\s*calc\(-1 \* var\(--spacing-5\)\) calc\(-1 \* var\(--spacing-2\)\)/);
-    expect(source("src/components/planning/CycleDialog.tsx")).toContain('className="tessera-cycle-dates"');
+    expect(source("src/components/planning/CycleDialog.tsx")).toContain('controlClassName="tessera-cycle-dates"');
   });
 
   it("keeps 8px under the last field of a scrolling dialog form, so the hit area is not clipped", () => {
