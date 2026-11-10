@@ -149,7 +149,7 @@ function ScopeReader({ onScope }: { onScope: (scope: AssistantScope) => void }) 
  * The provider's value with `status` read through `useAiStatus`, a store read
  * with a null server snapshot, instead of from the value itself. The value
  * changes when the status lands, and a page that hydrates after that (the page
- * area streams behind the frame's boundary, decision 155: the intake's Triage
+ * area streams behind the frame's boundary, decision 156: the intake's Triage
  * button, the views page's Describe dialog) would otherwise hydrate with the new
  * status against server HTML rendered without it (error 418, docs/contracts/ui.md
  * "Shell").

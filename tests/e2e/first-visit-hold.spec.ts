@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect, openWebWorkItems, test } from "./fixtures";
 
 /**
- * The first-visit hold (decision 155): a client navigation to a page that has
+ * The first-visit hold (decision 156): a client navigation to a page that has
  * not been visited keeps the old page on screen until the new one is ready, so
  * the frame's "Loading page" skeleton is never committed (React would hold the
  * content for 300 ms after it). A cold load still streams through it.

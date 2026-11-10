@@ -42,7 +42,7 @@ Registry tools: `pages.ts` (15 tools: list/get/create/update/update body/move/du
 | `wiki/page.tsx` (43) | Wiki tree (`?tab=` public, private, archived). |
 | `pages/[pageId]/page.tsx` (50), `pages/load-page.ts` (35) | Frame-less page screen for a wiki page; a project page redirects to its project route. `loadPageBundle` returns page, labels (null for wiki), actors; `pageSpaces` lists projects with Pages on. |
 | `projects/[projectId]/pages/page.tsx`, `pages/[pageId]/page.tsx` | Project Pages tab and a project page inside the frame. |
-| `inbox/page.tsx` (89) | `listNotifications` (limit 200) and the stored inbox digest; `?item=` streams the selected work item's detail under its own Suspense. The list itself has no page boundary (`instant = false`, decision 155): the frame's `PageSkeleton` covers a cold load. |
+| `inbox/page.tsx` (89) | `listNotifications` (limit 200) and the stored inbox digest; `?item=` streams the selected work item's detail under its own Suspense. The list itself has no page boundary (`instant = false`, decision 156): the frame's `PageSkeleton` covers a cold load. |
 
 ### Components
 

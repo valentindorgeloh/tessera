@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * The assistant's status in a streamed page (docs/contracts/ui.md "Shell", streamed-subtree rule;
- * decision 155). The page area streams behind the frame's Suspense boundary, which is the shell's
+ * decision 156). The page area streams behind the frame's Suspense boundary, which is the shell's
  * children as they came from the server: when the AI status lands, `AssistantProvider` re-renders with
  * a new value, but React's early bailout for a still-dehydrated boundary whose element did not change
  * skips the context propagation, so the boundary is never told. It hydrates later, and a consumer that

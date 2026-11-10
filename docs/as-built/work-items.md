@@ -25,7 +25,7 @@ Routes (`src/app/(tessera)/projects/`):
 | `[projectId]/page.tsx` (47) | Index route: redirects to `work-items`; calls `notFound()` for an unknown project so Tessera's 404 shows | `default ProjectIndexPage` |
 | `[projectId]/not-found.tsx` (31) | Not-found boundary; framed when the project context exists, bare otherwise (`useOptionalProject`) | `default ProjectNotFound` |
 | `[projectId]/work-items/page.tsx` (34) | Awaits params/searchParams, mounts `ScopedWorkItems` with the project scope | `default WorkItemsPage` |
-| `[projectId]/work-items/scoped-list.tsx` (165) | Async Server Component: decode `q`, read `view_settings`, merge display/filters, `listWorkItems`, mount `PeekHost` + `WorkItemsScreen`. Used by project, cycle and module pages; the project and cycle pages render it with no boundary of their own (decision 155), the module page keeps `ListSkeleton` | `ScopedWorkItems`, `loadPeek`, `ListSkeleton`, types `WorkItemsScope`, `ScopedWorkItemsProps` |
+| `[projectId]/work-items/scoped-list.tsx` (165) | Async Server Component: decode `q`, read `view_settings`, merge display/filters, `listWorkItems`, mount `PeekHost` + `WorkItemsScreen`. Used by project, cycle and module pages; the project and cycle pages render it with no boundary of their own (decision 156), the module page keeps `ListSkeleton` | `ScopedWorkItems`, `loadPeek`, `ListSkeleton`, types `WorkItemsScope`, `ScopedWorkItemsProps` |
 | `[projectId]/work-items/[workItemId]/page.tsx` (49) | Full detail page inside the frame; 404 if the item is in another project | `default WorkItemPage` |
 
 `src/components/work-items/` (all client unless noted "pure"):

@@ -1,5 +1,5 @@
 /**
- * The first-visit hold (decision 155, docs/contracts/ui.md "Reads"): the page
+ * The first-visit hold (decision 156, docs/contracts/ui.md "Reads"): the page
  * area has ONE boundary, in the frame, and the covered pages have none of their
  * own. A page-level fallback would commit a skeleton on a client navigation and
  * React 19.3 would hold the content for 300 ms. The shape is read from source;

@@ -83,7 +83,7 @@ test.describe("page links (pages-editor)", () => {
 
     await page.goto(`/projects/${project.id}/pages/${source.id}`);
     await expect(page.getByRole("heading", { level: 1, name: "Linking page" })).toBeVisible();
-    // The editor mounts once the page has hydrated, a moment after the streamed title shows (decision 155);
+    // The editor mounts once the page has hydrated, a moment after the streamed title shows (decision 156);
     // until then the page's last textbox is the top bar's search field, which opens Power K on a key.
     const editor = page.getByRole("main").getByRole("textbox").last();
     await expect(editor).toHaveAttribute("contenteditable", "true");
