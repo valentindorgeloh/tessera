@@ -59,7 +59,8 @@ export function ConversationHeader({ open, load, onDialog }: ConversationHeaderP
         <HStack gap={3} vAlign="center" wrap="wrap">
           <StageLabel stage={request.stage} hasReason />
           <Text hasTabularNumbers>{usdOf(request.costUsd, request.budgetUsd)}</Text>
-          <PullRequestLink pr={request.pr} />
+          {/* "None" fits the control screen's PR column; a header line without a PR just leaves it out. */}
+          {request.pr !== null ? <PullRequestLink pr={request.pr} /> : null}
           {request.actions.map((action) => (
             <Button
               key={action}

@@ -61,7 +61,8 @@ export function SuperagentScreen({ runner, agents, projects, scope, requestId }:
 
   const refresh = () => {
     startRefresh(async () => {
-      await superagentRefreshAction();
+      // Tessera's server may be restarting; a throw here would replace the screen with the error boundary.
+      await superagentRefreshAction().catch(() => undefined);
     });
   };
 

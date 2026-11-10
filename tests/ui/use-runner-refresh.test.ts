@@ -55,6 +55,16 @@ afterEach(async () => {
 });
 
 describe("useRunnerRefresh", () => {
+  it("drops a failed refresh (the server restarting) and tries again on the next tick", async () => {
+    refresh.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    await render(5_000, false);
+    await advance(5_000);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    await advance(5_000);
+    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(host.isConnected).toBe(true);
+  });
+
   it("refreshes once per interval while visible and not paused", async () => {
     await render(15_000, false);
     await advance(14_999);

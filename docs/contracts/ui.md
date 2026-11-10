@@ -2545,7 +2545,7 @@ Both do so under `Suspense` with a skeleton, then `await io()`, then `loadSupera
 
 **`ConversationHeader`** (props `{ open; load; onDialog }`):
 - **Title.** A `Heading` level 2 with the key as a `Link` to `/work-items/{workItemId}`, then the title.
-- **Request row.** When `request` is set: `StageLabel stage hasReason`, `Text` `usdOf(costUsd, budgetUsd)`, `PullRequestLink pr`, and one sm `Button` per entry of `request.actions` in listed order, named "{ACTION_LABELS[a]} {itemKey}".
+- **Request row.** When `request` is set: `StageLabel stage hasReason`, `Text` `usdOf(costUsd, budgetUsd)`, `PullRequestLink pr` (only when `pr` is set; the "None" placeholder belongs to the control screen's PR column), and one sm `Button` per entry of `request.actions` in listed order, named "{ACTION_LABELS[a]} {itemKey}".
   - The `primaryAction(actions)` button is primary; the others are secondary.
   - Approve, Retry and Lift hold call `superagentRequestAction` and report through `useRunnerReport(context)` with the same texts as `RequestsTable`.
   - Stop, Resize and Budget open `RequestDialogs` (`{ kind, request }`, the same `context`).

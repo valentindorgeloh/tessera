@@ -68,4 +68,5 @@ npx tsx scripts/superagent-stub.ts --port 3391 --token-file data/superagent/api-
 
 - The real runner does not exist yet; everything runner-side was checked against the fake runner only.
 - Readings of runner API v1 that the runner session must match (ui.md, "Mismatches and assumptions"): `revision` is a string or a number; `intake.cursor` and `intake.latestSeq` are never null; empty-body POSTs send no body; `workItemId` is Tessera's id; `firstPassReviewRate` is a fraction from 0 to 1; sizes are S, M or L.
+- The editor's people picker matches the start of an actor's name, and the superagent's actor is named `mcp:superagent`, so a mention is found by typing `@mcp`, not `@super`.
 - `loadProjectBundle` reads the workspace settings once per project bundle (cross-project lists read it per project); cheap, but could be hoisted.

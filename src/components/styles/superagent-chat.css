@@ -41,6 +41,16 @@
   overflow-wrap: anywhere;
 }
 
+/* The comment renderer inside a bubble: the bubble is the frame, so the editor's own box and inset go. */
+.tessera-chat-body .tessera-editor--readonly {
+  border: none;
+  background: transparent;
+}
+
+.tessera-chat-body .tessera-editor--readonly .tessera-editor-content {
+  padding: 0;
+}
+
 .tessera-chat-header {
   flex: none;
   min-width: 0;
