@@ -21,8 +21,8 @@ type AiStatusContextValue = {
  * The status lives in a small store the provider owns; the context carries the
  * store, which never changes. A consumer reads the status through
  * `useSyncExternalStore` with a null server snapshot, so a status that lands
- * before a streamed boundary hydrates (the page area now streams behind the
- * frame's boundary, decision 156) hydrates against the server's null instead of
+ * before a streamed boundary hydrates (a page behind its own boundary, such as
+ * the project intake or views page) hydrates against the server's null instead of
  * a changed context value (error 418, docs/contracts/ui.md "Shell").
  */
 type StatusStore = {

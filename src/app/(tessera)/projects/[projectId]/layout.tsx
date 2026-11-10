@@ -12,10 +12,10 @@ type Props = { children: ReactNode; params: Promise<{ projectId: string }> };
  * bundle once per navigation and hands it to every screen below through
  * `ProjectProvider`; the frame draws the header and tabs.
  *
- * `instant = false`: the layout blocks on the project lookup, which streams
- * in under the frame's boundary in `(tessera)/layout.tsx` (no boundary of its
- * own: a navigation from outside the project would commit a frame skeleton
- * and React would hold the content for 300 ms). With the default validation, Next's
+ * `instant = false`: the layout blocks on the project lookup (decision 156),
+ * with no boundary of its own or above it: a navigation from outside the
+ * project would commit a frame skeleton and React would hold the content for
+ * 300 ms, and a full load gets the frame in the first HTML flush. With the default validation, Next's
  * instant-navigation check still reports the shell's `usePathname()` holes
  * on every route whose page calls `notFound()` (the not-found boundary
  * replaces the page before the validator sees it render); opting the segment

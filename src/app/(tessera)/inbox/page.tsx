@@ -14,18 +14,20 @@ import type { DigestView } from "@/lib/tessera/types";
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 /**
- * `instant = false`: this page keeps no Suspense boundary of its own. The
- * frame's boundary in `(tessera)/layout.tsx` covers a cold load, and a client
- * navigation keeps the old page on screen until this one is ready, so React
- * never commits a skeleton and holds the content for 300 ms. The opt-out
+ * `instant = false`: this page keeps no Suspense boundary of its own and
+ * blocks (decision 156). A client navigation keeps the old page on screen
+ * until this one is ready, so React never commits a skeleton and holds the
+ * content for 300 ms, and a full load sends the page in the first HTML flush
+ * instead of a streamed segment. The opt-out allows the blocking route and
  * turns off dev validation of instant navigation for this segment
  * (`02-route-segment-config/instant.md`).
  */
 export const instant = false;
 
 /**
- * Inbox at `/inbox` (docs/drafts/p7-plan.md §5). The list streams under the
- * frame's boundary and the selected item under its own Suspense boundary.
+ * Inbox at `/inbox` (docs/drafts/p7-plan.md §5). The list blocks (it comes in
+ * the first HTML flush) and the selected item streams under its own Suspense
+ * boundary.
  *
  * The list is the caller's notifications. Opening `?item=` loads that work item.
  * A stored inbox digest is read here and never generated; Summarise and

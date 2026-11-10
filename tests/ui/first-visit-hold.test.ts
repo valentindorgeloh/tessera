@@ -1,11 +1,13 @@
 /**
- * The first-visit hold (decision 156, docs/contracts/ui.md "Reads"): the page
- * area has ONE boundary, in the frame, and the covered pages have none of their
- * own. A page-level fallback would commit a skeleton on a client navigation and
- * React 19.3 would hold the content for 300 ms. The shape is read from source;
+ * The first-visit hold (decision 156, docs/contracts/ui.md "Reads"): the
+ * covered pages have no Suspense boundary of their own and none above them, so
+ * they block. A page-level fallback would commit a skeleton on a client
+ * navigation and React 19.3 would hold the content for 300 ms; a boundary in
+ * the frame put every page in a streamed segment that a full load revealed no
+ * sooner than 300 ms after the first paint. The shape is read from source;
  * tests/e2e/first-visit-hold.spec.ts checks the behaviour in a browser.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -25,16 +27,13 @@ const HELD_PAGES = [
 ] as const;
 
 describe("first-visit hold", () => {
-  it("puts the page boundary in the frame, with PageSkeleton, around the children", () => {
+  it("renders the page in the frame with no boundary around it", () => {
     const layout = source("app/(tessera)/layout.tsx");
-    expect(layout).toContain('import { PageSkeleton } from "@/components/shell/PageSkeleton"');
-    expect(layout).toMatch(/<Suspense fallback=\{<PageSkeleton \/>\}>\s*\{children\}\s*<\/Suspense>/);
-  });
-
-  it("draws PageSkeleton from tokens, with the label a browser check looks for", () => {
-    const skeleton = source("components/shell/PageSkeleton.tsx");
-    expect(skeleton).toContain('aria-label="Loading page"');
-    expect(skeleton).not.toMatch(/(?:width|height)=\{\d+\}/);
+    // The watchers' boundary closes, then the page sits directly in the shell.
+    expect(layout).toMatch(/<\/Suspense>\s*\{children\}\s*<\/TesseraShell>/);
+    expect(layout).not.toMatch(/\{children\}\s*<\/Suspense>/);
+    expect(layout).not.toContain("PageSkeleton");
+    expect(existsSync(path.join(process.cwd(), "src/components/shell/PageSkeleton.tsx"))).toBe(false);
   });
 
   it.each(HELD_PAGES)("%s opts out of the instant check and has no page-level Suspense", (file) => {
