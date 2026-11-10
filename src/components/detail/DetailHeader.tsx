@@ -40,10 +40,10 @@ export type DetailHeaderProps = {
   archiveBlockedReason?: string;
   /** Opens version history. */
   onVersionHistory?: () => void;
-  /** "Send to superagent" entry (decision 151); shown disabled with `sendToSuperagentBlockedReason` as its description while the item cannot be sent. */
+  /** "Send to superagent" entry (decision 152); shown disabled with `sendToSuperagentBlockedReason` as its description while the item cannot be sent. */
   onSendToSuperagent?: () => void;
   sendToSuperagentBlockedReason?: string;
-  /** The entry's label; "Open superagent chat" once the superagent has the item (decision 152). */
+  /** The entry's label; "Open superagent chat" once the superagent has the item (decision 153). */
   sendToSuperagentLabel?: string;
 };
 

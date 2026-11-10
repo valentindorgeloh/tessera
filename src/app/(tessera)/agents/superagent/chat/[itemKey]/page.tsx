@@ -7,7 +7,7 @@ import { ChatSkeleton } from "../skeleton";
 type Props = { params: Promise<{ itemKey: string }> };
 
 /**
- * `/agents/superagent/chat/<KEY>` (decision 152; docs/contracts/ui.md
+ * `/agents/superagent/chat/<KEY>` (decision 153; docs/contracts/ui.md
  * "Superagent chat"): the chat list with that work item's conversation open.
  * An unknown key shows "No such work item" in the thread pane. The params are
  * awaited under Suspense, then `io()` before the reads.

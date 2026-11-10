@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The chat list (decision 152; docs/contracts/ui.md "Superagent chat"): one
+ * The chat list (decision 153; docs/contracts/ui.md "Superagent chat"): one
  * row per work item the superagent works on with you (assigned, mentioned, or
  * with a runner request), newest activity first. A click opens that chat. The
  * rows come from Tessera, so the list works with the runner offline; the

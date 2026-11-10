@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * "History" (decision 151; docs/contracts/ui.md "Superagent control", item 3):
+ * "History" (decision 152; docs/contracts/ui.md "Superagent control", item 3):
  * what the runner knows about the request the table selected (`?request=`):
  * its facts, the scope it works to, an open question, its sessions and its
  * events, newest first.

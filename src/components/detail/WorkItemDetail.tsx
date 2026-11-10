@@ -157,7 +157,7 @@ export function WorkItemDetail({ data, host, onClose, onHostChange, onOpenItem }
     );
   };
 
-  // "Send to superagent" (decision 151): the runner treats the superagent's assignment as the request, so a send is an assignment, through the detail's optimistic assignee path (a quick second edit builds on it). Then the item's chat opens (decision 152); an item the superagent already has opens it straight away.
+  // "Send to superagent" (decision 152): the runner treats the superagent's assignment as the request, so a send is an assignment, through the detail's optimistic assignee path (a quick second edit builds on it). Then the item's chat opens (decision 153); an item the superagent already has opens it straight away.
   const send = sendToSuperagentState({ repo: bundle.superagent_repo, actors: bundle.actors, assigneeIds: item.assignee_ids, readOnly });
   const openChat = () => router.push(chatHref(item.key));
   const sendToSuperagent = () => {

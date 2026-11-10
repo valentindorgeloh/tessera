@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The top of an open chat (decision 152; docs/contracts/ui.md "Superagent
+ * The top of an open chat (decision 153; docs/contracts/ui.md "Superagent
  * chat"): the work item's key and title, then the item's newest runner request
  * with its stage, cost, pull request and action buttons. Approve, Retry and
  * Lift hold run at once and report like the control screen's table; Stop,
@@ -34,7 +34,7 @@ export function ConversationHeader({ open, load, onDialog }: ConversationHeaderP
   const report = useRunnerReport(context);
   const { request } = open;
 
-  const run = (target: RequestSummary, action: "approve" | "retry" | "lift_hold") => {
+  const run = (target: RequestSummary, action: "approve" | "retry" | "lift_hold" | "withdraw") => {
     startTransition(async () => {
       const result = await superagentRequestAction({ request_id: target.id, action });
       report(result, actionFailureText(action, target.itemKey), `${actionVerb(action)} sent for ${target.itemKey}`);
@@ -42,7 +42,7 @@ export function ConversationHeader({ open, load, onDialog }: ConversationHeaderP
   };
 
   const choose = (target: RequestSummary, action: RunnerAction) => {
-    if (action === "approve" || action === "retry" || action === "lift_hold") run(target, action);
+    if (action === "approve" || action === "retry" || action === "lift_hold" || action === "withdraw") run(target, action);
     else onDialog({ kind: action, request: target });
   };
 

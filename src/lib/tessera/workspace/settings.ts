@@ -53,7 +53,7 @@ export function normalizeHomeWidgets(raw: unknown): HomeWidgets {
 }
 
 /**
- * Superagent settings as stored (decision 150). Null stays null (never set);
+ * Superagent settings as stored (decision 151). Null stays null (never set);
  * otherwise a bad runner URL becomes the default and bad or repeated project
  * entries are dropped. The URL is returned without a trailing "/". Pure.
  */
@@ -180,7 +180,7 @@ export const SetAgentSettingsInput = z
   })
   .strict();
 
-/** Replaces the superagent project map and, when given, the runner URL. User only (decision 150); no activity row, like updateWorkspaceSettings. */
+/** Replaces the superagent project map and, when given, the runner URL. User only (decision 151); no activity row, like updateWorkspaceSettings. */
 export function setAgentSettings(ctx: TesseraContext, input: z.input<typeof SetAgentSettingsInput>): WorkspaceSettingsView {
   // Apply runs proposals as the assistant without assertToolAllowed, so the service refuses every non-user actor itself.
   if (ctx.actor.kind !== "user") throw rule("user_only", "Only the user can change the superagent settings");

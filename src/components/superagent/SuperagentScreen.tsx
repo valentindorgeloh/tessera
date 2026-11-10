@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Superagent (decision 151; docs/contracts/ui.md "Superagent control"): the
+ * Superagent (decision 152; docs/contracts/ui.md "Superagent control"): the
  * control screen of the runner on this Mac. A panel page with the banners, then
  * Needs you, Health, History, Routing, Settings and Team sections. The page
  * (server) loads everything in one go; while the tab is visible and none of the
@@ -32,7 +32,7 @@ import { TeamSectionsSection } from "./TeamSectionsSection";
 import { useRunnerRefresh } from "./use-runner-refresh";
 import { sectionNote, superagentHref, teamRepos, type FailureContext, type ProjectOption } from "./superagent-format";
 
-/** How often the screen reloads itself while it is visible (decision 151). */
+/** How often the screen reloads itself while it is visible (decision 152). */
 export const REFRESH_INTERVAL_MS = 15_000;
 
 const SCOPE_LABEL: Readonly<Record<RequestScope, string>> = { open: "Open", recent: "Recent", all: "All" };

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * "Needs you" body (decision 151; docs/contracts/ui.md "Superagent control"):
+ * "Needs you" body (decision 152; docs/contracts/ui.md "Superagent control"):
  * the runner's requests as a table, the empty state, and below it the triage
  * rows that gave up. A row click selects the request (the History section
  * follows `?request=`); its key and PR links and its action controls keep
@@ -83,7 +83,7 @@ export function RequestsTable({ requests, note, triage, triageNote, context, sco
   const report = useRunnerReport(context);
   const { ref, isNarrow } = useNarrowContainer(REQUESTS_FULL_WIDTH);
 
-  const run = (request: RequestSummary, action: "approve" | "retry" | "lift_hold") => {
+  const run = (request: RequestSummary, action: "approve" | "retry" | "lift_hold" | "withdraw") => {
     startTransition(async () => {
       const result = await superagentRequestAction({ request_id: request.id, action });
       report(result, actionFailureText(action, request.itemKey), `${actionVerb(action)} sent for ${request.itemKey}`);
@@ -91,7 +91,7 @@ export function RequestsTable({ requests, note, triage, triageNote, context, sco
   };
 
   const choose = (request: RequestSummary, action: RunnerAction) => {
-    if (action === "approve" || action === "retry" || action === "lift_hold") run(request, action);
+    if (action === "approve" || action === "retry" || action === "lift_hold" || action === "withdraw") run(request, action);
     else onOpenDialog({ kind: action, request });
   };
 

@@ -1,5 +1,5 @@
 /**
- * Superagent settings (decision 150): `workspace_settings.agents`, normalised on
+ * Superagent settings (decision 151): `workspace_settings.agents`, normalised on
  * read (`normalizeAgentSettings`), replaced only by the user through
  * `set_agent_settings` / `setAgentSettings`. The service refuses every other actor
  * with `RULE user_only` because Apply runs proposals as the assistant without

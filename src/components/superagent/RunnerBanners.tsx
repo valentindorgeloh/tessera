@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The banners at the top of the Superagent screen (decision 151; docs/contracts/ui.md
+ * The banners at the top of the Superagent screen (decision 152; docs/contracts/ui.md
  * "Superagent control", item 0). A failed state load is one banner from
  * `failureCopy`; a loaded state adds Paused, Tessera history rewound and
  * Runner setup failed when they apply. Nothing renders when all is well.

@@ -255,7 +255,7 @@ describe("tool names", () => {
     }
   });
 
-  it("no tool name contains superagent or runner: the runner's control API is outside the registry (decision 151)", () => {
+  it("no tool name contains superagent or runner: the runner's control API is outside the registry (decision 152)", () => {
     for (const def of TOOLS) expect(def.name, def.name).not.toMatch(/superagent|runner/);
   });
 
@@ -475,7 +475,7 @@ const CONTRACT_PHASES: Record<string, ToolPhase> = {
   set_agent_settings: "P11",
 };
 
-/** Tools only the user may run (RULE user_only for every other actor): webhooks, backups, maintenance, the assistant undo and the superagent settings (decision 150). */
+/** Tools only the user may run (RULE user_only for every other actor): webhooks, backups, maintenance, the assistant undo and the superagent settings (decision 151). */
 const CONTRACT_USER_ONLY = [
   "create_backup",
   "create_webhook",
@@ -831,7 +831,7 @@ describe("activity and cursor", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Superagent changes (decisions 149, 150 and 151)
+// Superagent changes (decisions 150, 151 and 152)
 // ---------------------------------------------------------------------------
 
 describe("superagent registry entries", () => {

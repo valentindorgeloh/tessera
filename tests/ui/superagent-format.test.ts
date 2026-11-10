@@ -1,5 +1,5 @@
 /**
- * The pure helpers behind the Superagent screen (decision 151; docs/contracts/ui.md
+ * The pure helpers behind the Superagent screen (decision 152; docs/contracts/ui.md
  * "Superagent control", "Shared helpers"): money, stage variants and order,
  * actions, the words of every runner failure, and the small texts of the
  * sections. The fixtures are the same files the fake runner serves.
@@ -157,6 +157,7 @@ describe("actions", () => {
       resize: "Resize…",
       budget: "Budget…",
       lift_hold: "Lift hold",
+      withdraw: "Withdraw",
     });
     expect(Object.keys(ACTION_LABELS).sort()).toEqual([...RUNNER_ACTIONS].sort());
   });
@@ -195,6 +196,7 @@ describe("actions", () => {
       resize: "Could not resize TES-1",
       budget: "Could not change the budget of TES-1",
       lift_hold: "Could not lift the hold on TES-1",
+      withdraw: "Could not withdraw the failed delivery of TES-1",
     };
     for (const action of RUNNER_ACTIONS) expect(actionFailureText(action, "TES-1"), action).toBe(expected[action]);
   });

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * Render smoke test of the Superagent screen (decision 151; src/components/superagent)
+ * Render smoke test of the Superagent screen (decision 152; src/components/superagent)
  * under jsdom: SuperagentScreen mounts with the fixtures the fake runner serves
  * and shows the banners, the requests table with its actions, the triage rows,
  * Health, History, Routing and the settings sections; a failed state shows one

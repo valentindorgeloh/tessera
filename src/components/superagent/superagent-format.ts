@@ -1,5 +1,5 @@
 /**
- * Pure helpers of the Superagent screen (decision 151; docs/contracts/ui.md
+ * Pure helpers of the Superagent screen (decision 152; docs/contracts/ui.md
  * "Superagent control", "Shared helpers"). No React and no Astryx, so Vitest
  * reaches them and the page can use `parseScope`. Lane U2's forms import
  * `failureCopy`, `failureToast`, `sectionNote`, `formatUsd`, `FailureContext`
@@ -77,6 +77,7 @@ export const ACTION_LABELS: Readonly<Record<RunnerAction, string>> = {
   resize: "Resize…",
   budget: "Budget…",
   lift_hold: "Lift hold",
+  withdraw: "Withdraw",
 };
 
 /** The action's name without the ellipsis of a dialog row: "Stop…" is "Stop" in a Toast. */
@@ -147,6 +148,8 @@ export function actionFailureText(action: RunnerAction, itemKey: string): string
       return `Could not change the budget of ${itemKey}`;
     case "lift_hold":
       return `Could not lift the hold on ${itemKey}`;
+    case "withdraw":
+      return `Could not withdraw the failed delivery of ${itemKey}`;
   }
 }
 

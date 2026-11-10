@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Team sections of the superagent screen (decisions 150 and 151;
+ * Team sections of the superagent screen (decisions 151 and 152;
  * docs/contracts/ui.md "Screen /agents/superagent", item 6). The section draws
  * its own "Team sections" heading: one Collapsible per repository with three
  * text areas (Communication, Scope, Delivery) and one "Save team sections"

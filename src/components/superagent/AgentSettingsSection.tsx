@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Settings of the superagent screen (decisions 150 and 151; docs/contracts/ui.md
+ * Settings of the superagent screen (decisions 151 and 152; docs/contracts/ui.md
  * "Screen /agents/superagent", item 5). The section draws its own "Settings"
  * heading and two forms:
  * - "Projects and repositories": Tessera's own mapping (runner URL and a

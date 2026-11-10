@@ -1,5 +1,5 @@
 /**
- * Superagent chat list (decision 152; docs/contracts/ui.md "Superagent chat"):
+ * Superagent chat list (decision 153; docs/contracts/ui.md "Superagent chat"):
  * the work items an actor is in a conversation on, with the newest live
  * comment of each. A plain service read, not a tool. An item qualifies when
  * the actor is an assignee, is mentioned in the item or in one of its live

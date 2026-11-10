@@ -21,7 +21,7 @@ import { getWorkItemRow, insertSubscriber, loadWritableWorkItem } from "./work-i
 
 const BODY = z.string().trim().min(1).max(50_000);
 
-/** Idempotency key for a comment (decision 149): printable ASCII without spaces, unique per caller and work item. */
+/** Idempotency key for a comment (decision 150): printable ASCII without spaces, unique per caller and work item. */
 export const ClientRefSchema = z
   .string()
   .regex(/^[\x21-\x7E]{1,200}$/)
@@ -50,7 +50,7 @@ export type CommentView = CommentRow & {
   replies: CommentView[];
 };
 
-/** What a repeated `client_ref` returns when its comment has since been deleted (decision 149). */
+/** What a repeated `client_ref` returns when its comment has since been deleted (decision 150). */
 export type DeletedCommentRef = { id: string; client_ref: string; deleted: true };
 export type CreateCommentResult = CommentView | DeletedCommentRef;
 
@@ -162,7 +162,7 @@ export function createComment(ctx: TesseraContext, workItemId: string, input: z.
   const data = validateInput(CreateCommentInput, input);
   return withTx(ctx, () => {
     if (data.client_ref !== undefined) {
-      // Decision 149: after the item exists, before the archived check, so a repeat on an item archived since still answers. Deleted rows count.
+      // Decision 150: after the item exists, before the archived check, so a repeat on an item archived since still answers. Deleted rows count.
       const item = getWorkItemRow(ctx, workItemId);
       const prior = ctx.db
         .select()

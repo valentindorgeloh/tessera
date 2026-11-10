@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * An open chat (decision 152; docs/contracts/ui.md "Superagent chat"): the
+ * An open chat (decision 153; docs/contracts/ui.md "Superagent chat"): the
  * header, the messages and the composer. A message goes out as a comment on
  * the work item, as a reply in the question's thread while the runner waits
  * for an answer. It shows on the right at once (useOptimistic) and is replaced

@@ -54,6 +54,7 @@ const MAX_BODY_BYTES = 1_000_000;
 const AFTER_ACTION = {
   approve: { kind: "working", label: "Working", reason: null, actions: ["stop"] },
   lift_hold: { kind: "working", label: "Working", reason: null, actions: ["stop"] },
+  withdraw: { kind: "working", label: "Working", reason: null, actions: ["stop"] },
   retry: { kind: "queued", label: "Queued", reason: "Waiting for a free slot.", actions: ["stop"] },
   stop: { kind: "stopped", label: "Stopped", reason: "You stopped this request.", actions: [] },
 } as const satisfies Record<string, { kind: StageKind; label: string; reason: string | null; actions: readonly RunnerAction[] }>;

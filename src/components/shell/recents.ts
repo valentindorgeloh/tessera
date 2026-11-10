@@ -151,9 +151,9 @@ export function resolveRoute(pathname: string, lookup: RouteLookup): RouteInfo {
   if (root === "your-work") return { label: projectId === undefined ? "Your work" : `Your work · ${titleCase(projectId)}`, icon: "your-work" };
   if (root === "agents") {
     if (projectId === undefined) return { label: "Agents", icon: "agents" };
-    // A static segment next to `[actorId]` (decision 151); real actor ids are uuids, so the literal word is the superagent screen.
+    // A static segment next to `[actorId]` (decision 152); real actor ids are uuids, so the literal word is the superagent screen.
     if (projectId === "superagent") {
-      // The chat (decision 152): `/agents/superagent/chat` and `/agents/superagent/chat/<KEY>`.
+      // The chat (decision 153): `/agents/superagent/chat` and `/agents/superagent/chat/<KEY>`.
       if (section === "chat") return { label: entityId === undefined ? "Superagent chat" : `Chat ${decodeSegment(entityId)}`, icon: "agents" };
       return { label: "Superagent", icon: "agents" };
     }

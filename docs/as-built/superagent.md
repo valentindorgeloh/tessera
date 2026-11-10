@@ -1,14 +1,14 @@
-# As-built map: superagent control and chat (decisions 149 to 152)
+# As-built map: superagent control and chat (decisions 150 to 153)
 
-State described: branch `claude/unruffled-feynman-d4ed47` after the superagent chat (decision 152), 2026-11-10, migration 0014. The runner itself is a separate program (the plan's Parts A and B); this file covers Tessera's side only: idempotent agent comments, the agent settings, the control client, the `/agents/superagent` screen and "Send to superagent". The full rules are in `docs/contracts/ui.md` ("Superagent control"), `tools.md` and `service-api.md` ("Superagent ..."), and `schema.md` ("Migration 0014").
+State described: branch `claude/unruffled-feynman-d4ed47` after the superagent chat (decision 153), 2026-11-10, migration 0014. The runner itself is a separate program (the plan's Parts A and B); this file covers Tessera's side only: idempotent agent comments, the agent settings, the control client, the `/agents/superagent` screen and "Send to superagent". The full rules are in `docs/contracts/ui.md` ("Superagent control"), `tools.md` and `service-api.md` ("Superagent ..."), and `schema.md` ("Migration 0014").
 
 ## 1. Purpose and boundaries
 
 The superagent runner picks up work items you assign to it, plans and builds them in its own sandbox, and reports back on the item. Tessera:
-- stores which projects the runner works on and in which repository (`workspace_settings.agents`, decision 150);
-- lets the runner write comments safely on retry (`create_comment` with `client_ref`, decision 149);
+- stores which projects the runner works on and in which repository (`workspace_settings.agents`, decision 151);
+- lets the runner write comments safely on retry (`create_comment` with `client_ref`, decision 150);
 - tells the runner when Tessera's change log was rewound (`list_changes` returns `latest_seq`);
-- shows and steers the runner on `/agents/superagent` through the runner's local control API v1 (decision 151).
+- shows and steers the runner on `/agents/superagent` through the runner's local control API v1 (decision 152).
 
 The control API is never a tool. No registry tool's name contains `superagent` or `runner`, so neither MCP agents nor the assistant can approve, stop or pay for the runner's work. Only the user's Server Actions call it.
 
@@ -26,7 +26,7 @@ The control API is never a tool. No registry tool's name contains `superagent` o
 | `src/components/detail/{DetailHeader,WorkItemDetail}.tsx`, `src/components/detail/use-detail-actions.ts`, `src/components/superagent/send-to-superagent.ts` | "Send to superagent" in the More menu of items in mapped projects: assigns the item to `mcp:superagent` through the detail's optimistic assignee path (`setAssigneesReporting`). |
 | `scripts/superagent-stub.ts`, `tests/fixtures/superagent/*.json` | A fake runner for acceptance and tests (`node:http`, in-memory, the v1 auth rules). Not part of the app. |
 
-### Chat (decision 152)
+### Chat (decision 153)
 
 | Path | Responsibility |
 |---|---|

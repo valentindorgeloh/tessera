@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * The superagent chat screen (decision 152; src/components/superagent/chat) under
+ * The superagent chat screen (decision 153; src/components/superagent/chat) under
  * jsdom: the pure helpers of chat-format.ts, then a render smoke test of
  * SuperagentChat with `createElement` (a `.test.tsx` never runs): not connected,
  * an open item with bubbles on both sides and the header's buttons, not found,

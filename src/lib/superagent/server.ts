@@ -1,6 +1,6 @@
 /**
- * Server side of the superagent control client (decision 151): reads the
- * runner URL from the workspace settings (decision 150) and the token from
+ * Server side of the superagent control client (decision 152): reads the
+ * runner URL from the workspace settings (decision 151) and the token from
  * its file on every call, then hands a ready `RunnerClient` to the caller.
  * Used by the Superagent page (`loadSuperagent`) and the Server Actions in
  * `src/app/actions/superagent.ts`; never by a registry tool.

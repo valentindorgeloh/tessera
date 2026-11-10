@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * The "Superagent chat" rail row (decision 152; docs/contracts/ui.md "Navigation and send"): it sits right after
+ * The "Superagent chat" rail row (decision 153; docs/contracts/ui.md "Navigation and send"): it sits right after
  * "Agents", links to the chat, and is the selected row on the chat path and below it, where "Agents" is not.
  * The other /agents pages (including the control screen) still select "Agents".
  */

@@ -339,7 +339,7 @@ export const WorkspaceAiSettingsSchema = z.object({
   digest_enabled: z.boolean().default(true).describe("Whether the home digest is generated."),
 });
 
-export const AGENT_RUNNER_DEFAULT_URL = "http://127.0.0.1:3090"; // Superagent runner (decision 150): loopback only, so the token never leaves this Mac.
+export const AGENT_RUNNER_DEFAULT_URL = "http://127.0.0.1:3090"; // Superagent runner (decision 151): loopback only, so the token never leaves this Mac.
 export const AgentRunnerUrlSchema = z.string().regex(/^http:\/\/(?:127\.0\.0\.1|localhost):(?:[1-9]\d{0,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])\/?$/, "Use http://127.0.0.1:<port> or http://localhost:<port>, port 1 to 65535").describe("Runner URL: http://127.0.0.1:<port> or http://localhost:<port>, port 1 to 65535, nothing after the port but an optional /.");
 export const AgentRepoSchema = z.string().max(140).regex(/^(?:[A-Za-z0-9_][A-Za-z0-9_.-]*\/)?(?!\.{1,2}$)(?!-)[A-Za-z0-9_.-]+$/, "Use name or owner/name; no segment is . or .. or starts with -").describe("Repository as name or owner/name, from letters, digits, underscore, dot and hyphen. No segment is . or .. or starts with a hyphen, and the owner starts with a letter, digit or underscore (the runner turns it into a folder path).");
 export const AgentProjectSchema = z.object({ project_id: IdSchema.describe("Project the repository belongs to."), repo: AgentRepoSchema }).strict();

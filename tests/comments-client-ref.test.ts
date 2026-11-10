@@ -1,5 +1,5 @@
 /**
- * Idempotent agent comments (decision 149): `create_comment` with a `client_ref`.
+ * Idempotent agent comments (decision 150): `create_comment` with a `client_ref`.
  * A repeat of the same caller, item and ref with the same body returns the stored
  * comment and changes nothing; a deleted comment answers `{ id, client_ref,
  * deleted: true }`; another body is CONFLICT. The lookup runs after the item

@@ -1,7 +1,7 @@
 "use server";
 
 /**
- * Superagent control (decision 151; docs/contracts/ui.md "Superagent
+ * Superagent control (decision 152; docs/contracts/ui.md "Superagent
  * control"). Server Actions over the runner client, not registry tools:
  * `withRunner` adds the token and the runner URL, so neither reaches the
  * browser, and no MCP client or assistant proposal can drive the runner. Each

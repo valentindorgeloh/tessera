@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * "Send to superagent" in the detail (decisions 150 and 151; docs/contracts/ui.md
+ * "Send to superagent" in the detail (decisions 151 and 152; docs/contracts/ui.md
  * "Send to superagent" and "Navigation and send"): the pure state helper, the
  * DetailHeader More menu with and without the entry (disabled with its reason,
  * relabelled, in its place between "Move to project…" and "Copy ID"), and

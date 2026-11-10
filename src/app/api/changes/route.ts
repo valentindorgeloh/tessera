@@ -5,7 +5,7 @@ import { getUnreadCount, listChanges, readTessera, USER_ACTOR_ID } from "@/lib/t
  * Change feed for the client poller (docs/contracts/ui.md "Route groups").
  * `GET /api/changes?since=<seq>` returns `{ changes, cursor, latest_seq, unread_notifications }`
  * with every activity row after `since` that was not written by the user (`latest_seq`
- * is the newest seq in the log, below the caller's cursor after a rewind; decision 151), so
+ * is the newest seq in the log, below the caller's cursor after a rewind; decision 152), so
  * the open page only refreshes on external writes (MCP clients, the assistant,
  * automations), plus the user's unread notification count (decision 59), which
  * also moves when a snoozed notification wakes. The response is never cached.

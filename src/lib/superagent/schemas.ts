@@ -1,5 +1,5 @@
 /**
- * zod mirrors of the superagent runner's API contract v1 (decision 151;
+ * zod mirrors of the superagent runner's API contract v1 (decision 152;
  * docs/contracts/ui.md "Superagent control"; the runner's own schemas in
  * `tessera-agents` stay the source of truth). Objects are plain `z.object`, so
  * unknown keys are stripped and an additive runner field never breaks the
@@ -28,10 +28,10 @@ export const STAGE_KINDS = [
 export const StageKindSchema = z.enum(STAGE_KINDS);
 export const StageSchema = z.object({ kind: StageKindSchema, label: z.string(), reason: z.string().nullable() });
 
-export const RUNNER_ACTIONS = ["approve", "retry", "stop", "resize", "budget", "lift_hold"] as const;
+export const RUNNER_ACTIONS = ["approve", "retry", "stop", "resize", "budget", "lift_hold", "withdraw"] as const;
 export const RunnerActionSchema = z.enum(RUNNER_ACTIONS);
-/** The actions that are one POST with no body (`lift_hold` is the route `lift-hold`). */
-export const SIMPLE_ACTIONS = ["approve", "retry", "stop", "lift_hold"] as const;
+/** The actions that are one POST with no body (`lift_hold` is the route `lift-hold`; `withdraw` drops a failed delivery). */
+export const SIMPLE_ACTIONS = ["approve", "retry", "stop", "lift_hold", "withdraw"] as const;
 export const SimpleActionSchema = z.enum(SIMPLE_ACTIONS);
 
 export const RequestSizeSchema = z.enum(["S", "M", "L"]);
