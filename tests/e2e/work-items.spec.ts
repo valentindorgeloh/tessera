@@ -23,6 +23,8 @@ test("a new project shows in the sidebar with its counts, and a created item get
 
   const first = page.getByRole("listitem").filter({ hasText: `${project.identifier}-1` });
   await expect(first).toBeVisible();
+  // A row draws its controls as chips until the pointer enters it (arming.tsx): point at it first, as a person would.
+  await first.hover();
   await expect(first.getByRole("combobox", { name: "State" })).toContainText("Backlog");
   // The count sits beside the link (S9); the link's accessible name ends with it.
   await expect(projectLink).toHaveAccessibleName(/\s1$/);
@@ -35,6 +37,7 @@ test("a new project shows in the sidebar with its counts, and a created item get
   await expect(second).toBeVisible();
   const rows = page.getByRole("listitem").filter({ has: page.getByRole("checkbox") });
   await expect(rows.nth(1)).toContainText(`${project.identifier}-2`);
+  await second.hover();
   await expect(second.getByRole("combobox", { name: "State" })).toContainText("Backlog");
   await expect(projectLink).toHaveAccessibleName(/\s2$/);
 });
