@@ -75,3 +75,19 @@ describe("action wrappers", () => {
     expect(mocks.refresh).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("listWorkItemsAction", () => {
+  it("returns the tool's list with slim rows and passes a failure through", async () => {
+    const row = { id: "w1", key: "WEB-1", name: "Item", description_md: "long text", description_version: 3, updated_by: "actor-1", is_draft: false };
+    mocks.mutates = false; // list_work_items is a read: no refresh
+    mocks.run.mockResolvedValueOnce({ data: { items: [row], total: 1, cursor: 9 }, cursor: 9 } as never);
+    const result = await workItems.listWorkItemsAction({} as never);
+    expect(result).toMatchObject({ ok: true, data: { total: 1, cursor: 9 } });
+    if (!result.ok) throw new Error("expected ok");
+    expect(result.data.items[0]).toMatchObject({ id: "w1", key: "WEB-1", name: "Item", description_md: "", description_version: 0, updated_by: "" });
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    mocks.run.mockRejectedValueOnce(new Error("boom"));
+    const failed = await workItems.listWorkItemsAction({} as never);
+    expect(failed).toMatchObject({ ok: false });
+  });
+});

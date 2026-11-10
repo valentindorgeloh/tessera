@@ -3,6 +3,7 @@ import { io } from "next/cache";
 import { notFound } from "next/navigation";
 import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { VStack } from "@astryxdesign/core/Stack";
+import { slimListRows } from "@/app/(tessera)/work-items/list-rows";
 import { PeekHost } from "@/components/detail/PeekHost";
 import { ArchivedWorkItems } from "@/components/planning/ArchivedWorkItems";
 import { decodeUrlState, mergeFilters } from "@/components/work-items/url-state";
@@ -41,7 +42,7 @@ async function ArchivedWorkItemsData({ params, searchParams }: Props) {
   try {
     items = await readTessera(
       (ctx) =>
-        listWorkItems(ctx, { scope: { type: "archived", project_id: projectId }, filters, display: { order_by: "-updated_at" }, limit: LIMIT }).items,
+        slimListRows(listWorkItems(ctx, { scope: { type: "archived", project_id: projectId }, filters, display: { order_by: "-updated_at" }, limit: LIMIT }).items),
     );
   } catch (err) {
     if (isTrackerError(err) && (err.code === "NOT_FOUND" || err.code === "VALIDATION")) notFound();

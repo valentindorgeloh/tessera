@@ -1,6 +1,7 @@
 import type React from "react";
 import { io } from "next/cache";
 import { notFound } from "next/navigation";
+import { slimListResult } from "@/app/(tessera)/work-items/list-rows";
 import { loadPeek } from "@/app/(tessera)/projects/[projectId]/work-items/scoped-list";
 import { PeekHost } from "@/components/detail/PeekHost";
 import { ViewBar } from "@/components/views/ViewBar";
@@ -79,14 +80,15 @@ export async function ViewWorkItems({ projectId, view, query }: ViewWorkItemsPro
 }
 
 function loadItems(viewId: string, effective: ViewState, cal: string | undefined) {
-  return readTessera((ctx) =>
-    listWorkItems(ctx, {
+  return readTessera((ctx) => {
+    const result = listWorkItems(ctx, {
       scope: { type: "view", view_id: viewId },
       filters: effective.filters,
       display: effective.display,
       ...listPaging(effective.display, cal, ctx.today(), toWeekStart(getWorkspaceSettings(ctx).week_start)),
       ...ganttListExtras(effective.display),
       ...(effective.rich_filters !== undefined ? { rich_filters: effective.rich_filters } : {}),
-    }),
-  );
+    });
+    return slimListResult(result);
+  });
 }
