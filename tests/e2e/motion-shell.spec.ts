@@ -141,22 +141,26 @@ test("the agent refresh does not fade the content", async ({ page }) => {
 });
 
 /**
- * The sidebar collapse snaps (decision 149): Astryx would glide the content
- * column and cross-fade a copy of the old content, which reads as a reload.
- * With motion on, every frame after the click shows the content at full
- * opacity, no copy of the old content or rail appears, and the column is
- * either where it was or where it lands, never in between, in both directions.
+ * The sidebar collapse is Tessera's motion (decision 149, rail-motion.ts):
+ * Astryx would move the content column with a transform and cross-fade a copy
+ * of the old content, which reads as a reload. With motion on, in both
+ * directions, every frame shows the content at full opacity with no Astryx
+ * copy, the panel's trailing edge never moves, its leading edge passes
+ * through in-between places on the way, and nothing is left behind.
  */
-test("collapsing and opening the sidebar moves the content in one step without a fade", async ({ page }) => {
+test("collapsing and opening the sidebar glides the content's leading edge without a fade", async ({ page }) => {
+  type Snap = { min: number; lefts: number[]; rights: number[]; copies: number };
   await page.addInitScript(() => {
-    const state = { min: 1, lefts: [] as number[], copies: 0 };
+    const state = { min: 1, lefts: [] as number[], rights: [] as number[], copies: 0 };
     (window as unknown as { __snap: typeof state }).__snap = state;
     const tick = () => {
       const main = document.getElementById("astryx-app-shell-main");
       if (main) {
-        state.lefts.push(Math.round(main.getBoundingClientRect().left));
+        const box = main.getBoundingClientRect();
+        state.lefts.push(Math.round(box.left));
+        state.rights.push(Math.round(box.right));
         for (const child of Array.from(main.children)) state.min = Math.min(state.min, parseFloat(getComputedStyle(child).opacity));
-        state.copies = Math.max(state.copies, document.querySelectorAll('[aria-hidden="true"][inert]').length);
+        state.copies = Math.max(state.copies, document.querySelectorAll('[aria-hidden="true"][inert]:not([data-tessera-rail-copy])').length);
       }
       requestAnimationFrame(tick);
     };
@@ -172,23 +176,27 @@ test("collapsing and opening the sidebar moves the content in one step without a
     const before = await leftOf();
     // Astryx's motion copies are inert and hidden; count them against what the page holds at rest.
     const atRest = await page.evaluate(() => {
-      const state = (window as unknown as { __snap: { min: number; lefts: number[]; copies: number } }).__snap;
+      const state = (window as unknown as { __snap: { min: number; lefts: number[]; rights: number[]; copies: number } }).__snap;
       state.min = 1;
       state.lefts = [];
-      state.copies = document.querySelectorAll('[aria-hidden="true"][inert]').length;
+      state.rights = [];
+      state.copies = document.querySelectorAll('[aria-hidden="true"][inert]:not([data-tessera-rail-copy])').length;
       return state.copies;
     });
     await page.getByRole("button", { name: label }).click();
-    await expect.poll(leftOf).not.toBe(before);
+    await expect(page.locator("[data-tessera-rail-copy]")).toHaveCount(0);
+    await page.waitForTimeout(200);
     const after = await leftOf();
-    await page.waitForTimeout(600);
-    const snap = await page.evaluate(() => (window as unknown as { __snap: { min: number; lefts: number[]; copies: number } }).__snap);
+    expect(after).not.toBe(before);
+    const snap = await page.evaluate(() => (window as unknown as { __snap: Snap }).__snap);
     expect(snap.lefts.length).toBeGreaterThan(10);
     expect(snap.min).toBe(1);
     expect(snap.copies).toBe(atRest);
+    expect(new Set(snap.rights).size).toBe(1);
     const low = Math.min(before, after);
     const high = Math.max(before, after);
-    expect(snap.lefts.filter((left) => left > low && left < high)).toEqual([]);
+    expect(snap.lefts.filter((left) => left > low && left < high).length).toBeGreaterThan(2);
+    expect(snap.lefts.every((left) => left >= low && left <= high)).toBe(true);
     await expect(page.locator("html")).not.toHaveAttribute("data-astryx-reduced-motion");
   }
 });

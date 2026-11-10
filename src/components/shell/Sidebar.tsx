@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useOptimistic, useSyncExternalStore } from "react";
+import { startTransition, useEffect, useLayoutEffect, useOptimistic, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -16,6 +16,7 @@ import type { Project } from "@/lib/tessera/types";
 import { AgentIcon, AssistantIcon, BellIcon, BurndownIcon, CycleIcon, DraftIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, TableIcon, UserIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { FavoritesSection } from "./FavoritesSection";
 import { ProjectMenu, projectMove } from "./ProjectMenu";
+import { playRail, registerRailNav } from "./rail-motion";
 import { ExpandedOnly, NewItemButton, RailItem, RowActions } from "./RailParts";
 import { projectIdFromPath } from "./recents";
 import { formatKeys, SHORTCUT_BY_ID } from "./shortcuts";
@@ -166,6 +167,11 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
     if (activeProjectId && projects.some((project) => project.id === activeProjectId)) rememberProject(activeProjectId);
   }, [activeProjectId, projects]);
 
+  // The collapse motion (rail-motion.ts, decision 149): the commit that shows the new state glides the rail before it paints.
+  useLayoutEffect(() => {
+    playRail();
+  }, [isNavCollapsed]);
+
   const createTarget = ordered.find((project) => project.id === lastProject) ?? ordered[0] ?? null;
   const projectIds = ordered.map((project) => project.id);
   const moveProject = (projectId: string, direction: "up" | "down") => {
@@ -199,6 +205,7 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
   return (
     <SideNav
       key={resize.key}
+      ref={registerRailNav}
       aria-label="Work"
       collapsible={{ isCollapsed: isNavCollapsed, onCollapsedChange: setNavCollapsed, hasButton: false }}
       resizable={resize.resizable}

@@ -18,6 +18,7 @@
  * writes it.
  */
 import { useSyncExternalStore } from "react";
+import { holdRail } from "./rail-motion";
 
 let collapsed = false;
 const listeners = new Set<() => void>();
@@ -39,12 +40,13 @@ export function getServerNavCollapsed(): boolean {
 }
 
 /**
- * The collapse snaps (decision 149). On a rail change Astryx's AppShell glides the content column and cross-fades a
- * copy of the old content into the new layout, which on a busy page reads as a reload. Astryx 0.7.11 has no option to
- * keep the content still, so the change is made under the mark Astryx reads as Reduce Motion
- * (`data-astryx-reduced-motion` on `<html>`, private to Astryx and pinned by tests/ui/nav-collapse-snap.test.ts). It is
- * held for the commit and the frame after it, so with a mouse the rail and the content change at once and every other
- * motion is untouched. A mark the theme set is left alone.
+ * Tessera plays the collapse motion, not Astryx (decision 149). On a rail change Astryx's AppShell moves the content
+ * column with a transform and cross-fades a copy of the old content into the new layout, which on a busy page reads as
+ * a reload, and Astryx 0.7.11 has no option to keep the content still. So the change is made under the mark Astryx
+ * reads as Reduce Motion (`data-astryx-reduced-motion` on `<html>`, private to Astryx and pinned by
+ * tests/ui/nav-collapse-snap.test.ts), held for the commit and the frame after it: Astryx lands the rail and the
+ * content at once, and every other motion is untouched. `rail-motion.ts` then glides the rail's real width and
+ * crossfades its contents. A mark the theme set is left alone.
  */
 export const SNAP_MARK = "data-astryx-reduced-motion";
 let snapToken = 0;
@@ -72,6 +74,7 @@ function nextFrame(callback: () => void): void {
 /** Sets the flag; nobody is notified when the value is unchanged. */
 export function setNavCollapsed(next: boolean): void {
   if (next === collapsed) return;
+  holdRail(next, typeof document !== "undefined" && document.documentElement.hasAttribute(SNAP_MARK) && snapToken === 0);
   collapsed = next;
   snapNextChange();
   for (const listener of [...listeners]) listener();

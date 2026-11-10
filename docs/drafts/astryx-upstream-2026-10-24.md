@@ -283,7 +283,7 @@ Found along the way, and gone after step 2: on React 19.3 the `start`/`cancel` w
 
 Added 2026-11-10, verified against the installed 0.7.11 (`dist/AppShell/AppShell.js`, `dist/SideNav/SideNav.js`, `dist/motion/animatedLayout.js`). Not filed: filing posts on GitHub, so the user decides when.
 
-Tessera's workaround is decision 149: `setNavCollapsed` sets the private `data-astryx-reduced-motion` mark on `<html>` for the change, and `tests/ui/nav-collapse-snap.test.ts` pins the Astryx code it relies on. When a release ships a documented option, use it, delete the mark and the pins, and update decision 149.
+Tessera's workaround is decision 149: `setNavCollapsed` sets the private `data-astryx-reduced-motion` mark on `<html>` for the change, so Astryx lands the change at once, and `src/components/shell/rail-motion.ts` glides the rail's real width instead. `tests/ui/nav-collapse-snap.test.ts` pins the Astryx code it relies on. When a release ships a documented option, use it, delete the mark and the pins, and update decision 149.
 
 ### Issue text
 
@@ -296,7 +296,7 @@ When a collapsible `SideNav` inside `AppShell` collapses or expands, `AppShell`'
 The only ways to turn it off today are the user's Reduce Motion setting, or the theme-wide reduced-motion mark (`data-astryx-reduced-motion`, private: no package entry exports it). The theme-wide mark also stops every other animation. There is no `AppShell` or `SideNav` prop for this.
 
 Proposal (either would do):
-1. A documented `AppShell` prop, for example `contentRailMotion: 'swap' | 'glide' | 'none'`, default `'swap'`. `'glide'` moves the column without the copy and the fade. `'none'` lands at once, as Reduce Motion does with a mouse.
+1. A documented `AppShell` prop, for example `contentRailMotion: 'swap' | 'resize' | 'none'`, default `'swap'`. `'resize'` animates the rail's real width so the column's leading edge follows it and its trailing edge stays put, with no copy and no fade (a relayout per frame, cheap on most pages). `'none'` lands at once, as Reduce Motion does with a mouse.
 2. Or a `SideNav` `collapsible` option such as `isAnimated: false`, which skips `beforeRailChange` and `afterRailChange` (and the rail's own copy) for that nav.
 
 Repro: any `AppShell` with `sideNav={<SideNav collapsible={{ isCollapsed, onCollapsedChange }} />}` and a main area holding a scrolled list. Toggle `isCollapsed` and record `getComputedStyle(main.firstElementChild).opacity` and `main.getBoundingClientRect().left` on each animation frame.
