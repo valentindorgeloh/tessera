@@ -43,6 +43,8 @@ export type DetailHeaderProps = {
   /** "Send to superagent" entry (decision 145); shown disabled with `sendToSuperagentBlockedReason` as its description while the item cannot be sent. */
   onSendToSuperagent?: () => void;
   sendToSuperagentBlockedReason?: string;
+  /** The entry's label; "Open superagent chat" once the superagent has the item (decision 146). */
+  sendToSuperagentLabel?: string;
 };
 
 /** Full page route of an item; the origin is added at copy time. */
@@ -122,6 +124,7 @@ export function DetailHeader({
   onVersionHistory,
   onSendToSuperagent,
   sendToSuperagentBlockedReason,
+  sendToSuperagentLabel = "Send to superagent",
 }: DetailHeaderProps) {
   const { bundle } = useProject();
   const { project } = bundle;
@@ -140,7 +143,7 @@ export function DetailHeader({
     ...(onCopyToProject ? [{ id: "copy-project", label: "Copy to project…", icon: CopyIcon, onClick: onCopyToProject }] : []),
     ...(onMoveToProject ? [{ id: "move-project", label: "Move to project…", icon: MoveToProjectIcon, onClick: onMoveToProject }] : []),
     ...(onSendToSuperagent
-      ? [{ id: "superagent", label: "Send to superagent", icon: RobotIcon, isDisabled: sendToSuperagentBlockedReason !== undefined, description: sendToSuperagentBlockedReason, onClick: onSendToSuperagent }]
+      ? [{ id: "superagent", label: sendToSuperagentLabel, icon: RobotIcon, isDisabled: sendToSuperagentBlockedReason !== undefined, description: sendToSuperagentBlockedReason, onClick: onSendToSuperagent }]
       : []),
     { id: "copy-id", label: `Copy ID (${item.key})`, icon: HashIcon, onClick: () => void copyId.copy(item.key) },
     ...(onVersionHistory ? [{ id: "history", label: "Version history", icon: HistoryIcon, onClick: onVersionHistory }] : []),

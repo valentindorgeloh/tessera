@@ -8,9 +8,10 @@
  * screen's dialogs is open the screen asks Next to reload it every 15 seconds,
  * so health and stages stay current.
  */
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
+import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
@@ -18,7 +19,7 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { superagentRefreshAction } from "@/app/actions/superagent";
 import { PanelBar, PanelHeader, PanelPage, PanelTitle } from "@/components/shell/PanelHeader";
 import type { RequestScope, RunnerResult, SuperagentLoad } from "@/lib/superagent/types";
-import { REQUEST_SCOPES } from "@/lib/superagent/types";
+import { REQUEST_SCOPES, SUPERAGENT_CHAT_PATH } from "@/lib/superagent/types";
 import type { AgentSettings } from "@/lib/tessera/types";
 import { RetryIcon } from "@/themes/catppuccin/icons";
 import { AgentSettingsSection } from "./AgentSettingsSection";
@@ -28,6 +29,7 @@ import { RequestsTable } from "./RequestsTable";
 import { RunnerHealth, RunnerRouting } from "./RunnerOverview";
 import { RunnerBanners } from "./RunnerBanners";
 import { TeamSectionsSection } from "./TeamSectionsSection";
+import { useRunnerRefresh } from "./use-runner-refresh";
 import { sectionNote, superagentHref, teamRepos, type FailureContext, type ProjectOption } from "./superagent-format";
 
 /** How often the screen reloads itself while it is visible (decision 145). */
@@ -53,20 +55,9 @@ export function SuperagentScreen({ runner, agents, projects, scope, requestId }:
   const router = useRouter();
   const [dialog, setDialog] = useState<RequestDialog | null>(null);
   const [isRefreshing, startRefresh] = useTransition();
-  const [, startPoll] = useTransition();
   const context: FailureContext = { tokenFile: runner.tokenFile, runnerUrl: runner.runnerUrl };
   const isDialogOpen = dialog !== null;
-
-  useEffect(() => {
-    if (isDialogOpen) return;
-    const timer = window.setInterval(() => {
-      if (document.visibilityState !== "visible") return;
-      startPoll(async () => {
-        await superagentRefreshAction();
-      });
-    }, REFRESH_INTERVAL_MS);
-    return () => window.clearInterval(timer);
-  }, [isDialogOpen, startPoll]);
+  useRunnerRefresh(REFRESH_INTERVAL_MS, isDialogOpen);
 
   const refresh = () => {
     startRefresh(async () => {
@@ -86,7 +77,12 @@ export function SuperagentScreen({ runner, agents, projects, scope, requestId }:
         <PanelHeader label="Superagent">
           <PanelBar
             start={<PanelTitle>Superagent</PanelTitle>}
-            end={<IconButton label="Refresh" tooltip="Refresh" variant="ghost" size="sm" icon={<RetryIcon />} isLoading={isRefreshing} onClick={refresh} />}
+            end={
+              <>
+                <Button variant="secondary" size="sm" label="Chat" href={SUPERAGENT_CHAT_PATH} />
+                <IconButton label="Refresh" tooltip="Refresh" variant="ghost" size="sm" icon={<RetryIcon />} isLoading={isRefreshing} onClick={refresh} />
+              </>
+            }
           />
         </PanelHeader>
       }

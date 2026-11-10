@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 /**
  * "Send to superagent" in the detail (decisions 144 and 145; docs/contracts/ui.md
- * "Send to superagent"): the pure state helper, the DetailHeader More menu with
- * and without the entry (disabled with each reason, in its place between "Move
- * to project…" and "Copy ID"), and WorkItemDetail's wiring (a mapped project,
- * the superagent actor, the click that assigns it, the Toasts). Rendered with
+ * "Send to superagent" and "Navigation and send"): the pure state helper, the
+ * DetailHeader More menu with and without the entry (disabled with its reason,
+ * relabelled, in its place between "Move to project…" and "Copy ID"), and
+ * WorkItemDetail's wiring (a mapped project, the superagent actor, the click
+ * that assigns it, the Toasts, the chat it opens). Rendered with
  * `createElement` as detail-smoke.test.ts does; the Server Action wrappers, the
  * router and the Toast hook are mocked.
  */
@@ -47,8 +48,10 @@ vi.mock("@/app/actions/relations-comments", () => ({
   deleteCommentAction: action(),
 }));
 vi.mock("@/app/actions/shell", () => ({ refreshAction: vi.fn(async () => undefined) }));
+/** One `push` spy for every `useRouter()`, so a test reads where the detail navigated. */
+const routerPush = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
   usePathname: () => "/projects/p/work-items",
   useSearchParams: () => new URLSearchParams(""),
 }));
@@ -63,8 +66,8 @@ const { ProjectProvider } = await import("@/components/work-items/project-provid
 const { DetailHeader, WorkItemDetail } = await import("@/components/detail");
 const { setAssigneesAction } = await import("@/app/actions/work-items");
 const { useCommandContext } = await import("@/components/shell/command-context");
-const { SUPERAGENT_ALREADY_ASSIGNED, SUPERAGENT_NOT_CONNECTED, sendToSuperagentState, sentToSuperagentText } = await import("@/components/superagent/send-to-superagent");
-const { SUPERAGENT_ACTOR_NAME } = await import("@/lib/superagent/types");
+const { SUPERAGENT_NOT_CONNECTED, sendToSuperagentState, sentToSuperagentText } = await import("@/components/superagent/send-to-superagent");
+const { SUPERAGENT_ACTOR_NAME, SUPERAGENT_CHAT_PATH } = await import("@/lib/superagent/types");
 
 const PROJECT = "11111111-1111-7111-8111-111111111111";
 const ITEM = "22222222-2222-7222-8222-222222222222";
@@ -181,6 +184,7 @@ function rowLabel(row: HTMLElement): string {
 }
 
 const sendRow = (rows: HTMLElement[]) => rows.find((row) => rowLabel(row) === "Send to superagent");
+const openRow = (rows: HTMLElement[]) => rows.find((row) => rowLabel(row) === "Open superagent chat");
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -208,6 +212,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   toastSpy.mockClear();
+  routerPush.mockClear();
   vi.mocked(setAssigneesAction).mockClear();
 });
 
@@ -239,8 +244,10 @@ describe("sendToSuperagentState", () => {
     expect(sendToSuperagentState({ repo: REPO, actors: [person, { ...superagent, name: "mcp:other" }], assigneeIds: [], readOnly: false })).toEqual(blocked);
   });
 
-  it("is blocked once the superagent is an assignee", () => {
-    expect(sendToSuperagentState({ repo: REPO, actors, assigneeIds: [USER, AGENT], readOnly: false })).toEqual({ kind: "blocked", reason: SUPERAGENT_ALREADY_ASSIGNED });
+  it("opens the chat once the superagent is an assignee", () => {
+    expect(sendToSuperagentState({ repo: REPO, actors, assigneeIds: [USER, AGENT], readOnly: false })).toEqual({ kind: "open" });
+    // Not connected still wins over assignment bookkeeping: with no superagent actor there is nothing to open.
+    expect(sendToSuperagentState({ repo: REPO, actors: [person], assigneeIds: [USER, AGENT], readOnly: false })).toEqual({ kind: "blocked", reason: SUPERAGENT_NOT_CONNECTED });
   });
 
   it("is ready with the current assignees plus the superagent", () => {
@@ -284,7 +291,21 @@ describe("DetailHeader More menu", () => {
     expect(onSend).toHaveBeenCalledTimes(1);
   });
 
-  it.each([SUPERAGENT_NOT_CONNECTED, SUPERAGENT_ALREADY_ASSIGNED])("shows the row disabled with %s and does not call the handler", async (reason) => {
+  it("shows the row with sendToSuperagentLabel, enabled, and calls the handler on a click", async () => {
+    const onSend = vi.fn();
+    const rows = await moreMenuRows(await render(header({ onSendToSuperagent: onSend, sendToSuperagentLabel: "Open superagent chat" })));
+    expect(rows.map(rowLabel)).toEqual(["Make a copy", "Copy to project…", "Move to project…", "Open superagent chat", "Copy ID (WEB-1)", "Version history"]);
+    expect(sendRow(rows)).toBeUndefined();
+    const row = openRow(rows);
+    expect(row?.getAttribute("aria-disabled")).not.toBe("true");
+    await act(async () => {
+      row?.click();
+    });
+    expect(onSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the row disabled with its reason and does not call the handler", async () => {
+    const reason = SUPERAGENT_NOT_CONNECTED;
     const onSend = vi.fn();
     const rows = await moreMenuRows(await render(header({ onSendToSuperagent: onSend, sendToSuperagentBlockedReason: reason })));
     const row = sendRow(rows);
@@ -309,6 +330,9 @@ describe("WorkItemDetail Send to superagent", () => {
     });
     expect(setAssigneesAction).toHaveBeenCalledWith({ work_item_id: ITEM, actor_ids: [USER, AGENT] });
     expect(toastSpy).toHaveBeenCalledWith({ type: "info", body: "Sent to the superagent (tessera)." });
+    // Then the item's chat opens.
+    expect(routerPush).toHaveBeenCalledTimes(1);
+    expect(routerPush).toHaveBeenCalledWith(`${SUPERAGENT_CHAT_PATH}/WEB-1`);
   });
 
   it("reports a failed assignment with its message", async () => {
@@ -319,6 +343,7 @@ describe("WorkItemDetail Send to superagent", () => {
     });
     expect(toastSpy).toHaveBeenCalledWith({ type: "error", body: "Could not send to the superagent: Not allowed" });
     expect(toastSpy).not.toHaveBeenCalledWith(expect.objectContaining({ body: expect.stringContaining("Sent to the superagent") }));
+    expect(routerPush).not.toHaveBeenCalled();
   });
 
   it("goes through the optimistic assignee path, so a quick second edit keeps the superagent", async () => {
@@ -353,10 +378,12 @@ describe("WorkItemDetail Send to superagent", () => {
     expect(setAssigneesAction).toHaveBeenCalledTimes(2);
     expect(setAssigneesAction).toHaveBeenLastCalledWith({ work_item_id: ITEM, actor_ids: [AGENT, USER] });
     expect(toastSpy).not.toHaveBeenCalledWith(expect.objectContaining({ body: expect.stringContaining("Sent to the superagent") }));
+    expect(routerPush).not.toHaveBeenCalled();
     await act(async () => {
       release(ok as unknown as Outcome);
     });
     expect(toastSpy).toHaveBeenCalledWith({ type: "info", body: "Sent to the superagent (tessera)." });
+    expect(routerPush).toHaveBeenCalledWith(`${SUPERAGENT_CHAT_PATH}/WEB-1`);
   });
 
   it("is disabled with 'not connected' while the project's actors have no mcp:superagent", async () => {
@@ -367,12 +394,28 @@ describe("WorkItemDetail Send to superagent", () => {
       row?.click();
     });
     expect(setAssigneesAction).not.toHaveBeenCalled();
+    expect(routerPush).not.toHaveBeenCalled();
   });
 
-  it("is disabled with 'already assigned' when the superagent is an assignee", async () => {
-    const row = sendRow(await moreMenuRows(await render(detail(bundleOf(), itemOf({ assignee_ids: [USER, AGENT] })))));
-    expect(row?.getAttribute("aria-disabled")).toBe("true");
-    expect(row?.textContent).toContain(SUPERAGENT_ALREADY_ASSIGNED);
+  it("reads 'Open superagent chat' when the superagent is an assignee, and opens that item's chat without assigning", async () => {
+    const rows = await moreMenuRows(await render(detail(bundleOf(), itemOf({ assignee_ids: [USER, AGENT] }))));
+    expect(sendRow(rows)).toBeUndefined();
+    const row = openRow(rows);
+    expect(row?.getAttribute("aria-disabled")).not.toBe("true");
+    await act(async () => {
+      row?.click();
+    });
+    expect(routerPush).toHaveBeenCalledWith(`${SUPERAGENT_CHAT_PATH}/WEB-1`);
+    expect(setAssigneesAction).not.toHaveBeenCalled();
+    expect(toastSpy).not.toHaveBeenCalled();
+  });
+
+  it("encodes the key in the chat URL", async () => {
+    const rows = await moreMenuRows(await render(detail(bundleOf(), itemOf({ key: "WEB 1/#", assignee_ids: [AGENT] }))));
+    await act(async () => {
+      openRow(rows)?.click();
+    });
+    expect(routerPush).toHaveBeenCalledWith(`${SUPERAGENT_CHAT_PATH}/WEB%201%2F%23`);
   });
 
   it("has no row for an unmapped project, a bundle without the field or an archived item", async () => {

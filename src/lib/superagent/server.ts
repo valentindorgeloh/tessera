@@ -21,7 +21,7 @@ function failure(state: RunnerFailure["state"], message: string): RunnerResult<n
  * The URL comes from a Tessera database read, whose error propagates like on every other screen. The token is read
  * here and goes nowhere but the client.
  */
-async function connect(): Promise<{ runnerUrl: string; tokenFile: string; client: RunnerResult<RunnerClient> }> {
+export async function connectRunner(): Promise<{ runnerUrl: string; tokenFile: string; client: RunnerResult<RunnerClient> }> {
   const tokenFile = tokenFilePath();
   const runnerUrl = await readTessera((ctx) => getWorkspaceSettings(ctx).agents?.runner_url ?? AGENT_RUNNER_DEFAULT_URL);
   const read = await readRunnerToken(tokenFile);
@@ -41,13 +41,13 @@ function viaClient<T>(client: RunnerResult<RunnerClient>, run: (client: RunnerCl
  * database error from reading the runner URL propagates.
  */
 export async function withRunner<T>(run: (client: RunnerClient) => Promise<RunnerResult<T>>): Promise<RunnerResult<T>> {
-  const { client } = await connect();
+  const { client } = await connectRunner();
   return viaClient(client, run);
 }
 
 /** Everything the Superagent screen reads, the runner calls in parallel (`request` only when `requestId` is set). */
 export async function loadSuperagent({ scope, requestId }: { scope: RequestScope; requestId?: string | null }): Promise<SuperagentLoad> {
-  const { runnerUrl, tokenFile, client } = await connect();
+  const { runnerUrl, tokenFile, client } = await connectRunner();
   const [state, requests, triage, stats, settings, prompts, request] = await Promise.all([
     viaClient(client, (c) => c.getState()),
     viaClient(client, (c) => c.listRequests(scope)),

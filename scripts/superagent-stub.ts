@@ -1,5 +1,5 @@
 /**
- * `npx tsx scripts/superagent-stub.ts --port <n> --token-file <path> [--rewound] [--conflict]`
+ * `npx tsx scripts/superagent-stub.ts --port <n> --token-file <path> [--rewound] [--conflict] [--bind <requestId>=<workItemId>,<itemKey>,<projectId>]...`
  *
  * A fake superagent runner for browser acceptance of the Superagent screen
  * (docs/contracts/ui.md "Superagent control", "Fake runner and fixtures"). It
@@ -14,6 +14,8 @@
  *
  *   --rewound   the runner's cursor is past Tessera's newest change (intake stopped)
  *   --conflict  every PUT is a 409 CONFLICT, and the stored revision moves on as if someone else saved
+ *   --bind      repeatable: the request's summary and detail carry that work item id, key and project id, so
+ *               acceptance can point the fixtures at real items (docs/contracts/ui.md "Superagent chat")
  *
  * `createStubServer` is exported for tests/superagent/stub.test.ts.
  */
@@ -72,7 +74,20 @@ function fixture<S extends z.ZodType>(name: string, schema: S): z.output<S> {
   return schema.parse(JSON.parse(readFileSync(path.join(FIXTURES, name), "utf8")));
 }
 
-export type StubOptions = { token: string; rewound?: boolean; conflict?: boolean; log?: (line: string) => void };
+/** Points one fixture request at a real work item (`--bind`). */
+export type StubBind = { requestId: string; workItemId: string; itemKey: string; projectId: string };
+
+export type StubOptions = { token: string; rewound?: boolean; conflict?: boolean; binds?: readonly StubBind[]; log?: (line: string) => void };
+
+/** Parses one `--bind <requestId>=<workItemId>,<itemKey>,<projectId>` value; every part must be non-empty. */
+export function parseBind(value: string): StubBind {
+  const [requestId, rest = "", ...extra] = value.split("=");
+  const [workItemId, itemKey, projectId, ...more] = rest.split(",");
+  if (extra.length > 0 || more.length > 0 || !requestId || !workItemId || !itemKey || !projectId) {
+    throw new Error(`--bind expects <requestId>=<workItemId>,<itemKey>,<projectId>, got "${value}"`);
+  }
+  return { requestId, workItemId, itemKey, projectId };
+}
 
 export function createStubServer(options: StubOptions): Server {
   const state = fixture("state.json", RunnerStateSchema);
@@ -88,6 +103,12 @@ export function createStubServer(options: StubOptions): Server {
   }
 
   const find = (id: string) => requests.find((request) => request.id === id);
+
+  for (const bind of options.binds ?? []) {
+    const bound = find(bind.requestId);
+    if (bound === undefined) throw new Error(`--bind: no fixture request ${bind.requestId}`);
+    Object.assign(bound, { workItemId: bind.workItemId, itemKey: bind.itemKey, projectId: bind.projectId });
+  }
 
   function currentState() {
     const count = (match: (kind: StageKind) => boolean) => requests.filter((request) => match(request.stage.kind)).length;
@@ -260,7 +281,7 @@ export function createStubServer(options: StubOptions): Server {
 
 function main(): void {
   const { values } = parseArgs({
-    options: { port: { type: "string" }, "token-file": { type: "string" }, rewound: { type: "boolean" }, conflict: { type: "boolean" } },
+    options: { port: { type: "string" }, "token-file": { type: "string" }, rewound: { type: "boolean" }, conflict: { type: "boolean" }, bind: { type: "string", multiple: true } },
     strict: true,
   });
   const port = Number(values.port);
@@ -269,7 +290,8 @@ function main(): void {
   if (tokenFile === undefined) throw new Error("--token-file <path> is required");
   const token = readFileSync(tokenFile, "utf8").trim();
   if (token === "") throw new Error(`${tokenFile} is empty`);
-  const server = createStubServer({ token, rewound: values.rewound, conflict: values.conflict, log: (line) => console.log(line) });
+  const binds = (values.bind ?? []).map(parseBind);
+  const server = createStubServer({ token, rewound: values.rewound, conflict: values.conflict, binds, log: (line) => console.log(line) });
   server.listen(port, "127.0.0.1", () => {
     console.log(`Fake superagent runner on http://127.0.0.1:${port} (token from ${tokenFile})`);
   });

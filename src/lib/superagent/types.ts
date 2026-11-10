@@ -13,6 +13,7 @@ import type {
   RunnerStats,
   TriageRow,
 } from "./schemas";
+import type { ActorKind, PaletteColor } from "@/lib/tessera/types";
 
 export type {
   Deliverable,
@@ -76,4 +77,74 @@ export type SuperagentLoad = {
   prompts: RunnerResult<RunnerPromptsDoc>;
   /** The selected request's detail, or null when no request is selected. */
   request: RunnerResult<RequestDetail> | null;
+};
+
+/** The chat screen's route (decision 146); `/agents/superagent/chat/<itemKey>` opens one conversation. */
+export const SUPERAGENT_CHAT_PATH = "/agents/superagent/chat";
+
+/** A live mapped project, with the repository the superagent works in for it. */
+export type ChatProject = { id: string; name: string; identifier: string; repo: string };
+
+/** One row of the chat list: a work item the user and the superagent talk on. */
+export type ChatConversation = {
+  workItemId: string;
+  itemKey: string;
+  title: string;
+  projectId: string;
+  projectName: string;
+  isArchived: boolean;
+  lastMessage: { actorName: string; snippet: string; at: string } | null;
+  lastActivityAt: string;
+  /** The item's newest runner request (largest createdAt), or null when it has none or the runner list failed. */
+  request: RequestSummary | null;
+};
+
+/** One message of an open conversation: the item's description or a comment. */
+export type ChatEntry = {
+  /** The comment id, or `description` for the item's description. */
+  id: string;
+  kind: "description" | "comment" | "reply";
+  actorId: string;
+  actorName: string;
+  actorKind: ActorKind;
+  actorColor: PaletteColor;
+  bodyMd: string;
+  createdAt: string;
+  /** A comment with `edited_at` set; the description never. */
+  isEdited: boolean;
+};
+
+export type ChatOpen =
+  | { kind: "not_found"; itemKey: string }
+  | {
+      kind: "item";
+      workItemId: string;
+      itemKey: string;
+      title: string;
+      projectId: string;
+      projectName: string;
+      isArchived: boolean;
+      entries: ChatEntry[];
+      /** The item's project actors, for mention rendering in the comment renderer. */
+      mentionActors: { id: string; name: string }[];
+      request: RequestSummary | null;
+      /** GET /v1/requests/:id of `request`; null when `request` is null. */
+      detail: RunnerResult<RequestDetail> | null;
+      /** Where the composer's message goes as a reply (the open question's thread root), or null for a top-level comment. */
+      replyToCommentId: string | null;
+    };
+
+/** Everything the chat screen reads in one go (`loadSuperagentChat`). Plain objects, passed to the client component as props. */
+export type SuperagentChatLoad = {
+  runnerUrl: string;
+  tokenFile: string;
+  requests: RunnerResult<RequestSummary[]>;
+  /** The live `mcp:superagent` actor (kind agent), or null before the runner first connected. */
+  superagentActorId: string | null;
+  userActorId: string;
+  /** Mapped projects that are live (not archived, not deleted), in mapping order, with their repo. */
+  projects: ChatProject[];
+  conversations: ChatConversation[];
+  /** null on /agents/superagent/chat (no item in the URL). */
+  open: ChatOpen | null;
 };

@@ -45,6 +45,7 @@ export * from "./pages";
 export * from "./import-handbook";
 export * from "./relations";
 export * from "./comments";
+export * from "./agent-conversations";
 export * from "./reactions";
 export * from "./notifications";
 export * from "./intake";

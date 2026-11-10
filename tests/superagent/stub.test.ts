@@ -6,7 +6,7 @@
 import { request as httpRequest, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { createStubServer, type StubOptions } from "../../scripts/superagent-stub";
+import { createStubServer, parseBind, type StubOptions } from "../../scripts/superagent-stub";
 import { createRunnerClient, type RunnerClient } from "@/lib/superagent/client";
 import type { RunnerResult } from "@/lib/superagent/types";
 import { TOKEN } from "./support";
@@ -197,5 +197,34 @@ describe("settings and prompts", () => {
     expect(await client.putSettings(reloaded.settings, reloaded.revision)).toMatchObject({ ok: false, failure: { state: "conflict" } });
     const prompts = okData(await client.getPrompts());
     expect(await client.putPrompts(prompts.teamSections, prompts.revision)).toMatchObject({ ok: false, failure: { state: "conflict" } });
+  });
+});
+
+describe("--bind", () => {
+  const WORK_ITEM = "0192f6a8-1000-7000-8000-0000000000aa";
+  const PROJECT = "0192f6a8-0000-7000-8000-0000000000bb";
+  const bind = parseBind(`rq_question=${WORK_ITEM},WEB-7,${PROJECT}`);
+
+  it("parses requestId=workItemId,itemKey,projectId and refuses anything else", () => {
+    expect(bind).toEqual({ requestId: "rq_question", workItemId: WORK_ITEM, itemKey: "WEB-7", projectId: PROJECT });
+    for (const bad of ["", "rq_question", "rq_question=a,b", "rq_question=a,b,", "=a,b,c", "rq=a,b,c,d", "rq=a,b,c=d"]) {
+      expect(() => parseBind(bad)).toThrow(/--bind expects/);
+    }
+  });
+
+  it("points the bound request's summary and detail at the item, and leaves the others alone", async () => {
+    const { client } = await start({ binds: [bind, parseBind(`rq_working=${WORK_ITEM}x,WEB-8,${PROJECT}`)] });
+    const all = okData(await client.listRequests("all"));
+    expect(all.find((entry) => entry.id === "rq_question")).toMatchObject({ workItemId: WORK_ITEM, itemKey: "WEB-7", projectId: PROJECT });
+    expect(all.find((entry) => entry.id === "rq_working")).toMatchObject({ workItemId: `${WORK_ITEM}x`, itemKey: "WEB-8" });
+    expect(all.find((entry) => entry.id === "rq_signoff")?.itemKey).toBe("TES-142");
+    const detail = okData(await client.getRequest("rq_question"));
+    expect(detail).toMatchObject({ workItemId: WORK_ITEM, itemKey: "WEB-7", projectId: PROJECT });
+    expect(detail.question).not.toBeNull();
+    expect(okData(await client.getRequest("rq_working"))).toMatchObject({ workItemId: `${WORK_ITEM}x`, itemKey: "WEB-8" });
+  });
+
+  it("refuses a request id the fixtures do not have", () => {
+    expect(() => createStubServer({ token: TOKEN, binds: [parseBind(`rq_nope=${WORK_ITEM},WEB-7,${PROJECT}`)] })).toThrow(/no fixture request rq_nope/);
   });
 });

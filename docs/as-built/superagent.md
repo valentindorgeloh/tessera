@@ -1,6 +1,6 @@
-# As-built map: superagent control (decisions 143, 144 and 145)
+# As-built map: superagent control and chat (decisions 143 to 146)
 
-State described: branch `claude/unruffled-feynman-d4ed47` after the superagent review round, 2026-11-10, migration 0014. The runner itself is a separate program (the plan's Parts A and B); this file covers Tessera's side only: idempotent agent comments, the agent settings, the control client, the `/agents/superagent` screen and "Send to superagent". The full rules are in `docs/contracts/ui.md` ("Superagent control"), `tools.md` and `service-api.md` ("Superagent ..."), and `schema.md` ("Migration 0014").
+State described: branch `claude/unruffled-feynman-d4ed47` after the superagent chat (decision 146), 2026-11-10, migration 0014. The runner itself is a separate program (the plan's Parts A and B); this file covers Tessera's side only: idempotent agent comments, the agent settings, the control client, the `/agents/superagent` screen and "Send to superagent". The full rules are in `docs/contracts/ui.md` ("Superagent control"), `tools.md` and `service-api.md` ("Superagent ..."), and `schema.md` ("Migration 0014").
 
 ## 1. Purpose and boundaries
 
@@ -25,6 +25,15 @@ The control API is never a tool. No registry tool's name contains `superagent` o
 | `src/app/(tessera)/agents/superagent/page.tsx`, `src/components/superagent/*` | The screen: banners, Needs you (requests table and triage), Health and spend, History of one request, Routing, Settings (Tessera mapping and runner settings) and Team sections. Polls every 15 s while visible and no dialog is open. |
 | `src/components/detail/{DetailHeader,WorkItemDetail}.tsx`, `src/components/detail/use-detail-actions.ts`, `src/components/superagent/send-to-superagent.ts` | "Send to superagent" in the More menu of items in mapped projects: assigns the item to `mcp:superagent` through the detail's optimistic assignee path (`setAssigneesReporting`). |
 | `scripts/superagent-stub.ts`, `tests/fixtures/superagent/*.json` | A fake runner for acceptance and tests (`node:http`, in-memory, the v1 auth rules). Not part of the app. |
+
+### Chat (decision 146)
+
+| Path | Responsibility |
+|---|---|
+| `src/lib/tessera/agent-conversations.ts` | `listAgentConversations`: items in the given projects that an actor is assigned to or mentioned on (item or live comment), plus extra ids; newest activity first, at most 200. A service read, not a tool. |
+| `src/lib/superagent/chat.ts` (`server-only`) | `loadSuperagentChat({ itemKey })`. The runner list and the Tessera read run in parallel; request-only items are merged in, and each item gets its newest request. The entries are the description first, then the comments flattened in time order. `replyToCommentId` is the open question's thread root, found by `client_ref` `question:<requestId>:*` or else by the question text. |
+| `src/app/(tessera)/agents/superagent/chat/**`, `src/components/superagent/chat/*`, `chat-format.ts`, `styles/superagent-chat.css` | The screen, in the Inbox frame (list beside the thread, one pane under 1024px) with Astryx `Chat*` components. The composer posts through `createCommentAction`; New chat goes through `createWorkItemAction`. Runner data refreshes every 5 s (`use-runner-refresh.ts`); comments arrive through `ChangesPoller`. |
+| `Sidebar.tsx`, `recents.ts`, `SuperagentScreen.tsx`, `send-to-superagent.ts`, `DetailHeader.tsx`, `WorkItemDetail.tsx` | The "Superagent chat" sidebar row, the Recents labels and the control screen's "Chat" button. "Send to superagent" opens the chat after assigning; on an assigned item it reads "Open superagent chat". |
 
 ## 3. Operating it
 

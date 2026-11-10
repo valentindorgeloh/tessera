@@ -11,8 +11,9 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { usePointerDrag } from "@/components/dnd/use-pointer-drag";
 import { isFavoriteInTree, reorderByPlacement, stepPlacement, type FavoritesTree } from "@/components/favorites/tree";
 import { LAST_PROJECT_STORAGE_KEY } from "@/components/work-items/project-provider";
+import { SUPERAGENT_CHAT_PATH } from "@/lib/superagent/types";
 import type { Project } from "@/lib/tessera/types";
-import { AgentIcon, BellIcon, BurndownIcon, CycleIcon, DraftIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, TableIcon, UserIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
+import { AgentIcon, AssistantIcon, BellIcon, BurndownIcon, CycleIcon, DraftIcon, FolderIcon, HouseIcon, PageIcon, PlusIcon, TableIcon, UserIcon, resolveLogoIcon } from "@/themes/catppuccin/icons";
 import { FavoritesSection } from "./FavoritesSection";
 import { ProjectMenu, projectMove } from "./ProjectMenu";
 import { ExpandedOnly, NewItemButton, RailItem, RowActions } from "./RailParts";
@@ -142,7 +143,7 @@ export function useSidebarResize(): { key: string; resizable: { defaultWidth: nu
  * landmark name): a quiet "New work item" button for the last visited (else
  * first) project, then Home, Inbox, Your work, Drafts, Wiki, Favourites, the
  * projects, and Workspace views,
- * Active cycles, Analytics and Agents. A project's own pages are the tabs
+ * Active cycles, Analytics, Agents and Superagent chat. A project's own pages are the tabs
  * in its panel header (`ProjectFrame`), not children here. Collapse state
  * comes from the shell (`mod+b`, the top bar's toggle) and reaches the rows
  * and the button through Astryx's collapse context (RailParts.tsx), which the
@@ -158,6 +159,8 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
   const { lastProjectId: lastProject } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const resize = useSidebarResize();
   const activeProjectId = projectIdFromPath(pathname);
+  // The chat lives under /agents/superagent/chat, so "Agents" yields the rail's selection to "Superagent chat" there (decision 146).
+  const onSuperagentChat = pathname === SUPERAGENT_CHAT_PATH || pathname.startsWith(`${SUPERAGENT_CHAT_PATH}/`);
 
   useEffect(() => {
     if (activeProjectId && projects.some((project) => project.id === activeProjectId)) rememberProject(activeProjectId);
@@ -270,7 +273,8 @@ export function Sidebar({ projects, unreadCount, draftCount, favorites }: { proj
         <RailItem label="Workspace views" icon={TableIcon} href="/workspace-views" isSelected={pathname === "/workspace-views" || pathname.startsWith("/workspace-views/")} />
         <RailItem label="Active cycles" icon={CycleIcon} href="/active-cycles" isSelected={pathname === "/active-cycles" || pathname.startsWith("/active-cycles/")} />
         <RailItem label="Analytics" icon={BurndownIcon} href="/analytics/overview" isSelected={pathname === "/analytics" || pathname.startsWith("/analytics/")} />
-        <RailItem label="Agents" icon={AgentIcon} href="/agents" isSelected={pathname === "/agents" || pathname.startsWith("/agents/")} />
+        <RailItem label="Agents" icon={AgentIcon} href="/agents" isSelected={(pathname === "/agents" || pathname.startsWith("/agents/")) && !onSuperagentChat} />
+        <RailItem label="Superagent chat" icon={AssistantIcon} href={SUPERAGENT_CHAT_PATH} isSelected={onSuperagentChat} />
       </SideNavSection>
     </SideNav>
   );

@@ -30,6 +30,7 @@
 @import "../components/styles/paging.css";
 @import "../components/styles/lock-control.css";
 @import "../components/styles/superagent.css";
+@import "../components/styles/superagent-chat.css";
 
 html,
 body {

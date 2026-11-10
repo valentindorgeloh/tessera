@@ -167,6 +167,11 @@ describe("resolveRoute", () => {
     expect(resolveRoute("/agents", lookup)).toEqual({ label: "Agents", icon: "agents" });
     expect(resolveRoute("/agents/superagent", lookup)).toEqual({ label: "Superagent", icon: "agents" });
     expect(resolveRoute("/agents/superagent?scope=recent&request=r1", lookup)).toEqual({ label: "Superagent", icon: "agents" });
+    // The chat (decision 146): the list and one item's chat, by key.
+    expect(resolveRoute("/agents/superagent/chat", lookup)).toEqual({ label: "Superagent chat", icon: "agents" });
+    expect(resolveRoute("/agents/superagent/chat/", lookup)).toEqual({ label: "Superagent chat", icon: "agents" });
+    expect(resolveRoute("/agents/superagent/chat/WEB-12", lookup)).toEqual({ label: "Chat WEB-12", icon: "agents" });
+    expect(resolveRoute("/agents/superagent/chat/WEB-12?x=1", lookup)).toEqual({ label: "Chat WEB-12", icon: "agents" });
     // An actor's id is a uuid, so it still takes the actor's name (or "Agent").
     const withActor: RouteLookup = { ...lookup, actorLabel: (id) => (id === ITEM ? "Deploy bot" : undefined) };
     expect(resolveRoute(`/agents/${ITEM}/summary`, withActor)).toEqual({ label: "Deploy bot · Summary", icon: "agents" });

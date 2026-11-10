@@ -9,6 +9,8 @@
     "/agents/[actorId]": 554488,
     "/agents/[actorId]/[tab]": 683050,
     "/agents/superagent": 577765,
+    "/agents/superagent/chat": 852427,
+    "/agents/superagent/chat/[itemKey]": 852427,
     "/analytics": 554488,
     "/analytics/[tab]": 702497,
     "/browse/[key]": 554488,
